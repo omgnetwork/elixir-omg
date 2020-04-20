@@ -154,7 +154,7 @@ defmodule OMG.TestHelper do
   @doc """
   Always creates file in the priv/ folder of the application.
   """
-  @spec write_fee_file(%{Crypto.address_t() => map()} | binary()) :: {:ok, binary, binary}
+  @spec write_fee_file(%{Crypto.address_t() => map()} | binary()) :: {:ok, binary}
   def write_fee_file(fee_map, file_path \\ nil)
 
   def write_fee_file(map, file_path) when is_map(map) do
