@@ -25,7 +25,16 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   require Utxo
 
-  @enforce_keys [:amount, :currency, :owner, :exit_id, :exiting_txbytes, :is_active, :eth_height]
+  @enforce_keys [
+    :amount,
+    :currency,
+    :owner,
+    :exit_id,
+    :exiting_txbytes,
+    :is_active,
+    :eth_height,
+    :root_chain_txhash
+  ]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
@@ -37,10 +46,19 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           exiting_txbytes: Transaction.tx_bytes(),
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
-          eth_height: pos_integer()
+          eth_height: pos_integer(),
+          root_chain_txhash: Crypto.hash_t()
         }
 
-  def new(contract_status, %{eth_height: eth_height, call_data: %{output_tx: txbytes}, exit_id: exit_id} = event) do
+  def new(
+        contract_status,
+        %{
+          eth_height: eth_height,
+          call_data: %{output_tx: txbytes},
+          exit_id: exit_id,
+          root_chain_txhash: root_chain_txhash
+        } = event
+      ) do
     Utxo.position(_, _, oindex) = utxo_pos_for(event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
@@ -51,7 +69,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       owner: owner,
       exit_id: exit_id,
       exiting_txbytes: txbytes,
-      eth_height: eth_height
+      eth_height: eth_height,
+      root_chain_txhash: root_chain_txhash
     )
   end
 
@@ -80,12 +99,14 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
            exit_id: exit_id,
            exiting_txbytes: exiting_txbytes,
            is_active: is_active,
-           eth_height: eth_height
+           eth_height: eth_height,
+           root_chain_txhash: root_chain_txhash
          }}
       )
       when is_integer(amount) and is_integer(eth_height) and
-             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and is_binary(exiting_txbytes) and
-             is_boolean(is_active) do
+             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and
+             is_binary(exiting_txbytes) and
+             is_boolean(is_active) and is_binary(root_chain_txhash) do
     value = %{
       amount: amount,
       currency: currency,
@@ -93,7 +114,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exit_id: exit_id,
       exiting_txbytes: exiting_txbytes,
       is_active: is_active,
-      eth_height: eth_height
+      eth_height: eth_height,
+      root_chain_txhash: root_chain_txhash
     }
 
     {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
