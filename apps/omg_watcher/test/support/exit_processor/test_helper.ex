@@ -42,8 +42,15 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     eth_height = Keyword.get(opts, :eth_height, 2)
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
     call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
+    root_chain_txhash = 0..255 |> Enum.shuffle() |> Enum.take(32) |> :erlang.list_to_binary()
 
-    event = %{owner: owner, eth_height: eth_height, exit_id: exit_id, call_data: call_data}
+    event = %{
+      owner: owner,
+      eth_height: eth_height,
+      exit_id: exit_id,
+      call_data: call_data,
+      root_chain_txhash: root_chain_txhash
+    }
 
     exitable = not Keyword.get(opts, :inactive, false)
     # those should be unused so setting to `nil`
