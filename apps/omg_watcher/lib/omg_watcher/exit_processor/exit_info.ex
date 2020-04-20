@@ -130,12 +130,13 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
            exit_id: exit_id,
            exiting_txbytes: exiting_txbytes,
            is_active: is_active,
-           eth_height: eth_height
+           eth_height: eth_height,
+           root_chain_txhash: root_chain_txhash
          }}
       )
       when is_integer(amount) and is_integer(eth_height) and
              is_binary(currency) and is_binary(owner) and is_integer(exit_id) and is_binary(exiting_txbytes) and
-             is_boolean(is_active) do
+             is_boolean(is_active) and is_binary(root_chain_txhash) do
     # mapping is used in case of changes in data structure
     value = %{
       amount: amount,
@@ -144,7 +145,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exit_id: exit_id,
       exiting_txbytes: exiting_txbytes,
       is_active: is_active,
-      eth_height: eth_height
+      eth_height: eth_height,
+      root_chain_txhash: root_chain_txhash
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
