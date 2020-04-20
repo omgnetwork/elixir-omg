@@ -58,7 +58,7 @@ config :omg_child_chain,
   fee_adapter:
     {OMG.ChildChain.Fees.FileAdapter,
      opts: [
-       specs_file_path: Path.join(__DIR__, "../test/omg_child_chain/support/fee_specs.json")
+       specs_file_path: Path.join(__DIR__, "../apps/omg_child_chain/test/omg_child_chain/support/fee_specs.json")
      ]}
 
 # We need to start OMG.ChildChainRPC.Web.Endpoint with HTTP server for Performance and Watcher tests to work
