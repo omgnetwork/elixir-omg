@@ -40,6 +40,7 @@ To bring the entire system up you will first need to bring in the compatible Get
 ```sh
 make init_test
 ```
+It creates a file `./localchain_contract_addresses.env`. It is required to have this file in current directory for running any `docker-compose` command.
 
 ```sh
 docker-compose up
@@ -71,7 +72,7 @@ If you want Docker to use the latest commit from `elixir-omg` you can trigger a 
 # Install on a Linux host
 Follow the guide to **[install](docs/install.md)** the Child Chain server, Watcher and Watcher Info.
 
-# Installing Plasma contract snapshots 
+# Installing Plasma contract snapshots
 
 To pull in the compatible snapshot for Geth:
 ```bash
