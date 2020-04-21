@@ -38,7 +38,7 @@ defmodule OMG.ChildChainRPC.Web.Plugs.Health do
       data =
         Error.serialize(
           "operation:service_unavailable",
-          "The server is not ready to handle the request."
+          "The server is not ready to handle the request. Check the alarms for more info."
         )
 
       conn
