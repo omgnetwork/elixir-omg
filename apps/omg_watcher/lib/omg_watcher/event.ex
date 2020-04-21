@@ -139,7 +139,7 @@ defmodule OMG.Watcher.Event do
     It is a prompt to exit
     """
 
-    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, name: :unchallenged_exit]
+    defstruct [:amount, :currency, :owner, :utxo_pos, :root_chain_txhash, :eth_height, name: :unchallenged_exit]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
@@ -147,7 +147,8 @@ defmodule OMG.Watcher.Event do
             owner: binary(),
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
-            name: atom()
+            name: atom(),
+            root_chain_txhash: Crypto.hash_t()
           }
   end
 
