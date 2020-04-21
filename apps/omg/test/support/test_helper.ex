@@ -170,11 +170,14 @@ defmodule OMG.TestHelper do
   end
 
   def write_fee_file(content, file_path) do
-    file_path =
-      file_path || "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{DateTime.to_unix(DateTime.utc_now())}"
+    path =
+      case file_path do
+        nil -> "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{DateTime.to_unix(DateTime.utc_now())}"
+        _ -> file_path
+      end
 
-    :ok = File.write(file_path, content, [:write])
-    {:ok, file_path}
+    :ok = File.write(path, content, [:write])
+    {:ok, path}
   end
 
   defp parse_fees(fees) do
