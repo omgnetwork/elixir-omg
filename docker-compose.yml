@@ -76,6 +76,8 @@ services:
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
       - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
+      - FEE_ADAPTER=file
+      - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
       - FEE_BUFFER_DURATION_MS=30000
       - LOGGER_BACKEND=console
       - RELEASE_COOKIE=development
@@ -87,6 +89,7 @@ services:
       - "9656"
     volumes:
       - ./data:/data
+      - ./priv/dev-artifacts:/dev-artifacts
     healthcheck:
       test: curl childchain:9656
       interval: 30s
