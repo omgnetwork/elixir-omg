@@ -54,7 +54,12 @@ config :omg,
 config :omg_child_chain,
   block_queue_eth_height_check_interval_ms: 100,
   fee_adapter_check_interval_ms: 1_000,
-  fee_buffer_duration_ms: 5_000
+  fee_buffer_duration_ms: 5_000,
+  fee_adapter:
+    {OMG.ChildChain.Fees.FileAdapter,
+     opts: [
+       specs_file_path: Path.join(__DIR__, "../apps/omg_child_chain/test/omg_child_chain/support/fee_specs.json")
+     ]}
 
 # We need to start OMG.ChildChainRPC.Web.Endpoint with HTTP server for Performance and Watcher tests to work
 # as a drawback lightweight (without HTTP server) controller tests are no longer an option.

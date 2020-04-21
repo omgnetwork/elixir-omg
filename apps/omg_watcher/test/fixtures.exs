@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Fixtures do
 
     enc_eth = Eth.Encoding.to_hex(OMG.Eth.zero_address())
 
-    {:ok, path, file_name} =
+    {:ok, file_path} =
       TestHelper.write_fee_file(%{
         @payment_tx_type => %{
           enc_eth => %{
@@ -60,16 +60,16 @@ defmodule OMG.Watcher.Fixtures do
       Application.put_env(
         :omg_child_chain,
         :fee_adapter,
-        {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_name: file_name]},
+        {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: file_path]},
         persistent: true
       )
 
     on_exit(fn ->
-      :ok = File.rm(path)
+      :ok = File.rm(file_path)
       :ok = Application.put_env(:omg_child_chain, :fee_adapter, old_value)
     end)
 
-    file_name
+    file_path
   end
 
   deffixture mix_based_child_chain(contract, fee_file) do
