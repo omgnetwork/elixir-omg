@@ -69,7 +69,12 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
     configure_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: []})
   end
 
-  defp validate_integer(value), do: String.to_integer(value)
+  defp validate_integer(value) do
+    case Integer.parse(value) do
+      {parsed, ""} -> parsed
+      _ -> raise "Invalid integer: #{value}"
+    end
+  end
 
   # Replaces one of the adapter's options value with environment variable when set.
   #
