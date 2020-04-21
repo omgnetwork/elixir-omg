@@ -30,23 +30,26 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
 
   def load(config, _args) do
     _ = on_load()
+    adapter_config = config[@app][@config_key]
 
-    existing_config = Application.get_env(@app, @config_key)
+    updated_config =
+      @env_fee_adapter
+      |> System.get_env()
+      |> parse_adapter_value()
+      |> case do
+        "FEED" -> [omg_child_chain: [fee_adapter: configure_adapter(adapter_config)]]
+        _ -> []
+      end
 
-    @env_fee_adapter
-    |> System.get_env()
-    |> parse_adapter_value()
-    |> case do
-      "FEED" -> configure_feed_adapter(existing_config, config)
-      _ -> config
-    end
+    Config.Reader.merge(config, updated_config)
   end
 
   defp parse_adapter_value(nil), do: :skip
   defp parse_adapter_value(value), do: String.upcase(value)
 
   # If the existing config is already a feed adapter, we merge the new config into the existing opts.
-  defp configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}, config) do
+  # If it's not a feed adapter, we start configuring with an empty FeedAdapter opts.
+  defp configure_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: fee_adapter_opts}) do
     adapter_opts =
       fee_adapter_opts
       |> replace_with_env(:fee_feed_url, "FEE_FEED_URL")
@@ -59,13 +62,11 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts do
 
     adapter = {OMG.ChildChain.Fees.FeedAdapter, opts: adapter_opts}
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(adapter)}.")
-
-    Config.Reader.merge(config, omg_child_chain: [fee_adapter: adapter])
+    adapter
   end
 
-  # If the existing config is not a feed adapter, we start configuring with an empty opts.
-  defp configure_feed_adapter(_not_feed_adapter, config) do
-    configure_feed_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: []}, config)
+  defp configure_adapter(_not_feed_adapter) do
+    configure_adapter({OMG.ChildChain.Fees.FeedAdapter, opts: []})
   end
 
   defp validate_integer(value), do: String.to_integer(value)

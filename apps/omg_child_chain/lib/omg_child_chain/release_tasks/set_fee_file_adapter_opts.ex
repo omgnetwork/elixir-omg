@@ -32,25 +32,27 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOpts do
   def load(config, _args) do
     _ = on_load()
 
-    @env_fee_adapter
-    |> System.get_env()
-    |> parse_adapter_value()
-    |> case do
-      "FILE" -> configure_file_adapter(config)
-      _ -> config
-    end
+    updated_config =
+      @env_fee_adapter
+      |> System.get_env()
+      |> parse_adapter_value()
+      |> case do
+        "FILE" -> [omg_child_chain: [fee_adapter: configure_adapter()]]
+        _ -> []
+      end
+
+    Config.Reader.merge(config, updated_config)
   end
 
   defp parse_adapter_value(nil), do: :skip
   defp parse_adapter_value(value), do: String.upcase(value)
 
-  defp configure_file_adapter(config) do
+  defp configure_adapter() do
     specs_file_path = System.get_env(@env_fee_specs_file_path)
 
     adapter = {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: specs_file_path]}
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@config_key} Value: #{inspect(adapter)}.")
-
-    Config.Reader.merge(config, omg_child_chain: [fee_adapter: adapter])
+    adapter
   end
 
   defp on_load() do

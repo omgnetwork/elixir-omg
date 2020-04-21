@@ -77,25 +77,27 @@ defmodule OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOptsTest do
   end
 
   test "does not touch the configuration that's not present as env var" do
-    original_opts = [
+    adapter_opts = [
       fee_feed_url: "http://example.com/fee-feed-url-original",
       fee_change_tolerance_percent: 10,
       stored_fee_update_interval_minutes: 30
     ]
 
-    :ok = Application.put_env(@app, @config_key, {FeedAdapter, opts: original_opts})
+    config = [
+      omg_child_chain: [fee_adapter: {OMG.ChildChain.Fees.FeedAdapter, opts: adapter_opts}]
+    ]
 
     # Intentionally not configuring @env_fee_feed_url and @env_stored_fee_update_interval_minutes
     :ok = System.put_env(@env_fee_adapter, "feed")
     :ok = System.put_env(@env_fee_change_tolerance_percent, "50")
-    config = SetFeeFeedAdapterOpts.load([], [])
+    config = SetFeeFeedAdapterOpts.load(config, [])
 
-    {adapter, opts: adapter_opts} = config[@app][@config_key]
+    {adapter, opts: new_opts} = config[:omg_child_chain][:fee_adapter]
 
     assert adapter == FeedAdapter
-    assert adapter_opts[:fee_feed_url] == original_opts[:fee_feed_url]
-    assert adapter_opts[:fee_change_tolerance_percent] == 50
-    assert adapter_opts[:stored_fee_update_interval_minutes] == original_opts[:stored_fee_update_interval_minutes]
+    assert new_opts[:fee_feed_url] == adapter_opts[:fee_feed_url]
+    assert new_opts[:fee_change_tolerance_percent] == 50
+    assert new_opts[:stored_fee_update_interval_minutes] == adapter_opts[:stored_fee_update_interval_minutes]
   end
 
   test "does not change the configuration when FEE_ADAPTER is not \"feed\"" do
