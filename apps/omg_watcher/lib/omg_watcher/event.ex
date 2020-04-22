@@ -32,8 +32,22 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.PiggybackAvailable.t()
           | OMG.Watcher.Event.InvalidPiggyback.t()
 
-  @type t :: OMG.Watcher.Event.AddressReceived.t() | OMG.Watcher.Event.ExitFinalized.t() | byzantine_t()
+  @type t ::
+          OMG.Watcher.Event.AddressReceived.t()
+          | OMG.Watcher.Event.ExitFinalized.t()
+          | byzantine_t()
 
+  @type module_t ::
+          OMG.Watcher.Event.InvalidBlock
+          | OMG.Watcher.Event.BlockWithholding
+          | OMG.Watcher.Event.InvalidExit
+          | OMG.Watcher.Event.UnchallengedExit
+          | OMG.Watcher.Event.NonCanonicalIFE
+          | OMG.Watcher.Event.InvalidIFEChallenge
+          | OMG.Watcher.Event.PiggybackAvailable
+          | OMG.Watcher.Event.InvalidPiggyback
+          | OMG.Watcher.Event.AddressReceived
+          | OMG.Watcher.Event.ExitFinalized
   #  TODO The reason why events have name as String and byzantine events as atom is that
   #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
   #  the same way in `OMG.Watcher.Web.Serializers.Response`
@@ -119,7 +133,15 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid exit
     """
 
-    defstruct [:amount, :currency, :owner, :utxo_pos, :root_chain_txhash, :eth_height, name: :invalid_exit]
+    defstruct [
+      :amount,
+      :currency,
+      :owner,
+      :utxo_pos,
+      :root_chain_txhash,
+      :eth_height,
+      name: :invalid_exit
+    ]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
@@ -139,7 +161,15 @@ defmodule OMG.Watcher.Event do
     It is a prompt to exit
     """
 
-    defstruct [:amount, :currency, :owner, :utxo_pos, :root_chain_txhash, :eth_height, name: :unchallenged_exit]
+    defstruct [
+      :amount,
+      :currency,
+      :owner,
+      :utxo_pos,
+      :root_chain_txhash,
+      :eth_height,
+      name: :unchallenged_exit
+    ]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
