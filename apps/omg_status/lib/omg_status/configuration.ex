@@ -32,6 +32,6 @@ defmodule OMG.Status.Configuration do
 
   @spec datadog_disabled?() :: boolean()
   def datadog_disabled?() do
-    Application.get_env(@app, Tracer)[:disabled?]
+    Application.fetch_env!(@app, Tracer)[:disabled?]
   end
 end
