@@ -52,9 +52,16 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
         }
 
   @spec new(map(), map()) :: t()
-  def new(contract_status, event) do
-    Utxo.position(_, _, oindex) = utxo_pos_for(event)
-    txbytes = Kernel.get_in(event, [:call_data, :output_tx])
+  def new(
+        contract_status,
+        %{
+          eth_height: eth_height,
+          call_data: %{output_tx: txbytes},
+          exit_id: exit_id,
+          root_chain_txhash: root_chain_txhash
+        } = exit_event
+      ) do
+    Utxo.position(_, _, oindex) = utxo_pos_for(exit_event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
 
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
@@ -63,17 +70,17 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       amount: amount,
       currency: currency,
       owner: owner,
-      exit_id: event.exit_id,
+      exit_id: exit_id,
       exiting_txbytes: txbytes,
-      eth_height: event.eth_height,
-      root_chain_txhash: event.root_chain_txhash
+      eth_height: eth_height,
+      root_chain_txhash: root_chain_txhash
     )
   end
 
-  def new_key(_contract_status, event),
-    do: utxo_pos_for(event)
+  def new_key(_contract_status, exit_info),
+    do: utxo_pos_for(exit_info)
 
-  defp utxo_pos_for(%{call_data: %{utxo_pos: utxo_pos_enc}} = _event),
+  defp utxo_pos_for(%{call_data: %{utxo_pos: utxo_pos_enc}} = _exit_info),
     do: Utxo.Position.decode!(utxo_pos_enc)
 
   @spec do_new(map(), list(map())) :: t()
@@ -83,7 +90,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   end
 
   @spec make_event_data(Event.module_t(), Utxo.Position.t(), t()) :: struct()
-  def make_event_data(type, position, %__MODULE__{} = exit_info) do
+  def make_event_data(type, position, exit_info) do
     struct(
       type,
       exit_info |> Map.from_struct() |> Map.put(:utxo_pos, Utxo.Position.encode(position))
@@ -92,33 +99,33 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   @spec make_db_update({Utxo.Position.t(), t()}) :: Utxo.Position.db_t()
-  def make_db_update({position, event}) do
+  def make_db_update({position, exit_info}) do
     value = %{
-      amount: event.amount,
-      currency: event.currency,
-      owner: event.owner,
-      exit_id: event.exit_id,
-      exiting_txbytes: event.exiting_txbytes,
-      is_active: event.is_active,
-      eth_height: event.eth_height,
-      root_chain_txhash: event.root_chain_txhash
+      amount: exit_info.amount,
+      currency: exit_info.currency,
+      owner: exit_info.owner,
+      exit_id: exit_info.exit_id,
+      exiting_txbytes: exit_info.exiting_txbytes,
+      is_active: exit_info.is_active,
+      eth_height: exit_info.eth_height,
+      root_chain_txhash: exit_info.root_chain_txhash
     }
 
     {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
   end
 
   @spec from_db_kv({Utxo.Position.db_t(), t()}) :: Utxo.Position.t()
-  def from_db_kv({db_utxo_pos, event}) do
+  def from_db_kv({db_utxo_pos, exit_info}) do
     # mapping is used in case of changes in data structure
     value = %{
-      amount: event.amount,
-      currency: event.currency,
-      owner: event.owner,
-      exit_id: event.exit_id,
-      exiting_txbytes: event.exiting_txbytes,
-      is_active: event.is_active,
-      eth_height: event.eth_height,
-      root_chain_txhash: event.root_chain_txhash
+      amount: exit_info.amount,
+      currency: exit_info.currency,
+      owner: exit_info.owner,
+      exit_id: exit_info.exit_id,
+      exiting_txbytes: exit_info.exiting_txbytes,
+      is_active: exit_info.is_active,
+      eth_height: exit_info.eth_height,
+      root_chain_txhash: exit_info.root_chain_txhash
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
