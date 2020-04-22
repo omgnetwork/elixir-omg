@@ -72,12 +72,12 @@ An invalid block has been added to the chain. User should exit.
 
 The ChildChain is withholding a block whose hash has been published on the root chain. User should exit.
 
-#### `noncanonical_ife`
+#### `non_canonical_ife`
 > A noncanonical_ife event
 
 ```json
 {
-    "event": "noncanonical_ife",
+    "event": "non_canonical_ife",
     "details": {
         "txbytes": "0xf3170101c0940000..."
     }

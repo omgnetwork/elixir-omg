@@ -260,6 +260,35 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert [%{"event" => "invalid_piggyback"}] = Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
   end
 
+  @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
+  test "invalid piggyback causes unchallenged exit byzantine event when sla margin period passes",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    DevHelper.import_unlock_fund(bob)
+
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 4}])
+    ife1 = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
+
+    %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
+    invalidating_tx = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 4}])
+    %{"blknum" => invalidating_blknum} = WatcherHelper.submit(invalidating_tx)
+    IntegrationTest.wait_for_block_fetch(invalidating_blknum, @timeout)
+
+    {:ok, eth_height} = exit_in_flight_and_wait_for_ife(ife1, alice)
+
+    _ = piggyback_and_process_exits(tx, 0, :output, alice)
+
+    assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = WatcherHelper.success?("/status.get")
+    assert [%{"event" => "invalid_piggyback"}] = Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
+
+    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
+
+    IntegrationTest.wait_for_byzantine_event(
+      %OMG.Watcher.Event.UnchallengedExit{}.name,
+      @timeout
+    )
+  end
+
   defp exit_in_flight(%Transaction.Signed{} = tx, exiting_user) do
     get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
     exit_in_flight(get_in_flight_exit_response, exiting_user)

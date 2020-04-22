@@ -37,6 +37,19 @@ defmodule OMG.Watcher.Integration.TestHelper do
     |> WaitFor.ok(timeout)
   end
 
+  def wait_for_byzantine_event(event_name, timeout) do
+    fn ->
+      %{"byzantine_events" => emitted_events} = WatcherHelper.success?("/status.get")
+      emitted_event_names = Enum.map(emitted_events, &String.to_atom(&1["event"]))
+      IO.inspect(emitted_event_names)
+
+      if Enum.any?(emitted_event_names, fn emitted_name -> emitted_name == event_name end),
+        do: {:ok, emitted_event_names},
+        else: :repeat
+    end
+    |> WaitFor.ok(timeout)
+  end
+
   def wait_for_block_fetch(block_nr, timeout) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
