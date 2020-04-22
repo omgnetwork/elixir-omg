@@ -121,6 +121,8 @@ defmodule OMG.Umbrella.MixProject do
             {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
             {OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress, []},
             {OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration, []},
+            {OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOpts, []},
+            {OMG.ChildChain.ReleaseTasks.SetFeeFeedAdapterOpts, []},
             {OMG.ChildChain.ReleaseTasks.SetTracer, []},
             {OMG.ChildChain.ReleaseTasks.SetApplication, [release: :child_chain, current_version: current_version()]},
             {OMG.Eth.ReleaseTasks.SetEthereumClient, []},
