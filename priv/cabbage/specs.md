@@ -144,7 +144,7 @@ OMG.Utils.HttpRPC.Validator.BaseTest
   * test Basic validation: list, negative (excluded)
   * test Basic validation: integer, positive (excluded)
 
-OMG.Status.Metric.StatsdMonitorTest
+OMG.Status.Monitor.StatsdMonitorTest
   * test if exiting process/port sends an exit signal to the parent process 2 (excluded)
   * test if exiting process/port sends an exit signal to the parent process (excluded)
 
