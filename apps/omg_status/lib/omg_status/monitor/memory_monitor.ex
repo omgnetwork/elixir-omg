@@ -31,7 +31,7 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
           interval_ms: pos_integer(),
           threshold: float(),
           raised: boolean(),
-          tref: reference() | nil
+          timer_ref: reference() | nil
         }
 
   defstruct alarm_module: nil,
@@ -39,7 +39,7 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
             interval_ms: nil,
             threshold: 1.0,
             raised: false,
-            tref: nil
+            timer_ref: nil
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -81,8 +81,8 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
     exceed_threshold? = system_memory_exceed_threshold?(state.memsup_module, state.threshold)
     _ = raise_clear(state.alarm_module, state.raised, exceed_threshold?)
 
-    {:ok, tref} = :timer.send_after(state.interval_ms, :check)
-    {:noreply, %{state | tref: tref}}
+    {:ok, timer_ref} = :timer.send_after(state.interval_ms, :check)
+    {:noreply, %{state | timer_ref: timer_ref}}
   end
 
   def handle_cast(:set_alarm, state) do
