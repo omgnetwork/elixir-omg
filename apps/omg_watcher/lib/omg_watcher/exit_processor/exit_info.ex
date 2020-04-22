@@ -22,20 +22,10 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.Event
 
   require Utxo
 
-  @enforce_keys [
-    :amount,
-    :currency,
-    :owner,
-    :exit_id,
-    :exiting_txbytes,
-    :is_active,
-    :eth_height,
-    :root_chain_txhash
-  ]
+  @enforce_keys [:amount, :currency, :owner, :exit_id, :exiting_txbytes, :is_active, :eth_height]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
@@ -47,23 +37,12 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           exiting_txbytes: Transaction.tx_bytes(),
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
-          eth_height: pos_integer(),
-          root_chain_txhash: Crypto.hash_t()
+          eth_height: pos_integer()
         }
 
-  @spec new(map(), map()) :: t()
-  def new(
-        contract_status,
-        %{
-          eth_height: eth_height,
-          call_data: %{output_tx: txbytes},
-          exit_id: exit_id,
-          root_chain_txhash: root_chain_txhash
-        } = exit_event
-      ) do
-    Utxo.position(_, _, oindex) = utxo_pos_for(exit_event)
+  def new(contract_status, %{eth_height: eth_height, call_data: %{output_tx: txbytes}, exit_id: exit_id} = event) do
+    Utxo.position(_, _, oindex) = utxo_pos_for(event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
-
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
     do_new(contract_status,
@@ -72,60 +51,78 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       owner: owner,
       exit_id: exit_id,
       exiting_txbytes: txbytes,
-      eth_height: eth_height,
-      root_chain_txhash: root_chain_txhash
+      eth_height: eth_height
     )
   end
 
-  def new_key(_contract_status, exit_info),
-    do: utxo_pos_for(exit_info)
+  def new_key(_contract_status, event),
+    do: utxo_pos_for(event)
 
-  defp utxo_pos_for(%{call_data: %{utxo_pos: utxo_pos_enc}} = _exit_info),
+  defp utxo_pos_for(%{call_data: %{utxo_pos: utxo_pos_enc}} = _event),
     do: Utxo.Position.decode!(utxo_pos_enc)
 
-  @spec do_new(map(), list(map())) :: t()
   defp do_new(contract_status, fields) do
     fields = Keyword.put_new(fields, :is_active, parse_contract_exit_status(contract_status))
     struct!(__MODULE__, fields)
   end
 
-  @spec make_event_data(Event.module_t(), Utxo.Position.t(), t()) :: struct()
-  def make_event_data(type, position, exit_info) do
-    struct(
-      type,
-      exit_info |> Map.from_struct() |> Map.put(:utxo_pos, Utxo.Position.encode(position))
-    )
+  def make_event_data(type, position, %__MODULE__{} = exit_info) do
+    struct(type, exit_info |> Map.from_struct() |> Map.put(:utxo_pos, Utxo.Position.encode(position)))
   end
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
-  @spec make_db_update({Utxo.Position.t(), t()}) :: Utxo.Position.db_t()
-  def make_db_update({position, exit_info}) do
+  def make_db_update(
+        {position,
+         %__MODULE__{
+           amount: amount,
+           currency: currency,
+           owner: owner,
+           exit_id: exit_id,
+           exiting_txbytes: exiting_txbytes,
+           is_active: is_active,
+           eth_height: eth_height
+         }}
+      )
+      when is_integer(amount) and is_integer(eth_height) and
+             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and is_binary(exiting_txbytes) and
+             is_boolean(is_active) do
     value = %{
-      amount: exit_info.amount,
-      currency: exit_info.currency,
-      owner: exit_info.owner,
-      exit_id: exit_info.exit_id,
-      exiting_txbytes: exit_info.exiting_txbytes,
-      is_active: exit_info.is_active,
-      eth_height: exit_info.eth_height,
-      root_chain_txhash: exit_info.root_chain_txhash
+      amount: amount,
+      currency: currency,
+      owner: owner,
+      exit_id: exit_id,
+      exiting_txbytes: exiting_txbytes,
+      is_active: is_active,
+      eth_height: eth_height
     }
 
     {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
   end
 
-  @spec from_db_kv({Utxo.Position.db_t(), t()}) :: Utxo.Position.t()
-  def from_db_kv({db_utxo_pos, exit_info}) do
+  def from_db_kv(
+        {db_utxo_pos,
+         %{
+           amount: amount,
+           currency: currency,
+           owner: owner,
+           exit_id: exit_id,
+           exiting_txbytes: exiting_txbytes,
+           is_active: is_active,
+           eth_height: eth_height
+         }}
+      )
+      when is_integer(amount) and is_integer(eth_height) and
+             is_binary(currency) and is_binary(owner) and is_integer(exit_id) and is_binary(exiting_txbytes) and
+             is_boolean(is_active) do
     # mapping is used in case of changes in data structure
     value = %{
-      amount: exit_info.amount,
-      currency: exit_info.currency,
-      owner: exit_info.owner,
-      exit_id: exit_info.exit_id,
-      exiting_txbytes: exit_info.exiting_txbytes,
-      is_active: exit_info.is_active,
-      eth_height: exit_info.eth_height,
-      root_chain_txhash: exit_info.root_chain_txhash
+      amount: amount,
+      currency: currency,
+      owner: owner,
+      exit_id: exit_id,
+      exiting_txbytes: exiting_txbytes,
+      is_active: is_active,
+      eth_height: eth_height
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
