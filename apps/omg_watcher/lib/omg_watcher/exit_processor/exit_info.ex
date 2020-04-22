@@ -56,6 +56,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     Utxo.position(_, _, oindex) = utxo_pos_for(event)
     txbytes = Kernel.get_in(event, [:call_data, :output_tx])
     {:ok, raw_tx} = Transaction.decode(txbytes)
+
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
     do_new(contract_status,
@@ -91,7 +92,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   @spec make_db_update({Utxo.Position.t(), t()}) :: Utxo.Position.db_t()
-  def make_db_update({position, %__MODULE__{} = event}) do
+  def make_db_update({position, event}) do
     value = %{
       amount: event.amount,
       currency: event.currency,
