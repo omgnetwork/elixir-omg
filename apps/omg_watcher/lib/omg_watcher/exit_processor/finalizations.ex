@@ -89,7 +89,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
     - {:unknown_in_flight_exit, set of in-flight exit ids that exit processor is not aware of}
   """
   @spec prepare_utxo_exits_for_in_flight_exit_finalizations(Core.t(), [map()]) ::
-          {:ok, map()}
+          {:ok, map(), list()}
           | {:inactive_piggybacks_finalizing, list()}
           | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def prepare_utxo_exits_for_in_flight_exit_finalizations(%Core{in_flight_exits: ifes}, finalizations) do
@@ -97,12 +97,16 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
     with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
          {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
-      exiting_positions_by_ife_id =
+      {exiting_positions_by_ife_id, events_with_positions} =
         finalizations
         |> Enum.reverse()
-        |> Enum.reduce(%{}, &prepare_utxo_exits_for_finalization(&1, &2, ifes_by_id))
+        |> Enum.reduce({%{}, []}, &combine_utxo_exits_with_finalization(&1, &2, ifes_by_id))
 
-      {:ok, exiting_positions_by_ife_id}
+      {
+        :ok,
+        exiting_positions_by_ife_id,
+        Enum.reject(events_with_positions, &Kernel.match?({_, []}, &1))
+      }
     end
   end
 
@@ -150,9 +154,9 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
        ),
        do: not InFlightExitInfo.is_active?(ifes_by_id[ife_id], {piggyback_type, output_index})
 
-  defp prepare_utxo_exits_for_finalization(
-         %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}},
-         exiting_positions,
+  defp combine_utxo_exits_with_finalization(
+         %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}} = event,
+         {exiting_positions, events_with_positions},
          ifes_by_id
        ) do
     ife = ifes_by_id[ife_id]
@@ -161,7 +165,10 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
     # figure out if there's any UTXOs really exiting from the `OMG.State` from this IFE's piggybacked input/output
     exiting_positions_for_piggyback = get_exiting_positions(ife, output_index, piggyback_type)
 
-    Map.update(exiting_positions, ife_id, exiting_positions_for_piggyback, &(exiting_positions_for_piggyback ++ &1))
+    {
+      Map.update(exiting_positions, ife_id, exiting_positions_for_piggyback, &(exiting_positions_for_piggyback ++ &1)),
+      [{event, exiting_positions_for_piggyback} | events_with_positions]
+    }
   end
 
   defp get_exiting_positions(ife, output_index, :input) do
