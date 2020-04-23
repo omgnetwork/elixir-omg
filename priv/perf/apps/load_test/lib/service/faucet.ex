@@ -49,9 +49,10 @@ defmodule LoadTest.Service.Faucet do
           fee: pos_integer(),
           faucet_deposit_wei: pos_integer(),
           deposit_finality_margin: pos_integer(),
+          gas_price: pos_integer(),
           utxos: map()
         }
-  defstruct [:faucet_account, :fee, :faucet_deposit_wei, :deposit_finality_margin, utxos: %{}]
+  defstruct [:faucet_account, :fee, :faucet_deposit_wei, :deposit_finality_margin, :gas_price, utxos: %{}]
 
   @doc """
   Sends funds to an account on the childchain.
@@ -96,7 +97,8 @@ defmodule LoadTest.Service.Faucet do
         faucet_account: faucet_account,
         fee: Keyword.fetch!(config, :fee_wei),
         faucet_deposit_wei: Keyword.fetch!(config, :faucet_deposit_wei),
-        deposit_finality_margin: Keyword.fetch!(config, :deposit_finality_margin)
+        deposit_finality_margin: Keyword.fetch!(config, :deposit_finality_margin),
+        gas_price: Keyword.fetch!(config, :gas_price)
       )
 
     {:ok, state}
@@ -142,7 +144,8 @@ defmodule LoadTest.Service.Faucet do
         state.faucet_account,
         max(state.faucet_deposit_wei, amount + state.fee),
         currency,
-        state.deposit_finality_margin
+        state.deposit_finality_margin,
+        state.gas_price
       )
     else
       utxo
@@ -157,11 +160,11 @@ defmodule LoadTest.Service.Faucet do
 
   defp choose_largest_utxo(utxo, _account, _currency), do: utxo
 
-  @spec deposit(Account.t(), pos_integer(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
-  defp deposit(faucet_account, amount, currency, deposit_finality_margin) do
+  @spec deposit(Account.t(), pos_integer(), Utxo.address_binary(), pos_integer(), pos_integer()) :: Utxo.t()
+  defp deposit(faucet_account, amount, currency, deposit_finality_margin, gas_price) do
     Logger.debug("Not enough funds in the faucet, depositing more from the root chain")
 
-    {:ok, utxo} = Deposit.deposit_from(faucet_account, amount, currency, deposit_finality_margin)
+    {:ok, utxo} = Deposit.deposit_from(faucet_account, amount, currency, deposit_finality_margin, gas_price)
     utxo
   end
 end
