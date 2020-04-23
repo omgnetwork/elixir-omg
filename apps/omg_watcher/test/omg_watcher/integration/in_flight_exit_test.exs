@@ -289,6 +289,117 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     )
   end
 
+  @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
+  test "non canonical ife causes unchallenged exit byzantine event when sla margin period passes",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    # tx1 is submitted then in-flight-exited
+    # tx2 is in-flight-exited
+    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 4}])
+    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 9}])
+
+    ife1 = tx1 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
+    ife2 = tx2 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
+
+    assert %{"blknum" => blknum} = tx1 |> Transaction.Signed.encode() |> WatcherHelper.submit()
+
+    IntegrationTest.wait_for_block_fetch(blknum, @timeout)
+
+    raw_tx2_bytes = Transaction.raw_txbytes(tx2)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
+    {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
+
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+
+    ife_noticed_eth_height = ife_eth_height + exit_finality_margin + 1
+    DevHelper.wait_for_root_chain_block(ife_noticed_eth_height)
+
+    assert %{
+             "byzantine_events" => [
+               # only a single non_canonical event, since on of the IFE tx is included!
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "piggyback_available"}
+             ]
+           } = WatcherHelper.success?("/status.get")
+
+    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    DevHelper.wait_for_root_chain_block(ife_noticed_eth_height + exit_processor_sla_margin, @timeout)
+
+    IntegrationTest.wait_for_byzantine_event(
+      %OMG.Watcher.Event.UnchallengedExit{}.name,
+      @timeout
+    )
+  end
+
+  @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
+  test "invalid ife challenge causes unchallenged exit byzantine event when sla margin period passes",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    # tx1 is submitted then in-flight-exited
+    # tx2 is in-flight-exited, it will be _invalidly_ used to challenge tx1!
+    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 4}])
+    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 9}])
+
+    ife1 = tx1 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
+    ife2 = tx2 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
+
+    assert %{
+             "blknum" => blknum,
+             "txindex" => 0,
+             "txhash" => <<_::256>>
+           } = tx1 |> Transaction.Signed.encode() |> WatcherHelper.submit()
+
+    IntegrationTest.wait_for_block_fetch(blknum, @timeout)
+
+    raw_tx1_bytes = Transaction.raw_txbytes(tx1)
+    raw_tx2_bytes = Transaction.raw_txbytes(tx2)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => _}} = exit_in_flight(ife1, alice)
+    {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
+
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin + 1)
+
+    %{sigs: [competing_sig | _]} = tx2
+    competing_tx_input_txbytes = Transaction.Payment.new([], [{alice.addr, @eth, 10}]) |> Transaction.raw_txbytes()
+    competing_tx_input_utxo_pos = Utxo.position(deposit_blknum, 0, 0) |> Utxo.Position.encode()
+
+    {:ok, %{"status" => "0x1", "blockNumber" => challenge_eth_height}} =
+      RootChainHelper.challenge_in_flight_exit_not_canonical(
+        competing_tx_input_txbytes,
+        competing_tx_input_utxo_pos,
+        raw_tx1_bytes,
+        0,
+        raw_tx2_bytes,
+        0,
+        0,
+        "",
+        competing_sig,
+        alice.addr
+      )
+      |> DevHelper.transact_sync!()
+
+    challenge_noticed_eth_height = challenge_eth_height + exit_finality_margin + 1
+    DevHelper.wait_for_root_chain_block(challenge_noticed_eth_height)
+
+    # existence of `invalid_ife_challenge` event
+    assert %{
+             "byzantine_events" => [
+               # this is the tx2's non-canonical-ife which we leave as is
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "invalid_ife_challenge"},
+               %{"event" => "piggyback_available"}
+             ]
+           } = WatcherHelper.success?("/status.get")
+
+    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    DevHelper.wait_for_root_chain_block(challenge_noticed_eth_height + exit_processor_sla_margin, @timeout)
+
+    IntegrationTest.wait_for_byzantine_event(
+      %OMG.Watcher.Event.UnchallengedExit{}.name,
+      @timeout
+    )
+  end
+
   defp exit_in_flight(%Transaction.Signed{} = tx, exiting_user) do
     get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
     exit_in_flight(get_in_flight_exit_response, exiting_user)
