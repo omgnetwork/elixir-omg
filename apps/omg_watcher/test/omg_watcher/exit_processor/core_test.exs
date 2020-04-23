@@ -38,35 +38,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
   describe "generic sanity checks" do
-    test "can initialise with standard exits that do not have recently introduced keys" do
-      recent_keys = [:root_chain_txhash]
-      utxo_position = {0, 0, 0}
-
-      exit_info = %{
-        amount: 1,
-        currency: random_bytes(20),
-        eth_height: 1,
-        exit_id: 1,
-        exiting_txbytes: random_bytes(32),
-        is_active: false,
-        owner: random_bytes(20)
-      }
-
-      {:ok, %{exits: exits}} =
-        Core.init(
-          [
-            {utxo_position, exit_info}
-          ],
-          [],
-          []
-        )
-
-      Enum.each(recent_keys, fn recent_key ->
-        value = Map.get(exits, recent_key)
-        assert value == nil
-      end)
-    end
-
     test "can start new standard exits one by one or batched", %{processor_empty: empty, alice: alice, bob: bob} do
       standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
       standard_exit_tx2 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}, {bob, 10}])
