@@ -32,7 +32,8 @@ defmodule LoadTest.Runner.ChildChainTransactions do
 
   @default_config %{
     concurrent_sessions: 1,
-    transactions_per_session: 1
+    transactions_per_session: 1,
+    transaction_delay: 0
   }
 
   def default_config() do

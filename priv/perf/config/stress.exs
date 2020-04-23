@@ -8,7 +8,8 @@ config :load_test,
   },
   childchain_transactions_test_config: %{
     concurrent_sessions: 1000,
-    transactions_per_session: 10
+    transactions_per_session: 10,
+    transaction_delay: 0
   },
   watcher_info_test_config: %{
     concurrent_sessions: 100,

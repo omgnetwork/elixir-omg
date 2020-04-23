@@ -33,15 +33,17 @@ defmodule LoadTest.Scenario.ChildChainSubmitTransactions do
     # Create a new account and fund it from the faucet
     {:ok, sender} = LoadTest.Ethereum.Account.new()
     ntx_to_send = config(session, [:transactions_per_session])
+    delay = config(session, [:transaction_delay])
     initial_funds = ntx_to_send + ntx_to_send * fee_wei
     {:ok, utxo} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
 
     session
     |> Session.assign(next_utxo: utxo)
-    |> repeat(:submit_transaction, [sender, fee_wei], ntx_to_send)
+    |> repeat(:submit_transaction, [sender, fee_wei, delay], ntx_to_send)
   end
 
-  def submit_transaction(session, sender, fee_wei) do
+  def submit_transaction(session, sender, fee_wei, delay) do
+    Process.sleep(delay)
     {:ok, receiver} = Account.new()
     start = Timing.timestamp()
 
