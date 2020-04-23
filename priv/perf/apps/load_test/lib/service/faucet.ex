@@ -118,11 +118,8 @@ defmodule LoadTest.Service.Faucet do
 
     Logger.debug("Funding user #{Encoding.to_hex(receiver.addr)} with #{amount} from utxo: #{Utxo.pos(utxo)}")
 
-    {:ok, blknum, txindex} =
+    [next_faucet_utxo, user_utxo] =
       Transaction.submit_tx([utxo], outputs, [state.faucet_account], @fund_child_chain_account_retries)
-
-    next_faucet_utxo = %Utxo{blknum: blknum, txindex: txindex, oindex: 0, amount: change}
-    user_utxo = %Utxo{blknum: blknum, txindex: txindex, oindex: 1, amount: amount}
 
     updated_state = Map.put(state, :utxos, Map.put(state.utxos, currency, next_faucet_utxo))
 

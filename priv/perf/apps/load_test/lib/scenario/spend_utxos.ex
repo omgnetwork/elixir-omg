@@ -21,44 +21,28 @@ defmodule LoadTest.Scenario.SpendUtxos do
 
   alias Chaperon.Session
   alias Chaperon.Timing
-  alias ExPlasma.Utxo
-
-  @eth <<0::160>>
 
   def run(session) do
     fee_wei = Application.fetch_env!(:load_test, :fee_wei)
-    session = Session.assign(session, fee_wei: fee_wei)
 
     sender = config(session, [:sender])
     transactions_per_session = config(session, [:transactions_per_session])
 
-    repeat(session, :submit_transaction, [sender], transactions_per_session)
+    repeat(session, :submit_transaction, [sender, fee_wei], transactions_per_session)
   end
 
-  def submit_transaction(session, sender) do
-    last_change = session.assigned.last_change
-    fee_wei = session.assigned.fee_wei
-    {inputs, outputs = [%{amount: change}]} = create_transaction(sender, last_change, fee_wei)
-
+  def submit_transaction(session, sender, fee_wei) do
+    utxo = session.assigned.next_utxo
+    amount = utxo.amount - fee_wei
     start = Timing.timestamp()
-    {:ok, blknum, txindex} = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
 
-    session =
-      Chaperon.Session.add_metric(
-        session,
-        {:call, {LoadTest.Scenario.SpendUtxos, "submit_transaction"}},
-        Timing.timestamp() - start
-      )
+    [next_utxo] = LoadTest.ChildChain.Transaction.spend_eth_utxo(utxo, amount, fee_wei, sender, sender)
 
-    last_change = %{blknum: blknum, txindex: txindex, oindex: 0, amount: change}
-    Chaperon.Session.assign(session, last_change: last_change)
-  end
-
-  defp create_transaction(sender, prev_change, fee_wei) do
-    change = prev_change.amount - fee_wei
-    input = %Utxo{blknum: prev_change.blknum, txindex: prev_change.txindex, oindex: prev_change.oindex}
-    change_output = %Utxo{owner: sender.addr, currency: @eth, amount: change}
-
-    {[input], [change_output]}
+    session
+    |> Session.assign(next_utxo: next_utxo)
+    |> Session.add_metric(
+      {:call, {LoadTest.Scenario.SpendUtxos, "submit_transaction"}},
+      Timing.timestamp() - start
+    )
   end
 end

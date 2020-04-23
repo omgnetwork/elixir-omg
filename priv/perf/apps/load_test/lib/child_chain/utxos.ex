@@ -90,13 +90,13 @@ defmodule LoadTest.ChildChain.Utxos do
     tx_amount = Enum.reduce(inputs, 0, fn x, acc -> x.amount + acc end)
     output = %Utxo{amount: tx_amount, currency: currency, owner: faucet_account.addr}
 
-    {:ok, blknum, txindex} =
+    [utxo] =
       Transaction.submit_tx(
         inputs,
         [output],
         List.duplicate(faucet_account, length(inputs))
       )
 
-    %Utxo{blknum: blknum, txindex: txindex, oindex: 0, amount: tx_amount, currency: currency}
+    utxo
   end
 end

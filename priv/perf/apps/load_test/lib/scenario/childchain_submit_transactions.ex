@@ -19,14 +19,14 @@ defmodule LoadTest.Scenario.ChildChainSubmitTransactions do
 
   use Chaperon.Scenario
 
+  alias Chaperon.Session
   alias Chaperon.Timing
-  alias ExPlasma.Utxo
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Faucet
 
   @eth <<0::160>>
 
-  @spec run(Chaperon.Session.t()) :: Chaperon.Session.t()
+  @spec run(Session.t()) :: Session.t()
   def run(session) do
     fee_wei = Application.fetch_env!(:load_test, :fee_wei)
 
@@ -37,49 +37,29 @@ defmodule LoadTest.Scenario.ChildChainSubmitTransactions do
     {:ok, utxo} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
 
     session
-    |> Chaperon.Session.assign(next_utxo: utxo)
-    |> repeat(:send_tx, [sender, fee_wei], ntx_to_send)
+    |> Session.assign(next_utxo: utxo)
+    |> repeat(:submit_transaction, [sender, fee_wei], ntx_to_send)
   end
 
-  def send_tx(session, sender, fee_wei) do
-    utxo = session.assigned.next_utxo
-    tx = prepare_new_tx(%{sender: sender, utxo: utxo, fee_wei: fee_wei})
-
+  def submit_transaction(session, sender, fee_wei) do
+    {:ok, receiver} = Account.new()
     start = Timing.timestamp()
 
+    [next_utxo | _] =
+      LoadTest.ChildChain.Transaction.spend_eth_utxo(
+        session.assigned.next_utxo,
+        1,
+        fee_wei,
+        sender,
+        receiver
+      )
+
     session
-    |> submit_tx(tx)
-    |> Chaperon.Session.add_metric(
+    |> Session.assign(next_utxo: next_utxo)
+    |> log_info("Transaction submitted successfully {#{inspect(next_utxo.blknum)}, #{inspect(next_utxo.txindex)}}")
+    |> Session.add_metric(
       {:call, {LoadTest.Scenario.ChildChainSubmitTransactions, "ChildChain.Transaction.submit"}},
       Timing.timestamp() - start
     )
-  end
-
-  defp prepare_new_tx(%{
-         sender: sender,
-         utxo: utxo,
-         fee_wei: fee_wei
-       }) do
-    to_spend = 1
-    new_amount = utxo.amount - to_spend - fee_wei
-    {:ok, recipient} = Account.new()
-    recipient_output = [%Utxo{owner: recipient.addr, currency: @eth, amount: to_spend}]
-
-    change_output =
-      if new_amount > 0,
-        do: [%Utxo{owner: sender.addr, currency: @eth, amount: new_amount}],
-        else: []
-
-    {[utxo], change_output ++ recipient_output, sender}
-  end
-
-  defp submit_tx(session, {inputs, outputs, sender}) do
-    {:ok, blknum, txindex} = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
-    [%{amount: amount} | _] = outputs
-    {:ok, next_utxo} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 0, amount: amount})
-
-    session
-    |> Chaperon.Session.assign(next_utxo: next_utxo)
-    |> log_info("Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}")
   end
 end

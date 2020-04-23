@@ -17,10 +17,32 @@ defmodule LoadTest.ChildChain.Transaction do
   """
   require Logger
 
+  alias ChildChainAPI.Api
+  alias ChildChainAPI.Model
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction
+  alias ExPlasma.Utxo
+  alias LoadTest.Connection.ChildChain, as: Connection
 
   @retry_interval 1_000
+  @eth <<0::160>>
+
+  def spend_eth_utxo(utxo, amount, fee, sender, receiver) do
+    change_amount = utxo.amount - amount - fee
+    receiver_output = %Utxo{owner: receiver.addr, currency: @eth, amount: amount}
+    do_spend(utxo, receiver_output, change_amount, sender)
+  end
+
+  defp do_spend(_input, _output, change_amount, _signer) when change_amount < 0, do: :error_insufficient_funds
+
+  defp do_spend(input, output, 0, signer) do
+    submit_tx([input], [output], [signer])
+  end
+
+  defp do_spend(input, output, change_amount, signer) do
+    change_output = %Utxo{owner: signer.addr, currency: @eth, amount: change_amount}
+    submit_tx([input], [change_output, output], [signer])
+  end
 
   def submit_tx(inputs, outputs, signers, retries \\ 0) do
     {:ok, tx} = Transaction.Payment.new(%{inputs: inputs, outputs: outputs})
@@ -30,9 +52,16 @@ defmodule LoadTest.ChildChain.Transaction do
       |> Enum.map(&Map.get(&1, :priv))
       |> Enum.map(&Encoding.to_hex/1)
 
-    tx
-    |> Transaction.sign(keys: keys)
-    |> try_submit_tx(retries)
+    {:ok, blknum, txindex} =
+      tx
+      |> Transaction.sign(keys: keys)
+      |> try_submit_tx(retries)
+
+    outputs
+    |> Enum.with_index()
+    |> Enum.map(fn {output, i} ->
+      %Utxo{blknum: blknum, txindex: txindex, oindex: i, amount: output.amount, currency: output.currency}
+    end)
   end
 
   defp try_submit_tx(tx, 0), do: do_submit_tx(tx)
@@ -71,12 +100,11 @@ defmodule LoadTest.ChildChain.Transaction do
 
   @spec do_submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
   defp do_submit_tx_rpc(encoded_tx) do
-    connection = LoadTest.Connection.ChildChain.client()
-
-    body = %ChildChainAPI.Model.TransactionSubmitBodySchema{
-      transaction: Encoding.to_hex(encoded_tx)
-    }
-
-    ChildChainAPI.Api.Transaction.submit(connection, body)
+    Api.Transaction.submit(
+      Connection.client(),
+      %Model.TransactionSubmitBodySchema{
+        transaction: Encoding.to_hex(encoded_tx)
+      }
+    )
   end
 end
