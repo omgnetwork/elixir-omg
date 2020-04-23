@@ -185,4 +185,12 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     num_bits = num_bytes * 8
     <<integer::size(num_bits)>>
   end
+
+  @doc """
+  Generates a certain length of random bytes. Not recommended for identifiers as uniqueness not guaranteed.
+  """
+  @spec random_bytes(integer()) :: binary()
+  def random_bytes(num_bytes) do
+    0..255 |> Enum.shuffle() |> Enum.take(num_bytes) |> :erlang.list_to_binary()
+  end
 end
