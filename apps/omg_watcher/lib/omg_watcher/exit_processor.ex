@@ -449,7 +449,8 @@ defmodule OMG.Watcher.ExitProcessor do
     # necessary, so that the processor knows the current state of inclusion of exiting IFE txs
     state2 = update_with_ife_txs_from_blocks(state)
 
-    {:ok, exiting_positions} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
+    {:ok, exiting_positions, _bus_events} =
+      Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
 
     # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
     # See issue #671 https://github.com/omisego/elixir-omg/issues/671
