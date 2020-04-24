@@ -24,7 +24,7 @@
 - [Changed] Update Spandex (tracing library) to 2.4.3 (#1432)
 - [Changed] Modify the load test faucet to only deposit when necessary (#1445)
 - [Changed] Move nightly build steps into PR's non-mandatory build steps (#1287)
-- [Changed] Clean up documentation for ExitProcessor, OMG.State and RootChainCoordinator(#1410)
+- [Changed] Clean up documentation for ExitProcessor, OMG.State and RootChainCoordinator (#1410)
 - [Changed] Update install docs for elixir 1.10 (#1461)
 - [Fixed] Broken macos nightly build (#1458)
 
