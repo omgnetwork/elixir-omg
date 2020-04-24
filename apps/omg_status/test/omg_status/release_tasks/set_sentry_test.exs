@@ -50,14 +50,14 @@ defmodule OMG.Status.ReleaseTasks.SetSentryTest do
           environment_name: yolo,
           included_environments: [yolo],
           server_name: server_name,
-          tags: [
+          tags: %{
             application: :watcher,
             eth_network: network,
             eth_node: :geth,
             current_version: "vsn-" <> current_version,
             app_env: yolo,
             hostname: server_name
-          ]
+          }
         ]
       ]
 
