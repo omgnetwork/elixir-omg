@@ -47,14 +47,14 @@ defmodule OMG.Status.ReleaseTasks.SetSentry do
             environment_name: app_env,
             included_environments: [app_env],
             server_name: hostname,
-            tags: [
+            tags: %{
               application: release,
               eth_network: get_env("ETHEREUM_NETWORK"),
               eth_node: get_rpc_client_type(),
               current_version: "vsn-#{current_version}",
               app_env: "#{app_env}",
               hostname: "#{hostname}"
-            ]
+            }
           ]
         )
 
