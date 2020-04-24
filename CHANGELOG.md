@@ -27,6 +27,7 @@
 - [Changed] Clean up documentation for ExitProcessor, OMG.State and RootChainCoordinator (#1410)
 - [Changed] Update install docs for elixir 1.10 (#1461)
 - [Fixed] Broken macos nightly build (#1458)
+- [Fixed] Errors not reported due to misconfugration (#1489)
 
 ## [v0.4.6](https://github.com/omisego/elixir-omg/releases/tag/v0.4.6)
 
