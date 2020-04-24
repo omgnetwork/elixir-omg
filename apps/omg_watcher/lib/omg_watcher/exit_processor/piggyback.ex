@@ -86,14 +86,30 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
     end
   end
 
-  @spec get_invalid_piggybacks_events(Core.t(), KnownTx.known_txs_by_input_t()) ::
-          list(Event.InvalidPiggyback.t())
-  def get_invalid_piggybacks_events(%Core{in_flight_exits: ifes}, known_txs_by_input) do
-    ifes
-    |> Map.values()
-    |> all_invalid_piggybacks_by_ife(known_txs_by_input)
-    |> group_by_txbytes()
-    |> materials_to_events()
+  @spec get_invalid_piggybacks_events(Core.t(), KnownTx.known_txs_by_input_t(), pos_integer()) ::
+          {list(Event.InvalidPiggyback.t()), list(Event.UnchallengedPiggyback.t())}
+  def get_invalid_piggybacks_events(
+        %Core{sla_margin: sla_margin, in_flight_exits: ifes},
+        known_txs_by_input,
+        eth_height_now
+      ) do
+    invalid_piggybacks_by_ife =
+      ifes
+      |> Map.values()
+      |> all_invalid_piggybacks_by_ife(known_txs_by_input)
+
+    invalid_piggybacks_events = to_events(invalid_piggybacks_by_ife, &to_invalid_piggyback_event/1)
+
+    past_sla_margin = fn {ife, _type, _materials} ->
+      ife.eth_height + sla_margin <= eth_height_now
+    end
+
+    unchallenged_piggybacks_events =
+      invalid_piggybacks_by_ife
+      |> Enum.filter(past_sla_margin)
+      |> to_events(&to_unchallenged_piggyback_event/1)
+
+    {invalid_piggybacks_events, unchallenged_piggybacks_events}
   end
 
   defp all_invalid_piggybacks_by_ife(ifes_values, known_txs_by_input) do
@@ -101,22 +117,33 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
     |> Enum.flat_map(fn pb_type -> invalid_piggybacks_by_ife(known_txs_by_input, pb_type, ifes_values) end)
   end
 
+  defp to_events(piggybacks_by_ife, to_event) do
+    piggybacks_by_ife
+    |> group_by_txbytes()
+    |> Enum.map(to_event)
+  end
+
+  defp to_invalid_piggyback_event({txbytes, type_materials_pairs}) do
+    %Event.InvalidPiggyback{
+      txbytes: txbytes,
+      inputs: invalid_piggyback_indices(type_materials_pairs, :input),
+      outputs: invalid_piggyback_indices(type_materials_pairs, :output)
+    }
+  end
+
+  defp to_unchallenged_piggyback_event({txbytes, type_materials_pairs}) do
+    %Event.UnchallengedPiggyback{
+      txbytes: txbytes,
+      inputs: invalid_piggyback_indices(type_materials_pairs, :input),
+      outputs: invalid_piggyback_indices(type_materials_pairs, :output)
+    }
+  end
+
   # we need to produce only one event per IFE, with both piggybacks on inputs and outputs
   defp group_by_txbytes(invalid_piggybacks) do
     invalid_piggybacks
     |> Enum.map(fn {ife, type, materials} -> {Transaction.raw_txbytes(ife.tx), type, materials} end)
     |> Enum.group_by(&elem(&1, 0), fn {_, type, materials} -> {type, materials} end)
-  end
-
-  defp materials_to_events(invalid_piggybacks_by_txbytes) do
-    invalid_piggybacks_by_txbytes
-    |> Enum.map(fn {txbytes, type_materials_pairs} ->
-      %Event.InvalidPiggyback{
-        txbytes: txbytes,
-        inputs: invalid_piggyback_indices(type_materials_pairs, :input),
-        outputs: invalid_piggyback_indices(type_materials_pairs, :output)
-      }
-    end)
   end
 
   defp invalid_piggyback_indices(type_materials_pairs, pb_type) do
