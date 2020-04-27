@@ -105,11 +105,6 @@ defmodule OMG.RootChainCoordinator do
     {:noreply, state}
   end
 
-  def handle_info({:DOWN, _ref, :process, pid, _}, state) do
-    {:ok, state} = Core.check_out(state, pid)
-    {:noreply, state}
-  end
-
   def handle_call({:check_in, synced_height, service_name}, {pid, _ref}, state) do
     _ = Logger.debug("#{inspect(service_name)} checks in on height #{inspect(synced_height)}")
 
