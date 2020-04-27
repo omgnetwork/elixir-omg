@@ -72,8 +72,6 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     {:ok, raw_tx} = Transaction.decode(txbytes)
     {:ok, scheduled_finalization_time} = get_scheduled_finalization_time(eth_height, blknum)
 
-    Logger.info("SFT: #{scheduled_finalization_time}")
-
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
     do_new(contract_status,
@@ -160,23 +158,24 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   Calculates the time at which an exit can be processed and released if not challenged successfully.
   See https://docs.omg.network/challenge-period for calculation logic.
   """
-  @spec get_scheduled_finalization_time(pos_integer(), pos_integer()) :: pos_integer()
+  @spec get_scheduled_finalization_time(pos_integer(), pos_integer()) :: {:ok, pos_integer()}
   def get_scheduled_finalization_time(exit_eth_height, utxo_creation_blknum) do
-    {_, utxo_creation_timestamp} = Eth.RootChain.blocks(utxo_creation_blknum)
-    {_, exit_timestamp} = Eth.get_block_timestamp_by_number(exit_eth_height)
-    min_exit_period = OMG.Eth.Configuration.min_exit_period_seconds()
+    {_, utxo_creation_block_timestamp} = Eth.RootChain.blocks(utxo_creation_blknum)
+    {_, exit_block_timestamp} = Eth.get_block_timestamp_by_number(exit_eth_height)
+    min_exit_period = Eth.Configuration.min_exit_period_seconds()
 
-    Logger.info("BLKNUM: #{utxo_creation_blknum}")
-    Logger.info("UTXO TS: #{utxo_creation_timestamp}")
-    Logger.info("EXIT TS: #{exit_timestamp}")
-    Logger.info("MIN EXIT PERIOD: #{min_exit_period}")
-
-    calculate_sft(utxo_creation_blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period)
+    calculate_sft(
+      utxo_creation_blknum,
+      exit_block_timestamp,
+      utxo_creation_block_timestamp,
+      min_exit_period
+    )
   end
 
-  @spec calculate_sft(pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: pos_integer()
-  def calculate_sft(blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period) when is_deposit(blknum),
-    do: {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + min_exit_period)}
+  @spec calculate_sft(pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: {:ok, pos_integer()}
+  def calculate_sft(blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period)
+      when is_deposit(blknum),
+      do: {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + min_exit_period)}
 
   def calculate_sft(_blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period),
     do: {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + 2 * min_exit_period)}
