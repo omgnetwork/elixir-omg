@@ -119,7 +119,7 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid exit
     """
 
-    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, name: :invalid_exit]
+    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, :spending_txhash, name: :invalid_exit]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
@@ -127,6 +127,7 @@ defmodule OMG.Watcher.Event do
             owner: binary(),
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
+            spending_txhash: Transaction.tx_hash(),
             name: atom()
           }
   end
@@ -138,7 +139,7 @@ defmodule OMG.Watcher.Event do
     It is a prompt to exit
     """
 
-    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, name: :unchallenged_exit]
+    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, :spending_txhash, name: :unchallenged_exit]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
@@ -146,6 +147,7 @@ defmodule OMG.Watcher.Event do
             owner: binary(),
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
+            spending_txhash: Transaction.tx_hash(),
             name: atom()
           }
   end

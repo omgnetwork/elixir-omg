@@ -25,7 +25,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   require Utxo
 
-  @enforce_keys [:amount, :currency, :owner, :exit_id, :exiting_txbytes, :is_active, :eth_height]
+  @enforce_keys [:amount, :currency, :owner, :exit_id, :exiting_txbytes, :spending_txhash, :is_active, :eth_height]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
@@ -37,10 +37,18 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           exiting_txbytes: Transaction.tx_bytes(),
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
-          eth_height: pos_integer()
+          eth_height: pos_integer(),
+          spending_txhash: Transaction.tx_hash() | nil
         }
 
-  def new(contract_status, %{eth_height: eth_height, call_data: %{output_tx: txbytes}, exit_id: exit_id} = event) do
+  def new(
+        contract_status,
+        %{
+          eth_height: eth_height,
+          call_data: %{output_tx: txbytes},
+          exit_id: exit_id
+        } = event
+      ) do
     Utxo.position(_, _, oindex) = utxo_pos_for(event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
@@ -51,7 +59,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       owner: owner,
       exit_id: exit_id,
       exiting_txbytes: txbytes,
-      eth_height: eth_height
+      eth_height: eth_height,
+      spending_txhash: nil
     )
   end
 
@@ -67,7 +76,12 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   end
 
   def make_event_data(type, position, %__MODULE__{} = exit_info) do
-    struct(type, exit_info |> Map.from_struct() |> Map.put(:utxo_pos, Utxo.Position.encode(position)))
+    struct(
+      type,
+      exit_info
+      |> Map.from_struct()
+      |> Map.put(:utxo_pos, Utxo.Position.encode(position))
+    )
   end
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
@@ -122,7 +136,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exit_id: exit_id,
       exiting_txbytes: exiting_txbytes,
       is_active: is_active,
-      eth_height: eth_height
+      eth_height: eth_height,
+      spending_txhash: nil
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
