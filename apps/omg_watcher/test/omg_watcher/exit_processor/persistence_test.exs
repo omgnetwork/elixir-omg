@@ -61,14 +61,14 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
            eth_height: 2,
            exit_id: 1,
            call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1},
-           root_chain_txhash: binary_from_integer(1, 32)
+           root_chain_txhash: <<1::256>>
          },
          %{
            owner: alice.addr,
            eth_height: 4,
            exit_id: 2,
            call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2},
-           root_chain_txhash: binary_from_integer(2, 32)
+           root_chain_txhash: <<2::256>>
          }
        ],
        [

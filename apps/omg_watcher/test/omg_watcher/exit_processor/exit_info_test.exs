@@ -20,19 +20,17 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfoTest do
 
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
-  import OMG.Watcher.ExitProcessor.TestHelper
-
   @recently_added_keys [:root_chain_txhash]
-  @utxo_pos_1 {0, 0, 0}
+  @utxo_pos_1 {1000, 0, 0}
   @exit_1 %{
     exit_id: 1,
     amount: 1,
-    currency: random_bytes(20),
+    currency: <<1::160>>,
     eth_height: 1,
-    exiting_txbytes: random_bytes(32),
+    exiting_txbytes: "txbytes",
     is_active: false,
-    owner: random_bytes(20),
-    root_chain_txhash: random_bytes(32)
+    owner: <<1::160>>,
+    root_chain_txhash: <<1::256>>
   }
 
   describe "from_db_kv/1" do

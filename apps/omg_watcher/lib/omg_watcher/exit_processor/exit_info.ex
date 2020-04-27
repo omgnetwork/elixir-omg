@@ -126,7 +126,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       is_active: exit_info.is_active,
       eth_height: exit_info.eth_height,
       # defaults value to nil if non-existent in the DB.
-      root_chain_txhash: Map.get(exit_info, :root_chain_txhash, nil)
+      root_chain_txhash: Map.get(exit_info, :root_chain_txhash)
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
