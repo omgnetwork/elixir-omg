@@ -1,19 +1,33 @@
 # Changelog
 
-## Unreleased
+## v0.4.7 (Unreleased)
 
 #### APIs
 - [Fixed] Proper error message when retrieving In-Flight Exit data for a spent deposit (#1397)
 
 #### Core
+- [Added] Derive contract-related data from the contracts and add checks to prevent contract addresses changing (#1404)
 - [Added] Build adapter to pull fees from the fee feed service (#1373)
+- [Added] Observe the authority address balance on block submission (#1449)
+- [Changed] Upgrade elixir to v1.10.2 (#1440)
+- [Changed] Update default stall threshold to 300s (#1456)
+- [Changed] Standardize OMG.Bus event and topic names (#1441)
 - [Fixed] Add retries to gas cost retrieval (#1434)
+- [Fixed] Broken logging in contract event consumer (#1460)
+- [Fixed] Keep authority_addr naming for phash2 for backwards compatibility (#1457)
 
 #### Miscellaneous
-- [Added] Move load tests to elixir-omg repo (#1403, #1429)
-- [Changed] Clean up documentation for ExitProcessor, OMG.State and RootChainCoordinator(#1410)
+- [Added] Missing tests for release task of setting fee claimer address (#1451)
+- [Added] Load test merge_utxos() (#1446)
+- [Added] More load test scenarios (#1403, #1429, #1433)
+- [Added] Prevent adding more single pipes (#1462)
 - [Changed] Update Spandex (tracing library) to 2.4.3 (#1432)
+- [Changed] Modify the load test faucet to only deposit when necessary (#1445)
 - [Changed] Move nightly build steps into PR's non-mandatory build steps (#1287)
+- [Changed] Clean up documentation for ExitProcessor, OMG.State and RootChainCoordinator (#1410)
+- [Changed] Update install docs for elixir 1.10 (#1461)
+- [Fixed] Broken macos nightly build (#1458)
+- [Fixed] Errors not reported due to misconfugration (#1489)
 
 ## [v0.4.6](https://github.com/omisego/elixir-omg/releases/tag/v0.4.6)
 
