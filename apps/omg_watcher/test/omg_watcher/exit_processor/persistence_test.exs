@@ -40,6 +40,15 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   @non_zero_exit_id 1
   @zero_sig <<0::520>>
 
+  setup_all do
+    {:ok, exit_fn} = Support.DevNode.start()
+    authority_address = OMG.Eth.Configuration.authority_address()
+    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [authority_address, "", 0], [])
+
+    on_exit(exit_fn)
+    :ok
+  end
+
   setup %{db_pid: db_pid} do
     :ok = OMG.DB.initiation_multiupdate(db_pid)
 

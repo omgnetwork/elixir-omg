@@ -160,8 +160,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   """
   @spec get_scheduled_finalization_time(pos_integer(), pos_integer()) :: {:ok, pos_integer()}
   def get_scheduled_finalization_time(exit_eth_height, utxo_creation_blknum) do
-    {_, utxo_creation_block_timestamp} = Eth.RootChain.blocks(utxo_creation_blknum)
-    {_, exit_block_timestamp} = Eth.get_block_timestamp_by_number(exit_eth_height)
+    {_block_hash, utxo_creation_block_timestamp} = Eth.RootChain.blocks(utxo_creation_blknum)
+    {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(exit_eth_height)
     min_exit_period = Eth.Configuration.min_exit_period_seconds()
 
     calculate_sft(
