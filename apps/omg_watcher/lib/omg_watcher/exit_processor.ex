@@ -252,15 +252,13 @@ defmodule OMG.Watcher.ExitProcessor do
     - `exit_processor_sla_margin_forced`: if `true` will override the check of `exit_processor_sla_seconds` against
       `min_exit_period_seconds`
     - `min_exit_period_seconds`: should reflect the value of this parameter for the specific child chain watched,
-    - `ethereum_block_time_seconds`: relate blocks to seconds 
     - `metrics_collection_interval`: how often are the metrics sent to `telemetry` (in milliseconds)
   """
   def init(
         exit_processor_sla_seconds: exit_processor_sla_seconds,
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
         metrics_collection_interval: metrics_collection_interval,
-        min_exit_period_seconds: min_exit_period_seconds,
-        ethereum_block_time_seconds: ethereum_block_time_seconds
+        min_exit_period_seconds: min_exit_period_seconds
       ) do
     {:ok, db_exits} = DB.exit_infos()
     {:ok, db_ifes} = DB.in_flight_exits_info()
