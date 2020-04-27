@@ -45,7 +45,7 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   defp children(args) do
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
-    exit_processor_sla_margin = Configuration.exit_processor_sla_margin()
+    exit_processor_sla_seconds = Configuration.exit_processor_sla_seconds()
     exit_processor_sla_margin_forced = Configuration.exit_processor_sla_margin_forced()
     metrics_collection_interval = Configuration.metrics_collection_interval()
     finality_margin = Configuration.exit_finality_margin()
@@ -59,7 +59,7 @@ defmodule OMG.Watcher.SyncSupervisor do
     [
       {ExitProcessor,
        [
-         exit_processor_sla_margin: exit_processor_sla_margin,
+         exit_processor_sla_seconds: exit_processor_sla_seconds,
          exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
          metrics_collection_interval: metrics_collection_interval,
          min_exit_period_seconds: min_exit_period_seconds,

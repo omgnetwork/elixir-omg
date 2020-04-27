@@ -22,7 +22,7 @@ defmodule OMG.Watcher.API.Configuration do
   @spec get_configuration() :: {:ok, map()}
   def get_configuration() do
     configuration = %{
-      exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
+      exit_processor_sla_seconds: Configuration.exit_processor_sla_seconds(),
       deposit_finality_margin: OMG.Configuration.deposit_finality_margin(),
       contract_semver: OMG.Eth.Configuration.contract_semver(),
       network: OMG.Eth.Configuration.network()

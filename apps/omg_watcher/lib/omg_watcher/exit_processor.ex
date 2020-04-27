@@ -247,16 +247,16 @@ defmodule OMG.Watcher.ExitProcessor do
   Reads the exit data from `OMG.DB`.
 
   Options:
-    - `exit_processor_sla_margin`: number of blocks after exit start before it's considered late (and potentially:
+    - `exit_processor_sla_seconds`: seconds after exit start before it's considered late (and potentially:
       unchallenged)
-    - `exit_processor_sla_margin_forced`: if `true` will override the check of `exit_processor_sla_margin` against
+    - `exit_processor_sla_margin_forced`: if `true` will override the check of `exit_processor_sla_seconds` against
       `min_exit_period_seconds`
     - `min_exit_period_seconds`: should reflect the value of this parameter for the specific child chain watched,
-    - `ethereum_block_time_seconds`: just to relate blocks to seconds for the `exit_processor_sla_margin` check
+    - `ethereum_block_time_seconds`: relate blocks to seconds 
     - `metrics_collection_interval`: how often are the metrics sent to `telemetry` (in milliseconds)
   """
   def init(
-        exit_processor_sla_margin: exit_processor_sla_margin,
+        exit_processor_sla_seconds: exit_processor_sla_seconds,
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
         metrics_collection_interval: metrics_collection_interval,
         min_exit_period_seconds: min_exit_period_seconds,
@@ -267,14 +267,13 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_competitors} = DB.competitors_info()
 
     :ok =
-      Core.check_sla_margin(
-        exit_processor_sla_margin,
+      Core.check_sla_seconds(
+        exit_processor_sla_seconds,
         exit_processor_sla_margin_forced,
-        min_exit_period_seconds,
-        ethereum_block_time_seconds
+        min_exit_period_seconds
       )
 
-    {:ok, processor} = Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin)
+    {:ok, processor} = Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_seconds)
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
     _ = Logger.info("Initializing with: #{inspect(processor)}")

@@ -118,13 +118,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "check_sla_margin/4" do
     test "allows only safe margins if not forcing" do
-      assert {:error, :sla_margin_too_big} = Core.check_sla_margin(10, false, 100, 15)
-      assert :ok = Core.check_sla_margin(10, false, 300, 15)
+      assert {:error, :sla_margin_too_big} = Core.check_sla_seconds(150, false, 100)
+      assert :ok = Core.check_sla_seconds(150, false, 300)
     end
 
     test "allows anything if forcing" do
-      capture_log(fn -> assert :ok = Core.check_sla_margin(10, true, 100, 15) end)
-      assert :ok = Core.check_sla_margin(10, true, 300, 15)
+      capture_log(fn -> assert :ok = Core.check_sla_seconds(150, true, 100) end)
+      assert :ok = Core.check_sla_seconds(150, true, 300)
     end
   end
 

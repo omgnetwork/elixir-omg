@@ -18,8 +18,8 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
   require Logger
   @app :omg_watcher
 
-  @system_env_name_margin "EXIT_PROCESSOR_SLA_MARGIN"
-  @app_env_name_margin :exit_processor_sla_margin
+  @system_env_name_margin "EXIT_PROCESSOR_SLA_SECONDS"
+  @app_env_name_margin :exit_processor_sla_seconds
 
   @system_env_name_force "EXIT_PROCESSOR_SLA_MARGIN_FORCED"
   @app_env_name_force :exit_processor_sla_margin_forced
@@ -33,13 +33,13 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin do
 
     Config.Reader.merge(config,
       omg_watcher: [
-        exit_processor_sla_margin: get_exit_processor_sla_margin(),
+        exit_processor_sla_seconds: get_exit_processor_sla_seconds(),
         exit_processor_sla_margin_forced: get_exit_processor_sla_forced()
       ]
     )
   end
 
-  defp get_exit_processor_sla_margin() do
+  defp get_exit_processor_sla_seconds() do
     config_value = validate_int(get_env(@system_env_name_margin), Application.get_env(@app, @app_env_name_margin))
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: #{@system_env_name_margin} Value: #{inspect(config_value)}.")
     config_value

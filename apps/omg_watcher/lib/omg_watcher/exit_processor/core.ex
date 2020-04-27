@@ -44,7 +44,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   use OMG.Utils.LoggerExt
 
-  @default_sla_margin 10
+  @default_sla_seconds 10
   @zero_address OMG.Eth.zero_address()
 
   @max_inputs Transaction.Payment.max_inputs()
@@ -68,10 +68,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type new_piggyback_event_t() :: new_piggyback_input_event_t() | new_piggyback_output_event_t()
 
-  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
+  defstruct [:sla_seconds, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
 
   @type t :: %__MODULE__{
-          sla_margin: non_neg_integer(),
+          sla_seconds: non_neg_integer(),
           exits: %{Utxo.Position.t() => ExitInfo.t()},
           in_flight_exits: %{Transaction.tx_hash() => InFlightExitInfo.t()},
           # NOTE: maps only standard exit_ids to the natural keys of standard exits (input pointers/utxo_pos)
@@ -101,9 +101,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}],
           db_in_flight_exits :: [{Transaction.tx_hash(), InFlightExitInfo.t()}],
           db_competitors :: [{Transaction.tx_hash(), CompetitorInfo.t()}],
-          sla_margin :: non_neg_integer
+          sla_seconds :: non_neg_integer
         ) :: {:ok, t()}
-  def init(db_exits, db_in_flight_exits, db_competitors, sla_margin \\ @default_sla_margin) do
+  def init(db_exits, db_in_flight_exits, db_competitors, sla_seconds \\ @default_sla_seconds) do
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
     exit_ids = exits |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
 
@@ -113,30 +113,30 @@ defmodule OMG.Watcher.ExitProcessor.Core do
        in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
        exit_ids: exit_ids,
        competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
-       sla_margin: sla_margin
+       sla_seconds: sla_seconds
      }}
   end
 
   @doc """
-  Use to check if the settings regarding the `:exit_processor_sla_margin` config of `:omg_watcher` are OK.
+  Use to check if the settings regarding the `:exit_processor_sla_seconds` config of `:omg_watcher` are OK.
 
   Since there are combinations of our configuration that may lead to a dangerous setup of the Watcher
-  (in particular - muting the reports of unchallenged_exits), we're enforcing that the `exit_processor_sla_margin`
+  (in particular - muting the reports of unchallenged_exits), we're enforcing that the `exit_processor_sla_seconds`
   be not larger than `min_exit_period`.
   """
-  @spec check_sla_margin(pos_integer(), boolean(), pos_integer(), pos_integer()) :: :ok | {:error, :sla_margin_too_big}
-  def check_sla_margin(sla_margin, sla_margin_forced, min_exit_period_seconds, ethereum_block_time_seconds)
+  @spec check_sla_seconds(pos_integer(), boolean(), pos_integer()) :: :ok | {:error, :sla_margin_too_big}
+  def check_sla_seconds(sla_seconds, sla_margin_forced, min_exit_period_seconds)
 
-  def check_sla_margin(sla_margin, true, min_exit_period_seconds, ethereum_block_time_seconds) do
+  def check_sla_seconds(sla_seconds, true, min_exit_period_seconds) do
     _ =
-      if !sla_margin_safe?(sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
-        do: Logger.warn("Allowing unsafe sla margin of #{sla_margin} blocks")
+      if !sla_seconds_safe?(sla_seconds, min_exit_period_seconds),
+        do: Logger.warn("Allowing unsafe sla margin of #{sla_seconds} seconds")
 
     :ok
   end
 
-  def check_sla_margin(sla_margin, false, min_exit_period_seconds, ethereum_block_time_seconds) do
-    if sla_margin_safe?(sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
+  def check_sla_seconds(sla_seconds, false, min_exit_period_seconds) do
+    if sla_seconds_safe?(sla_seconds, min_exit_period_seconds),
       do: :ok,
       else: {:error, :sla_margin_too_big}
   end
@@ -587,6 +587,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     address != @zero_address
   end
 
-  defp sla_margin_safe?(exit_processor_sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
-    do: exit_processor_sla_margin * ethereum_block_time_seconds < min_exit_period_seconds
+  defp sla_seconds_safe?(exit_processor_sla_seconds, min_exit_period_seconds),
+    do: exit_processor_sla_seconds < min_exit_period_seconds
 end

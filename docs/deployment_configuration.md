@@ -33,7 +33,7 @@
 ***Watcher and Watcher Info only***
 
 - "CHILD_CHAIN_URL" - Location of the Child Chain API. *mandatory*
-- "EXIT_PROCESSOR_SLA_MARGIN" - Number of Ethereum blocks since start of an invalid exit, before `unchallenged_exit` is reported to prompt to mass exit. Must be smaller than "MIN_EXIT_PERIOD_SECONDS", unless "EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE".
+- "EXIT_PROCESSOR_SLA_SECONDS" - Seconds since start of an invalid exit, before `unchallenged_exit` is reported to prompt to mass exit. Must be smaller than "MIN_EXIT_PERIOD_SECONDS", unless "EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE".
 
 ***Watcher Info only***
 

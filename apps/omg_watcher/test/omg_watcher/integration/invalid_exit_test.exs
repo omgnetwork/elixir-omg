@@ -96,7 +96,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   end
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits]
-  test "invalid_exit without a challenge raises unchallenged_exit after sla_margin had passed, can be challenged",
+  test "invalid_exit without a challenge raises unchallenged_exit after sla_seconds had passed, can be challenged",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
     %{"blknum" => first_tx_blknum} =
       OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}]) |> WatcherHelper.submit()
@@ -109,14 +109,16 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     %{"txbytes" => txbytes, "proof" => proof, "utxo_pos" => tx_utxo_pos} =
       WatcherHelper.get_exit_data(first_tx_blknum, 0, 0)
 
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+    {:ok, %{"status" => "0x1"}} =
       RootChainHelper.start_exit(tx_utxo_pos, txbytes, proof, alice.addr)
       |> DevHelper.transact_sync!()
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
 
-    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
-    DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
+    exit_processor_sla_seconds = Application.fetch_env!(:omg_watcher, :exit_processor_sla_seconds)
+    exit_processor_sla_ms = exit_processor_sla_seconds * 1000
+    # after exit, the event fetch time + waiting for sla_margin goes beyond the required time
+    Process.sleep(exit_processor_sla_ms)
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name, %Event.UnchallengedExit{}.name], @timeout)
 
     # after the notification has been received, a challenged is composed and sent, regardless of it being late

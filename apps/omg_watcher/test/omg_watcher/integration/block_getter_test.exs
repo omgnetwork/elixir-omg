@@ -183,7 +183,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   end
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
-  test "transaction which is spending an exiting output before the `sla_margin` causes an invalid_exit event only",
+  test "transaction which is spending an exiting output before the `sla_seconds` causes an invalid_exit event only",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
@@ -223,14 +223,14 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # Here we're manually submitting invalid block to the root chain
     # NOTE: this **must** come after `start_exit` is mined (see just above) but still not later than
-    #       `sla_margin` after exit start, hence the `config/test.exs` entry for the margin is rather high
+    #       `sla_seconds` after exit start, hence the `config/test.exs` entry for the margin is rather high
     {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
   end
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :mix_based_child_chain, :token, :stable_alice_deposits, :test_server]
-  test "transaction which is spending an exiting output after the `sla_margin` causes an unchallenged_exit event",
+  test "transaction which is spending an exiting output after the `sla_seconds` causes an unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
@@ -259,7 +259,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "utxo_pos" => utxo_pos
     } = WatcherHelper.get_exit_data(exit_blknum, 0, 0)
 
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+    {:ok, %{"status" => "0x1"}} =
       RootChainHelper.start_exit(
         utxo_pos,
         txbytes,
@@ -268,8 +268,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       )
       |> DevHelper.transact_sync!()
 
-    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
-    DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
+    exit_processor_sla_seconds = Application.fetch_env!(:omg_watcher, :exit_processor_sla_seconds)
+    exit_processor_sla_ms = exit_processor_sla_seconds * 1000
+    Process.sleep(exit_processor_sla_ms)
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->

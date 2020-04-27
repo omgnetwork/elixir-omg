@@ -10,9 +10,9 @@ This document describes the exit validation (processing) done by the Watcher in 
 * **unchallenged exit tolerance** - a Watcher's tolerance to an invalid exit not having a challenge for a long time since its start.
    - **NOTE**: in practice, violation of the child chain exit recognition SLA and violation of the unchallenged exit tolerance are similar.
   The correct reaction to both is a prompt to mass exit and a challenge of the invalid exit.
-  Because of this, only `sla_margin` is used as a configurable setting on the Watcher, covering for both conditions.
-* **`sla_margin`** - margin of the child chain exit recognition SLA (in Ethereum blocks).
-This is a number of blocks after the start of an exit (or piggyback), during which a Child Chain Server still might include a transaction invalidating a previously valid exit, without violating the child chain exit recognition SLA.
+  Because of this, only `sla_seconds` is used as a configurable setting on the Watcher, covering for both conditions.
+* **`sla_seconds`** - margin of the child chain exit recognition SLA (in seconds).
+This is the time in seconds after the start of an exit (or piggyback), during which a Child Chain Server still might include a transaction invalidating a previously valid exit, without violating the child chain exit recognition SLA.
 Similarly, this is a number of blocks after the start of an exit (or piggyback), during which the Watcher will not report [unchallenged exits](#unchallenged_exit-condition).
 
 ## Notes on the Child Chain Server
@@ -31,34 +31,34 @@ The child chain becomes insolvent if any invalid exit gets finalized, which lead
     - **NOTE**: This immediacy is limited because the server must process deposits before exits and deposits _must_ wait for finality on the root chain.
 
 There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server prohibit spending of a particular UTXO **late**, regardless of the immediacy mentioned above.
-This is acceptable as long as the delay doesn't exceed the `sla_margin`.
+This is acceptable as long as the delay doesn't exceed the `sla_seconds`.
 
 ## Watcher
 
-### Choice of the `sla_margin` setting value
+### Choice of the `sla_seconds` setting value
 
-`sla_margin` is a set on the Watcher (via [`exit_processor_sla_margin`/`EXIT_PROCESSOR_SLA_MARGIN`](./details.md#configuration-parameters)), which needs to be determined correctly for various deployments and environments.
+`sla_seconds` is a set on the Watcher (via [`exit_processor_sla_seconds`/`EXIT_PROCESSOR_SLA_SECONDS`](./details.md#configuration-parameters)), which needs to be determined correctly for various deployments and environments.
 It should reflect the exit period and the intended usage patterns and security requirements of the environment.
 
-`sla margin` should be large enough:
+`sla_seconds` should be large enough:
  - for the Child Chain Server (that runs the child chain the Watcher validates), to recognize exiting UTXOs, to prevent an invalidating transaction going through
  - for anyone concerned with challenging to challenge invalid exits.
 
-`sla_margin` should be tight enough:
+`sla_seconds` should be tight enough:
  - to allow a successful mass exit in case of an [`unchallenged_exit` condition](#unchallenged_exit-condition).
 
-**NOTE** The `sla_margin` is usually much larger and unrelated to any margins that the Child Chain Server may wait before recognizing exits.
-So, if everything is functioning correctly, the spending of exiting UTXOs is blocked _much_ earlier than the `sla_margin`.
-In other words, `sla_margin` is usually picked to be ample (to avoid spurious mass exit prompts), and this doesn't impact the immediacy of the Child Chain Server's reaction to exits.
+**NOTE** The `sla_seconds` is usually much larger and unrelated to any margins that the Child Chain Server may wait before recognizing exits.
+So, if everything is functioning correctly, the spending of exiting UTXOs is blocked _much_ earlier than the `sla_seconds`.
+In other words, `sla_seconds` is usually picked to be ample (to avoid spurious mass exit prompts), and this doesn't impact the immediacy of the Child Chain Server's reaction to exits.
 
 ### Standard Exits
 
 #### Actions that the Watcher should prompt
 
 1. If an exit is known to be invalid it should be challenged. The Watcher prompts by an `:invalid_exit` event.
-2. If an exit is invalidated with a transaction submitted *before* `start_eth_height + sla_margin` it must be challenged (`:invalid_exit` event)
-3. If an exit is invalidated with a transaction submitted *after* `start_eth_height + sla_margin` it must be challenged **AND** the Watcher prompts to exit. The Watcher prompts by both `:invalid_exit` and `:unchallenged_exit` events. Users should not deposit or spend
-4. If an exit is invalid and remains unchallenged *after* `start_eth_height + sla_margin` it must be challenged **AND** the Watcher prompts to exit. The Watcher prompts by both `:invalid_exit` and `:unchallenged_exit` events. Users should not deposit or spend.
+2. If an exit is invalidated with a transaction submitted *before* `sla_seconds` it must be challenged (`:invalid_exit` event)
+3. If an exit is invalidated with a transaction submitted *after* `sla_seconds` it must be challenged **AND** the Watcher prompts to exit. The Watcher prompts by both `:invalid_exit` and `:unchallenged_exit` events. Users should not deposit or spend
+4. If an exit is invalid and remains unchallenged *after* `sla_seconds` it must be challenged **AND** the Watcher prompts to exit. The Watcher prompts by both `:invalid_exit` and `:unchallenged_exit` events. Users should not deposit or spend.
 5. The `unchallenged_exit` event also covers the case where the invalid exit finalizes, causing an insolvent chain until [issue #1318 is solved](github.com/omisego/elixir-omg/issues/1318).
 
 More on the [`unchallenged_exit` condition](#unchallenged_exit-condition).
@@ -75,7 +75,7 @@ Assumptions:
 3. For every open exit request run `OMG.State.utxo_exists?` method
     * if `true` -> noop,
     * if `false` -> emit `:invalid_exit` event prompts to challenge
-    * if `false` and exit is older than `sla_margin` -> emit additionally an `:unchallenged_exit` event which promts mass exit
+    * if `false` and exit is older than `sla_seconds` -> emit additionally an `:unchallenged_exit` event which promts mass exit
 4. Spend UTXOs in `OMG.State` on exit finalization
     * if the spent UTXO is present at the moment, forget the exit from validation - this is a valid finalization
     * if the spent UTXO is missing, keep on emitting `:unchallenged_exit` (until [issue #1318 is solved](github.com/omisego/elixir-omg/issues/1318)) - this is an invalid finalization.
@@ -127,5 +127,5 @@ An alternative is to always check the current status of every exit, before takin
 All the above rules will apply analogically to in-flight exits.
 See [MoreVP](./morevp.md) for specs and introduction to in-flight exits.
 Invalid attempts to do an in-flight related action prompt challenges.
-Absence of challenges within the `sla_margin`, as well as invalid finalization, should result in client prompting to mass exit (to be implemented in [issue #1275](github.com/omisego/elixir-omg/issues/1275)).
+Absence of challenges within the `sla_seconds`, as well as invalid finalization, should result in client prompting to mass exit (to be implemented in [issue #1275](github.com/omisego/elixir-omg/issues/1275)).
 `OMG.State` is modified on IFE finalization.

@@ -232,7 +232,7 @@ paths:
                               format: int256
                             contract_semver:
                               type: string
-                            exit_processor_sla_margin:
+                            exit_processor_sla_seconds:
                               type: integer
                               format: int256
                             network:
@@ -241,7 +241,7 @@ paths:
                       data:
                         - deposit_finality_margin: 10
                           contract_semver: 1.0.0.1+a1s29s8
-                          exit_processor_sla_margin: 5520
+                          exit_processor_sla_seconds: 5520
                           network: RINKEBY
         '500':
           description: Returns an internal server error
