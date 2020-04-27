@@ -4,7 +4,7 @@ version: "2.3"
 services:
   watcher:
     environment:
-      - EXIT_PROCESSOR_SLA_SECONDS=30
+      - EXIT_PROCESSOR_SLA_SECONDS=450
   watcher_info:
     environment:
-      - EXIT_PROCESSOR_SLA_SECONDS=30
+      - EXIT_PROCESSOR_SLA_SECONDS=450

@@ -116,7 +116,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
   end
 
-  describe "check_sla_margin/4" do
+  describe "check_sla_margin/3" do
     test "allows only safe margins if not forcing" do
       assert {:error, :sla_margin_too_big} = Core.check_sla_seconds(150, false, 100)
       assert :ok = Core.check_sla_seconds(150, false, 300)
