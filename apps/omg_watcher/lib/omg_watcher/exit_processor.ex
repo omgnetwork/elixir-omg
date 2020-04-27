@@ -449,7 +449,7 @@ defmodule OMG.Watcher.ExitProcessor do
     # necessary, so that the processor knows the current state of inclusion of exiting IFE txs
     state2 = update_with_ife_txs_from_blocks(state)
 
-    {:ok, exiting_positions, _bus_events} =
+    {:ok, exiting_positions, bus_events} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
 
     # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
@@ -458,6 +458,10 @@ defmodule OMG.Watcher.ExitProcessor do
       Enum.reduce(exiting_positions, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
 
     {:ok, state3, db_updates} = Core.finalize_in_flight_exits(state2, finalizations, invalidities)
+
+    {:watcher, "IfeFinalizedUtxos"}
+    |> OMG.Bus.Event.new(:data, bus_events)
+    |> OMG.Bus.direct_local_broadcast()
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end
