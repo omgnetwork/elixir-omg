@@ -41,9 +41,10 @@ defmodule OMG.Watcher.Integration.TestHelper do
     fn ->
       %{"byzantine_events" => emitted_events} = WatcherHelper.success?("/status.get")
       emitted_event_names = Enum.map(emitted_events, &String.to_atom(&1["event"]))
-      IO.inspect(emitted_event_names)
 
-      if Enum.any?(emitted_event_names, fn emitted_name -> emitted_name == event_name end),
+      is_event = fn emitted_name -> emitted_name == event_name end
+
+      if Enum.any?(emitted_event_names, is_event),
         do: {:ok, emitted_event_names},
         else: :repeat
     end
