@@ -136,10 +136,11 @@ defmodule OMG.Watcher.Event do
     defstruct [
       :amount,
       :currency,
-      :owner,
-      :utxo_pos,
-      :root_chain_txhash,
       :eth_height,
+      :owner,
+      :root_chain_txhash,
+      :scheduled_finalization_time,
+      :utxo_pos,
       name: :invalid_exit
     ]
 
@@ -150,7 +151,8 @@ defmodule OMG.Watcher.Event do
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
             name: atom(),
-            root_chain_txhash: Crypto.hash_t() | nil
+            root_chain_txhash: Crypto.hash_t() | nil,
+            scheduled_finalization_time: pos_integer() | nil
           }
   end
 
@@ -164,10 +166,11 @@ defmodule OMG.Watcher.Event do
     defstruct [
       :amount,
       :currency,
-      :owner,
-      :utxo_pos,
-      :root_chain_txhash,
       :eth_height,
+      :owner,
+      :root_chain_txhash,
+      :scheduled_finalization_time,
+      :utxo_pos,
       name: :unchallenged_exit
     ]
 
@@ -178,7 +181,8 @@ defmodule OMG.Watcher.Event do
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
             name: atom(),
-            root_chain_txhash: Crypto.hash_t() | nil
+            root_chain_txhash: Crypto.hash_t() | nil,
+            scheduled_finalization_time: pos_integer() | nil
           }
   end
 
