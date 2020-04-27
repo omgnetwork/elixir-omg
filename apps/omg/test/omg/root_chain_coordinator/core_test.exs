@@ -58,12 +58,6 @@ defmodule OMG.RootChainCoordinator.CoreTest do
     assert %{sync_height: 10} = Core.get_synced_info(state, depositor_pid)
     assert %{sync_height: 1} = Core.get_synced_info(state, exiter_pid)
 
-    assert {:ok, state} = Core.check_out(state, depositor_pid)
-    assert :nosync = Core.get_synced_info(state, depositor_pid)
-    assert :nosync = Core.get_synced_info(state, exiter_pid)
-    assert :nosync = Core.get_synced_info(state, :depositor)
-    assert :nosync = Core.get_synced_info(state, :exiter)
-
     depositor_pid2 = :c.pid(0, 3, 0)
     assert {:ok, state} = Core.check_in(state, depositor_pid2, 2, :depositor)
     assert %{sync_height: 10} = Core.get_synced_info(state, depositor_pid2)
