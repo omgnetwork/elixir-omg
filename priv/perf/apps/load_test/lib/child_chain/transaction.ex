@@ -27,21 +27,21 @@ defmodule LoadTest.ChildChain.Transaction do
   @retry_interval 1_000
   @eth <<0::160>>
 
-  def spend_eth_utxo(utxo, amount, fee, sender, receiver) do
+  def spend_eth_utxo(utxo, amount, fee, sender, receiver, retries \\ 0) do
     change_amount = utxo.amount - amount - fee
     receiver_output = %Utxo{owner: receiver.addr, currency: @eth, amount: amount}
-    do_spend(utxo, receiver_output, change_amount, sender)
+    do_spend(utxo, receiver_output, change_amount, sender, retries)
   end
 
-  defp do_spend(_input, _output, change_amount, _signer) when change_amount < 0, do: :error_insufficient_funds
+  defp do_spend(_input, _output, change_amount, _signer, _retries) when change_amount < 0, do: :error_insufficient_funds
 
-  defp do_spend(input, output, 0, signer) do
-    submit_tx([input], [output], [signer])
+  defp do_spend(input, output, 0, signer, retries) do
+    submit_tx([input], [output], [signer], retries)
   end
 
-  defp do_spend(input, output, change_amount, signer) do
+  defp do_spend(input, output, change_amount, signer, retries) do
     change_output = %Utxo{owner: signer.addr, currency: @eth, amount: change_amount}
-    submit_tx([input], [change_output, output], [signer])
+    submit_tx([input], [change_output, output], [signer], retries)
   end
 
   def submit_tx(inputs, outputs, signers, retries \\ 0) do

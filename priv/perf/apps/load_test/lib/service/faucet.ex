@@ -111,17 +111,23 @@ defmodule LoadTest.Service.Faucet do
   def handle_call({:fund_child_chain, receiver, amount, currency}, _from, state) do
     utxo = get_funding_utxo(state, currency, amount)
 
-    change = utxo.amount - amount - state.fee
-
-    outputs = [
-      %Utxo{amount: change, currency: currency, owner: state.faucet_account.addr},
-      %Utxo{amount: amount, currency: currency, owner: receiver.addr}
-    ]
-
     Logger.debug("Funding user #{Encoding.to_hex(receiver.addr)} with #{amount} from utxo: #{Utxo.pos(utxo)}")
 
+    outputs =
+      Transaction.spend_eth_utxo(
+        utxo,
+        amount,
+        state.fee,
+        state.faucet_account,
+        receiver,
+        @fund_child_chain_account_retries
+      )
+
     [next_faucet_utxo, user_utxo] =
-      Transaction.submit_tx([utxo], outputs, [state.faucet_account], @fund_child_chain_account_retries)
+      case outputs do
+        [single_output] -> [nil, single_output]
+        [change_output, user_output] -> [change_output, user_output]
+      end
 
     updated_state = Map.put(state, :utxos, Map.put(state.utxos, currency, next_faucet_utxo))
 
@@ -162,7 +168,7 @@ defmodule LoadTest.Service.Faucet do
 
   @spec deposit(Account.t(), pos_integer(), Utxo.address_binary(), pos_integer(), pos_integer()) :: Utxo.t()
   defp deposit(faucet_account, amount, currency, deposit_finality_margin, gas_price) do
-    Logger.debug("Not enough funds in the faucet, depositing more from the root chain")
+    Logger.debug("Not enough funds in the faucet, depositing #{amount} from the root chain")
 
     {:ok, utxo} = Deposit.deposit_from(faucet_account, amount, currency, deposit_finality_margin, gas_price)
     utxo
