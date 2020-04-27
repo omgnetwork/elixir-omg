@@ -20,6 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   """
 
   alias OMG.Crypto
+  alias OMG.Eth
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.Event
@@ -34,9 +35,14 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     :exiting_txbytes,
     :is_active,
     :eth_height,
-    :root_chain_txhash
+    :root_chain_txhash,
+    :scheduled_finalization_time
   ]
+
+  @child_block_interval Eth.Configuration.child_block_interval()
+
   defstruct @enforce_keys
+  use OMG.Utils.LoggerExt
 
   @type t :: %__MODULE__{
           amount: non_neg_integer(),
@@ -48,7 +54,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
           eth_height: pos_integer(),
-          root_chain_txhash: Crypto.hash_t() | nil
+          root_chain_txhash: Crypto.hash_t() | nil,
+          scheduled_finalization_time: pos_integer() | nil
         }
 
   @spec new(map(), map()) :: t()
@@ -61,8 +68,11 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           root_chain_txhash: root_chain_txhash
         } = exit_event
       ) do
-    Utxo.position(_, _, oindex) = utxo_pos_for(exit_event)
+    Utxo.position(blknum, _, oindex) = utxo_pos_for(exit_event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
+    {:ok, scheduled_finalization_time} = get_scheduled_finalization_time(eth_height, blknum)
+
+    Logger.info("SFT: #{scheduled_finalization_time}")
 
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
@@ -73,7 +83,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exit_id: exit_id,
       exiting_txbytes: txbytes,
       eth_height: eth_height,
-      root_chain_txhash: root_chain_txhash
+      root_chain_txhash: root_chain_txhash,
+      scheduled_finalization_time: scheduled_finalization_time
     )
   end
 
@@ -108,7 +119,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exiting_txbytes: exit_info.exiting_txbytes,
       is_active: exit_info.is_active,
       eth_height: exit_info.eth_height,
-      root_chain_txhash: exit_info.root_chain_txhash
+      root_chain_txhash: exit_info.root_chain_txhash,
+      scheduled_finalization_time: exit_info.scheduled_finalization_time
     }
 
     {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
@@ -126,7 +138,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       is_active: exit_info.is_active,
       eth_height: exit_info.eth_height,
       # defaults value to nil if non-existent in the DB.
-      root_chain_txhash: Map.get(exit_info, :root_chain_txhash)
+      root_chain_txhash: Map.get(exit_info, :root_chain_txhash),
+      scheduled_finalization_time: Map.get(exit_info, :scheduled_finalization_time)
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
@@ -137,4 +150,34 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   # `exitable` will be `false` ALONG WITH the whole tuple holding zeroees, if the exit was processed successfully
   # **NOTE** one can only rely on the zero-nonzero of this data, since for processed exits this data will be all zeros
   defp parse_contract_exit_status({exitable, _, _, _, _, _}), do: exitable
+
+  @doc """
+  Based on the block number determines whether UTXO was created by a deposit.
+  """
+  defguard is_deposit(blknum) when rem(blknum, @child_block_interval) != 0
+
+  @doc """
+  Calculates the time at which an exit can be processed and released if not challenged successfully.
+  See https://docs.omg.network/challenge-period for calculation logic.
+  """
+  @spec get_scheduled_finalization_time(pos_integer(), pos_integer()) :: pos_integer()
+  def get_scheduled_finalization_time(exit_eth_height, utxo_creation_blknum) do
+    {_, utxo_creation_timestamp} = Eth.RootChain.blocks(utxo_creation_blknum)
+    {_, exit_timestamp} = Eth.get_block_timestamp_by_number(exit_eth_height)
+    min_exit_period = OMG.Eth.Configuration.min_exit_period_seconds()
+
+    Logger.info("BLKNUM: #{utxo_creation_blknum}")
+    Logger.info("UTXO TS: #{utxo_creation_timestamp}")
+    Logger.info("EXIT TS: #{exit_timestamp}")
+    Logger.info("MIN EXIT PERIOD: #{min_exit_period}")
+
+    calculate_sft(utxo_creation_blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period)
+  end
+
+  @spec calculate_sft(pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: pos_integer()
+  def calculate_sft(blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period) when is_deposit(blknum),
+    do: {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + min_exit_period)}
+
+  def calculate_sft(_blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period),
+    do: {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + 2 * min_exit_period)}
 end
