@@ -51,7 +51,7 @@ defmodule LoadTest.Scenario.SpendEthUtxo do
     session
     |> Session.assign(utxo: next_utxo)
     |> Session.add_metric(
-      {:call, {LoadTest.Scenario.SpendUtxos, "submit_transaction"}},
+      {:call, {LoadTest.Scenario.SpendEthUtxo, "submit_transaction"}},
       Timing.timestamp() - start
     )
   end
