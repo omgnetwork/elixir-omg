@@ -14,14 +14,13 @@
 
 defmodule LoadTest.Scenario.CreateUtxos do
   @moduledoc """
-  Creates utxos owned by a sender provided in scenario config.
+  Funds an account and then splits the resulting utxo into many more utxos.
   """
 
   use Chaperon.Scenario
 
   alias Chaperon.Session
   alias ExPlasma.Utxo
-  alias LoadTest.Service.Faucet
 
   @eth <<0::160>>
   @spawned_outputs_per_transaction 3
@@ -41,19 +40,20 @@ defmodule LoadTest.Scenario.CreateUtxos do
     amount_per_utxo = get_amount_per_created_utxo(fee_wei)
     initial_funds = number_of_transactions * fee_wei + utxos_to_create_per_session * amount_per_utxo + min_final_change
 
-    {:ok, utxo} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
-
     session
-    |> Session.assign(next_utxo: utxo)
+    |> run_scenario(LoadTest.Scenario.FundAccount, %{
+      account: sender,
+      initial_funds: initial_funds
+    })
     |> repeat(:submit_transaction, [sender], number_of_transactions)
   end
 
   def submit_transaction(session, sender) do
-    {inputs, outputs} = create_transaction(sender, session.assigned.next_utxo, session.assigned.fee_wei)
+    {inputs, outputs} = create_transaction(sender, session.assigned.utxo, session.assigned.fee_wei)
 
     new_outputs = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
 
-    Session.assign(session, next_utxo: List.last(new_outputs))
+    Session.assign(session, utxo: List.last(new_outputs))
   end
 
   defp create_transaction(sender, input, fee_wei) do
