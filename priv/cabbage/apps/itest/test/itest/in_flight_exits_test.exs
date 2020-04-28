@@ -22,10 +22,10 @@ defmodule InFlightExitsTests do
   alias Itest.ApiModel.IfeCompetitor
   alias Itest.ApiModel.IfeExitData
   alias Itest.ApiModel.IfeExits
-  alias Itest.ApiModel.Utxo
   alias Itest.ApiModel.IfeInputChallenge
   alias Itest.ApiModel.IfeOutputChallenge
   alias Itest.ApiModel.SubmitTransactionResponse
+  alias Itest.ApiModel.Utxo
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
   alias Itest.Fee
@@ -608,7 +608,7 @@ defmodule InFlightExitsTests do
           state do
     amount = Currency.to_wei(amount)
 
-    %{address: alice_address} = alice_state = state["Alice"]
+    %{address: alice_address} = state["Alice"]
 
     %{address: bob_address, utxos: bob_utxos, pkey: bob_pkey, child_chain_balance: bob_child_chain_balance} =
       state["Bob"]
@@ -674,12 +674,11 @@ defmodule InFlightExitsTests do
   defgiven ~r/^Alice creates a transaction spending her recently received input to Bob$/,
            _,
            state do
-    %{address: alice_address, utxos: alice_utxos, pkey: alice_pkey, child_chain_balance: alice_child_chain_balance} =
-      alice_state = state["Alice"]
+    %{utxos: alice_utxos, pkey: alice_pkey} = alice_state = state["Alice"]
 
     amount = Currency.to_wei(5)
 
-    %{address: bob_address, utxos: bob_utxos} = state["Bob"]
+    %{address: bob_address} = state["Bob"]
 
     double_spent_utxo = alice_utxos |> Enum.reverse() |> Enum.at(0)
 
@@ -731,7 +730,7 @@ defmodule InFlightExitsTests do
   defwhen ~r/^Alice starts a standard exit on the child chain from her recently received input from Bob$/,
           _,
           state do
-    %{utxos: alice_utxos, address: alice_address} = alice_state = state["Alice"]
+    %{utxos: alice_utxos, address: alice_address} = state["Alice"]
     utxo = alice_utxos |> Enum.reverse() |> Enum.at(0)
 
     assert utxo["amount"] == Currency.to_wei(5)
@@ -739,17 +738,15 @@ defmodule InFlightExitsTests do
     utxo = %{blknum: utxo["blknum"], oindex: utxo["oindex"], txindex: utxo["txindex"]}
 
     standard_exit_client = %StandardExitClient{address: alice_address, utxo: %Utxo{utxo_pos: ExPlasma.Utxo.pos(utxo)}}
-    se = StandardExitClient.start_standard_exit(standard_exit_client)
+    StandardExitClient.start_standard_exit(standard_exit_client)
 
-    new_state = state
-
-    {:ok, new_state}
+    {:ok, state}
   end
 
   defand ~r/^Bob starts an in flight exit from the most recently created transaction$/, _, state do
     exit_game_contract_address = state["exit_game_contract_address"]
     in_flight_exit_bond_size = state["in_flight_exit_bond_size"]
-    %{txbytes: txbytes} = alice_state = state["Alice"]
+    %{txbytes: txbytes} = state["Alice"]
     %{address: bob_address} = bob_state = state["Bob"]
     payload = %InFlightExitTxBytesBodySchema{txbytes: Encoding.to_hex(txbytes)}
     response = pull_api_until_successful(InFlightExit, :in_flight_exit_get_data, Watcher.new(), payload)
@@ -794,7 +791,7 @@ defmodule InFlightExitsTests do
           state do
     assert all_events_in_status?(["invalid_exit"])
 
-    %{exit_data: %{input_utxos_pos: [utxo_pos | _]}, address: address} = bob_state = state["Bob"]
+    %{exit_data: %{input_utxos_pos: [utxo_pos | _]}, address: address} = state["Bob"]
 
     StandardExitChallengeClient.challenge_standard_exit(utxo_pos, address)
 
