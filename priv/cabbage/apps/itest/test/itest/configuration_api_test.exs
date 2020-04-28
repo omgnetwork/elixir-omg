@@ -32,7 +32,7 @@ defmodule ConfigurationRetrievalTests do
         "contract_semver" => contract_semver,
         "deposit_finality_margin" => 10,
         "network" => "LOCALCHAIN",
-        "exit_processor_sla_seconds" => 30
+        "exit_processor_sla_seconds" => 450
       },
       child_chain_assert_response: %{
         "contract_semver" => contract_semver,
