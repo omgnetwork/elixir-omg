@@ -272,4 +272,58 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
     assert :ok = DB.EthEvent.insert_exits!(exits)
   end
+
+  @tag fixtures: [:alice, :initial_blocks]
+  test "Can spend multiple outputs with single start_ife event", %{alice: alice} do
+    expected_log_index = 0
+    expected_eth_txhash = Crypto.hash(<<6::256>>)
+    expected_event_type = :in_flight_exit
+
+    %{data: utxos} = DB.TxOutput.get_utxos(address: alice.addr)
+
+    [
+      %DB.TxOutput{blknum: blknum1, txindex: txindex1, oindex: oindex1},
+      %DB.TxOutput{blknum: blknum2, txindex: txindex2, oindex: oindex2} | _
+    ] = utxos
+
+    utxo_pos1 = Utxo.position(blknum1, txindex1, oindex1)
+    utxo_pos2 = Utxo.position(blknum2, txindex2, oindex2)
+
+    exits = [
+      %{
+        root_chain_txhash: expected_eth_txhash,
+        log_index: expected_log_index,
+        call_data: %{utxo_pos: Utxo.Position.encode(utxo_pos1)}
+      },
+      %{
+        root_chain_txhash: expected_eth_txhash,
+        log_index: expected_log_index,
+        call_data: %{utxo_pos: Utxo.Position.encode(utxo_pos2)}
+      }
+    ]
+
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
+
+    utxo1 = DB.TxOutput.get_by_position(utxo_pos1)
+    assert utxo1 != nil
+
+    assert [
+             %DB.EthEvent{
+               log_index: ^expected_log_index,
+               root_chain_txhash: ^expected_eth_txhash,
+               event_type: ^expected_event_type
+             }
+           ] = utxo1.ethevents
+
+    utxo2 = DB.TxOutput.get_by_position(utxo_pos2)
+    assert utxo2 != nil
+
+    assert [
+             %DB.EthEvent{
+               log_index: ^expected_log_index,
+               root_chain_txhash: ^expected_eth_txhash,
+               event_type: ^expected_event_type
+             }
+           ] = utxo2.ethevents
+  end
 end
