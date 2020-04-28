@@ -27,10 +27,29 @@ defmodule LoadTest.ChildChain.Transaction do
   @retry_interval 1_000
   @eth <<0::160>>
 
-  def spend_eth_utxo(utxo, amount, fee, sender, receiver, retries \\ 0) do
+  @doc """
+  Spends a utxo.
+
+  Creates, signs and submits a transaction using the utxo as the input,
+  one output with the amount and receiver address and another output if there is any change.
+
+  Returns the utxos created by the transaction. If a change utxo was created, it will be the first in the list.
+
+  Note that input must cover fees, so the currency must be a fee paying currency.
+  """
+  @spec spend_utxo(
+          Utxo.t(),
+          pos_integer(),
+          pos_integer(),
+          LoadTest.Ethereum.Account.t(),
+          LoadTest.Ethereum.Account.t(),
+          Utxo.address_binary(),
+          pos_integer()
+        ) :: list(Utxo.t())
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency \\ @eth, retries \\ 0) do
     change_amount = utxo.amount - amount - fee
-    receiver_output = %Utxo{owner: receiver.addr, currency: @eth, amount: amount}
-    do_spend(utxo, receiver_output, change_amount, sender, retries)
+    receiver_output = %Utxo{owner: receiver.addr, currency: currency, amount: amount}
+    do_spend(utxo, receiver_output, change_amount, signer, retries)
   end
 
   defp do_spend(_input, _output, change_amount, _signer, _retries) when change_amount < 0, do: :error_insufficient_funds
@@ -44,6 +63,19 @@ defmodule LoadTest.ChildChain.Transaction do
     submit_tx([input], [change_output, output], [signer], retries)
   end
 
+  @doc """
+  Submits a transaction
+
+  Creates a transaction from the given inputs and outputs, signs it and submits it to the childchain.
+
+  Returns the utxos created by the transaction.
+  """
+  @spec submit_tx(
+          list(Utxo.output_map()),
+          list(Utxo.input_map()),
+          list(LoadTest.Ethereum.Account.t()),
+          pos_integer()
+        ) :: list(Utxo.t())
   def submit_tx(inputs, outputs, signers, retries \\ 0) do
     {:ok, tx} = Transaction.Payment.new(%{inputs: inputs, outputs: outputs})
 

@@ -44,6 +44,8 @@ defmodule LoadTest.Service.Faucet do
   # allow the faucet to retry to avoid failing the test prematurely.
   @fund_child_chain_account_retries 100
 
+  @eth <<0::160>>
+
   @type state :: %__MODULE__{
           faucet_account: Account.t(),
           fee: pos_integer(),
@@ -114,12 +116,13 @@ defmodule LoadTest.Service.Faucet do
     Logger.debug("Funding user #{Encoding.to_hex(receiver.addr)} with #{amount} from utxo: #{Utxo.pos(utxo)}")
 
     outputs =
-      Transaction.spend_eth_utxo(
+      Transaction.spend_utxo(
         utxo,
         amount,
         state.fee,
         state.faucet_account,
         receiver,
+        @eth,
         @fund_child_chain_account_retries
       )
 

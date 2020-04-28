@@ -46,7 +46,7 @@ defmodule LoadTest.Scenario.SpendEthUtxo do
     utxo = session.assigned.utxo
     start = Timing.timestamp()
 
-    [next_utxo | _] = LoadTest.ChildChain.Transaction.spend_eth_utxo(utxo, amount, fee_wei, sender, receiver)
+    [next_utxo | _] = LoadTest.ChildChain.Transaction.spend_utxo(utxo, amount, fee_wei, sender, receiver)
 
     session
     |> Session.assign(utxo: next_utxo)
