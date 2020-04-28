@@ -280,6 +280,57 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, alice_state)}
   end
 
+  defgiven ~r/^Alice creates a transaction for "(?<amount>[^"]+)" ETH$/,
+           %{amount: amount},
+           state do
+    amount = Currency.to_wei(amount)
+
+    %{address: alice_address, utxos: alice_utxos, pkey: alice_pkey, child_chain_balance: alice_child_chain_balance} =
+      alice_state = state["Alice"]
+
+    # inputs
+    alice_deposit_utxo = hd(alice_utxos)
+
+    alice_deposit_input = %ExPlasma.Utxo{
+      blknum: alice_deposit_utxo["blknum"],
+      currency: Currency.ether(),
+      oindex: 0,
+      txindex: 0,
+      output_type: 1,
+      owner: alice_address
+    }
+
+    alice_output_1 = %ExPlasma.Utxo{
+      currency: Currency.ether(),
+      owner: alice_address,
+      amount: amount
+    }
+
+    rest = alice_child_chain_balance - amount - state["fee"]
+
+    alice_output_2 = %ExPlasma.Utxo{
+      currency: Currency.ether(),
+      owner: alice_address,
+      amount: rest
+    }
+
+    transaction = %Payment{inputs: [alice_deposit_input], outputs: [alice_output_1, alice_output_2]}
+
+    in_flight_tx =
+      ExPlasma.Transaction.sign(transaction,
+        keys: [alice_pkey]
+      )
+
+    txbytes = ExPlasma.Transaction.encode(in_flight_tx)
+
+    alice_state =
+      alice_state
+      |> Map.put(:txbytes, txbytes)
+
+    entity = "Alice"
+    {:ok, Map.put(state, entity, alice_state)}
+  end
+
   defand ~r/^Bob gets in flight exit data for "(?<amount>[^"]+)" ETH from his most recent deposit$/,
          %{amount: amount},
          state do
@@ -462,6 +513,29 @@ defmodule InFlightExitsTests do
     entity = "Bob"
 
     {:ok, Map.put(state, entity, bob_state)}
+  end
+
+  defgiven ~r/^Alice piggybacks output from her most recent in flight exit$/, _, state do
+    exit_game_contract_address = state["exit_game_contract_address"]
+
+    %{address: address, exit_data: exit_data, in_flight_exit_id: in_flight_exit_id} = alice_state = state["Alice"]
+
+    output_index = 0
+    receipt_hash_1 = piggyback_output(exit_game_contract_address, address, output_index, exit_data)
+
+    alice_state =
+      Map.put(
+        alice_state,
+        :receipt_hashes,
+        Enum.concat([receipt_hash_1], alice_state.receipt_hashes)
+      )
+
+    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    # bits is flagged when output is piggybacked
+    assert in_flight_exit_ids.exit_map != 0
+
+    entity = "Alice"
+    {:ok, Map.put(state, entity, alice_state)}
   end
 
   # ### start the competing IFE, to double-spend some inputs
@@ -835,6 +909,27 @@ defmodule InFlightExitsTests do
     entity = "Alice"
 
     {:ok, Map.put(state, entity, alice_state)}
+  end
+
+  # And "Alice" in flight transaction inputs are not spendable after exit finalization
+  defand ~r/^"(?<entity>[^"]+)" in flight transaction inputs are not spendable after exit finalization$/,
+         %{entity: entity},
+         state do
+    %{address: address, txbytes: txbytes, in_flight_exit_id: in_flight_exit_id} = state[entity]
+
+    {:ok, %ExPlasma.Transaction{inputs: inputs}} = ExPlasma.decode(txbytes)
+    positions = Enum.map(inputs, &ExPlasma.Utxo.pos/1)
+
+    # Wait for the in-flight exit finalization and a bit longer for Watchers to exchange data
+    # ...
+    _ = wait_for_min_exit_period()
+
+    # Get utxos and check above are not present
+    {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: address})
+
+    refute Enum.any?(utxos, fn %{"utxo_pos" => pos} -> pos in positions end)
+
+    {:ok, state}
   end
 
   ###############################################################################################
