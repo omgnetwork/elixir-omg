@@ -4,7 +4,7 @@
 # setup of our services
 
 # test_barebone_release taylored values. Compare also with priv/cabbage/docker-compose-cabbage.yml
-export EXIT_PROCESSOR_SLA_SECONDS=30
+export EXIT_PROCESSOR_SLA_SECONDS=450
 
 # the rest stays same as bin/variables
 export APP_ENV=local-development
