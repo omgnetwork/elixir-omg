@@ -12,7 +12,7 @@ This document describes the exit validation (processing) done by the Watcher in 
   The correct reaction to both is a prompt to mass exit and a challenge of the invalid exit.
   Because of this, only `sla_seconds` is used as a configurable setting on the Watcher, covering for both conditions.
 * **`sla_seconds`** - margin of the child chain exit recognition SLA (in seconds).
-This is the time in seconds after the start of an exit (or piggyback), during which a Child Chain Server still might include a transaction invalidating a previously valid exit, without violating the child chain exit recognition SLA.
+This is the time (in seconds) after the start of an exit (or piggyback), during which a Child Chain Server still might include a transaction invalidating a previously valid exit, without violating the child chain exit recognition SLA.
 Similarly, this is a number of blocks after the start of an exit (or piggyback), during which the Watcher will not report [unchallenged exits](#unchallenged_exit-condition).
 
 ## Notes on the Child Chain Server
