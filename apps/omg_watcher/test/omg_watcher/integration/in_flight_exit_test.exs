@@ -258,7 +258,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = WatcherHelper.success?("/status.get")
 
-    assert [%{"event" => "unchallenged_exit"}, %{"event" => "invalid_piggyback"}] =
+    assert [%{"event" => "unchallenged_piggyback"}, %{"event" => "invalid_piggyback"}] =
              Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
   end
 
@@ -330,7 +330,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     DevHelper.wait_for_root_chain_block(ife_noticed_eth_height + exit_processor_sla_margin, @timeout)
 
     IntegrationTest.wait_for_byzantine_event(
-      %OMG.Watcher.Event.UnchallengedPiggyback{}.name,
+      %OMG.Watcher.Event.UnchallengedNonCanonicalIFE{}.name,
       @timeout
     )
   end

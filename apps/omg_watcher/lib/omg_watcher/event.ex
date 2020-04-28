@@ -28,6 +28,7 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.InvalidExit.t()
           | OMG.Watcher.Event.UnchallengedExit.t()
           | OMG.Watcher.Event.NonCanonicalIFE.t()
+          | OMG.Watcher.Event.UnchallengedNonCanonicalIFE.t()
           | OMG.Watcher.Event.InvalidIFEChallenge.t()
           | OMG.Watcher.Event.PiggybackAvailable.t()
           | OMG.Watcher.Event.InvalidPiggyback.t()
@@ -44,6 +45,7 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.InvalidExit
           | OMG.Watcher.Event.UnchallengedExit
           | OMG.Watcher.Event.NonCanonicalIFE
+          | OMG.Watcher.Event.UnchallengedNonCanonicalIFE.t()
           | OMG.Watcher.Event.InvalidIFEChallenge
           | OMG.Watcher.Event.PiggybackAvailable
           | OMG.Watcher.Event.InvalidPiggyback
@@ -197,6 +199,21 @@ defmodule OMG.Watcher.Event do
           }
   end
 
+  defmodule UnchallengedNonCanonicalIFE do
+    @moduledoc """
+    Notifies about an in-flight exit which has a competitor but is dangerously close to finalization.
+
+    It is a prompt to exit
+    """
+
+    defstruct [:txbytes, name: :unchallenged_non_canonical_ife]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            name: atom()
+          }
+  end
+
   defmodule InvalidIFEChallenge do
     @moduledoc """
     Notifies about an in-flight exit which has a competitor
@@ -253,7 +270,7 @@ defmodule OMG.Watcher.Event do
     It is a prompt to exit
     """
 
-    defstruct [:txbytes, :inputs, :outputs, name: :unchallenged_exit]
+    defstruct [:txbytes, :inputs, :outputs, name: :unchallenged_piggyback]
 
     @type t :: %__MODULE__{
             txbytes: binary(),
