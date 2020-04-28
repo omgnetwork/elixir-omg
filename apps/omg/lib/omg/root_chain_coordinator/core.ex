@@ -82,20 +82,6 @@ defmodule OMG.RootChainCoordinator.Core do
   end
 
   @doc """
-  Removes service from services being synchronized
-  """
-  @spec check_out(t(), pid()) :: {:ok, t()}
-  def check_out(%__MODULE__{} = state, pid) do
-    {service_name, _} =
-      state.services
-      |> Enum.find(fn {_, service} -> service.pid == pid end)
-
-    services = Map.delete(state.services, service_name)
-    state = %{state | services: services}
-    {:ok, state}
-  end
-
-  @doc """
   Sets root chain height, only allowing to progress, in case Ethereum RPC reports an earlier height
   """
   @spec update_root_chain_height(t(), pos_integer()) :: {:ok, t()}
@@ -149,9 +135,7 @@ defmodule OMG.RootChainCoordinator.Core do
   @spec get_ethereum_heights(t()) :: ethereum_heights_result_t()
   def get_ethereum_heights(%__MODULE__{root_chain_height: root_chain_height, services: services}) do
     base_result_map = %{root_chain_height: root_chain_height}
-
-    services
-    |> Enum.into(base_result_map, fn {name, %Service{synced_height: height}} -> {name, height} end)
+    Enum.into(services, base_result_map, fn {name, %Service{synced_height: height}} -> {name, height} end)
   end
 
   defp finality_margin_for(config), do: Keyword.get(config, :finality_margin, 0)
@@ -185,13 +169,8 @@ defmodule OMG.RootChainCoordinator.Core do
 
   defp allowed?(configs_services, service_name), do: Map.has_key?(configs_services, service_name)
 
-  defp update_service_synced_height(
-         %__MODULE__{services: services} = state,
-         pid,
-         new_reported_sync_height,
-         service_name
-       ) do
+  defp update_service_synced_height(state, pid, new_reported_sync_height, service_name) do
     new_service_state = %Service{synced_height: new_reported_sync_height, pid: pid}
-    {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
+    {:ok, %{state | services: Map.put(state.services, service_name, new_service_state)}}
   end
 end
