@@ -29,7 +29,9 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Block
   alias OMG.DB
   alias OMG.Eth
+  alias OMG.Eth.Configuration
   alias OMG.Eth.EthereumHeight
+  alias OMG.Eth.RootChain
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -659,9 +661,9 @@ defmodule OMG.Watcher.ExitProcessor do
   @spec add_scheduled_finalization_time(map()) :: map()
   defp add_scheduled_finalization_time(%{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos_enc}} = exit_event) do
     {:utxo_position, blknum, _, _} = Utxo.Position.decode!(utxo_pos_enc)
-    {_block_hash, utxo_creation_block_timestamp} = Eth.RootChain.blocks(blknum)
+    {_block_hash, utxo_creation_block_timestamp} = RootChain.blocks(blknum)
     {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(eth_height)
-    min_exit_period = Eth.Configuration.min_exit_period_seconds()
+    min_exit_period = Configuration.min_exit_period_seconds()
 
     {:ok, scheduled_finalization_time} =
       ExitInfo.calculate_sft(blknum, exit_block_timestamp, utxo_creation_block_timestamp, min_exit_period)
