@@ -48,7 +48,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
           eth_height: pos_integer(),
-          root_chain_txhash: Crypto.hash_t() | nil
+          root_chain_txhash: Transaction.tx_hash() | nil
         }
 
   @spec new(map(), map()) :: t()
