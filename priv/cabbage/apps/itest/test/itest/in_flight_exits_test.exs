@@ -915,13 +915,12 @@ defmodule InFlightExitsTests do
   defand ~r/^"(?<entity>[^"]+)" in flight transaction inputs are not spendable after exit finalization$/,
          %{entity: entity},
          state do
-    %{address: address, txbytes: txbytes, in_flight_exit_id: in_flight_exit_id} = state[entity]
+    %{address: address, txbytes: txbytes} = state[entity]
 
     {:ok, %ExPlasma.Transaction{inputs: inputs}} = ExPlasma.decode(txbytes)
     positions = Enum.map(inputs, &ExPlasma.Utxo.pos/1)
 
     # Wait for the in-flight exit finalization and a bit longer for Watchers to exchange data
-    # ...
     _ = wait_for_min_exit_period()
 
     # Get utxos and check above are not present

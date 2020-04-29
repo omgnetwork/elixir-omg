@@ -24,6 +24,8 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   alias OMG.Watcher.ExitProcessor.DoubleSpend
   alias OMG.Watcher.ExitProcessor.KnownTx
 
+  require Utxo
+
   # Intersects utxos, looking for duplicates. Gives full list of double-spends with indexes for
   # a pair of transactions.
   @spec double_spends_from_known_tx(list({Utxo.Position.t(), non_neg_integer()}), KnownTx.t()) ::
@@ -101,10 +103,15 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
          {%{root_chain_txhash: root_chain_txhash, log_index: log_index}, utxo_positions},
          bus_events
        ) do
+    utxo_pos_transform = fn
+      Utxo.position(_, _, _) = u -> Utxo.Position.encode(u)
+      encoded when is_integer(encoded) -> encoded
+    end
+
     utxo_positions
     |> Enum.map(
       &%{
-        call_data: %{utxo_pos: Utxo.Position.encode(&1)},
+        call_data: %{utxo_pos: utxo_pos_transform.(&1)},
         root_chain_txhash: root_chain_txhash,
         log_index: log_index
       }

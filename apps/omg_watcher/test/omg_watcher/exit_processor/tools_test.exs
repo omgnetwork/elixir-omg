@@ -80,11 +80,15 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
     end
 
     test "mapping in_flight_exit_started events", %{start_ife_events: [s1, s2 | _], utxos: utxos} do
-      [utxo_pos_1, utxo_pos_2, utxo_pos_3 | _] = Enum.map(utxos, &Utxo.Position.encode/1)
+      [utxo_pos_1, utxo_pos_2, utxo_pos_3] =
+        encoded_utxos =
+        utxos
+        |> Enum.map(&Utxo.Position.encode/1)
+        |> Enum.take(3)
 
       events_with_utxos = [
-        {s1, Enum.take(utxos, 2)},
-        {s2, Enum.drop(utxos, 2)}
+        {s1, Enum.take(encoded_utxos, 2)},
+        {s2, Enum.drop(encoded_utxos, 2)}
       ]
 
       assert [

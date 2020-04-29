@@ -230,7 +230,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   # NOTE: it looks a little too deep into DB.TxOutput module, but I don't want to extent its API
   @spec output_spend?(%DB.TxOutput{}) :: boolean()
   defp output_spend?(%DB.TxOutput{spending_txhash: nil} = tx_output) do
-    Enum.any?(tx_output.ethevents, & &1.event_type != :deposit)
+    Enum.any?(tx_output.ethevents, &(&1.event_type != :deposit))
   end
 
   defp output_spend?(%DB.TxOutput{}), do: true

@@ -19,18 +19,23 @@ defmodule OMG.WatcherInfo.ExitConsumer do
   require Logger
   alias OMG.WatcherInfo.DB.EthEvent
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  @default_bus_module OMG.Bus
+
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args)
   end
 
   ### Server
 
   use GenServer
 
-  def init(:ok) do
-    :ok = OMG.Bus.subscribe({:root_chain, "ExitStarted"}, link: true)
+  def init(args) do
+    topic = Keyword.fetch!(args, :topic)
+    bus_module = Keyword.get(args, :bus_module, @default_bus_module)
 
-    _ = Logger.info("Started #{inspect(__MODULE__)}")
+    :ok = bus_module.subscribe(topic, link: true)
+
+    _ = Logger.info("Started #{inspect(__MODULE__)}, listen to #{inspect(topic)}")
     {:ok, %{}}
   end
 
