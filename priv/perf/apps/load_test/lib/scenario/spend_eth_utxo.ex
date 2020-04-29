@@ -14,8 +14,19 @@
 
 defmodule LoadTest.Scenario.SpendEthUtxo do
   @moduledoc """
-  Spends a utxo in a transaction. Can be done repeatedly by setting `transactions_per_session`
+  Spends a utxo in a transaction.
+
+  Can be done repeatedly by setting `transactions_per_session`
   Returns the first output of the spent transaction in the session. Normally this will be the change output.
+
+  ## configuration values
+  - `sender` the owner of the utxo
+  - `receiver` the receiver's account
+  - `amount` the amount to spend. If amount + fee is less than the value of the utxo then the change
+     will be sent back to the sender
+  - `transactions_per_session` the number of transactions to send. Each transaction after the first
+     will spend the change output of the previous transaction
+  - `transaction_delay` delay in milliseconds before sending the transaction. Used to control the tx rate.
   """
 
   use Chaperon.Scenario

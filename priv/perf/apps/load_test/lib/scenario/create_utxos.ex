@@ -15,6 +15,10 @@
 defmodule LoadTest.Scenario.CreateUtxos do
   @moduledoc """
   Funds an account and then splits the resulting utxo into many more utxos.
+
+  ## configuration values
+  - `sender` the owner of the utxos
+  - `utxos_to_create_per_session` the amount of utxos to create
   """
 
   use Chaperon.Scenario

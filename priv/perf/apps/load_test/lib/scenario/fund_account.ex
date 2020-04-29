@@ -16,6 +16,10 @@ defmodule LoadTest.Scenario.FundAccount do
   @moduledoc """
   Funds an account with some ether from the faucet.
   Returns the new utxo in the session.
+
+  ## configuration values
+  - `account` the account to fund
+  - `initial_funds` the amount to fund (in wei)
   """
 
   use Chaperon.Scenario
