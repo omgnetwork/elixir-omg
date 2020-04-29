@@ -40,15 +40,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   @non_zero_exit_id 1
   @zero_sig <<0::520>>
 
-  setup_all do
-    {:ok, exit_fn} = Support.DevNode.start()
-    authority_address = OMG.Eth.Configuration.authority_address()
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [authority_address, "", 0], [])
-
-    on_exit(exit_fn)
-    :ok
-  end
-
   setup %{db_pid: db_pid} do
     :ok = OMG.DB.initiation_multiupdate(db_pid)
 
@@ -70,14 +61,16 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
            eth_height: 2,
            exit_id: 1,
            call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1},
-           root_chain_txhash: <<1::256>>
+           root_chain_txhash: <<1::256>>,
+           scheduled_finalization_time: 1
          },
          %{
            owner: alice.addr,
            eth_height: 4,
            exit_id: 2,
            call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2},
-           root_chain_txhash: <<2::256>>
+           root_chain_txhash: <<2::256>>,
+           scheduled_finalization_time: 2
          }
        ],
        [

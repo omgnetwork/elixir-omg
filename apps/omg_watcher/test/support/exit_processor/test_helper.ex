@@ -43,13 +43,15 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
     call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
     root_chain_txhash = <<1::256>>
+    scheduled_finalization_time = 1
 
     event = %{
       owner: owner,
       eth_height: eth_height,
       exit_id: exit_id,
       call_data: call_data,
-      root_chain_txhash: root_chain_txhash
+      root_chain_txhash: root_chain_txhash,
+      scheduled_finalization_time: scheduled_finalization_time
     }
 
     exitable = not Keyword.get(opts, :inactive, false)
