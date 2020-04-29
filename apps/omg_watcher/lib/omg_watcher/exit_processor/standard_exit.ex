@@ -70,36 +70,21 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   def get_invalid(%Core{sla_margin: sla_margin} = state, utxo_exists?, eth_height_now) do
     active_exits = active_exits(state)
 
-    invalid_exit_positions =
-      active_exits
-      |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
-      |> only_utxos_checked_and_missing(utxo_exists?)
-
     exits_invalid_by_ife =
       state
       |> TxAppendix.get_all()
       |> get_invalid_exits_based_on_ifes(active_exits)
 
+    invalid_exit_positions =
+      active_exits
+      |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
+      |> only_utxos_checked_and_missing(utxo_exists?)
+
     standard_invalid_exits =
       active_exits
       |> Map.take(invalid_exit_positions)
       |> Enum.map(fn {utxo_pos, invalid_exit} ->
-        blknum = utxo_pos |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
-
-        spending_txhash =
-          [blknum]
-          |> Core.handle_spent_blknum_result([utxo_pos])
-          |> do_get_blocks()
-          |> case do
-            [block] ->
-              %DoubleSpend{known_tx: %KnownTx{signed_tx: spending_tx}} =
-                get_double_spend_for_standard_exit(block, utxo_pos)
-
-              Transaction.raw_txhash(spending_tx)
-
-            _ ->
-              nil
-          end
+        spending_txhash = spending_txhash_for_exit_at(utxo_pos)
 
         {utxo_pos, %{invalid_exit | spending_txhash: spending_txhash}}
       end)
@@ -108,10 +93,28 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
 
     # get exits which are still invalid and after the SLA margin
     late_invalid_exits =
-      invalid_exits
-      |> Enum.filter(fn {_, %ExitInfo{eth_height: eth_height}} -> eth_height + sla_margin <= eth_height_now end)
+      Enum.filter(invalid_exits, fn {_, %ExitInfo{eth_height: eth_height}} ->
+        eth_height + sla_margin <= eth_height_now
+      end)
 
     {Map.new(invalid_exits), Map.new(late_invalid_exits)}
+  end
+
+  defp spending_txhash_for_exit_at(utxo_pos) do
+    utxo_pos
+    |> Utxo.Position.to_input_db_key()
+    |> OMG.DB.spent_blknum()
+    |> List.wrap()
+    |> Core.handle_spent_blknum_result([utxo_pos])
+    |> do_get_blocks()
+    |> case do
+      [block] ->
+        %DoubleSpend{known_tx: %KnownTx{signed_tx: spending_tx}} = get_double_spend_for_standard_exit(block, utxo_pos)
+        Transaction.raw_txhash(spending_tx)
+
+      _ ->
+        nil
+    end
   end
 
   defp do_get_blocks(blknums) do
