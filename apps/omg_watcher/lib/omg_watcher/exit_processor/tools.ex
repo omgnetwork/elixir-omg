@@ -82,4 +82,33 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
       value -> {:ok, value}
     end
   end
+
+  @doc """
+  Transforms Ethereum events like InFlightExitStarted or InFlightExitOutputWithdrawn
+  to form that can be consumed by subscribers
+  """
+  @spec to_bus_events_data(list({eth_event :: map(), list(Utxo.Position.t())})) ::
+          list(%{
+            call_data: %{utxo_pos: non_neg_integer()},
+            root_chain_txhash: charlist(),
+            log_index: non_neg_integer()
+          })
+  def to_bus_events_data(eth_events_with_exiting_utxos) do
+    Enum.reduce(eth_events_with_exiting_utxos, [], &to_bus_events_reducer/2)
+  end
+
+  defp to_bus_events_reducer(
+         {%{root_chain_txhash: root_chain_txhash, log_index: log_index}, utxo_positions},
+         bus_events
+       ) do
+    utxo_positions
+    |> Enum.map(
+      &%{
+        call_data: %{utxo_pos: Utxo.Position.encode(&1)},
+        root_chain_txhash: root_chain_txhash,
+        log_index: log_index
+      }
+    )
+    |> Enum.concat(bus_events)
+  end
 end

@@ -227,20 +227,6 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
     end
   end
 
-  @doc """
-  Transforms events produced by `prepare_utxo_exits_for_in_flight_exit_finalizations`
-  to form that can be consumed by subscribers
-  """
-  @spec to_bus_events(list({finalization :: map(), list(Utxo.Position.t())})) ::
-          list(%{
-            call_data: %{utxo_pos: non_neg_integer()},
-            root_chain_txhash: charlist(),
-            log_index: non_neg_integer()
-          })
-  def to_bus_events(finalizations_with_exiting_utxos) do
-    Enum.reduce(finalizations_with_exiting_utxos, [], &to_bus_events_reducer/2)
-  end
-
   defp finalize_single_exit(
          %{in_flight_exit_id: ife_id, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}},
          {ifes_by_id, updated_ifes}
@@ -271,20 +257,5 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
       Enum.reduce(ids_to_activate, ifes_by_id, fn id, ifes -> Map.update!(ifes, id, &InFlightExitInfo.activate/1) end)
 
     {new_ifes_by_id, MapSet.union(ids_to_activate, updated_ifes)}
-  end
-
-  defp to_bus_events_reducer(
-         {%{root_chain_txhash: root_chain_txhash, log_index: log_index}, utxo_positions},
-         bus_events
-       ) do
-    utxo_positions
-    |> Enum.map(
-      &%{
-        call_data: %{utxo_pos: Utxo.Position.encode(&1)},
-        root_chain_txhash: root_chain_txhash,
-        log_index: log_index
-      }
-    )
-    |> Enum.concat(bus_events)
   end
 end
