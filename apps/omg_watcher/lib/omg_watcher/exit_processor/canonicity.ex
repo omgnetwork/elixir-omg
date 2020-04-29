@@ -65,7 +65,10 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
           in_flight_proof: binary()
         }
 
-  # Gets the list of open IFEs that have the competitors _somewhere_
+  @doc """
+  Returns a tuple with byzantine events: first element is a list of events for ifes with competitor
+  and the second is the same list filtered for late ifes past sla margin
+  """
   @spec get_ife_txs_with_competitors(Core.t(), KnownTx.known_txs_by_input_t(), pos_integer()) ::
           {list(Event.NonCanonicalIFE.t()), list(Event.UnchallengedNonCanonicalIFE.t())}
   def get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now) do
@@ -98,7 +101,9 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
     {non_canonical_ife_events, late_non_canonical_ife_events}
   end
 
-  # Gets the list of open IFEs that have the competitors _somewhere_
+  @doc """
+  Returns byzantine events for open IFEs that were challenged with an invalid challenge
+  """
   @spec get_invalid_ife_challenges(Core.t()) :: list(Event.InvalidIFEChallenge.t())
   def get_invalid_ife_challenges(%Core{in_flight_exits: ifes}) do
     ifes

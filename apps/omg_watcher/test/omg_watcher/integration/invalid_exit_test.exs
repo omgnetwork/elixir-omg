@@ -117,7 +117,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
     DevHelper.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
-    IntegrationTest.wait_for_byzantine_event(%Event.UnchallengedExit{}.name, @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name, %Event.UnchallengedExit{}.name], @timeout)
 
     # after the notification has been received, a challenged is composed and sent, regardless of it being late
     challenge = WatcherHelper.get_exit_challenge(first_tx_blknum, 0, 0)

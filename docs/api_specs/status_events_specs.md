@@ -92,6 +92,26 @@ Attribute | Type | Description
 --------- | ------- | -----------
 txbytes | Hex encoded string | The in-flight transaction that the event relates to
 
+#### `unchallenged_non_canonical_ife`
+
+```json
+{
+    "event": "unchallenged_non_canonical_ife",
+    "details": {
+        "txbytes": "0xf3170101c0940000..."
+    }
+}
+```
+
+Indicates that there is unchallenged non canonical in-flight exit that is dangerously close to finalization and hasn't been challenged. User should exit.
+See docs on [`unchallenged_exit` condition](../exit_validation.md#unchallenged-exit-condition) for more details.
+
+Event details:
+
+Attribute | Type | Description
+--------- | ------- | -----------
+txbytes | Hex encoded string | The in-flight transaction that the event relates to
+
 #### `invalid_ife_challenge`
 > A invalid_ife_challenge event
 
@@ -159,6 +179,30 @@ available_inputs | Object array | The inputs (index and address) available to be
 ```
 
 An invalid piggyback is in process. Should be challenged.
+
+Event details:
+
+Attribute | Type | Description
+--------- | ------- | -----------
+txbytes | Hex encoded string | The in-flight transaction that the event relates to
+inputs | Integer array | A list of invalid piggybacked inputs
+outputs | Integer array | A list of invalid piggybacked outputs
+
+#### `unchallenged_piggyback`
+> A invalid_piggyback event
+
+```json
+{
+    "event": "unchallenged_piggyback",
+    "details": {
+        "txbytes": "0xf3170101c0940000...",
+        "inputs": [1],
+        "outputs": [0]
+    }
+}
+```
+
+An invalid piggyback is dangerously close to finalization and hasn't been challenged. User should exit.
 
 Event details:
 

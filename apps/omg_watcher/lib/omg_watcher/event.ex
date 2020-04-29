@@ -216,8 +216,7 @@ defmodule OMG.Watcher.Event do
 
   defmodule InvalidIFEChallenge do
     @moduledoc """
-    Notifies about an in-flight exit which has a competitor
-    FIXME: Bad moduledoc comment
+    Notifies that a canonical in-flight exit has been challenged. The challenge should be responded to.
     """
 
     defstruct [:txbytes, name: :invalid_ife_challenge]
