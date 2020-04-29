@@ -42,7 +42,6 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   @child_block_interval Eth.Configuration.child_block_interval()
 
   defstruct @enforce_keys
-  use OMG.Utils.LoggerExt
 
   @type t :: %__MODULE__{
           amount: non_neg_integer(),
@@ -65,12 +64,12 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           eth_height: eth_height,
           call_data: %{output_tx: txbytes},
           exit_id: exit_id,
-          root_chain_txhash: root_chain_txhash
+          root_chain_txhash: root_chain_txhash,
+          scheduled_finalization_time: scheduled_finalization_time
         } = exit_event
       ) do
-    Utxo.position(blknum, _, oindex) = utxo_pos_for(exit_event)
+    Utxo.position(_, _, oindex) = utxo_pos_for(exit_event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
-    {:ok, scheduled_finalization_time} = get_scheduled_finalization_time(eth_height, blknum)
 
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
@@ -158,20 +157,6 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   Calculates the time at which an exit can be processed and released if not challenged successfully.
   See https://docs.omg.network/challenge-period for calculation logic.
   """
-  @spec get_scheduled_finalization_time(pos_integer(), pos_integer()) :: {:ok, pos_integer()}
-  def get_scheduled_finalization_time(exit_eth_height, utxo_creation_blknum) do
-    {_block_hash, utxo_creation_block_timestamp} = Eth.RootChain.blocks(utxo_creation_blknum)
-    {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(exit_eth_height)
-    min_exit_period = Eth.Configuration.min_exit_period_seconds()
-
-    calculate_sft(
-      utxo_creation_blknum,
-      exit_block_timestamp,
-      utxo_creation_block_timestamp,
-      min_exit_period
-    )
-  end
-
   @spec calculate_sft(pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: {:ok, pos_integer()}
   def calculate_sft(blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period)
       when is_deposit(blknum),
