@@ -19,6 +19,12 @@ components:
               type: string
             amount:
               type: integer
+            root_chain_txhash:
+              type: string
+            spending_txhash: 
+              type: string
+            scheduled_finalization_time:
+              type: integer
     unchallenged_exit:
       type: object
       properties:
@@ -37,6 +43,12 @@ components:
             currency:
               type: string
             amount:
+              type: integer
+            root_chain_txhash:
+              type: string
+            spending_txhash: 
+              type: string
+            scheduled_finalization_time:
               type: integer
     invalid_block:
       type: object
