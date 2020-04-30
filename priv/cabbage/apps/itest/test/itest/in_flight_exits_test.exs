@@ -50,7 +50,8 @@ defmodule InFlightExitsTests do
       pull_balance_until_amount: 2,
       pull_api_until_successful: 4,
       wait_on_receipt_confirmed: 1,
-      all_events_in_status?: 1
+      all_events_in_status?: 1,
+      pull_balance_until_amount: 2
     ]
 
   @ife_gas 2_000_000
@@ -148,11 +149,13 @@ defmodule InFlightExitsTests do
     |> Process.sleep()
 
     balance_after_deposit = Itest.Poller.eth_get_balance(address)
+    deposited_amount = initial_balance - balance_after_deposit
 
     entity_state =
       entity_state
       |> Map.put(:ethereum_balance, balance_after_deposit)
       |> Map.put(:ethereum_initial_balance, initial_balance)
+      |> Map.put(:last_deposited_amount, deposited_amount)
       |> Map.put(:receipt_hashes, [receipt_hash | entity_state.receipt_hashes])
 
     {:ok, Map.put(state, entity, entity_state)}
@@ -322,10 +325,7 @@ defmodule InFlightExitsTests do
       )
 
     txbytes = ExPlasma.Transaction.encode(in_flight_tx)
-
-    alice_state =
-      alice_state
-      |> Map.put(:txbytes, txbytes)
+    alice_state = Map.put(alice_state, :txbytes, txbytes)
 
     entity = "Alice"
     {:ok, Map.put(state, entity, alice_state)}
@@ -915,18 +915,10 @@ defmodule InFlightExitsTests do
   defand ~r/^"(?<entity>[^"]+)" in flight transaction inputs are not spendable after exit finalization$/,
          %{entity: entity},
          state do
-    %{address: address, txbytes: txbytes} = state[entity]
-
-    {:ok, %ExPlasma.Transaction{inputs: inputs}} = ExPlasma.decode(txbytes)
-    positions = Enum.map(inputs, &ExPlasma.Utxo.pos/1)
-
-    # Wait for the in-flight exit finalization and a bit longer for Watchers to exchange data
-    _ = wait_for_min_exit_period()
+    %{address: address, child_chain_balance: balance, last_deposited_amount: deposit} = state[entity]
 
     # Get utxos and check above are not present
-    {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: address})
-
-    refute Enum.any?(utxos, fn %{"utxo_pos" => pos} -> pos in positions end)
+    pull_balance_until_amount(address, balance - deposit)
 
     {:ok, state}
   end
