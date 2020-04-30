@@ -277,7 +277,7 @@ defmodule OMG.Watcher.ExitProcessor do
         ethereum_block_time_seconds
       )
 
-    {:ok, processor} = Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin)
+    {:ok, processor} = Core.init(db_exits, db_ifes, db_competitors, min_exit_period_seconds, exit_processor_sla_margin)
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
     _ = Logger.info("Initializing with: #{inspect(processor)}")
@@ -293,12 +293,17 @@ defmodule OMG.Watcher.ExitProcessor do
   - updates the `ExitProcessor`'s state
   - returns `db_updates`
   """
-  def handle_call({:new_exits, exits}, _from, state) do
+  def handle_call(
+        {:new_exits, exits},
+        _from,
+        %{min_exit_period_seconds: min_exit_period_seconds} = state
+      ) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
     {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit_structs(get_in(exits, [Access.all(), :exit_id]))
 
-    exits_with_sft = Enum.map(exits, fn exit_event -> add_scheduled_finalization_time(exit_event) end)
+    exits_with_sft =
+      Enum.map(exits, fn exit_event -> add_scheduled_finalization_time(exit_event, min_exit_period_seconds) end)
 
     {new_state, db_updates} = Core.new_exits(state, exits_with_sft, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
@@ -658,15 +663,17 @@ defmodule OMG.Watcher.ExitProcessor do
     {invalidities_by_ife_id, state_db_updates}
   end
 
-  @spec add_scheduled_finalization_time(map()) :: map()
-  defp add_scheduled_finalization_time(%{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos_enc}} = exit_event) do
+  @spec add_scheduled_finalization_time(map(), non_neg_integer()) :: map()
+  defp add_scheduled_finalization_time(
+         %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos_enc}} = exit_event,
+         min_exit_period_seconds
+       ) do
     {:utxo_position, blknum, _, _} = Utxo.Position.decode!(utxo_pos_enc)
     {_block_hash, utxo_creation_block_timestamp} = RootChain.blocks(blknum)
     {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(eth_height)
-    min_exit_period = Configuration.min_exit_period_seconds()
 
     {:ok, scheduled_finalization_time} =
-      ExitInfo.calculate_sft(blknum, exit_block_timestamp, utxo_creation_block_timestamp, min_exit_period)
+      ExitInfo.calculate_sft(blknum, exit_block_timestamp, utxo_creation_block_timestamp, min_exit_period_seconds)
 
     Map.put(exit_event, :scheduled_finalization_time, scheduled_finalization_time)
   end

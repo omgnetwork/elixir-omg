@@ -68,7 +68,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type new_piggyback_event_t() :: new_piggyback_input_event_t() | new_piggyback_output_event_t()
 
-  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
+  defstruct [:sla_margin, :min_exit_period_seconds, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
 
   @type t :: %__MODULE__{
           sla_margin: non_neg_integer(),
@@ -78,7 +78,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           #       rethink the approach to the keys in the data structures - how to manage exit_ids? should the contract
           #       serve more data (e.g. input pointers/tx hashes) where it would normally only serve exit_ids?
           exit_ids: %{non_neg_integer() => Utxo.Position.t()},
-          competitors: %{Transaction.tx_hash() => CompetitorInfo.t()}
+          competitors: %{Transaction.tx_hash() => CompetitorInfo.t()},
+          min_exit_period_seconds: non_neg_integer()
         }
 
   @type check_validity_result_t :: {:ok | {:error, :unchallenged_exit}, list(Event.byzantine_t())}
@@ -101,9 +102,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}],
           db_in_flight_exits :: [{Transaction.tx_hash(), InFlightExitInfo.t()}],
           db_competitors :: [{Transaction.tx_hash(), CompetitorInfo.t()}],
-          sla_margin :: non_neg_integer
+          sla_margin :: non_neg_integer,
+          min_exit_period_seconds :: non_neg_integer()
         ) :: {:ok, t()}
-  def init(db_exits, db_in_flight_exits, db_competitors, sla_margin \\ @default_sla_margin) do
+  def init(
+        db_exits,
+        db_in_flight_exits,
+        db_competitors,
+        min_exit_period_seconds,
+        sla_margin \\ @default_sla_margin
+      ) do
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
     exit_ids = exits |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
 
@@ -113,7 +121,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
        in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
        exit_ids: exit_ids,
        competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
-       sla_margin: sla_margin
+       sla_margin: sla_margin,
+       min_exit_period_seconds: min_exit_period_seconds
      }}
   end
 
