@@ -133,8 +133,8 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
     %{
       total: Keyword.fetch!(data, :total_memory),
       free: Keyword.fetch!(data, :free_memory),
-      buffered: Keyword.fetch!(data, :buffered_memory),
-      cached: Keyword.fetch!(data, :cached_memory)
+      buffered: Keyword.get(data, :buffered_memory, 0),
+      cached: Keyword.get(data, :cached_memory, 0)
     }
   end
 

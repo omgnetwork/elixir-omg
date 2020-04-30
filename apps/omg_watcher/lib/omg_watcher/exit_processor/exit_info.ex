@@ -48,7 +48,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
           eth_height: pos_integer(),
-          root_chain_txhash: Crypto.hash_t()
+          root_chain_txhash: Transaction.tx_hash() | nil
         }
 
   @spec new(map(), map()) :: t()
@@ -125,7 +125,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exiting_txbytes: exit_info.exiting_txbytes,
       is_active: exit_info.is_active,
       eth_height: exit_info.eth_height,
-      root_chain_txhash: exit_info.root_chain_txhash
+      # defaults value to nil if non-existent in the DB.
+      root_chain_txhash: Map.get(exit_info, :root_chain_txhash)
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}

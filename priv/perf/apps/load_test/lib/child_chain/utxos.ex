@@ -28,13 +28,11 @@ defmodule LoadTest.ChildChain.Utxos do
   """
   @spec get_utxos(Utxo.address_binary()) :: list(Utxo.t())
   def get_utxos(address) do
-    {:ok, response} =
-      Api.Account.account_get_utxos(
-        Connection.client(),
-        %Model.AddressBodySchema1{
-          address: Encoding.to_hex(address)
-        }
-      )
+    body = %Model.AddressBodySchema1{
+      address: Encoding.to_hex(address)
+    }
+
+    {:ok, response} = Api.Account.account_get_utxos(Connection.client(), body)
 
     utxos = Jason.decode!(response.body)["data"]
 
@@ -90,13 +88,13 @@ defmodule LoadTest.ChildChain.Utxos do
     tx_amount = Enum.reduce(inputs, 0, fn x, acc -> x.amount + acc end)
     output = %Utxo{amount: tx_amount, currency: currency, owner: faucet_account.addr}
 
-    {:ok, blknum, txindex} =
+    [utxo] =
       Transaction.submit_tx(
         inputs,
         [output],
         List.duplicate(faucet_account, length(inputs))
       )
 
-    %Utxo{blknum: blknum, txindex: txindex, oindex: 0, amount: tx_amount, currency: currency}
+    utxo
   end
 end

@@ -42,7 +42,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     eth_height = Keyword.get(opts, :eth_height, 2)
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
     call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
-    root_chain_txhash = binary_from_integer(@exit_id, 32)
+    root_chain_txhash = <<1::256>>
 
     event = %{
       owner: owner,
@@ -175,14 +175,5 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
       |> Enum.reduce(fn val, acc -> val <> acc end)
 
     long
-  end
-
-  @doc """
-  Generates a given length of bytes for the given integer.
-  """
-  @spec binary_from_integer(integer(), integer()) :: binary()
-  def binary_from_integer(integer, num_bytes) do
-    num_bits = num_bytes * 8
-    <<integer::size(num_bits)>>
   end
 end
