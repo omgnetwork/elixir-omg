@@ -157,11 +157,20 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   Calculates the time at which an exit can be processed and released if not challenged successfully.
   See https://docs.omg.network/challenge-period for calculation logic.
   """
-  @spec calculate_sft(pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: {:ok, pos_integer()}
-  def calculate_sft(blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period)
-      when is_deposit(blknum),
-      do: {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + min_exit_period)}
+  @spec calculate_sft(
+          blknum :: pos_integer(),
+          exit_timestamp :: pos_integer(),
+          utxo_creation_timestamp :: pos_integer(),
+          min_exit_period :: pos_integer()
+        ) ::
+          {:ok, pos_integer()}
+  def calculate_sft(blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period) do
+    case is_deposit(blknum) do
+      true ->
+        {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + min_exit_period)}
 
-  def calculate_sft(_blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period),
-    do: {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + 2 * min_exit_period)}
+      false ->
+        {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + 2 * min_exit_period)}
+    end
+  end
 end
