@@ -531,7 +531,7 @@ defmodule InFlightExitsTests do
 
     # I’m waiting for only these two to remain
     # there's 2x invalid_piggyback, because the other IFE from Bob has an invalidly piggybacked input too
-    # SLA margin passed so there are unchallenged exit event
+    # SLA margin passed so there are unchallenged exit events
     assert all_events_in_status?([
              "unchallenged_piggyback",
              "unchallenged_piggyback",
