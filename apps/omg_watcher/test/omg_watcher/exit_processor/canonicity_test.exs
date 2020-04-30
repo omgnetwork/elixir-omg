@@ -323,6 +323,24 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       assert {:ok, %{}} = request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
+    test "detects that invalid piggyback becomes unchallenged exit when sla period passes",
+         %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
+      txbytes = txbytes(tx1)
+      other_blknum = 3000
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5 + processor.sla_margin,
+        blocks_result: [Block.hashed_txs_at([comp, tx1], other_blknum)],
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([comp, tx1], other_blknum)]
+      }
+
+      processor = processor |> Core.find_ifes_in_blocks(request)
+
+      assert {{:error, :unchallenged_exit}, [%Event.UnchallengedNonCanonicalIFE{txbytes: ^txbytes}]} =
+               request |> check_validity_filtered(processor, only: [Event.UnchallengedNonCanonicalIFE])
+    end
+
     test "show competitors, if IFE tx is included but not the oldest - distinct blocks",
          %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       txbytes = txbytes(tx1)

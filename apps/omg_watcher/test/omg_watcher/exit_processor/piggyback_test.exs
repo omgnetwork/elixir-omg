@@ -437,7 +437,6 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       # 2. transaction which spends that piggybacked output
       comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [{alice, @eth, 1}])
-      {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
