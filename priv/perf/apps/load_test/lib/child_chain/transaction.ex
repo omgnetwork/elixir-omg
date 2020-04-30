@@ -132,11 +132,10 @@ defmodule LoadTest.ChildChain.Transaction do
 
   @spec do_submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
   defp do_submit_tx_rpc(encoded_tx) do
-    Api.Transaction.submit(
-      Connection.client(),
-      %Model.TransactionSubmitBodySchema{
-        transaction: Encoding.to_hex(encoded_tx)
-      }
-    )
+    body = %Model.TransactionSubmitBodySchema{
+      transaction: Encoding.to_hex(encoded_tx)
+    }
+
+    Api.Transaction.submit(Connection.client(), body)
   end
 end
