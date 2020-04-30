@@ -45,6 +45,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   use OMG.Utils.LoggerExt
 
   @default_sla_margin 10
+  @default_min_exit_period_seconds 120
   @zero_address OMG.Eth.zero_address()
 
   @max_inputs Transaction.Payment.max_inputs()
@@ -109,7 +110,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         db_exits,
         db_in_flight_exits,
         db_competitors,
-        min_exit_period_seconds,
+        min_exit_period_seconds \\ @default_min_exit_period_seconds,
         sla_margin \\ @default_sla_margin
       ) do
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
