@@ -129,6 +129,22 @@ defmodule OMG.EthereumEventListener do
     {:noreply, {state, callbacks}}
   end
 
+  def handle_cast(:sync, state) do
+    :ok = :telemetry.execute([:trace, __MODULE__], %{}, state)
+
+    case RootChainCoordinator.get_sync_info() do
+      :nosync ->
+        :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(state), state.service_name)
+        # {:ok, _} = schedule_get_events(state.ethereum_events_check_interval_ms)
+        {:noreply, {state, callbacks}}
+
+      sync_info ->
+        new_state = sync_height(state, callbacks, sync_info)
+        # {:ok, _} = schedule_get_events(state.ethereum_events_check_interval_ms)
+        {:noreply, {new_state, callbacks}}
+    end
+  end
+
   @doc """
   Main worker function, called on a cadence as initialized in `handle_continue/2`.
 

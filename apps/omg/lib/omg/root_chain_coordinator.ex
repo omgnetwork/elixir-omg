@@ -125,13 +125,6 @@ defmodule OMG.RootChainCoordinator do
   end
 
   defp request_sync(services) do
-    Enum.each(services, fn service -> safe_send(service, :sync) end)
-  end
-
-  defp safe_send(registered_name_or_pid, msg) do
-    send(registered_name_or_pid, msg)
-  rescue
-    ArgumentError ->
-      msg
+    Enum.each(services, fn service -> GenServer.cast(service, :sync) end)
   end
 end
