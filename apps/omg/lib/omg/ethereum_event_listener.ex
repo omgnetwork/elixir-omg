@@ -114,7 +114,8 @@ defmodule OMG.EthereumEventListener do
       process_events_callback: process_events_callback
     }
 
-    {:ok, _} = schedule_get_events(ethereum_events_check_interval_ms)
+    # {:ok, _} = schedule_get_events(ethereum_events_check_interval_ms)
+    :ok = OMG.Bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
     :ok = RootChainCoordinator.check_in(height_to_check_in, service_name)
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
@@ -141,18 +142,18 @@ defmodule OMG.EthereumEventListener do
    - (`sync_height/2`) `OMG.RootChainCoordinator.check_in` to tell the rest what Ethereum height was processed.
   """
   @decorate trace(service: :ethereum_event_listener, type: :backend)
-  def handle_info(:sync, {state, callbacks}) do
+  def handle_info({:internal_event_bus, :ethereum_new_height, _new_height}, {state, callbacks}) do
     :ok = :telemetry.execute([:trace, __MODULE__], %{}, state)
 
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(state), state.service_name)
-        {:ok, _} = schedule_get_events(state.ethereum_events_check_interval_ms)
+        # {:ok, _} = schedule_get_events(state.ethereum_events_check_interval_ms)
         {:noreply, {state, callbacks}}
 
       sync_info ->
         new_state = sync_height(state, callbacks, sync_info)
-        {:ok, _} = schedule_get_events(state.ethereum_events_check_interval_ms)
+        # {:ok, _} = schedule_get_events(state.ethereum_events_check_interval_ms)
         {:noreply, {new_state, callbacks}}
     end
   end
@@ -184,9 +185,9 @@ defmodule OMG.EthereumEventListener do
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
   defp maybe_update_event_cache({:dont_fetch_events, %Core{} = state}, _callback), do: state
 
-  defp schedule_get_events(ethereum_events_check_interval_ms) do
-    :timer.send_after(ethereum_events_check_interval_ms, self(), :sync)
-  end
+  # defp schedule_get_events(ethereum_events_check_interval_ms) do
+  #   :timer.send_after(ethereum_events_check_interval_ms, self(), :sync)
+  # end
 
   defp publish_events([%{event_signature: event_signature} | _] = data) do
     [event_signature, _] = String.split(event_signature, "(")
