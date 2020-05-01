@@ -393,7 +393,6 @@ defmodule InFlightExitsTests do
     alice_state = Map.put(alice_state, :transaction_submit, submit_transaction_response)
 
     entity = "Alice"
-
     {:ok, Map.put(state, entity, alice_state)}
   end
 
@@ -912,7 +911,7 @@ defmodule InFlightExitsTests do
   end
 
   # And "Alice" in flight transaction inputs are not spendable after exit finalization
-  defand ~r/^"(?<entity>[^"]+)" in flight transaction inputs are not spendable after exit finalization$/,
+  defand ~r/^"(?<entity>[^"]+)" in flight transaction inputs are not spendable any more$/,
          %{entity: entity},
          state do
     %{address: address, child_chain_balance: balance, last_deposited_amount: deposit} = state[entity]
@@ -921,6 +920,23 @@ defmodule InFlightExitsTests do
     pull_balance_until_amount(address, balance - deposit)
 
     {:ok, state}
+  end
+
+  defand ~r/^"(?<entity>[^"]+)" in flight transaction most recently piggybacked output is not spendable any more$/,
+         %{entity: entity},
+         state do
+    %{address: address, transaction_submit: submit_response} = state[entity]
+    piggybacked_output_index = 0
+    %SubmitTransactionResponse{blknum: output_blknum, txindex: output_txindex} = submit_response
+    {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: address})
+
+    assert nil =
+             Enum.find(
+               utxos,
+               fn %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex} ->
+                 blknum == output_blknum and txindex == output_txindex and oindex == piggybacked_output_index
+               end
+             )
   end
 
   ###############################################################################################

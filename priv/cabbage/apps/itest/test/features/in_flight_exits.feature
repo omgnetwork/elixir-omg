@@ -39,7 +39,7 @@ Feature: In Flight Exits
     Then Alice verifies its in flight exit from the most recently created transaction
     Given Alice piggybacks output from her most recent in flight exit
     And "Alice" in flight transaction inputs are not spendable any more
-    Then Alice can processes her own most recent in flight exit
+    Then "Alice" can processes its own most recent in flight exit
 
   Scenario: In-flight exited transaction piggybacked output is not spendable
     Given "Alice" deposits "10" ETH to the root chain
@@ -50,4 +50,4 @@ Feature: In Flight Exits
     Then Alice verifies its in flight exit from the most recently created transaction
     Given Alice piggybacks output from her most recent in flight exit
     And "Alice" in flight transaction most recently piggybacked output is not spendable any more
-    Then Alice can processes her own most recent in flight exit 
+    Then "Alice" can processes its own most recent in flight exit
