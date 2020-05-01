@@ -129,7 +129,20 @@ defmodule OMG.EthereumEventListener do
     {:noreply, {state, callbacks}}
   end
 
-  def handle_cast(:sync, state) do
+  @doc """
+  Main worker function, called on a cadence as initialized in `handle_continue/2`.
+
+  Does the following:
+   - asks `OMG.RootChainCoordinator` about how to sync, with respect to other services listening to Ethereum
+   - (`sync_height/2`) figures out what is the suitable range of Ethereum blocks to download events for
+   - (`sync_height/2`) if necessary fetches those events to the in-memory cache in `OMG.EthereumEventListener.Core`
+   - (`sync_height/2`) executes the related event-consuming callback with events as arguments
+   - (`sync_height/2`) does `OMG.DB` updates that persist the processes Ethereum height as well as whatever the
+      callbacks returned to persist
+   - (`sync_height/2`) `OMG.RootChainCoordinator.check_in` to tell the rest what Ethereum height was processed.
+  """
+  @decorate trace(service: :ethereum_event_listener, type: :backend)
+  def handle_info({:internal_event_bus, :ethereum_new_height, _new_height}, {state, callbacks}) do
     :ok = :telemetry.execute([:trace, __MODULE__], %{}, state)
 
     case RootChainCoordinator.get_sync_info() do
@@ -145,20 +158,7 @@ defmodule OMG.EthereumEventListener do
     end
   end
 
-  @doc """
-  Main worker function, called on a cadence as initialized in `handle_continue/2`.
-
-  Does the following:
-   - asks `OMG.RootChainCoordinator` about how to sync, with respect to other services listening to Ethereum
-   - (`sync_height/2`) figures out what is the suitable range of Ethereum blocks to download events for
-   - (`sync_height/2`) if necessary fetches those events to the in-memory cache in `OMG.EthereumEventListener.Core`
-   - (`sync_height/2`) executes the related event-consuming callback with events as arguments
-   - (`sync_height/2`) does `OMG.DB` updates that persist the processes Ethereum height as well as whatever the
-      callbacks returned to persist
-   - (`sync_height/2`) `OMG.RootChainCoordinator.check_in` to tell the rest what Ethereum height was processed.
-  """
-  @decorate trace(service: :ethereum_event_listener, type: :backend)
-  def handle_info({:internal_event_bus, :ethereum_new_height, _new_height}, {state, callbacks}) do
+  def handle_cast(:sync, {state, callbacks}) do
     :ok = :telemetry.execute([:trace, __MODULE__], %{}, state)
 
     case RootChainCoordinator.get_sync_info() do
