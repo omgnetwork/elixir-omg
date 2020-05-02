@@ -72,7 +72,11 @@ defmodule OMG.WatcherInfo.Supervisor do
         id: :ife_exit_consumer
       ),
       Supervisor.child_spec(
-        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightExitUtxoProcessed"}]},
+        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightTxOutputPiggybacked"}]},
+        id: :ife_exit_output_piggybacked_consumer
+      ),
+      Supervisor.child_spec(
+        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightExitIOputProcessed"}]},
         id: :ife_exit_processed_consumer
       )
     ]

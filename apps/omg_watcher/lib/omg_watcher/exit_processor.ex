@@ -386,6 +386,12 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:piggyback_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized piggybacks: #{inspect(exits)}")
     {new_state, db_updates} = Core.new_piggybacks(state, exits)
+
+    :ok =
+      exits
+      |> Tools.to_bus_events_data()
+      |> publish_internal_bus_events("InFlightTxOutputPiggybacked")
+
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -472,7 +478,7 @@ defmodule OMG.Watcher.ExitProcessor do
     :ok =
       events_with_utxos
       |> Tools.to_bus_events_data()
-      |> publish_internal_bus_events("InFlightExitUtxoProcessed")
+      |> publish_internal_bus_events("InFlightExitIOputProcessed")
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end

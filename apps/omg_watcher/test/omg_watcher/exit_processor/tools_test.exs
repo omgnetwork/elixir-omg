@@ -35,10 +35,6 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
            %{log_index: 1, root_chain_txhash: <<11::256>>, tx_hash: <<255::256>>, eth_height: 110},
            %{log_index: 2, root_chain_txhash: <<12::256>>, tx_hash: <<255::256>>, eth_height: 111}
          ],
-         piggyback_output_events: [
-           %{log_index: 1, root_chain_txhash: <<11::256>>, tx_hash: <<255::256>>, eth_height: 210, output_index: 1},
-           %{log_index: 2, root_chain_txhash: <<12::256>>, tx_hash: <<255::256>>, eth_height: 210, output_index: 0}
-         ],
          utxos: [
            Utxo.position(1, 0, 0),
            Utxo.position(1000, 0, 0),
@@ -79,7 +75,7 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
       assert [] = Tools.to_bus_events_data([])
     end
 
-    test "mapping in_flight_exit_started events", %{start_ife_events: [s1, s2 | _], utxos: utxos} do
+    test "mapping new_in_flight_exits events", %{start_ife_events: [s1, s2 | _], utxos: utxos} do
       [utxo_pos_1, utxo_pos_2, utxo_pos_3] =
         encoded_utxos =
         utxos
@@ -96,6 +92,43 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
                %{log_index: 1, root_chain_txhash: <<11::256>>, call_data: %{utxo_pos: ^utxo_pos_1}},
                %{log_index: 1, root_chain_txhash: <<11::256>>, call_data: %{utxo_pos: ^utxo_pos_2}}
              ] = Tools.to_bus_events_data(events_with_utxos)
+    end
+
+    test "mapping piggyback_exits events" do
+      txhash = <<255::256>>
+
+      piggyback_events = [
+        %{
+          log_index: 1,
+          root_chain_txhash: <<11::256>>,
+          tx_hash: txhash,
+          eth_height: 210,
+          output_index: 1,
+          omg_data: %{piggyback_type: :output}
+        },
+        %{
+          log_index: 2,
+          root_chain_txhash: <<12::256>>,
+          tx_hash: txhash,
+          eth_height: 210,
+          output_index: 0,
+          omg_data: %{piggyback_type: :input}
+        },
+        %{
+          log_index: 3,
+          root_chain_txhash: <<13::256>>,
+          tx_hash: txhash,
+          eth_height: 210,
+          output_index: 3,
+          omg_data: %{piggyback_type: :output}
+        }
+      ]
+
+      # Note: Piggyback to input in log_index: 2 is ignored
+      assert [
+               %{log_index: 3, root_chain_txhash: <<13::256>>, call_data: %{txhash: ^txhash, oindex: 3}},
+               %{log_index: 1, root_chain_txhash: <<11::256>>, call_data: %{txhash: ^txhash, oindex: 1}}
+             ] = Tools.to_bus_events_data(piggyback_events)
     end
   end
 end

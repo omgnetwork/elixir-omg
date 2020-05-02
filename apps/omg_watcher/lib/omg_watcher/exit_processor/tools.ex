@@ -26,6 +26,9 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
 
   require Utxo
 
+  @typep eth_event_t() :: %{root_chain_txhash: Crypto.hash_t(), log_index: non_neg_integer()}
+  @typep eth_event_with_exiting_positions_t() :: {eth_event_t(), list(Utxo.Position.t())} | eth_event_t()
+
   # Intersects utxos, looking for duplicates. Gives full list of double-spends with indexes for
   # a pair of transactions.
   @spec double_spends_from_known_tx(list({Utxo.Position.t(), non_neg_integer()}), KnownTx.t()) ::
@@ -89,9 +92,9 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   Transforms Ethereum events like InFlightExitStarted or InFlightExitOutputWithdrawn
   to form that can be consumed by subscribers
   """
-  @spec to_bus_events_data(list({eth_event :: map(), list(Utxo.Position.t())})) ::
+  @spec to_bus_events_data(list(eth_event_with_exiting_positions_t())) ::
           list(%{
-            call_data: %{utxo_pos: non_neg_integer()},
+            call_data: map(),
             root_chain_txhash: charlist(),
             log_index: non_neg_integer()
           })
@@ -117,5 +120,32 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
       }
     )
     |> Enum.concat(bus_events)
+  end
+
+  defp to_bus_events_reducer(%{omg_data: %{piggyback_type: :input}}, bus_events) do
+    # In-flight transaction's inputs are spend when IFE is started we are not interested with input piggybacks
+    bus_events
+  end
+
+  defp to_bus_events_reducer(
+         %{
+           root_chain_txhash: root_chain_txhash,
+           log_index: log_index,
+           omg_data: %{piggyback_type: :output},
+           tx_hash: txhash,
+           output_index: oindex
+         },
+         bus_events
+       ) do
+    # Note: It cannot be deposit as it is piggyback to output, so output is created by in-flight transaction
+    # If transaction was included in plasma block, output is created and could be spend by this event
+    [
+      %{
+        call_data: %{txhash: txhash, oindex: oindex},
+        root_chain_txhash: root_chain_txhash,
+        log_index: log_index
+      }
+      | bus_events
+    ]
   end
 end

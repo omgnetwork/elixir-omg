@@ -925,12 +925,15 @@ defmodule InFlightExitsTests do
   defand ~r/^"(?<entity>[^"]+)" in flight transaction most recently piggybacked output is not spendable any more$/,
          %{entity: entity},
          state do
-    %{address: address, transaction_submit: submit_response} = state[entity]
+    %{address: address, transaction_submit: submit_response, child_chain_balance: balance} = state[entity]
     piggybacked_output_index = 0
     %SubmitTransactionResponse{blknum: output_blknum, txindex: output_txindex} = submit_response
+
+    pull_balance_until_amount(address, balance - Currency.to_wei(5))
+
     {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: address})
 
-    assert nil =
+    assert nil ==
              Enum.find(
                utxos,
                fn %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex} ->
