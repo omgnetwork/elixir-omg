@@ -30,6 +30,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   require Utxo
 
   @typep available_event_type_t() :: :standard_exit | :in_flight_exit
+  @typep output_pointer_t() :: %{utxo_pos: pos_integer()} | %{txhash: Crypto.hash_t(), oindex: non_neg_integer()}
 
   @primary_key false
   schema "ethevents" do
@@ -147,28 +148,34 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   @spec utxo_exit_from_exit_event(%{
-          call_data: %{utxo_pos: pos_integer()},
+          call_data: output_pointer_t(),
           root_chain_txhash: charlist(),
           log_index: non_neg_integer()
         }) ::
-          %{root_chain_txhash: binary(), log_index: non_neg_integer(), decoded_utxo_position: Utxo.Position.t()}
+          %{root_chain_txhash: binary(), log_index: non_neg_integer(), output_pointer: tuple()}
   defp utxo_exit_from_exit_event(%{
-         call_data: %{utxo_pos: utxo_pos},
+         call_data: output_pointer,
          root_chain_txhash: root_chain_txhash,
          log_index: log_index
        }) do
     %{
       root_chain_txhash: root_chain_txhash,
       log_index: log_index,
-      decoded_utxo_position: Utxo.Position.decode!(utxo_pos)
+      output_pointer: transform_output_pointer(output_pointer)
     }
   end
+
+  defp transform_output_pointer(%{utxo_pos: utxo_pos}),
+    do: {:utxo_position, Utxo.Position.decode!(utxo_pos)}
+
+  defp transform_output_pointer(%{txhash: txhash, oindex: oindex}),
+    do: {:output_id, {txhash, oindex}}
 
   @spec insert_exit!(
           %{
             root_chain_txhash: binary(),
             log_index: non_neg_integer(),
-            decoded_utxo_position: Utxo.Position.t()
+            output_pointer: {:utxo_position, Utxo.Position.t()} | {:output_id, tuple()}
           },
           available_event_type_t()
         ) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()} | :noop
@@ -176,7 +183,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
          %{
            root_chain_txhash: root_chain_txhash,
            log_index: log_index,
-           decoded_utxo_position: decoded_utxo_position
+           output_pointer: output_pointer
          },
          event_type
        ) do
@@ -191,13 +198,14 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           event_type: event_type
         }
 
-    tx_output = resolve_tx_output(%{utxo_pos: decoded_utxo_position})
+    tx_output = resolve_tx_output(output_pointer)
 
     insert_exit_if_not_exist(ethevent, tx_output)
   end
 
-  @spec resolve_tx_output(map()) :: %DB.TxOutput{} | nil
-  defp resolve_tx_output(%{utxo_pos: utxo_pos}), do: DB.TxOutput.get_by_position(utxo_pos)
+  @spec resolve_tx_output(tuple()) :: %DB.TxOutput{} | nil
+  defp resolve_tx_output({:utxo_position, utxo_pos}), do: DB.TxOutput.get_by_position(utxo_pos)
+  defp resolve_tx_output({:output_id, {txhash, oindex}}), do: DB.TxOutput.get_by_output_id(txhash, oindex)
 
   @spec insert_exit_if_not_exist(%__MODULE__{}, %DB.TxOutput{} | nil) ::
           {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()} | :noop
