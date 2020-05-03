@@ -54,6 +54,7 @@ defmodule OMG.Watcher.SyncSupervisor do
     coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
     min_exit_period_seconds = OMG.Eth.Configuration.min_exit_period_seconds()
     ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
+    child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
 
     [
@@ -63,7 +64,8 @@ defmodule OMG.Watcher.SyncSupervisor do
          exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
          metrics_collection_interval: metrics_collection_interval,
          min_exit_period_seconds: min_exit_period_seconds,
-         ethereum_block_time_seconds: ethereum_block_time_seconds
+         ethereum_block_time_seconds: ethereum_block_time_seconds,
+         child_block_interval: child_block_interval
        ]},
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,

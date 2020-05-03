@@ -34,6 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfoTest do
   }
 
   @min_exit_period 20
+  @child_block_interval 1000
 
   describe "from_db_kv/1" do
     test "default recently added keys to nil for existing entries without said key" do
@@ -68,7 +69,13 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfoTest do
       expected_sft = max(exit_ts + @min_exit_period, utxo_creation_ts + @min_exit_period)
 
       assert {:ok, expected_sft} ==
-               ExitInfo.calculate_sft(deposit_blknum, exit_ts, utxo_creation_ts, @min_exit_period)
+               ExitInfo.calculate_sft(
+                 deposit_blknum,
+                 exit_ts,
+                 utxo_creation_ts,
+                 @min_exit_period,
+                 @child_block_interval
+               )
     end
 
     test "calculates scheduled finalisation time correctly if UTXO was created by a child chain transaction" do
@@ -82,7 +89,13 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfoTest do
       expected_sft = max(exit_ts + @min_exit_period, utxo_creation_ts + 2 * @min_exit_period)
 
       assert {:ok, expected_sft} ==
-               ExitInfo.calculate_sft(blknum, exit_ts, utxo_creation_ts, @min_exit_period)
+               ExitInfo.calculate_sft(
+                 blknum,
+                 exit_ts,
+                 utxo_creation_ts,
+                 @min_exit_period,
+                 @child_block_interval
+               )
     end
   end
 end

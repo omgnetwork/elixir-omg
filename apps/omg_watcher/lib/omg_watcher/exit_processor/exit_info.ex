@@ -20,12 +20,13 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   """
 
   alias OMG.Crypto
-  alias OMG.Eth
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.Event
 
   require Utxo
+
+  use OMG.Utils.LoggerExt
 
   @enforce_keys [
     :amount,
@@ -38,8 +39,6 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     :root_chain_txhash,
     :scheduled_finalization_time
   ]
-
-  @child_block_interval Eth.Configuration.child_block_interval()
 
   defstruct @enforce_keys
 
@@ -151,7 +150,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   @doc """
   Based on the block number determines whether UTXO was created by a deposit.
   """
-  defguard is_deposit(blknum) when rem(blknum, @child_block_interval) != 0
+  defguard is_deposit(blknum, child_block_interval) when rem(blknum, child_block_interval) != 0
 
   @doc """
   Calculates the time at which an exit can be processed and released if not challenged successfully.
@@ -161,11 +160,12 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           blknum :: pos_integer(),
           exit_timestamp :: pos_integer(),
           utxo_creation_timestamp :: pos_integer(),
-          min_exit_period :: pos_integer()
+          min_exit_period :: pos_integer(),
+          child_block_interval :: pos_integer()
         ) ::
           {:ok, pos_integer()}
-  def calculate_sft(blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period) do
-    case is_deposit(blknum) do
+  def calculate_sft(blknum, exit_timestamp, utxo_creation_timestamp, min_exit_period, child_block_interval) do
+    case is_deposit(blknum, child_block_interval) do
       true ->
         {:ok, max(exit_timestamp + min_exit_period, utxo_creation_timestamp + min_exit_period)}
 
