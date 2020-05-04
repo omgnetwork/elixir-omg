@@ -311,12 +311,12 @@ defmodule OMG.Watcher.ExitProcessor do
 
     {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit_structs(get_in(exits, [Access.all(), :exit_id]))
 
-    exits_with_sft =
+    exit_maps =
       Enum.map(exits, fn exit_event ->
-        add_scheduled_finalization_time(exit_event, min_exit_period_seconds, child_block_interval)
+        put_timestamp_and_sft(exit_event, min_exit_period_seconds, child_block_interval)
       end)
 
-    {new_state, db_updates} = Core.new_exits(state, exits_with_sft, exit_contract_statuses)
+    {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -674,13 +674,13 @@ defmodule OMG.Watcher.ExitProcessor do
     {invalidities_by_ife_id, state_db_updates}
   end
 
-  @spec add_scheduled_finalization_time(
+  @spec put_timestamp_and_sft(
           exit_event :: map(),
           min_exit_period_seconds :: pos_integer(),
           child_block_interval :: pos_integer()
         ) ::
           map()
-  defp add_scheduled_finalization_time(
+  defp put_timestamp_and_sft(
          %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos_enc}} = exit_event,
          min_exit_period_seconds,
          child_block_interval
@@ -698,6 +698,8 @@ defmodule OMG.Watcher.ExitProcessor do
         child_block_interval
       )
 
-    Map.put(exit_event, :scheduled_finalization_time, scheduled_finalization_time)
+    exit_event
+    |> Map.put(:scheduled_finalization_time, scheduled_finalization_time)
+    |> Map.put(:timestamp, exit_block_timestamp)
   end
 end

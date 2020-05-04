@@ -62,7 +62,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
            exit_id: 1,
            call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1},
            root_chain_txhash: <<1::256>>,
-           scheduled_finalization_time: 1
+           timestamp: 1,
+           scheduled_finalization_time: 2
          },
          %{
            owner: alice.addr,
@@ -70,7 +71,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
            exit_id: 2,
            call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2},
            root_chain_txhash: <<2::256>>,
-           scheduled_finalization_time: 2
+           timestamp: 3,
+           scheduled_finalization_time: 4
          }
        ],
        [

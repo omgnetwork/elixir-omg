@@ -151,7 +151,7 @@ defmodule OMG.Watcher.Event do
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
             name: atom(),
-            root_chain_txhash: Crypto.hash_t() | nil,
+            root_chain_txhash: Transaction.tx_hash() | nil,
             scheduled_finalization_time: pos_integer() | nil
           }
   end
@@ -181,7 +181,7 @@ defmodule OMG.Watcher.Event do
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
             name: atom(),
-            root_chain_txhash: Crypto.hash_t() | nil,
+            root_chain_txhash: Transaction.tx_hash() | nil,
             scheduled_finalization_time: pos_integer() | nil
           }
   end

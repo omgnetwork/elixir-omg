@@ -20,7 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfoTest do
 
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
-  @recently_added_keys [:root_chain_txhash, :scheduled_finalization_time]
+  @recently_added_keys [:root_chain_txhash, :scheduled_finalization_time, :timestamp]
   @utxo_pos_1 {1000, 0, 0}
   @exit_1 %{
     exit_id: 1,
@@ -30,7 +30,9 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfoTest do
     exiting_txbytes: "txbytes",
     is_active: false,
     owner: <<1::160>>,
-    root_chain_txhash: <<1::256>>
+    root_chain_txhash: <<1::256>>,
+    timestamp: 1,
+    scheduled_finalization_time: 2
   }
 
   @min_exit_period 20

@@ -26,8 +26,6 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   require Utxo
 
-  use OMG.Utils.LoggerExt
-
   @enforce_keys [
     :amount,
     :currency,
@@ -37,7 +35,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     :is_active,
     :eth_height,
     :root_chain_txhash,
-    :scheduled_finalization_time
+    :scheduled_finalization_time,
+    :timestamp
   ]
 
   defstruct @enforce_keys
@@ -52,8 +51,9 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
           eth_height: pos_integer(),
-          root_chain_txhash: Crypto.hash_t() | nil,
-          scheduled_finalization_time: pos_integer() | nil
+          root_chain_txhash: Transaction.tx_hash() | nil,
+          scheduled_finalization_time: pos_integer() | nil,
+          timestamp: pos_integer() | nil
         }
 
   @spec new(map(), map()) :: t()
@@ -64,12 +64,12 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           call_data: %{output_tx: txbytes},
           exit_id: exit_id,
           root_chain_txhash: root_chain_txhash,
-          scheduled_finalization_time: scheduled_finalization_time
+          scheduled_finalization_time: scheduled_finalization_time,
+          timestamp: timestamp
         } = exit_event
       ) do
     Utxo.position(_, _, oindex) = utxo_pos_for(exit_event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
-
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
     do_new(contract_status,
@@ -80,7 +80,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exiting_txbytes: txbytes,
       eth_height: eth_height,
       root_chain_txhash: root_chain_txhash,
-      scheduled_finalization_time: scheduled_finalization_time
+      scheduled_finalization_time: scheduled_finalization_time,
+      timestamp: timestamp
     )
   end
 
@@ -116,7 +117,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       is_active: exit_info.is_active,
       eth_height: exit_info.eth_height,
       root_chain_txhash: exit_info.root_chain_txhash,
-      scheduled_finalization_time: exit_info.scheduled_finalization_time
+      scheduled_finalization_time: exit_info.scheduled_finalization_time,
+      timestamp: exit_info.timestamp
     }
 
     {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
@@ -135,7 +137,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       eth_height: exit_info.eth_height,
       # defaults value to nil if non-existent in the DB.
       root_chain_txhash: Map.get(exit_info, :root_chain_txhash),
-      scheduled_finalization_time: Map.get(exit_info, :scheduled_finalization_time)
+      scheduled_finalization_time: Map.get(exit_info, :scheduled_finalization_time),
+      timestamp: Map.get(exit_info, :timestamp)
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
