@@ -79,7 +79,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     exits_invalid_by_ife = get_invalid_exits_based_on_ifes(active_exits, tx_appendix)
     invalid_exits = active_exits |> Map.take(invalid_exit_positions) |> Enum.concat(exits_invalid_by_ife) |> Enum.uniq()
 
-    ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
+    _ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
     # get exits which are still invalid and after the SLA margin
     # temporarily assigning ethereum_block_time_seconds= 1, will be removed on merge of #1495 
     late_invalid_exits =
