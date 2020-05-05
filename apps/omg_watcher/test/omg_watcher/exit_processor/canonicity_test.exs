@@ -323,7 +323,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       assert {:ok, %{}} = request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    test "detects that invalid piggyback becomes unchallenged exit when sla period passes",
+    test "detects that non-canonical ife becomes unchallenged exit when sla period passes",
          %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       txbytes = txbytes(tx1)
       other_blknum = 3000

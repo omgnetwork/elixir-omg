@@ -198,10 +198,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     DevHelper.wait_for_root_chain_block(response_eth_height + exit_finality_margin + 1)
 
     # dissapearing of `invalid_ife_challenge` event
-    # `unchallenged_non_canonical_ife` as it's past sla margin
     assert %{
              "byzantine_events" => [
-               %{"event" => "unchallenged_non_canonical_ife"},
                %{"event" => "non_canonical_ife"},
                %{"event" => "piggyback_available"}
              ]
