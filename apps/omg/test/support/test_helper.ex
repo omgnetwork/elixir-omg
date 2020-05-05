@@ -183,15 +183,16 @@ defmodule OMG.TestHelper do
   defp parse_fees(fees) do
     fees
     |> Enum.map(fn {"0x" <> _ = token, fee} ->
-      {token, %{
-        amount: fee.amount,
-        subunit_to_unit: fee.subunit_to_unit,
-        pegged_amount: fee.pegged_amount,
-        pegged_currency: fee.pegged_currency,
-        pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
-        symbol: "token",
-        type: "fixed"
-      }}
+      {token,
+       %{
+         amount: fee.amount,
+         subunit_to_unit: fee.subunit_to_unit,
+         pegged_amount: fee.pegged_amount,
+         pegged_currency: fee.pegged_currency,
+         pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+         symbol: "token",
+         type: "fixed"
+       }}
     end)
     |> Map.new()
   end

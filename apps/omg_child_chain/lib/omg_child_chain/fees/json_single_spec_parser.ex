@@ -100,13 +100,6 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
 
   defp validate_pegged_fields(_, _, _), do: {:error, :invalid_pegged_fields}
 
-  defp validate_updated_at(updated_at) do
-    case DateTime.from_iso8601(updated_at) do
-      {:ok, %DateTime{} = date_time, _} -> {:ok, date_time}
-      _ -> {:error, :invalid_timestamp}
-    end
-  end
-
   defp decode_address("0x" <> data), do: decode_address(data)
 
   defp decode_address(data) do
