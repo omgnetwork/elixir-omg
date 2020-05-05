@@ -83,8 +83,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     # get exits which are still invalid and after the SLA margin
     # temporarily assigning ethereum_block_time_seconds= 1, will be removed on merge of #1495
     late_invalid_exits =
-      invalid_exits
-      |> Enum.filter(fn {_, %ExitInfo{eth_height: eth_height}} ->
+      Enum.filter(invalid_exits, fn {_, %ExitInfo{eth_height: eth_height}} ->
         eth_height + sla_seconds / 1 <= eth_height_now
       end)
 
