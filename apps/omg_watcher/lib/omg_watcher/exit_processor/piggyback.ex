@@ -86,6 +86,10 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
     end
   end
 
+  @doc """
+  Returns a tuple of ivalid piggybacks and invalid piggybacks that are past SLA margin.
+  This is inclusive, invalid piggybacks past SLA margin are included in the invalid piggybacks list.
+  """
   @spec get_invalid_piggybacks_events(Core.t(), KnownTx.known_txs_by_input_t(), pos_integer()) ::
           {list(Event.InvalidPiggyback.t()), list(Event.UnchallengedPiggyback.t())}
   def get_invalid_piggybacks_events(
