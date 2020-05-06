@@ -15,13 +15,13 @@ To be able to flag all finalized outputs, we would need a global schema for all 
 1. For normal transaction outputs: `OutputId = hash(txBytes, outputIndex)`
 2. For deposit transaction outputs: `OutputId = hash(txBytes, outputIndex, utxoPos)`
 
-We add `utxoPos` as a salt for deposit transaction output because deposit transaction can potentially have same `txBytes` as another deposit transactions (see: [this issue](https://github.com/omisego/plasma-contracts/issues/80)), a naive `hash(txBytes, outputIndex)` would collide when `txBytes` are not unique. 
+We add `utxoPos` as a salt for deposit transaction output because deposit transaction can potentially have same `txBytes` as another deposit transactions (see: [this issue](https://github.com/omisego/plasma-contracts/issues/80)), a naive `hash(txBytes, outputIndex)` would collide when `txBytes` are not unique.
 
 Also, there was discussion to abstract the output identifier to be more flexible, see [this note](https://github.com/omisego/plasma-contracts/issues/387). But as the first version of Plasma Framework, we decided to go forward with using `OutputId` as a global schema to flag all outputs.
 
 #### Standard Exit scenario
 
-A standard exit would only impacts an output. Thus, in the case of SE, only one output need to be considered. The `processExit` function for SE would check whether that output has been flagged or not before withdrawing the fund. Also, once processed, it would flag that output as spent in `PlasmaFramework`.
+A standard exit would only impact an output. Thus, in the case of SE, only one output need to be considered. The `processExit` function for SE would check whether that output has been flagged or not before withdrawing the fund. Also, once processed, it would flag that output as spent in `PlasmaFramework`.
 
 #### In-flight Exit scenario
 
@@ -38,7 +38,7 @@ We flag all the inputs when canonical because the current interaction game would
 
 #### Previous design on SE <> IFE interaction
 
-Previously we had a set of rules and action on the SE <> IFE interaction. It takes some time to evolve to the current one. See the original doc on `0.2` branch used for `RootChain.sol`: https://github.com/omisego/elixir-omg/blob/v0.2/docs/standard_vs_in_flight_exits_interaction.md. 
+Previously we had a set of rules and action on the SE <> IFE interaction. It takes some time to evolve to the current one. See the original doc on `0.2` branch used for `RootChain.sol`: https://github.com/omisego/elixir-omg/blob/v0.2/docs/standard_vs_in_flight_exits_interaction.md.
 
 We end up change the mechanism heavily for two reasons:
 1. Simplicity on the rule

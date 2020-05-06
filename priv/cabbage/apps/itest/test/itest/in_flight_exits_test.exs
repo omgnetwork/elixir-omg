@@ -506,7 +506,15 @@ defmodule InFlightExitsTests do
     # only a single non_canonical event, since one of the IFE txs is included!
     # I’m waiting for these three, and only these three to appear
     # there's 2x invalid_piggyback, because the other IFE from Bob has an invalidly piggybacked input too
-    assert all_events_in_status?(["invalid_piggyback", "invalid_piggyback", "non_canonical_ife"])
+    # SLA margin passed so there are unchallenged exit events
+    assert all_events_in_status?([
+             "unchallenged_non_canonical_ife",
+             "unchallenged_piggyback",
+             "unchallenged_piggyback",
+             "invalid_piggyback",
+             "invalid_piggyback",
+             "non_canonical_ife"
+           ])
 
     ###
     # CANONICITY GAME
@@ -523,7 +531,13 @@ defmodule InFlightExitsTests do
 
     # I’m waiting for only these two to remain
     # there's 2x invalid_piggyback, because the other IFE from Bob has an invalidly piggybacked input too
-    assert all_events_in_status?(["invalid_piggyback", "invalid_piggyback"])
+    # SLA margin passed so there are unchallenged exit events
+    assert all_events_in_status?([
+             "unchallenged_piggyback",
+             "unchallenged_piggyback",
+             "invalid_piggyback",
+             "invalid_piggyback"
+           ])
 
     ###
     # PIGGYBACKS

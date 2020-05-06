@@ -28,9 +28,11 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.InvalidExit.t()
           | OMG.Watcher.Event.UnchallengedExit.t()
           | OMG.Watcher.Event.NonCanonicalIFE.t()
+          | OMG.Watcher.Event.UnchallengedNonCanonicalIFE.t()
           | OMG.Watcher.Event.InvalidIFEChallenge.t()
           | OMG.Watcher.Event.PiggybackAvailable.t()
           | OMG.Watcher.Event.InvalidPiggyback.t()
+          | OMG.Watcher.Event.UnchallengedPiggyback.t()
 
   @type t ::
           OMG.Watcher.Event.AddressReceived.t()
@@ -43,9 +45,11 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.InvalidExit
           | OMG.Watcher.Event.UnchallengedExit
           | OMG.Watcher.Event.NonCanonicalIFE
+          | OMG.Watcher.Event.UnchallengedNonCanonicalIFE.t()
           | OMG.Watcher.Event.InvalidIFEChallenge
           | OMG.Watcher.Event.PiggybackAvailable
           | OMG.Watcher.Event.InvalidPiggyback
+          | OMG.Watcher.Event.UnchallengedPiggyback
           | OMG.Watcher.Event.AddressReceived
           | OMG.Watcher.Event.ExitFinalized
   #  TODO The reason why events have name as String and byzantine events as atom is that
@@ -195,9 +199,24 @@ defmodule OMG.Watcher.Event do
           }
   end
 
+  defmodule UnchallengedNonCanonicalIFE do
+    @moduledoc """
+    Notifies about an in-flight exit which has a competitor but is dangerously close to finalization.
+
+    It is a prompt to exit
+    """
+
+    defstruct [:txbytes, name: :unchallenged_non_canonical_ife]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            name: atom()
+          }
+  end
+
   defmodule InvalidIFEChallenge do
     @moduledoc """
-    Notifies about an in-flight exit which has a competitor
+    Notifies that a canonical in-flight exit has been challenged. The challenge should be responded to.
     """
 
     defstruct [:txbytes, name: :invalid_ife_challenge]
@@ -234,6 +253,23 @@ defmodule OMG.Watcher.Event do
     """
 
     defstruct [:txbytes, :inputs, :outputs, name: :invalid_piggyback]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            inputs: [non_neg_integer()],
+            outputs: [non_neg_integer()],
+            name: atom()
+          }
+  end
+
+  defmodule UnchallengedPiggyback do
+    @moduledoc """
+    Notifies about invalid piggyback, that is dangerously approaching finalization, without being challenged
+
+    It is a prompt to exit
+    """
+
+    defstruct [:txbytes, :inputs, :outputs, name: :unchallenged_piggyback]
 
     @type t :: %__MODULE__{
             txbytes: binary(),
