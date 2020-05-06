@@ -172,7 +172,7 @@ defmodule OMG.TestHelper do
   def write_fee_file(content, file_path) do
     path =
       case file_path do
-        nil -> "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{DateTime.to_unix(DateTime.utc_now())}"
+        nil -> "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{System.monotonic_time()}"
         _ -> file_path
       end
 

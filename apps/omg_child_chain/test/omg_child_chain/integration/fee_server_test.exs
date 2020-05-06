@@ -39,16 +39,14 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         pegged_amount: 1,
         subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_currency: "USD",
-        pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+        pegged_subunit_to_unit: 100
       },
       @not_eth_hex => %{
         amount: 2,
         pegged_amount: 1,
         subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_currency: "USD",
-        pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+        pegged_subunit_to_unit: 100
       }
     },
     2 => %{
@@ -57,8 +55,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         pegged_amount: 1,
         subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_currency: "USD",
-        pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+        pegged_subunit_to_unit: 100
       }
     }
   }
@@ -71,7 +68,8 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_currency: "USD",
         pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+        type: :fixed,
+        updated_at: nil
       },
       @not_eth => %{
         amount: 2,
@@ -79,7 +77,8 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_currency: "USD",
         pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+        type: :fixed,
+        updated_at: nil
       }
     },
     2 => %{
@@ -89,7 +88,8 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         subunit_to_unit: 1_000_000_000_000_000_000,
         pegged_currency: "USD",
         pegged_subunit_to_unit: 100,
-        updated_at: DateTime.from_unix!(1_546_336_800)
+        type: :fixed,
+        updated_at: nil
       }
     }
   }
@@ -124,7 +124,8 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         pegged_amount: 2,
         pegged_currency: "SOMETHING",
         pegged_subunit_to_unit: 1000,
-        updated_at: DateTime.from_unix!(1_546_423_200)
+        type: :fixed,
+        updated_at: nil
       }
 
       assert {:ok, @parsed_fees} == FeeServer.current_fees()
@@ -169,8 +170,7 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         subunit_to_unit: 100,
         pegged_amount: 2,
         pegged_currency: "SOMETHING",
-        pegged_subunit_to_unit: 1000,
-        updated_at: DateTime.from_unix!(1_546_423_200)
+        pegged_subunit_to_unit: 1000
       }
 
       {:started, _log, exit_fn} = start_fee_server(file_path)
@@ -223,7 +223,8 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         pegged_amount: nil,
         pegged_currency: nil,
         pegged_subunit_to_unit: nil,
-        updated_at: DateTime.from_unix!(1_546_423_200)
+        type: :fixed,
+        updated_at: nil
       }
 
       new_fee_2 = %{
@@ -232,7 +233,8 @@ defmodule OMG.ChildChain.Integration.FeeServerTest do
         pegged_amount: nil,
         pegged_currency: nil,
         pegged_subunit_to_unit: nil,
-        updated_at: DateTime.from_unix!(1_546_423_200)
+        type: :fixed,
+        updated_at: nil
       }
 
       {:started, _log, exit_fn} = start_fee_server(file_path)

@@ -30,18 +30,19 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
-    enc_eth = Encoding.to_hex(OMG.Eth.zero_address())
+    eth_hex = Encoding.to_hex(OMG.Eth.zero_address())
 
     {:ok, file_path} =
       TestHelper.write_fee_file(%{
         @payment_tx_type => %{
-          enc_eth => %{
+          eth_hex => %{
             amount: 1,
             pegged_amount: 1,
             subunit_to_unit: 1_000_000_000_000_000_000,
             pegged_currency: "USD",
             pegged_subunit_to_unit: 100,
-            updated_at: DateTime.utc_now()
+            symbol: "ETH",
+            type: :fixed
           },
           token => %{
             amount: 2,
@@ -49,7 +50,8 @@ defmodule OMG.ChildChain.Integration.Fixtures do
             subunit_to_unit: 1_000_000_000_000_000_000,
             pegged_currency: "USD",
             pegged_subunit_to_unit: 100,
-            updated_at: DateTime.utc_now()
+            symbol: "OMG",
+            type: :fixed
           }
         }
       })
