@@ -143,6 +143,7 @@ defmodule OMG.Watcher.Event do
       :owner,
       :utxo_pos,
       :root_chain_txhash,
+      :spending_txhash,
       :eth_height,
       name: :invalid_exit
     ]
@@ -153,8 +154,9 @@ defmodule OMG.Watcher.Event do
             owner: binary(),
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
-            name: atom(),
-            root_chain_txhash: Transaction.tx_hash() | nil
+            spending_txhash: Transaction.tx_hash() | nil,
+            root_chain_txhash: Transaction.tx_hash() | nil,
+            name: atom()
           }
   end
 
@@ -171,6 +173,7 @@ defmodule OMG.Watcher.Event do
       :owner,
       :utxo_pos,
       :root_chain_txhash,
+      :spending_txhash,
       :eth_height,
       name: :unchallenged_exit
     ]
@@ -181,8 +184,9 @@ defmodule OMG.Watcher.Event do
             owner: binary(),
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
-            name: atom(),
-            root_chain_txhash: Transaction.tx_hash() | nil
+            root_chain_txhash: Transaction.tx_hash() | nil,
+            spending_txhash: Transaction.tx_hash() | nil,
+            name: atom()
           }
   end
 

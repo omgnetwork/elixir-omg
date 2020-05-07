@@ -34,7 +34,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     :exiting_txbytes,
     :is_active,
     :eth_height,
-    :root_chain_txhash
+    :root_chain_txhash,
+    :spending_txhash
   ]
   defstruct @enforce_keys
 
@@ -48,7 +49,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
           eth_height: pos_integer(),
-          root_chain_txhash: Transaction.tx_hash() | nil
+          root_chain_txhash: Transaction.tx_hash() | nil,
+          spending_txhash: Transaction.tx_hash() | nil
         }
 
   @spec new(map(), map()) :: t()
@@ -73,7 +75,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exit_id: exit_id,
       exiting_txbytes: txbytes,
       eth_height: eth_height,
-      root_chain_txhash: root_chain_txhash
+      root_chain_txhash: root_chain_txhash,
+      spending_txhash: nil
     )
   end
 
@@ -125,6 +128,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exiting_txbytes: exit_info.exiting_txbytes,
       is_active: exit_info.is_active,
       eth_height: exit_info.eth_height,
+      spending_txhash: nil,
       # defaults value to nil if non-existent in the DB.
       root_chain_txhash: Map.get(exit_info, :root_chain_txhash)
     }
