@@ -36,7 +36,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     :eth_height,
     :root_chain_txhash,
     :scheduled_finalization_time,
-    :timestamp
+    :timestamp,
+    :spending_txhash
   ]
 
   defstruct @enforce_keys
@@ -53,7 +54,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           eth_height: pos_integer(),
           root_chain_txhash: Transaction.tx_hash() | nil,
           scheduled_finalization_time: pos_integer() | nil,
-          timestamp: pos_integer() | nil
+          timestamp: pos_integer() | nil,
+          spending_txhash: Transaction.tx_hash() | nil
         }
 
   @spec new(map(), map()) :: t()
@@ -81,7 +83,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       eth_height: eth_height,
       root_chain_txhash: root_chain_txhash,
       scheduled_finalization_time: scheduled_finalization_time,
-      timestamp: timestamp
+      timestamp: timestamp,
+      spending_txhash: nil
     )
   end
 
@@ -135,6 +138,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exiting_txbytes: exit_info.exiting_txbytes,
       is_active: exit_info.is_active,
       eth_height: exit_info.eth_height,
+      spending_txhash: nil,
       # defaults value to nil if non-existent in the DB.
       root_chain_txhash: Map.get(exit_info, :root_chain_txhash),
       scheduled_finalization_time: Map.get(exit_info, :scheduled_finalization_time),

@@ -483,28 +483,33 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
 
-    ifes_with_competitors_events = ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input)
+    {non_canonical_ife_events, late_non_canonical_ife_events} =
+      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now)
+
     invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
-    invalid_piggybacks = ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input)
-    has_no_late_invalid_exits = Enum.empty?(late_invalid_exits)
+    {invalid_piggybacks_events, late_invalid_piggybacks_events} =
+      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, eth_height_now)
 
     available_piggybacks_events =
-      get_ifes_to_piggyback(state)
+      state
+      |> get_ifes_to_piggyback()
       |> Enum.flat_map(&prepare_available_piggyback/1)
 
+    unchallenged_exit_events =
+      late_non_canonical_ife_events ++ late_invalid_exits_events ++ late_invalid_piggybacks_events
+
+    chain_validity = if Enum.empty?(unchallenged_exit_events), do: :ok, else: {:error, :unchallenged_exit}
+
     events =
-      [
-        late_invalid_exits_events,
+      Enum.concat([
+        unchallenged_exit_events,
         invalid_exit_events,
-        invalid_piggybacks,
-        ifes_with_competitors_events,
+        invalid_piggybacks_events,
+        non_canonical_ife_events,
         invalid_ife_challenges_events,
         available_piggybacks_events
-      ]
-      |> Enum.concat()
-
-    chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
+      ])
 
     {chain_validity, events}
   end

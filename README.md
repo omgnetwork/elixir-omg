@@ -125,6 +125,6 @@ Branch `gh-pages` is totally diseparated from other development branches and con
 
 See [gh-pages README](https://github.com/omisego/elixir-omg/tree/gh-pages) for more details.
 
-# More details about the design and arhitecture
+# More details about the design and architecture
 
-Details about the repository, code, arhitecture and design decisions are available **[here](docs/details.md)**.
+Details about the repository, code, architecture and design decisions are available **[here](docs/details.md)**.
