@@ -146,7 +146,6 @@ defmodule OMG.Watcher.Event do
       :scheduled_finalization_time,
       :utxo_pos,
       :spending_txhash,
-      :eth_height,
       name: :invalid_exit
     ]
 
@@ -181,7 +180,6 @@ defmodule OMG.Watcher.Event do
       :scheduled_finalization_time,
       :utxo_pos,
       :spending_txhash,
-      :eth_height,
       name: :unchallenged_exit
     ]
 
