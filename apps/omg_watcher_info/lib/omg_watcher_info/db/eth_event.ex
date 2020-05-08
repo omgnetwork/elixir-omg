@@ -213,7 +213,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   defp insert_exit_if_not_exist(ethevent, tx_output) do
     # if TxOutput is already assiociated with this (or any other) spending event no action is needed
-    if output_spend?(tx_output),
+    if output_spent?(tx_output),
       do: :noop,
       else: do_insert_exit(ethevent, tx_output)
   end
@@ -221,7 +221,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @spec do_insert_exit(%__MODULE__{}, %DB.TxOutput{}) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp do_insert_exit(ethevent, tx_output) when ethevent != nil and tx_output != nil do
     # sanity check
-    false = output_spend?(tx_output)
+    false = output_spent?(tx_output)
 
     decoded_utxo_position = Utxo.position(tx_output.blknum, tx_output.txindex, tx_output.oindex)
 
@@ -236,10 +236,10 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   # Tells whether `TxOutput` was already spent
   # NOTE: it looks a little too deep into DB.TxOutput module, but I don't want to extent its API
-  @spec output_spend?(%DB.TxOutput{}) :: boolean()
-  defp output_spend?(%DB.TxOutput{spending_txhash: nil} = tx_output) do
+  @spec output_spent?(%DB.TxOutput{}) :: boolean()
+  defp output_spent?(%DB.TxOutput{spending_txhash: nil} = tx_output) do
     Enum.any?(tx_output.ethevents, &(&1.event_type != :deposit))
   end
 
-  defp output_spend?(%DB.TxOutput{}), do: true
+  defp output_spent?(%DB.TxOutput{}), do: true
 end

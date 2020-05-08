@@ -478,7 +478,7 @@ defmodule OMG.Watcher.ExitProcessor do
     :ok =
       events_with_utxos
       |> Tools.to_bus_events_data()
-      |> publish_internal_bus_events("InFlightExitIOputProcessed")
+      |> publish_internal_bus_events("InFlightExitOutputWithdrawn")
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end
