@@ -20,27 +20,30 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfoTest do
 
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
-  @recently_added_keys [:root_chain_txhash, :scheduled_finalization_time, :timestamp]
+  @recently_added_keys [:root_chain_txhash, :scheduled_finalization_time, :block_timestamp]
   @utxo_pos_1 {1000, 0, 0}
-  @exit_1 %{
-    exit_id: 1,
+  @exit_1 [
     amount: 1,
+    block_timestamp: 1,
     currency: <<1::160>>,
     eth_height: 1,
+    exit_id: 1,
     exiting_txbytes: "txbytes",
     is_active: false,
     owner: <<1::160>>,
     root_chain_txhash: <<1::256>>,
-    timestamp: 1,
-    scheduled_finalization_time: 2
-  }
+    scheduled_finalization_time: 2,
+    spending_txhash: nil
+  ]
+
+  @exit_info_1 struct!(ExitInfo, @exit_1)
 
   @min_exit_period 20
   @child_block_interval 1000
 
   describe "from_db_kv/1" do
     test "default recently added keys to nil for existing entries without said key" do
-      exit_info = Map.drop(@exit_1, @recently_added_keys)
+      exit_info = Map.drop(@exit_info_1, @recently_added_keys)
 
       {_, exit_info_struct} = ExitInfo.from_db_kv({@utxo_pos_1, exit_info})
 
@@ -51,10 +54,10 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfoTest do
     end
 
     test "accepts an exit argument with recently added keys and includes them in the struct" do
-      {_, exit_info_struct} = ExitInfo.from_db_kv({@utxo_pos_1, @exit_1})
+      {_, exit_info_struct} = ExitInfo.from_db_kv({@utxo_pos_1, @exit_info_1})
 
       Enum.each(@recently_added_keys, fn recently_added_key ->
-        assert Map.get(exit_info_struct, recently_added_key) == Map.get(@exit_1, recently_added_key)
+        assert Map.get(exit_info_struct, recently_added_key) == Map.get(@exit_info_1, recently_added_key)
       end)
     end
   end
