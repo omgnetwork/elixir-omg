@@ -36,7 +36,7 @@ Feature: In Flight Exits
     Then "Alice" should have "10" ETH on the child chain after finality margin
     Given Alice creates a transaction for "5" ETH
     And Alice starts an in flight exit from the most recently created transaction
-    Then Alice verifies its in flight exit from the most recently created transaction
+    Then "Alice" verifies its in flight exit from the most recently created transaction
     Given Alice piggybacks output from her most recent in flight exit
     And "Alice" in flight transaction inputs are not spendable any more
     Then "Alice" can processes its own most recent in flight exit
@@ -47,7 +47,7 @@ Feature: In Flight Exits
     Given Alice creates a transaction for "5" ETH
     And Alice sends the most recently created transaction
     And Alice starts an in flight exit from the most recently created transaction
-    Then Alice verifies its in flight exit from the most recently created transaction
+    Then "Alice" verifies its in flight exit from the most recently created transaction
     Given Alice piggybacks output from her most recent in flight exit
     And "Alice" in flight transaction most recently piggybacked output is not spendable any more
     Then "Alice" can processes its own most recent in flight exit

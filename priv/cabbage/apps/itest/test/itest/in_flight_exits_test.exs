@@ -50,8 +50,7 @@ defmodule InFlightExitsTests do
       pull_balance_until_amount: 2,
       pull_api_until_successful: 4,
       wait_on_receipt_confirmed: 1,
-      all_events_in_status?: 1,
-      pull_balance_until_amount: 2
+      all_events_in_status?: 1
     ]
 
   @ife_gas 2_000_000
