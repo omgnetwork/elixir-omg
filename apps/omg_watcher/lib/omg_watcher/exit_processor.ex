@@ -305,7 +305,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call(
         {:new_exits, exits},
         _from,
-        %{min_exit_period_seconds: min_exit_period_seconds, child_block_interval: child_block_interval} = state
+        state
       ) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
@@ -313,7 +313,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
     exit_maps =
       Enum.map(exits, fn exit_event ->
-        put_timestamp_and_sft(exit_event, min_exit_period_seconds, child_block_interval)
+        put_timestamp_and_sft(exit_event, state.min_exit_period_seconds, state.child_block_interval)
       end)
 
     {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
@@ -700,6 +700,6 @@ defmodule OMG.Watcher.ExitProcessor do
 
     exit_event
     |> Map.put(:scheduled_finalization_time, scheduled_finalization_time)
-    |> Map.put(:timestamp, exit_block_timestamp)
+    |> Map.put(:block_timestamp, exit_block_timestamp)
   end
 end
