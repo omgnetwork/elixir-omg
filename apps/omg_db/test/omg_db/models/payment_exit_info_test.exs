@@ -28,7 +28,7 @@ defmodule OMG.DB.PaymentExitInfoTest do
   @writes 10
 
   test "if single reading exit info returns writen results", %{db_dir: _dir, db_pid: pid} do
-    {utxo_pos, _} = db_write = create_write(:exit_info, pid) |> Enum.at(0)
+    {utxo_pos, _} = db_write = :exit_info |> create_write(pid) |> Enum.at(0)
 
     {:ok, result} = PaymentExitInfo.exit_info(utxo_pos, pid)
 

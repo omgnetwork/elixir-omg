@@ -37,7 +37,7 @@ defmodule OMG.DB.Models.PaymentExitInfo do
   def exit_infos(server_name), do: driver().exit_infos(server_name)
 
   def in_flight_exits_info(), do: driver().in_flight_exits_info()
-  def in_flight_exits_info(server_name \\ @server_name), do: driver().in_flight_exits_info(server_name)
+  def in_flight_exits_info(server_name), do: driver().in_flight_exits_info(server_name)
 
   defp driver(), do: OMG.DB.RocksDB.Models.PaymentExitInfo
 end

@@ -17,7 +17,6 @@ defmodule OMG.DB.RocksDB.Models.PaymentExitInfo do
   RocksDB implementation for PaymentExitInfo model.
   """
 
-  alias OMG.DB.Models.PaymentExitInfo
   @behaviour OMG.DB.Models.PaymentExitInfo
 
   require Logger
