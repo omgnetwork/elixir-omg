@@ -45,8 +45,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   use OMG.Utils.LoggerExt
 
   @default_sla_margin 10
-  @default_min_exit_period_seconds 120
-  @default_child_block_interval 1000
+
   @zero_address OMG.Eth.zero_address()
 
   @max_inputs Transaction.Payment.max_inputs()
@@ -114,16 +113,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           db_in_flight_exits :: [{Transaction.tx_hash(), InFlightExitInfo.t()}],
           db_competitors :: [{Transaction.tx_hash(), CompetitorInfo.t()}],
           min_exit_period_seconds :: non_neg_integer(),
-          sla_margin :: non_neg_integer,
-          child_block_interval :: non_neg_integer
+          child_block_interval :: non_neg_integer,
+          sla_margin :: non_neg_integer
         ) :: {:ok, t()}
   def init(
         db_exits,
         db_in_flight_exits,
         db_competitors,
-        min_exit_period_seconds \\ @default_min_exit_period_seconds,
-        sla_margin \\ @default_sla_margin,
-        child_block_interval \\ @default_child_block_interval
+        min_exit_period_seconds,
+        child_block_interval,
+        sla_margin \\ @default_sla_margin
       ) do
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
 

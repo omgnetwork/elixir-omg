@@ -283,8 +283,8 @@ defmodule OMG.Watcher.ExitProcessor do
         db_ifes,
         db_competitors,
         min_exit_period_seconds,
-        exit_processor_sla_margin,
-        child_block_interval
+        child_block_interval,
+        exit_processor_sla_margin
       )
 
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
