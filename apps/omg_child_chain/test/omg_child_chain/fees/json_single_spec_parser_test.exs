@@ -26,6 +26,7 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParserTest do
     "pegged_amount" => 1,
     "pegged_currency" => "USD",
     "pegged_subunit_to_unit" => 100,
+    "updated_at" => "2019-01-01T10:10:00+00:00",
     "symbol" => "ETH",
     "type" => "fixed"
   }
@@ -40,8 +41,8 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParserTest do
                 pegged_amount: 1,
                 pegged_currency: "USD",
                 pegged_subunit_to_unit: 100,
-                type: :fixed,
-                updated_at: nil
+                updated_at: "2019-01-01T10:10:00+00:00" |> DateTime.from_iso8601() |> elem(1),
+                type: :fixed
               }} == JSONSingleSpecParser.parse({@eth_hex, @valid_spec})
     end
 
@@ -60,8 +61,8 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParserTest do
                 pegged_amount: nil,
                 pegged_currency: nil,
                 pegged_subunit_to_unit: nil,
-                type: :fixed,
-                updated_at: nil
+                updated_at: "2019-01-01T10:10:00+00:00" |> DateTime.from_iso8601() |> elem(1),
+                type: :fixed
               }} == JSONSingleSpecParser.parse({@eth_hex, spec})
     end
 
@@ -151,10 +152,10 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParserTest do
       assert {:error, :invalid_subunit_to_unit} == JSONSingleSpecParser.parse({@eth_hex, spec})
     end
 
-    # test "returns an `invalid_timestamp` error when given an invalid binary datetime" do
-    #   spec = Map.put(@valid_spec, "updated_at", "invalid_date")
+    test "returns an `invalid_timestamp` error when given an invalid binary datetime" do
+      spec = Map.put(@valid_spec, "updated_at", "invalid_date")
 
-    #   assert {:error, :invalid_timestamp} == JSONSingleSpecParser.parse({ @eth_hex,spec })
-    # end
+      assert {:error, :invalid_timestamp} == JSONSingleSpecParser.parse({@eth_hex, spec})
+    end
   end
 end

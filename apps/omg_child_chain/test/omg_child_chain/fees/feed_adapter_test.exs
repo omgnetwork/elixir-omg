@@ -40,6 +40,7 @@ defmodule OMG.ChildChain.Fees.FeedAdapterTest do
     subunit_to_unit: 1_000_000_000_000_000_000,
     pegged_currency: "USD",
     pegged_subunit_to_unit: 100,
+    updated_at: DateTime.from_unix!(1_546_336_800),
     symbol: "ETH",
     type: :fixed
   }

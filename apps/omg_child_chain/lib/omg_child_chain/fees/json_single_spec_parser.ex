@@ -51,6 +51,7 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
            "pegged_amount" => pegged_amount,
            "pegged_currency" => pegged_currency,
            "pegged_subunit_to_unit" => pegged_subunit_to_unit,
+           "updated_at" => updated_at,
            "type" => fee_type
          }}
       ) do
@@ -63,6 +64,7 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
          {:ok, pegged_subunit_to_unit} <-
            validate_optional_positive_amount(pegged_subunit_to_unit, :invalid_pegged_subunit_to_unit),
          :ok <- validate_pegged_fields(pegged_currency, pegged_amount, pegged_subunit_to_unit),
+         {:ok, updated_at} <- validate_updated_at(updated_at),
          {:ok, fee_type} <- validate_fee_type(fee_type) do
       {:ok,
        %{
@@ -73,7 +75,7 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
          pegged_currency: pegged_currency,
          pegged_subunit_to_unit: pegged_subunit_to_unit,
          type: fee_type,
-         updated_at: nil
+         updated_at: updated_at
        }}
     end
   end
@@ -99,6 +101,13 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
   end
 
   defp validate_pegged_fields(_, _, _), do: {:error, :invalid_pegged_fields}
+
+  defp validate_updated_at(updated_at) do
+    case DateTime.from_iso8601(updated_at) do
+      {:ok, %DateTime{} = date_time, _} -> {:ok, date_time}
+      _ -> {:error, :invalid_timestamp}
+    end
+  end
 
   defp decode_address("0x" <> data), do: decode_address(data)
 

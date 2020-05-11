@@ -41,6 +41,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
             subunit_to_unit: 1_000_000_000_000_000_000,
             pegged_currency: "USD",
             pegged_subunit_to_unit: 100,
+            updated_at: DateTime.utc_now(),
             symbol: "ETH",
             type: :fixed
           },
@@ -50,6 +51,7 @@ defmodule OMG.ChildChain.Integration.Fixtures do
             subunit_to_unit: 1_000_000_000_000_000_000,
             pegged_currency: "USD",
             pegged_subunit_to_unit: 100,
+            updated_at: DateTime.utc_now(),
             symbol: "OMG",
             type: :fixed
           }

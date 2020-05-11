@@ -34,7 +34,8 @@ defmodule OMG.ChildChain.Fees.JSONFeeParserTest do
                 "subunit_to_unit": 1000000000000000000,
                 "pegged_amount": null,
                 "pegged_currency": null,
-                "pegged_subunit_to_unit": null
+                "pegged_subunit_to_unit": null,
+                "updated_at": "2019-01-01T10:10:00+00:00"
               },
               "0x11B7592274B344A6be0Ace7E5D5dF4348473e2fa": {
                 "type": "fixed",
@@ -43,7 +44,8 @@ defmodule OMG.ChildChain.Fees.JSONFeeParserTest do
                 "subunit_to_unit": 1000000000000000000,
                 "pegged_amount": null,
                 "pegged_currency": null,
-                "pegged_subunit_to_unit": null
+                "pegged_subunit_to_unit": null,
+                "updated_at": "2019-01-01T10:10:00+00:00"
               },
               "0x942f123b3587EDe66193aa52CF2bF9264C564F87": {
                 "type": "fixed",
@@ -52,7 +54,8 @@ defmodule OMG.ChildChain.Fees.JSONFeeParserTest do
                 "subunit_to_unit": 1000000000000000000,
                 "pegged_amount": null,
                 "pegged_currency": null,
-                "pegged_subunit_to_unit": null
+                "pegged_subunit_to_unit": null,
+                "updated_at": "2019-01-01T10:10:00+00:00"
               }
             },
             "2": {
@@ -63,7 +66,8 @@ defmodule OMG.ChildChain.Fees.JSONFeeParserTest do
                 "subunit_to_unit": 1000000000000000000,
                 "pegged_amount": null,
                 "pegged_currency": null,
-                "pegged_subunit_to_unit": null
+                "pegged_subunit_to_unit": null,
+                "updated_at": "2019-01-01T10:10:00+00:00"
               }
             }
           }
@@ -71,6 +75,7 @@ defmodule OMG.ChildChain.Fees.JSONFeeParserTest do
 
       assert {:ok, tx_type_map} = JSONFeeParser.parse(json)
       assert tx_type_map[1][@eth][:amount] == 43_000_000_000_000
+      assert tx_type_map[1][@eth][:updated_at] == "2019-01-01T10:10:00+00:00" |> DateTime.from_iso8601() |> elem(1)
 
       assert tx_type_map[1][Base.decode16!("942f123b3587EDe66193aa52CF2bF9264C564F87", case: :mixed)][:amount] ==
                8_600_000_000_000_000

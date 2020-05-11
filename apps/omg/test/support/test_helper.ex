@@ -190,6 +190,7 @@ defmodule OMG.TestHelper do
          pegged_amount: fee.pegged_amount,
          pegged_currency: fee.pegged_currency,
          pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+         updated_at: fee.updated_at,
          symbol: "token",
          type: "fixed"
        }}
