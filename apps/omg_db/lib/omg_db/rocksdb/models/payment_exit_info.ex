@@ -36,4 +36,9 @@ defmodule OMG.DB.RocksDB.Models.PaymentExitInfo do
     _ = Logger.info("Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, {:get_all_by_type, :exit_info}, @one_minute)
   end
+
+  def in_flight_exits_info(server_name \\ @server_name) do
+    _ = Logger.info("Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
+    GenServer.call(server_name, {:get_all_by_type, :in_flight_exit_info}, @one_minute)
+  end
 end
