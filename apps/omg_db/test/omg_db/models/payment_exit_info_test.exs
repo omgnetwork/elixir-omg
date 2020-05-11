@@ -21,7 +21,7 @@ defmodule OMG.DB.PaymentExitInfoTest do
   use ExUnitFixtures
   use OMG.DB.RocksDBCase, async: false
 
-  alias OMG.DB.RocksDB.Models.PaymentExitInfo
+  alias OMG.DB.Models.PaymentExitInfo
 
   @moduletag :wrappers
   @moduletag :common

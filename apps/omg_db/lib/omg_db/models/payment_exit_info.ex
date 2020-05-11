@@ -29,4 +29,15 @@ defmodule OMG.DB.Models.PaymentExitInfo do
   @optional_callbacks exit_infos: 1,
                       in_flight_exits_info: 1,
                       exit_info: 2
+
+  def exit_info(utxo_pos), do: driver().exit_info(utxo_pos)
+  def exit_info(utxo_pos, server_name), do: driver().exit_info(utxo_pos, server_name)
+
+  def exit_infos(), do: driver().exit_infos()
+  def exit_infos(server_name), do: driver().exit_infos(server_name)
+
+  def in_flight_exits_info(), do: driver().in_flight_exits_info()
+  def in_flight_exits_info(server_name \\ @server_name), do: driver().in_flight_exits_info(server_name)
+
+  defp driver(), do: OMG.DB.RocksDB.Models.PaymentExitInfo
 end
