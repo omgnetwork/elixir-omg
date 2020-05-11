@@ -123,8 +123,13 @@ defmodule OMG.DB.RocksDB.Server do
     do_spent_blknum(utxo_pos, state)
   end
 
-  def handle_call({:get, key}, _from, state) do
-    result = get(key, state)
+  def handle_call({:get, type, specific_key}, _from, state) do
+    result =
+      type
+      |> Core.key(specific_key)
+      |> get(state)
+      |> Core.decode_value()
+
     {:reply, result, state}
   end
 
