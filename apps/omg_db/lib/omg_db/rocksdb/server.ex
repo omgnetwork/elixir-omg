@@ -123,6 +123,16 @@ defmodule OMG.DB.RocksDB.Server do
     do_spent_blknum(utxo_pos, state)
   end
 
+  def handle_call({:get, key}, _from, state) do
+    result = get(key, state)
+    {:reply, result, state}
+  end
+
+  def handle_call({:get_all_by_type, type}, _from, state) do
+    result = get_all_by_type(type, state)
+    {:reply, result, state}
+  end
+
   # WARNING, terminate below will be called only if :trap_exit is set to true
   def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
     :ok = :rocksdb.close(db_ref)
