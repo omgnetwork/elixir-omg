@@ -26,12 +26,6 @@ defmodule OMG.DB.RocksDB.Models.PaymentExitInfo do
 
   @one_minute 60_000
 
-  # def exit_infos(), do: :todo
-  # def in_flight_exits_info(), do: :todo
-  # def exit_info({pos_integer, non_neg_integer, non_neg_integer}), do: :todo
-  # def in_flight_exits_info(server_name), do: :todo
-  # def exit_info({pos_integer, non_neg_integer, non_neg_integer}, server_name), do: :todo
-
   def exit_info(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:get, :exit_info, utxo_pos}, @one_minute)
   end

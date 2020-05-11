@@ -31,10 +31,7 @@ defmodule OMG.DB do
   @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
   @callback utxos() :: {:ok, list({utxo_pos_db_t, term})}
   @callback utxo(utxo_pos_db_t) :: {:ok, term} | :not_found
-  @callback exit_infos() :: {:ok, list(term)}
-  @callback in_flight_exits_info() :: {:ok, list(term)}
   @callback competitors_info() :: {:ok, list(term)}
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | :not_found
   @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | :not_found
   @callback block_hashes(integer()) :: {:ok, list()}
   @callback child_top_block_number() :: {:ok, non_neg_integer()} | :not_found
@@ -45,11 +42,7 @@ defmodule OMG.DB do
   @callback blocks(block_to_fetch :: list(), GenServer.server()) :: {:ok, list()} | {:error, any}
   @callback utxos(GenServer.server()) :: {:ok, list({utxo_pos_db_t, term})} | {:error, any}
   @callback utxo(utxo_pos_db_t, GenServer.server()) :: {:ok, term} | :not_found
-  @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback competitors_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}, GenServer.server()) ::
-              {:ok, map} | :not_found
   @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | :not_found
   @callback block_hashes(integer(), GenServer.server()) :: {:ok, list()}
   @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()} | :not_found
@@ -59,10 +52,6 @@ defmodule OMG.DB do
                       blocks: 2,
                       utxos: 1,
                       utxo: 2,
-                      exit_infos: 1,
-                      in_flight_exits_info: 1,
-                      competitors_info: 1,
-                      exit_info: 2,
                       spent_blknum: 2,
                       block_hashes: 2,
                       child_top_block_number: 1
@@ -100,16 +89,8 @@ defmodule OMG.DB do
   def utxo(utxo_pos), do: driver().utxo(utxo_pos)
   def utxo(utxo_pos, server), do: driver().utxo(utxo_pos, server)
 
-  def exit_infos(), do: driver().exit_infos
-  def exit_infos(server), do: driver().exit_infos(server)
-
-  def in_flight_exits_info(), do: driver().in_flight_exits_info()
-  def in_flight_exits_info(server), do: driver().in_flight_exits_info(server)
-
   def competitors_info(), do: driver().competitors_info
   def competitors_info(server), do: driver().competitors_info(server)
-
-  def exit_info(utxo_pos), do: driver().exit_info(utxo_pos)
 
   def spent_blknum(utxo_pos), do: driver().spent_blknum(utxo_pos)
   def spent_blknum(utxo_pos, server), do: driver().spent_blknum(utxo_pos, server)

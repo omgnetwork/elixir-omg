@@ -78,23 +78,10 @@ defmodule OMG.RocksDBTest do
     {:ok, ["xyz", "vxyz", "wvxyz"]} = OMG.DB.block_hashes([1, 2, 3], pid)
   end
 
-  test "if multi reading exit infos returns writen results", %{db_dir: _dir, db_pid: pid} do
-    db_writes = create_write(:exit_info, pid)
-    {:ok, exits} = DB.exit_infos(pid)
-    # what we wrote and what we read must be equal
-    [] = exits -- db_writes
-  end
-
   test "if multi reading utxos returns writen results", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:utxo, pid)
     {:ok, utxos} = DB.utxos(pid)
     [] = utxos -- db_writes
-  end
-
-  test "if multi reading in flight exit infos returns writen results", %{db_dir: _dir, db_pid: pid} do
-    db_writes = create_write(:in_flight_exit_info, pid)
-    {:ok, in_flight_exits_infos} = DB.in_flight_exits_info(pid)
-    [] = in_flight_exits_infos -- db_writes
   end
 
   test "if multi reading competitor infos returns writen results", %{db_dir: _dir, db_pid: pid} do
@@ -103,48 +90,11 @@ defmodule OMG.RocksDBTest do
     [] = competitors_info -- db_writes
   end
 
-  test "if multi reading and writting does not pollute returned values", %{db_dir: _dir, db_pid: pid} do
-    db_writes = create_write(:exit_info, pid)
-    {:ok, exits} = DB.exit_infos(pid)
-    # what we wrote and what we read must be equal
-    [] = exits -- db_writes
-
-    db_writes = create_write(:utxo, pid)
-    {:ok, utxos} = DB.utxos(pid)
-    # what we wrote and what we read must be equal
-    [] = utxos -- db_writes
-
-    db_writes = create_write(:in_flight_exit_info, pid)
-    {:ok, in_flight_exits_infos} = DB.in_flight_exits_info(pid)
-    # what we wrote and what we read must be equal
-    [] = in_flight_exits_infos -- db_writes
-
-    db_writes = create_write(:competitor_info, pid)
-    {:ok, competitors_info} = DB.competitors_info(pid)
-    # what we wrote and what we read must be equal
-    [] = competitors_info -- db_writes
-  end
-
-  defp create_write(:exit_info = type, pid) do
-    db_writes =
-      Enum.map(1..@writes, fn index -> {:put, type, {{index, index, index}, :crypto.strong_rand_bytes(index)}} end)
-
-    :ok = write(db_writes, pid)
-    get_raw_values(db_writes)
-  end
-
   defp create_write(:utxo = type, pid) do
     db_writes =
       Enum.map(1..@writes, fn index ->
         {:put, type, {{index, index, index}, %{test: :crypto.strong_rand_bytes(index)}}}
       end)
-
-    :ok = write(db_writes, pid)
-    get_raw_values(db_writes)
-  end
-
-  defp create_write(:in_flight_exit_info = type, pid) do
-    db_writes = Enum.map(1..@writes, fn index -> {:put, type, {:crypto.strong_rand_bytes(index), index}} end)
 
     :ok = write(db_writes, pid)
     get_raw_values(db_writes)

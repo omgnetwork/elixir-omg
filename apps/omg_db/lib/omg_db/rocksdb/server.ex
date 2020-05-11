@@ -94,16 +94,8 @@ defmodule OMG.DB.RocksDB.Server do
     do_utxo(utxo_pos, state)
   end
 
-  def handle_call(:exit_infos, _from, state) do
-    do_exit_infos(state)
-  end
-
   def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state) do
     do_block_hashes(block_numbers_to_fetch, state)
-  end
-
-  def handle_call(:in_flight_exits_info, _from, state) do
-    do_in_flight_exits_info(state)
   end
 
   def handle_call(:competitors_info, _from, state) do
@@ -113,10 +105,6 @@ defmodule OMG.DB.RocksDB.Server do
   def handle_call({:get_single_value, parameter}, _from, state)
       when is_atom(parameter) do
     do_get_single_value(parameter, state)
-  end
-
-  def handle_call({:exit_info, utxo_pos}, _from, state) do
-    do_exit_info(utxo_pos, state)
   end
 
   def handle_call({:spent_blknum, utxo_pos}, _from, state) do
@@ -174,11 +162,6 @@ defmodule OMG.DB.RocksDB.Server do
     {:reply, result, state}
   end
 
-  defp do_exit_infos(state) do
-    result = get_all_by_type(:exit_info, state)
-    {:reply, result, state}
-  end
-
   defp do_block_hashes(block_numbers_to_fetch, state) do
     result =
       block_numbers_to_fetch
@@ -186,11 +169,6 @@ defmodule OMG.DB.RocksDB.Server do
       |> Enum.map(fn key -> get(key, state) end)
       |> Core.decode_values()
 
-    {:reply, result, state}
-  end
-
-  defp do_in_flight_exits_info(state) do
-    result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
@@ -203,16 +181,6 @@ defmodule OMG.DB.RocksDB.Server do
     result =
       parameter
       |> Core.key(nil)
-      |> get(state)
-      |> Core.decode_value()
-
-    {:reply, result, state}
-  end
-
-  defp do_exit_info(utxo_pos, state) do
-    result =
-      :exit_info
-      |> Core.key(utxo_pos)
       |> get(state)
       |> Core.decode_value()
 

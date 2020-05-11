@@ -74,23 +74,9 @@ defmodule OMG.DB.RocksDB do
     GenServer.call(server_name, {:utxo, utxo_pos})
   end
 
-  def exit_infos(server_name \\ @server_name) do
-    _ = Logger.info("Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
-    GenServer.call(server_name, :exit_infos, @one_minute)
-  end
-
-  def in_flight_exits_info(server_name \\ @server_name) do
-    _ = Logger.info("Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
-    GenServer.call(server_name, :in_flight_exits_info, @one_minute)
-  end
-
   def competitors_info(server_name \\ @server_name) do
     _ = Logger.info("Reading competitors' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, :competitors_info, @one_minute)
-  end
-
-  def exit_info(utxo_pos, server_name \\ @server_name) do
-    GenServer.call(server_name, {:exit_info, utxo_pos})
   end
 
   def spent_blknum(utxo_pos, server_name \\ @server_name) do
