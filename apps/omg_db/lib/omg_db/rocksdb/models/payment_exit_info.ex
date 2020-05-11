@@ -27,9 +27,9 @@ defmodule OMG.DB.RocksDB.Models.PaymentExitInfo do
   @one_minute 60_000
 
   # def exit_infos(), do: :todo
-  def in_flight_exits_info(), do: :todo
+  # def in_flight_exits_info(), do: :todo
   def exit_info({pos_integer, non_neg_integer, non_neg_integer}), do: :todo
-  def in_flight_exits_info(server_name), do: :todo
+  # def in_flight_exits_info(server_name), do: :todo
   def exit_info({pos_integer, non_neg_integer, non_neg_integer}, server_name), do: :todo
 
   def exit_infos(server_name \\ @server_name) do

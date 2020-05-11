@@ -154,7 +154,7 @@ defmodule OMG.DB.RocksDB.Server do
       blocks_to_fetch
       |> Enum.map(fn block -> Core.key(:block, block) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> Core.decode_values(:block)
+      |> Core.decode_values()
 
     {:reply, result, state}
   end
@@ -165,7 +165,7 @@ defmodule OMG.DB.RocksDB.Server do
   end
 
   defp do_utxo(utxo_pos, state) do
-    result = Core.key(:utxo, utxo_pos) |> get(state) |> Core.decode_value(:utxo)
+    result = Core.key(:utxo, utxo_pos) |> get(state) |> Core.decode_value()
     {:reply, result, state}
   end
 
@@ -179,7 +179,7 @@ defmodule OMG.DB.RocksDB.Server do
       block_numbers_to_fetch
       |> Enum.map(fn block_number -> Core.key(:block_hash, block_number) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> Core.decode_values(:block_hash)
+      |> Core.decode_values()
 
     {:reply, result, state}
   end
@@ -199,7 +199,7 @@ defmodule OMG.DB.RocksDB.Server do
       parameter
       |> Core.key(nil)
       |> get(state)
-      |> Core.decode_value(parameter)
+      |> Core.decode_value()
 
     {:reply, result, state}
   end
@@ -209,7 +209,7 @@ defmodule OMG.DB.RocksDB.Server do
       :exit_info
       |> Core.key(utxo_pos)
       |> get(state)
-      |> Core.decode_value(:exit_info)
+      |> Core.decode_value()
 
     {:reply, result, state}
   end
@@ -219,7 +219,7 @@ defmodule OMG.DB.RocksDB.Server do
       :spend
       |> Core.key(utxo_pos)
       |> get(state)
-      |> Core.decode_value(:spend)
+      |> Core.decode_value()
 
     {:reply, result, state}
   end
@@ -228,7 +228,7 @@ defmodule OMG.DB.RocksDB.Server do
   # same as read options
   # this might be a use case for seek() https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
   defp do_get_all_by_type(type, db_ref) do
-    Core.decode_values(Core.filter_keys(db_ref, type), type)
+    Core.decode_values(Core.filter_keys(db_ref, type))
   end
 
   defp create_stats_table(name) do
