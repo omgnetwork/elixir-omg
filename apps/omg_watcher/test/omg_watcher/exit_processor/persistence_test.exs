@@ -22,6 +22,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   use ExUnitFixtures
   use OMG.DB.RocksDBCase, async: true
 
+  alias OMG.DB.Models.PaymentExitInfo
   alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -197,8 +198,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   # mimics `&OMG.Watcher.ExitProcessor.init/1`
   defp state_from(db_pid) do
-    {:ok, db_exits} = OMG.DB.exit_infos(db_pid)
-    {:ok, db_ifes} = OMG.DB.in_flight_exits_info(db_pid)
+    {:ok, db_exits} = PaymentExitInfo.exit_infos(db_pid)
+    {:ok, db_ifes} = PaymentExitInfo.in_flight_exits_info(db_pid)
     {:ok, db_competitors} = OMG.DB.competitors_info(db_pid)
 
     {:ok, state} =

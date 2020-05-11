@@ -28,6 +28,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   alias OMG.Block
   alias OMG.DB
+  alias OMG.DB.Models.PaymentExitInfo
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
@@ -266,8 +267,8 @@ defmodule OMG.Watcher.ExitProcessor do
         ethereum_block_time_seconds: ethereum_block_time_seconds,
         child_block_interval: child_block_interval
       ) do
-    {:ok, db_exits} = DB.exit_infos()
-    {:ok, db_ifes} = DB.in_flight_exits_info()
+    {:ok, db_exits} = PaymentExitInfo.exit_infos()
+    {:ok, db_ifes} = PaymentExitInfo.in_flight_exits_info()
     {:ok, db_competitors} = DB.competitors_info()
 
     :ok =
