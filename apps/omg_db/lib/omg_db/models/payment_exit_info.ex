@@ -19,6 +19,8 @@ defmodule OMG.DB.Models.PaymentExitInfo do
 
   alias OMG.DB
 
+  @server_name OMG.DB.RocksDB.Server
+
   def exit_info(utxo_pos, server_name \\ @server_name) do
     DB.get(:exit_info, utxo_pos, server_name)
   end
