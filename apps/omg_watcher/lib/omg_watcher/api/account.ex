@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.API.Account do
   @moduledoc """
-  API for account related data
+  Module provides operations related to plasma accounts.
   """
 
   require OMG.Utxo

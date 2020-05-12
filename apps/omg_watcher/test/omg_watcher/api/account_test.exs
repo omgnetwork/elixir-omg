@@ -18,7 +18,10 @@ defmodule OMG.Watcher.API.AccountTest do
   use OMG.DB.Fixtures
 
   alias OMG.TestHelper
+  alias OMG.Utxo
   alias OMG.Watcher.API.Account
+
+  require Utxo
 
   @eth OMG.Eth.zero_address()
   @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
@@ -62,6 +65,45 @@ defmodule OMG.Watcher.API.AccountTest do
       [utxo] = Account.get_exitable_utxos(alice.addr)
 
       assert %{blknum: ^blknum, txindex: ^txindex, oindex: ^oindex} = utxo
+    end
+
+    @tag fixtures: [:db_initialized]
+    test "does not return exiting utxos" do
+      alice = TestHelper.generate_entity()
+
+      amount = 333
+      blknum = 1927
+      txindex = 78
+      oindex = 1
+      utxo_position = Utxo.position(blknum, txindex, oindex)
+
+      _ =
+        OMG.DB.multi_update([
+          {:put, :utxo,
+           {
+             {blknum, txindex, oindex},
+             %{
+               output: %{amount: amount, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
+               creating_txhash: nil
+             }
+           }},
+          {:put, :exit_info,
+           {
+             Utxo.Position.to_db_key(utxo_position),
+             %{
+               amount: amount,
+               currency: @eth,
+               owner: alice.addr,
+               is_active: true,
+               exit_id: 1,
+               exiting_txbytes: <<0>>,
+               eth_height: 1,
+               root_chain_txhash: nil
+             }
+           }}
+        ])
+
+      assert [] == Account.get_exitable_utxos(alice.addr)
     end
   end
 end
