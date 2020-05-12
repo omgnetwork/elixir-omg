@@ -35,6 +35,7 @@ defmodule OMG.DB do
   @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | :not_found
   @callback block_hashes(integer()) :: {:ok, list()}
   @callback child_top_block_number() :: {:ok, non_neg_integer()} | :not_found
+  @callback get_single_value(atom()) :: {:ok, term} | :not_found
 
   # callbacks useful for injecting a specific server implementation
   @callback initiation_multiupdate(GenServer.server()) :: :ok | {:error, any}
@@ -46,6 +47,7 @@ defmodule OMG.DB do
   @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | :not_found
   @callback block_hashes(integer(), GenServer.server()) :: {:ok, list()}
   @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()} | :not_found
+  @callback get_single_value(atom(), GenServer.server()) :: {:ok, term} | :not_found
   @optional_callbacks child_spec: 1,
                       initiation_multiupdate: 1,
                       multi_update: 2,
