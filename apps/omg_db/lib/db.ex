@@ -36,6 +36,8 @@ defmodule OMG.DB do
   @callback block_hashes(integer()) :: {:ok, list()}
   @callback child_top_block_number() :: {:ok, non_neg_integer()} | :not_found
   @callback get_single_value(atom()) :: {:ok, term} | :not_found
+  @callback get(atom(), term()) :: {:ok, term} | :not_found
+  @callback get_all_by_type(atom()) :: {:ok, list(term)} | :not_found
 
   # callbacks useful for injecting a specific server implementation
   @callback initiation_multiupdate(GenServer.server()) :: :ok | {:error, any}
@@ -48,6 +50,8 @@ defmodule OMG.DB do
   @callback block_hashes(integer(), GenServer.server()) :: {:ok, list()}
   @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()} | :not_found
   @callback get_single_value(atom(), GenServer.server()) :: {:ok, term} | :not_found
+  @callback get(atom(), term(), GenServer.server()) :: {:ok, term} | :not_found
+  @callback get_all_by_type(atom(), GenServer.server()) :: {:ok, list(term)} | :not_found
   @optional_callbacks child_spec: 1,
                       initiation_multiupdate: 1,
                       multi_update: 2,
@@ -56,7 +60,8 @@ defmodule OMG.DB do
                       utxo: 2,
                       spent_blknum: 2,
                       block_hashes: 2,
-                      child_top_block_number: 1
+                      child_top_block_number: 1,
+                      get_single_value: 2
 
   def start_link(args), do: driver().start_link(args)
 
@@ -104,6 +109,19 @@ defmodule OMG.DB do
 
   def get_single_value(parameter_name), do: driver().get_single_value(parameter_name)
   def get_single_value(parameter_name, server), do: driver().get_single_value(parameter_name, server)
+
+  @doc """
+  This is generic DB function that can get the specific data of a specific type.
+  If it is a single value data, use get_single_value/1 instead.
+  """
+  def get(type, specific_key), do: driver().get(type, specific_key)
+  def get(type, specific_key, server), do: driver().get(type, specific_key, server)
+
+  @doc """
+  This is generic DB function that can get all data of a specific type.
+  """
+  def get_all_by_type(type), do: driver().get_all_by_type(type)
+  def get_all_by_type(type, server), do: driver().get_all_by_type(type, server)
 
   @doc """
   A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)

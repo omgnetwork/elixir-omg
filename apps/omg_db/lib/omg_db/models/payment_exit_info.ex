@@ -14,30 +14,20 @@
 
 defmodule OMG.DB.Models.PaymentExitInfo do
   @moduledoc """
-  DB API module that provides an interface to Payment (V1) Exit Info.
+  DB model wrapper that is responsible for Payment (V1) Exit Info.
   """
 
-  @callback exit_infos() :: {:ok, list(term)}
-  @callback in_flight_exits_info() :: {:ok, list(term)}
+  alias OMG.DB
 
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | :not_found
-  @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}, GenServer.server()) ::
-              {:ok, map} | :not_found
+  def exit_info(utxo_pos, server_name \\ @server_name) do
+    DB.get(:exit_info, utxo_pos, server_name)
+  end
 
-  @optional_callbacks exit_infos: 1,
-                      in_flight_exits_info: 1,
-                      exit_info: 2
+  def exit_infos(server_name \\ @server_name) do
+    DB.get_all_by_type(:exit_info, server_name)
+  end
 
-  def exit_info(utxo_pos), do: driver().exit_info(utxo_pos)
-  def exit_info(utxo_pos, server_name), do: driver().exit_info(utxo_pos, server_name)
-
-  def exit_infos(), do: driver().exit_infos()
-  def exit_infos(server_name), do: driver().exit_infos(server_name)
-
-  def in_flight_exits_info(), do: driver().in_flight_exits_info()
-  def in_flight_exits_info(server_name), do: driver().in_flight_exits_info(server_name)
-
-  defp driver(), do: OMG.DB.RocksDB.Models.PaymentExitInfo
+  def in_flight_exits_info(server_name \\ @server_name) do
+    DB.get_all_by_type(:in_flight_exit_info, server_name)
+  end
 end
