@@ -127,6 +127,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
   end
 
+  # TODO: fix those specs
   @spec from_db_kv({Utxo.Position.db_t(), t()}) :: Utxo.Position.t()
   def from_db_kv({db_utxo_pos, exit_info}) do
     # mapping is used in case of changes in data structure
