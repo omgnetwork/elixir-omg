@@ -37,7 +37,7 @@ defmodule OMG.WatcherInfo.API.Block do
   Retrieves a list of blocks.
   Length of the list is limited by `limit` and `page` arguments.
   """
-  @spec get_blocks(Keyword.t()) :: Paginator.t()
+  @spec get_blocks(Keyword.t()) :: Paginator.t(%DB.Block{})
   def get_blocks(constraints) do
     paginator = Paginator.from_constraints(constraints, @default_blocks_limit)
 

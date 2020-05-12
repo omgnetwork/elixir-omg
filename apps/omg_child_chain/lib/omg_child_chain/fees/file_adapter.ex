@@ -15,7 +15,7 @@
 defmodule OMG.ChildChain.Fees.FileAdapter do
   @moduledoc """
   Adapter for fees stored in a JSON file (defined in omg_child_chain/priv config :omg_child_chain,
-  fee_adapter_opts: `specs_file_name` keyword opts).
+  fee_adapter_opts: `specs_file_path` keyword opts).
   """
   @behaviour OMG.ChildChain.Fees.Adapter
 
@@ -69,7 +69,14 @@ defmodule OMG.ChildChain.Fees.FileAdapter do
     end
   end
 
+  # Get the specs file path from the provided opts. If not configured, it defaults back to
+  # the child_chain source code's priv/fee_specs.json.
+  #
+  # Beware that we check with `is_binary/1` because a nil path should also use the default.
   defp get_path(opts) do
-    "#{:code.priv_dir(:omg_child_chain)}/#{Keyword.fetch!(opts, :specs_file_name)}"
+    case Keyword.fetch(opts, :specs_file_path) do
+      {:ok, path} when is_binary(path) -> path
+      _ -> Path.join(:code.priv_dir(:omg_child_chain), "fee_specs.json")
+    end
   end
 end

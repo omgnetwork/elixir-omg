@@ -27,8 +27,10 @@ help:
 	@echo "DOCKER DEVELOPMENT"
 	@echo "------------------"
 	@echo ""
-	@echo "  - \`make docker-build-cluster\`: build child_chain, watcher and watcher_info images \c"
+	@echo "  - \`make docker-build-start-cluster\`: build child_chain, watcher and watcher_info images \c"
 	@echo "from your current code base, then start a cluster with these freshly built images."
+	@echo ""
+	@echo " - \`make docker-build\`" build child_chain, watcher and watcher_info images from your current code base
 	@echo ""
 	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\` or \c"
 	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
@@ -89,7 +91,7 @@ WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 CHILD_CHAIN_IMAGE_NAME  ?= "omisego/child_chain:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200407"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200410"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -199,7 +201,7 @@ build-test: deps-elixir-omg
 init-contracts: clean-contracts
 	mkdir data/ || true && \
 	URL=$$(grep "^$(SNAPSHOT)" snapshots.env | cut -d'=' -f2-) && \
-	wget $$URL -O data/snapshot.tar.gz && \
+	curl -o data/snapshot.tar.gz $$URL && \
 	cd data && \
 	tar --strip-components 1 -zxvf snapshot.tar.gz data/geth && \
 	tar --exclude=data/* -xvzf snapshot.tar.gz && \
@@ -305,6 +307,8 @@ docker-watcher: docker-watcher-prod docker-watcher-build
 docker-watcher_info: docker-watcher_info-prod docker-watcher_info-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
+docker-build: docker-watcher docker-watcher_info docker-child_chain
+
 docker-push: docker
 	docker push $(CHILD_CHAIN_IMAGE_NAME)
 	docker push $(WATCHER_IMAGE_NAME)
@@ -315,43 +319,44 @@ docker-start-cluster:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
-docker-build-cluster: docker-child_chain docker-watcher docker-watcher_info
+docker-build-start-cluster:
+	$(MAKE) docker-build
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
-docker-stop-cluster:
+docker-stop-cluster: localchain_contract_addresses.env
 	docker-compose down
 
-docker-update-watcher:
+docker-update-watcher: localchain_contract_addresses.env
 	docker stop elixir-omg_watcher_1
 	$(MAKE) docker-watcher
 	docker-compose up watcher
 
-docker-update-watcher_info:
+docker-update-watcher_info: localchain_contract_addresses.env
 	docker stop elixir-omg_watcher_info_1
 	$(MAKE) docker-watcher_info
 	docker-compose up watcher_info
 
-docker-update-child_chain:
+docker-update-child_chain: localchain_contract_addresses.env
 	docker stop elixir-omg_childchain_1
 	$(MAKE) docker-child_chain
 	docker-compose up childchain
 
-docker-start-cluster-with-infura:
+docker-start-cluster-with-infura: localchain_contract_addresses.env
 	if [ -f ./docker-compose.override.yml ]; then \
 		docker-compose -f docker-compose.yml -f docker-compose-infura.yml -f docker-compose.override.yml up; \
 	else \
 		echo "Starting infura requires overriding docker-compose-infura.yml values in a docker-compose.override.yml"; \
 	fi
 
-docker-start-cluster-with-datadog:
+docker-start-cluster-with-datadog: localchain_contract_addresses.env
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up watcher watcher_info childchain
 
-docker-stop-cluster-with-datadog:
+docker-stop-cluster-with-datadog: localchain_contract_addresses.env
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
 
-docker-nuke:
-	docker-compose down --remove-orphans
+docker-nuke: localchain_contract_addresses.env
+	docker-compose down --remove-orphans --volumes
 	docker system prune --all
 	$(MAKE) clean
 	$(MAKE) init-contracts
@@ -364,7 +369,7 @@ docker-remote-watcher_info:
 
 docker-remote-childchain:
 	docker exec -ti childchain /app/bin/child_chain remote
-	
+
 .PHONY: docker-nuke docker-remote-watcher docker-remote-watcher_info docker-remote-childchain
 
 ###
@@ -460,7 +465,7 @@ get-alarms:
 	echo "\nWatcherInfo alarms" ; \
 	curl -s -X GET http://localhost:${WATCHER_INFO_PORT}/alarm.get
 
-cluster-stop:
+cluster-stop: localchain_contract_addresses.env
 	${MAKE} stop-watcher ; ${MAKE} stop-watcher_info ; ${MAKE} stop-child_chain ; docker-compose down
 
 ### git setup
@@ -490,7 +495,7 @@ api_specs: security_critical_api_specs info_api_specs operator_api_specs
 ### Diagnostics report
 ###
 
-diagnostics:
+diagnostics: localchain_contract_addresses.env
 	echo "---------- START OF DIAGNOSTICS REPORT ----------"
 	echo "\n---------- CHILDCHAIN LOGS ----------"
 	docker-compose logs childchain
@@ -510,3 +515,6 @@ diagnostics:
 	echo "\n ---------- END OF DIAGNOSTICS REPORT ----------"
 
 .PHONY: diagnostics
+
+localchain_contract_addresses.env:
+	$(MAKE) init-contracts

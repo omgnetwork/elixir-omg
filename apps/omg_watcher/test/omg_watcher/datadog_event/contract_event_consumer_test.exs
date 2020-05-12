@@ -49,12 +49,20 @@ defmodule OMG.Watcher.DatadogEvent.ContractEventConsumerTest do
     assert_receive {:event, _, _}
   end
 
-  test "if a list of events put on omg bus is consumed by the event consumer and published on the publisher interface" do
+  test "if a list of events put on omg bus is consumed by the event consumer, broken down and published individually on the publisher interface" do
     topic_name = self() |> :erlang.pid_to_list() |> to_string()
     sig = "#{topic_name}(bytes32)"
-    data = [%{event_signature: sig}, %{event_signature: sig}]
+    data = [%{event_signature: sig, pos: 1}, %{event_signature: sig, pos: 2}]
     {:root_chain, topic_name} |> OMG.Bus.Event.new(:data, data) |> OMG.Bus.direct_local_broadcast()
-    assert_receive {:event, _, _}
+
+    Enum.each(data, fn ev ->
+      %{pos: pos} = ev
+
+      assert_receive {:event, message, _}
+
+      [[_, pos_from_message]] = Regex.scan(~r{pos:.*?(\d).*?}, message)
+      assert pos == String.to_integer(pos_from_message)
+    end)
   end
 
   defmodule DatadogEventMock do

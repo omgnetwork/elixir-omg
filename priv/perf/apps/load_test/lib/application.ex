@@ -32,7 +32,8 @@ defmodule LoadTest.Application do
       :faucet_private_key,
       :fee_wei,
       :faucet_deposit_wei,
-      :deposit_finality_margin
+      :deposit_finality_margin,
+      :gas_price
     ]
 
     Enum.map(faucet_config_keys, fn key -> {key, Application.fetch_env!(:load_test, key)} end)

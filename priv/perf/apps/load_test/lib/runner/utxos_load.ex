@@ -50,9 +50,10 @@ defmodule LoadTest.Runner.UtxosLoad do
     %{concurrent_sessions: concurrent_sessions} = default_config()
 
     [
-      {{concurrent_sessions, [LoadTest.Scenario.CreateUtxos, LoadTest.Scenario.SpendUtxos]},
+      {{concurrent_sessions, [LoadTest.Scenario.CreateUtxos, LoadTest.Scenario.SpendEthUtxo]},
        %{
-         sender: sender
+         sender: sender,
+         receiver: sender
        }}
     ]
   end
