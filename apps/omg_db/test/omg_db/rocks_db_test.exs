@@ -78,6 +78,21 @@ defmodule OMG.RocksDBTest do
     {:ok, ["xyz", "vxyz", "wvxyz"]} = OMG.DB.block_hashes([1, 2, 3], pid)
   end
 
+  test "it can get data with the type and specific key of the type", %{db_dir: _dir, db_pid: pid} do
+    type = :exit_info
+    specific_key = {1, 1, 1}
+    data = {specific_key, :crypto.strong_rand_bytes(123)}
+    :ok = DB.multi_update([{:put, type, data}], pid)
+
+    assert {:ok, data} == DB.get(type, specific_key, pid)
+  end
+
+  test "it can get all data with the type", %{db_dir: _dir, db_pid: pid} do
+    db_writes = create_write(:utxo, pid)
+
+    assert {:ok, db_writes} == DB.get_all_by_type(:utxo, pid)
+  end
+
   test "if multi reading utxos returns writen results", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:utxo, pid)
     {:ok, utxos} = DB.utxos(pid)
