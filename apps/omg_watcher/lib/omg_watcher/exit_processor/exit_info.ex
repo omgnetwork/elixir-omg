@@ -35,8 +35,11 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     :is_active,
     :eth_height,
     :root_chain_txhash,
+    :scheduled_finalization_time,
+    :block_timestamp,
     :spending_txhash
   ]
+
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
@@ -50,6 +53,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           is_active: boolean(),
           eth_height: pos_integer(),
           root_chain_txhash: Transaction.tx_hash() | nil,
+          scheduled_finalization_time: pos_integer() | nil,
+          block_timestamp: pos_integer() | nil,
           spending_txhash: Transaction.tx_hash() | nil
         }
 
@@ -60,12 +65,13 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           eth_height: eth_height,
           call_data: %{output_tx: txbytes},
           exit_id: exit_id,
-          root_chain_txhash: root_chain_txhash
+          root_chain_txhash: root_chain_txhash,
+          scheduled_finalization_time: scheduled_finalization_time,
+          block_timestamp: block_timestamp
         } = exit_event
       ) do
     Utxo.position(_, _, oindex) = utxo_pos_for(exit_event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
-
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
     do_new(contract_status,
@@ -76,6 +82,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exiting_txbytes: txbytes,
       eth_height: eth_height,
       root_chain_txhash: root_chain_txhash,
+      scheduled_finalization_time: scheduled_finalization_time,
+      block_timestamp: block_timestamp,
       spending_txhash: nil
     )
   end
@@ -111,7 +119,9 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       exiting_txbytes: exit_info.exiting_txbytes,
       is_active: exit_info.is_active,
       eth_height: exit_info.eth_height,
-      root_chain_txhash: exit_info.root_chain_txhash
+      root_chain_txhash: exit_info.root_chain_txhash,
+      scheduled_finalization_time: exit_info.scheduled_finalization_time,
+      block_timestamp: exit_info.block_timestamp
     }
 
     {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
@@ -130,7 +140,9 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
       eth_height: exit_info.eth_height,
       spending_txhash: nil,
       # defaults value to nil if non-existent in the DB.
-      root_chain_txhash: Map.get(exit_info, :root_chain_txhash)
+      root_chain_txhash: Map.get(exit_info, :root_chain_txhash),
+      scheduled_finalization_time: Map.get(exit_info, :scheduled_finalization_time),
+      block_timestamp: Map.get(exit_info, :block_timestamp)
     }
 
     {Utxo.Position.from_db_key(db_utxo_pos), struct!(__MODULE__, value)}
@@ -141,4 +153,29 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   # `exitable` will be `false` ALONG WITH the whole tuple holding zeroees, if the exit was processed successfully
   # **NOTE** one can only rely on the zero-nonzero of this data, since for processed exits this data will be all zeros
   defp parse_contract_exit_status({exitable, _, _, _, _, _}), do: exitable
+
+  # Based on the block number determines whether UTXO was created by a deposit.
+  defguardp is_deposit(blknum, child_block_interval) when rem(blknum, child_block_interval) != 0
+
+  @doc """
+  Calculates the time at which an exit can be processed and released if not challenged successfully.
+  See https://docs.omg.network/challenge-period for calculation logic.
+  """
+  @spec calculate_sft(
+          blknum :: pos_integer(),
+          exit_block_timestamp :: pos_integer(),
+          utxo_creation_timestamp :: pos_integer(),
+          min_exit_period :: pos_integer(),
+          child_block_interval :: pos_integer()
+        ) ::
+          {:ok, pos_integer()}
+  def calculate_sft(blknum, exit_block_timestamp, utxo_creation_timestamp, min_exit_period, child_block_interval) do
+    case is_deposit(blknum, child_block_interval) do
+      true ->
+        {:ok, max(exit_block_timestamp + min_exit_period, utxo_creation_timestamp + min_exit_period)}
+
+      false ->
+        {:ok, max(exit_block_timestamp + min_exit_period, utxo_creation_timestamp + 2 * min_exit_period)}
+    end
+  end
 end

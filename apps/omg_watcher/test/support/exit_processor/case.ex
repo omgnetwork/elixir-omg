@@ -29,6 +29,9 @@ defmodule OMG.Watcher.ExitProcessor.Case do
 
   import OMG.Watcher.ExitProcessor.TestHelper
 
+  @default_min_exit_period_seconds 120
+  @default_child_block_interval 1000
+
   @eth OMG.Eth.zero_address()
   @not_eth <<1::size(160)>>
 
@@ -46,7 +49,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
     unrelated_tx =
       TestHelper.create_recovered([{20, 1, 0, alice}, {20, 20, 1, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
 
-    {:ok, processor_empty} = Core.init([], [], [])
+    {:ok, processor_empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)
 
     in_flight_exit_events =
       transactions |> Enum.zip([2, 4]) |> Enum.map(fn {tx, eth_height} -> ife_event(tx, eth_height: eth_height) end)
