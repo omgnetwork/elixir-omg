@@ -17,6 +17,7 @@ defmodule OMG.DB.RocksDB.Models.PaymentExitInfo do
   RocksDB implementation for PaymentExitInfo model.
   """
 
+  alias OMG.DB.Models.PaymentExitInfo
   @behaviour OMG.DB.Models.PaymentExitInfo
 
   require Logger
@@ -25,15 +26,18 @@ defmodule OMG.DB.RocksDB.Models.PaymentExitInfo do
 
   @one_minute 60_000
 
+  @impl PaymentExitInfo
   def exit_info(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:get, :exit_info, utxo_pos}, @one_minute)
   end
 
+  @impl PaymentExitInfo
   def exit_infos(server_name \\ @server_name) do
     _ = Logger.info("Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, {:get_all_by_type, :exit_info}, @one_minute)
   end
 
+  @impl PaymentExitInfo
   def in_flight_exits_info(server_name \\ @server_name) do
     _ = Logger.info("Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, {:get_all_by_type, :in_flight_exit_info}, @one_minute)
