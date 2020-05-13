@@ -328,7 +328,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
   end
 
   @tag fixtures: [:alice, :initial_blocks]
-  test "Can spend ife piggybacked output event", %{alice: alice} do
+  test "Can spend ife piggybacked output", %{alice: alice} do
     expected_log_index1 = 0
     expected_log_index2 = 1
     expected_eth_txhash1 = Crypto.hash(<<6::256>>)
@@ -360,26 +360,17 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
     assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
 
-    txo1 = DB.TxOutput.get_by_output_id(txhash1, oindex1)
-    assert txo1 != nil
+    assert_txoutout_spent_by_event(txhash1, oindex1, expected_log_index1, expected_eth_txhash1, expected_event_type)
+    assert_txoutout_spent_by_event(txhash2, oindex2, expected_log_index2, expected_eth_txhash2, expected_event_type)
+  end
+
+  defp assert_txoutout_spent_by_event(txhash, oindex, log_index, eth_txhash, event_type) do
+    txo = DB.TxOutput.get_by_output_id(txhash, oindex)
+
+    assert txo != nil
 
     assert [
-             %DB.EthEvent{
-               log_index: ^expected_log_index1,
-               root_chain_txhash: ^expected_eth_txhash1,
-               event_type: ^expected_event_type
-             }
-           ] = txo1.ethevents
-
-    txo2 = DB.TxOutput.get_by_output_id(txhash2, oindex2)
-    assert txo2 != nil
-
-    assert [
-             %DB.EthEvent{
-               log_index: ^expected_log_index2,
-               root_chain_txhash: ^expected_eth_txhash2,
-               event_type: ^expected_event_type
-             }
-           ] = txo2.ethevents
+             %DB.EthEvent{log_index: ^log_index, root_chain_txhash: ^eth_txhash, event_type: ^event_type}
+           ] = txo.ethevents
   end
 end

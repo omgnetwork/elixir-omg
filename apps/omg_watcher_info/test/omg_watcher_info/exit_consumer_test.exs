@@ -25,6 +25,9 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
 
   require Utxo
 
+  @root_chain_txhash1 <<11::256>>
+  @root_chain_txhash2 <<12::256>>
+
   setup_all do
     {:ok, _} =
       GenServer.start_link(
@@ -48,24 +51,24 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
       txhash = Crypto.hash(<<pos_1>>)
 
       event_data = [
-        %{log_index: 2, root_chain_txhash: <<12::256>>, call_data: %{utxo_pos: pos_1}},
-        %{log_index: 1, root_chain_txhash: <<11::256>>, call_data: %{txhash: txhash, oindex: 1}}
+        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_1}},
+        %{log_index: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{txhash: txhash, oindex: 1}}
       ]
 
       send_events_and_wait_until_processed(event_data)
 
-      assert_test_consumer_alive()
+      assert_consumer_alive()
     end
 
     @tag fixtures: [:alice, :initial_blocks]
-    test "when receive ife started or finalized events spends given outputs", %{alice: alice} do
+    test "receiving ife started or finalized events spends given outputs", %{alice: alice} do
       spent_utxos_pos = alice.addr |> get_utxos_pos() |> Enum.take(2)
       [pos_1, pos_2] = Enum.map(spent_utxos_pos, &Position.encode/1)
 
       # Note: event data is the same for InFlightExitStarted and InFlightExitOutputWithdrawn events
       event_data = [
-        %{log_index: 2, root_chain_txhash: <<12::256>>, call_data: %{utxo_pos: pos_2}},
-        %{log_index: 1, root_chain_txhash: <<11::256>>, call_data: %{utxo_pos: pos_1}}
+        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_2}},
+        %{log_index: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{utxo_pos: pos_1}}
       ]
 
       send_events_and_wait_until_processed(event_data)
@@ -74,12 +77,12 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
     end
 
     @tag fixtures: [:alice, :initial_blocks]
-    test "when receive IFE output piggybacked event spends this output", %{alice: alice} do
+    test "receiving IFE output piggybacked event spends this output", %{alice: alice} do
       %{creating_txhash: txhash, oindex: oindex} = output = alice.addr |> get_utxos_for() |> hd()
       spent_utxos_pos = get_utxos_pos([output])
 
       event_data = [
-        %{log_index: 2, root_chain_txhash: <<12::256>>, call_data: %{txhash: txhash, oindex: oindex}}
+        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{txhash: txhash, oindex: oindex}}
       ]
 
       send_events_and_wait_until_processed(event_data)
@@ -107,11 +110,11 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
                ethevents: [%DB.EthEvent{log_index: ^expected_log_index, root_chain_txhash: ^expected_root_hash}]
              } = DB.TxOutput.get_by_position(txo_pos)
 
-      event_data_2 = [
-        %{log_index: 2, root_chain_txhash: <<12::256>>, call_data: %{utxo_pos: Position.encode(txo_pos)}}
+      event_data = [
+        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: Position.encode(txo_pos)}}
       ]
 
-      send_events_and_wait_until_processed(event_data_2)
+      send_events_and_wait_until_processed(event_data)
 
       assert %DB.TxOutput{
                ethevents: [%DB.EthEvent{log_index: ^expected_log_index, root_chain_txhash: ^expected_root_hash}]
@@ -141,7 +144,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
     end
 
     defp send_events_and_wait_until_processed(data) do
-      pid = assert_test_consumer_alive()
+      pid = assert_consumer_alive()
 
       Process.send(pid, {:internal_event_bus, :data, data}, [:noconnect])
 
@@ -149,7 +152,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
       _ = :sys.get_state(pid)
     end
 
-    defp assert_test_consumer_alive() do
+    defp assert_consumer_alive() do
       pid = GenServer.whereis(TestExitConsumer)
       assert is_pid(pid) and Process.alive?(pid)
       pid
