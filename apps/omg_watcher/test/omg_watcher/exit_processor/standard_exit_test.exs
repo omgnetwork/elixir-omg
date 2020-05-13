@@ -51,8 +51,11 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
   # needs to match up with the default from `ExitProcessor.Case` :(
   @exit_id 9876
 
+  @default_min_exit_period_seconds 120
+  @default_child_block_interval 1000
+
   setup do
-    {:ok, empty} = Core.init([], [], [])
+    {:ok, empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)
     db_path = Briefly.create!(directory: true)
     Application.put_env(:omg_db, :path, db_path, persistent: true)
     :ok = OMG.DB.init()
