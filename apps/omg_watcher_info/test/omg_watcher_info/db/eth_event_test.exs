@@ -379,7 +379,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
       %{data: data} = DB.EthEvent.get_events(paginator)
 
-      assert length(data) == 0
+      assert Enum.empty?(data)
     end
   end
 end
