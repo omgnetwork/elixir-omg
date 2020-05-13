@@ -23,6 +23,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   alias OMG.Crypto
   alias OMG.Eth.Encoding
+  alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WireFormatTypes
@@ -189,11 +190,62 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   # preload txoutputs in a single query as there will not be a large number of them
   def get(root_chain_txhash_event) do
     DB.Repo.one(
-      from(ethevent in __MODULE__,
-        where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event,
-        left_join: txoutputs in assoc(ethevent, :txoutputs),
-        preload: [txoutputs: txoutputs]
+      from(ethevent in base_query(),
+        where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event
       )
+    )
+  end
+
+  @doc """
+  Gets a paginated list of events, optionally filtered by address and/or type.
+  """
+  @spec get_events(
+          paginator :: Paginator.t(%DB.EthEvent{}),
+          event_type :: atom() | nil,
+          address :: Crypto.address_t()
+        ) :: Paginator.t(%DB.EthEvent{})
+  def get_events(paginator, event_type \\ nil, address \\ nil) do
+    base_query()
+    |> query_by_address(address)
+    |> query_by_type(event_type)
+    |> query_paginated(paginator.data_paging)
+    |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
+  end
+
+  def base_query() do
+    from(
+      ethevent in __MODULE__,
+      left_join: txoutputs in assoc(ethevent, :txoutputs),
+      preload: [txoutputs: txoutputs]
+    )
+  end
+
+  defp query_by_address(query, nil), do: query
+
+  defp query_by_address(query, address) do
+    from(
+      [ethevent, txoutputs] in query,
+      where: txoutputs.owner == ^address
+    )
+  end
+
+  defp query_by_type(query, nil), do: query
+
+  defp query_by_type(query, type) do
+    from(
+      ethevent in query,
+      where: ethevent.event_type == ^type
+    )
+  end
+
+  defp query_paginated(query, paginator) do
+    offset = (paginator.page - 1) * paginator.limit
+
+    from(
+      event in query,
+      limit: ^paginator.limit,
+      offset: ^offset
     )
   end
 end
