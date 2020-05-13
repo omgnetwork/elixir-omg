@@ -78,10 +78,11 @@ defmodule WatcherStatusTests do
   defthen ~r/^Operator can read services_synced_heights$/, %{}, state do
     services = state.service_response["data"]["services_synced_heights"]
 
-    _ = Enum.each(services, fn service ->
-      assert is_binary(service["service"])
-      assert is_integer(service["height"])
-    end)
+    _ =
+      Enum.each(services, fn service ->
+        assert is_binary(service["service"])
+        assert is_integer(service["height"])
+      end)
 
     {:ok, state}
   end
