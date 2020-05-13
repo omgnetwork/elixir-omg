@@ -202,7 +202,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @spec get_events(
           paginator :: Paginator.t(%DB.EthEvent{}),
           event_type :: atom() | nil,
-          address :: Crypto.address_t()
+          address :: Crypto.address_t() | nil
         ) :: Paginator.t(%DB.EthEvent{})
   def get_events(paginator, event_type \\ nil, address \\ nil) do
     base_query()
