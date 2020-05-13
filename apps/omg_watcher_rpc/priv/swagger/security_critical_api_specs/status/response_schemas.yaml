@@ -27,6 +27,9 @@ StatusResponseSchema:
             owner: "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
             currency: "0x0000000000000000000000000000000000000000"
             amount: 100
+            root_chain_txhash: "0xde8210dd179e4a067c5649ebeee8871e0f258fecbd1eb02e11db88121bb8de01"
+            spending_txhash: "0x21aee8dcc74d6b309f6e98a967a6aa6002432f98a5bc13c75529dbe228e04451"
+            scheduled_finalization_time: 1588144725
         -
           event: "unchallenged_exit"
           details:
@@ -35,6 +38,9 @@ StatusResponseSchema:
             owner: "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
             currency: "0x0000000000000000000000000000000000000000"
             amount: 100
+            root_chain_txhash: "0xde8210dd179e4a067c5649ebeee8871e0f258fecbd1eb02e11db88121bb8de01"
+            spending_txhash: "0x21aee8dcc74d6b309f6e98a967a6aa6002432f98a5bc13c75529dbe228e04451"
+            scheduled_finalization_time: 1588144725
         -
           event: "invalid_block"
           details:
