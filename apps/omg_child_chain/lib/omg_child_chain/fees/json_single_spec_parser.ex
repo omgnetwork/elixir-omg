@@ -36,20 +36,25 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
           | :bad_address_encoding
           # pegged fields must either be all nil or all not nil
           | :invalid_pegged_fields
+          # at the moment only "fixed" fee type is supported
+          | :unsupported_fee_type
 
   @doc """
   Parses and validates a single fee spec
   """
-  @spec parse(map()) :: {:ok, map()} | {:error, parsing_error()}
-  def parse(%{
-        "amount" => fee,
-        "token" => token,
-        "subunit_to_unit" => subunit_to_unit,
-        "pegged_amount" => pegged_amount,
-        "pegged_currency" => pegged_currency,
-        "pegged_subunit_to_unit" => pegged_subunit_to_unit,
-        "updated_at" => updated_at
-      }) do
+  @spec parse({binary(), map()}) :: {:ok, map()} | {:error, parsing_error()}
+  def parse(
+        {token,
+         %{
+           "amount" => fee,
+           "subunit_to_unit" => subunit_to_unit,
+           "pegged_amount" => pegged_amount,
+           "pegged_currency" => pegged_currency,
+           "pegged_subunit_to_unit" => pegged_subunit_to_unit,
+           "updated_at" => updated_at,
+           "type" => fee_type
+         }}
+      ) do
     # defensive code against user input
     with {:ok, fee} <- validate_positive_amount(fee, :invalid_fee),
          {:ok, addr} <- decode_address(token),
@@ -59,7 +64,8 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
          {:ok, pegged_subunit_to_unit} <-
            validate_optional_positive_amount(pegged_subunit_to_unit, :invalid_pegged_subunit_to_unit),
          :ok <- validate_pegged_fields(pegged_currency, pegged_amount, pegged_subunit_to_unit),
-         {:ok, updated_at} <- validate_updated_at(updated_at) do
+         {:ok, updated_at} <- validate_updated_at(updated_at),
+         {:ok, fee_type} <- validate_fee_type(fee_type) do
       {:ok,
        %{
          token: addr,
@@ -68,6 +74,7 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
          pegged_amount: pegged_amount,
          pegged_currency: pegged_currency,
          pegged_subunit_to_unit: pegged_subunit_to_unit,
+         type: fee_type,
          updated_at: updated_at
        }}
     end
@@ -113,4 +120,7 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
         {:error, :bad_address_encoding}
     end
   end
+
+  defp validate_fee_type("fixed"), do: {:ok, :fixed}
+  defp validate_fee_type(_), do: {:error, :unsupported_fee_type}
 end
