@@ -51,7 +51,7 @@ defmodule Itest.Transactions.Currency do
     data = ABI.encode("mint(address,uint256)", [Encoding.to_binary(to_addr), amount])
 
     txmap = %{
-      from: Encoding.to_hex(faucet),
+      from: faucet,
       to: erc20(),
       data: Encoding.to_hex(data),
       gas: Encoding.to_hex(80_000)
