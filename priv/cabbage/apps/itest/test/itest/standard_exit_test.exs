@@ -22,20 +22,22 @@ defmodule StandardExitsTests do
   alias Itest.Transactions.Currency
 
   setup do
-    [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
+    [{alice_account, alice_pkey}] = Account.take_accounts(1)
+    {:ok, _} = Currency.mint_erc20(alice_account, 100)
 
-    %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
+    %{alice_account: alice_account, alice_pkey: alice_pkey, gas: 0}
   end
 
-  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
-          %{amount: amount},
+  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" (?<symbol>[\w]+) to the root chain$/,
+          %{amount: amount, symbol: symbol},
           %{alice_account: alice_account} = state do
     initial_balance = Itest.Poller.eth_get_balance(alice_account)
+    currency = get_currency(symbol)
 
     {:ok, receipt_hash} =
       amount
       |> Currency.to_wei()
-      |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
+      |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(currency))
 
     gas_used = Client.get_gas_used(receipt_hash)
 
@@ -50,10 +52,11 @@ defmodule StandardExitsTests do
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
-          %{amount: amount},
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" (?<symbol>[\w]+) on the child chain$/,
+          %{amount: amount, symbol: symbol},
           %{alice_account: alice_account} = state do
     expecting_amount = Currency.to_wei(amount)
+    _currency = get_currency(symbol)
 
     balance = Client.get_balance(alice_account, expecting_amount)
 
@@ -81,10 +84,10 @@ defmodule StandardExitsTests do
     {:ok, state}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain after finality margin$/,
-          %{amount: amount},
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" (?<symbol>[\w]+) on the child chain after finality margin$/,
+          %{amount: amount, symbol: symbol},
           %{alice_account: alice_account} = state do
-    _ = Logger.info("Alice should have #{amount} ETH on the child chain after finality margin")
+    _currency = get_currency(symbol)
 
     case amount do
       "0" ->
@@ -99,14 +102,16 @@ defmodule StandardExitsTests do
     {:ok, Map.put(state, :alice_ethereum_balance, balance)}
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the root chain$/,
-          %{amount: amount},
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" (?<symbol>[\w]+) on the root chain$/,
+          %{amount: amount, symbol: symbol},
           %{
             alice_account: _alice_account,
             alice_initial_balance: alice_initial_balance,
             alice_ethereum_balance: alice_ethereum_balance
           } = state do
+    _currency = get_currency(symbol)
     gas_wei = state[:standard_exit_total_gas_used] + state[:gas]
+
     assert_equal(alice_ethereum_balance, alice_initial_balance - gas_wei)
     assert_equal(alice_ethereum_balance, Currency.to_wei(amount) - gas_wei)
     {:ok, state}
@@ -119,4 +124,8 @@ defmodule StandardExitsTests do
   defp assert_equal(left, right, message) do
     assert(left == right, "Expected #{left}, but have #{right}." <> message)
   end
+
+  defp get_currency("ETH"), do: Currency.ether()
+  defp get_currency("ERC20"), do: Currency.erc20()
+  defp get_currency(symbol), do: raise "Unrecognized currency: #{symbol}"
 end
