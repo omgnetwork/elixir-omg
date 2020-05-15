@@ -23,7 +23,7 @@ defmodule StandardExitsTests do
 
   setup do
     [{alice_account, alice_pkey}] = Account.take_accounts(1)
-    {:ok, _} = Currency.mint_erc20(alice_account, 100)
+    {:ok, _} = Currency.mint_erc20(alice_account, Currency.to_wei(100))
 
     %{alice_account: alice_account, alice_pkey: alice_pkey, gas: 0}
   end
