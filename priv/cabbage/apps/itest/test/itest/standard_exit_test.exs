@@ -62,8 +62,20 @@ defmodule StandardExitsTests do
     {:ok, state}
   end
 
-  defwhen ~r/^Alice completes a standard exit on the child chain$/, _, %{alice_account: alice_account} = state do
-    se = StandardExitClient.complete_standard_exit(alice_account)
+  defwhen ~r/^Alice starts a standard exit on the child chain$/, _, state do
+    se = StandardExitClient.start_standard_exit(state.alice_account)
+    state = Map.put_new(state, :standard_exit, se)
+
+    {:ok, state}
+  end
+
+  defthen ~r/^Alice should no longer have an available utxo on the child chain$/, _, state do
+    {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: state.alice_account})
+    assert Enum.empty?(utxos)
+  end
+
+  defwhen ~r/^Alice processes the standard exit on the child chain$/, _, state do
+    se = StandardExitClient.wait_and_process_standard_exit(state.standard_exit)
     state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
 
     {:ok, state}
