@@ -71,6 +71,7 @@ defmodule StandardExitsTests do
 
   defthen ~r/^Alice should no longer see the exiting utxo on the child chain$/, _, state do
     assert Itest.Poller.utxo_absent?(state.alice_account, state.standard_exit.utxo.utxo_pos)
+    assert Itest.Poller.exitable_utxo_absent?(state.alice_account, state.standard_exit.utxo.utxo_pos)
   end
 
   defwhen ~r/^Alice processes the standard exit on the child chain$/, _, state do

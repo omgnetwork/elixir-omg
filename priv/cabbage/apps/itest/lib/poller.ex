@@ -20,7 +20,6 @@ defmodule Itest.Poller do
   require Logger
 
   alias Itest.ApiModel.SubmitTransactionResponse
-  alias WatcherInfoAPI.Api.Account
   alias WatcherInfoAPI.Api.Transaction
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
@@ -69,9 +68,14 @@ defmodule Itest.Poller do
     do: wait_on_receipt_status(receipt_hash, "0x1", @retry_count)
 
   @doc """
-  API:: Pull until utxo is not found for the address.
+  API:: Pull until the utxo is not found for the address.
   """
   def utxo_absent?(address, utxo_pos), do: utxo_absent?(address, utxo_pos, @retry_count)
+
+  @doc """
+  API:: Pull until the exitable utxo is not found for the address.
+  """
+  def exitable_utxo_absent?(address, utxo_pos), do: exitable_utxo_absent?(address, utxo_pos, @retry_count)
 
   #######################################################################################################
   ### PRIVATE
@@ -228,7 +232,7 @@ defmodule Itest.Poller do
   end
 
   defp account_get_balance(address) do
-    Account.account_get_balance(
+    WatcherInfoAPI.Api.Account.account_get_balance(
       WatcherInfo.new(),
       %{
         address: address
@@ -343,13 +347,14 @@ defmodule Itest.Poller do
     |> Enum.map(& &1["event"])
   end
 
-  defp utxo_absent?(address, utxo_pos, 0) do
+  defp utxo_absent?(_address, utxo_pos, 0) do
     _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed, but it is still detectable.")
     false
   end
 
   defp utxo_absent?(address, utxo_pos, counter) do
-    {:ok, response} = Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address})
+    params = %AddressBodySchema1{address: address}
+    {:ok, response} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), params)
     utxos = Jason.decode!(response.body)["data"]
 
     if Enum.any?(utxos, fn utxo -> utxo["utxo_pos"] == utxo_pos end) do
@@ -357,6 +362,24 @@ defmodule Itest.Poller do
     else
       Process.sleep(@sleep_retry_sec)
       utxo_absent?(address, utxo_pos, counter - 1)
+    end
+  end
+
+  defp exitable_utxo_absent?(_address, utxo_pos, 0) do
+    _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed from exitable utxos, but it is still detectable.")
+    false
+  end
+
+  defp exitable_utxo_absent?(address, utxo_pos, counter) do
+    params = %AddressBodySchema1{address: address}
+    {:ok, response} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(WatcherInfo.new(), params)
+    utxos = Jason.decode!(response.body)["data"]
+
+    if Enum.any?(utxos, fn utxo -> utxo["utxo_pos"] == utxo_pos end) do
+      true
+    else
+      Process.sleep(@sleep_retry_sec)
+      exitable_utxo_absent?(address, utxo_pos, counter - 1)
     end
   end
 end
