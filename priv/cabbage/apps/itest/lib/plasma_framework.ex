@@ -70,9 +70,6 @@ defmodule Itest.PlasmaFramework do
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:address])
     |> hd()
-    |> Encoding.to_hex()
-    |> EIP55.encode()
-    |> elem(1)
   end
 
   # taken from the plasma-contracts deployment snapshot

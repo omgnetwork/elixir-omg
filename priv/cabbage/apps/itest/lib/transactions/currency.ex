@@ -18,6 +18,7 @@ defmodule Itest.Transactions.Currency do
   alias Itest.Transactions.Encoding
 
   @ether <<0::160>>
+  @approve_gas 50_000
 
   #
   # ETH
@@ -55,6 +56,22 @@ defmodule Itest.Transactions.Currency do
     }
 
     {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    wait_on_receipt_confirmed(receipt_hash)
+    {:ok, receipt_hash}
+  end
+
+  def approve_erc20(owner_address, amount_in_wei, spender_address) do
+    data = ABI.encode("approve(address,uint256)", [spender_address, amount_in_wei])
+
+    txmap = %{
+      from: owner_address,
+      to: Encoding.to_hex(erc20()),
+      data: Encoding.to_hex(data),
+      gas: Encoding.to_hex(@approve_gas)
+    }
+
+    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+
     wait_on_receipt_confirmed(receipt_hash)
     {:ok, receipt_hash}
   end

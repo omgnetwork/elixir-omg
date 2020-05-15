@@ -35,13 +35,13 @@ defmodule Itest.Client do
 
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
-
+    value = if currency == Currency.ether(), do: amount_in_wei, else: 0
     data = ABI.encode("deposit(bytes)", [deposit_transaction])
 
     txmap = %{
       from: output_address,
-      to: vault_address,
-      value: Encoding.to_hex(amount_in_wei),
+      to: Encoding.to_hex(vault_address),
+      value: Encoding.to_hex(value),
       data: Encoding.to_hex(data),
       gas: Encoding.to_hex(@gas)
     }
