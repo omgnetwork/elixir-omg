@@ -35,13 +35,14 @@ defmodule OMG.ChildChain.Fees.FeedAdapterTest do
 
   @initial_price 100
   @fee %{
-    token: @eth_hex,
     amount: @initial_price,
     pegged_amount: 1,
     subunit_to_unit: 1_000_000_000_000_000_000,
     pegged_currency: "USD",
     pegged_subunit_to_unit: 100,
-    updated_at: DateTime.from_unix!(1_546_336_800)
+    updated_at: DateTime.from_unix!(1_546_336_800),
+    symbol: "ETH",
+    type: :fixed
   }
 
   describe "get_fee_specs/2" do
@@ -101,7 +102,7 @@ defmodule OMG.ChildChain.Fees.FeedAdapterTest do
     end
   end
 
-  defp make_fee_specs(amount), do: %{@payment_tx_type => [Map.put(@fee, :amount, amount)]}
+  defp make_fee_specs(amount), do: %{@payment_tx_type => %{@eth_hex => Map.put(@fee, :amount, amount)}}
 
   defp parse_specs(map), do: map |> Jason.encode!() |> JSONFeeParser.parse()
 
