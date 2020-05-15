@@ -40,6 +40,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.ExitProcessor.Tools
+  alias OMG.Watcher.ExitProcessor.UpdateDB.NewExits
 
   use OMG.Utils.LoggerExt
   require Utxo
@@ -318,7 +319,16 @@ defmodule OMG.Watcher.ExitProcessor do
         put_timestamp_and_sft(exit_event, state.min_exit_period_seconds, state.child_block_interval)
       end)
 
+    {:ok, db_updates_new} = NewExits.get_db_update(exit_maps, exit_contract_statuses)
     {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
+
+    _ =
+      if db_updates_new != db_updates,
+        do:
+          Logger.error(
+            "[db_updates diverges] old db_update shows: #{db_updates} while new update shows: #{db_updates_new}"
+          )
+
     {:reply, {:ok, db_updates}, new_state}
   end
 
