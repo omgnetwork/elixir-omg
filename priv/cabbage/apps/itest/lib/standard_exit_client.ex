@@ -232,7 +232,7 @@ defmodule Itest.StandardExitClient do
       |> hd()
 
     data =
-      ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()])
+      ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(se.currency), se.currency])
 
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 

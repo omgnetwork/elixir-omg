@@ -23,14 +23,13 @@ defmodule StandardExitsTests do
 
   setup do
     [{alice_account, alice_pkey}] = Account.take_accounts(1)
-    gas = 0
 
     erc20_amount = Currency.to_wei(100)
     erc20_vault = Itest.PlasmaFramework.vault(Currency.erc20())
     {:ok, mint_receipt} = Currency.mint_erc20(alice_account, erc20_amount)
     {:ok, approve_receipt} = Currency.approve_erc20(alice_account, erc20_amount, erc20_vault)
 
-    gas = gas + Client.get_gas_used(mint_receipt) + Client.get_gas_used(approve_receipt)
+    gas = Client.get_gas_used(mint_receipt) + Client.get_gas_used(approve_receipt)
 
     %{alice_account: alice_account, alice_pkey: alice_pkey, gas: gas}
   end
