@@ -17,7 +17,6 @@ defmodule Itest.StandardExitClient do
     An interface to Watcher API.
   """
   alias Itest.ApiModel.Utxo
-  alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
@@ -231,8 +230,7 @@ defmodule Itest.StandardExitClient do
       |> ABI.TypeDecoder.decode([{:uint, 160}])
       |> hd()
 
-    data =
-      ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(se.currency), se.currency])
+    data = ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(se.currency), se.currency])
 
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 

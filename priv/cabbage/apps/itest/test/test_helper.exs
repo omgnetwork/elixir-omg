@@ -66,7 +66,7 @@ Application.put_env(:ex_plasma, :eip_712_domain,
 gas_add_exit_queue = 800_000
 {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
-has_exit_queue = fn(currency) ->
+has_exit_queue = fn currency ->
   data =
     ABI.encode(
       "hasExitQueue(uint256,address)",
@@ -82,7 +82,7 @@ has_exit_queue = fn(currency) ->
   |> hd()
 end
 
-add_exit_queue = fn(symbol, currency) ->
+add_exit_queue = fn symbol, currency ->
   if has_exit_queue.(currency) do
     _ = Logger.info("#{symbol} exit queue was already added.")
     nil
