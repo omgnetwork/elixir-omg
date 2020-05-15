@@ -3,7 +3,7 @@ Feature: Standard Exits
     When Alice deposits "1" ETH to the root chain
     Then Alice should have "1" ETH on the child chain
     When Alice starts a standard exit on the child chain
-    Then Alice should no longer have an available utxo on the child chain
+    Then Alice should no longer see the exiting utxo on the child chain
     When Alice processes the standard exit on the child chain
     Then Alice should have "0" ETH on the child chain after finality margin
     And Alice should have "100" ETH on the root chain

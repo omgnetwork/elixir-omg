@@ -38,22 +38,22 @@ defmodule Itest.Poller do
     do: pull_api_until_successful(module, function, connection, payload, @retry_count)
 
   @doc """
-    API:: If we're trying to transact with UTXOs that were not recognized *yet*
+  API:: If we're trying to transact with UTXOs that were not recognized *yet*
   """
   def submit_typed(typed_data_signed), do: submit_typed(typed_data_signed, @retry_count)
 
   @doc """
-    API:: We pull account balance until we recongnize a change from 0 (which is []) to something
+  API:: We pull account balance until we recongnize a change from 0 (which is []) to something
   """
   def get_balance(address), do: get_balance(address, @retry_count)
 
   @doc """
-    API:: We know exactly what amount in WEI we want to recognize so we aggressively pull until...
+  API:: We know exactly what amount in WEI we want to recognize so we aggressively pull until...
   """
   def pull_balance_until_amount(address, amount), do: pull_balance_until_amount(address, amount, @retry_count)
 
   @doc """
-    Ethereum:: pull Eth account balance until succeeds. We're solving connection issues with this.
+  Ethereum:: pull Eth account balance until succeeds. We're solving connection issues with this.
   """
   def eth_get_balance(address), do: eth_get_balance(address, @retry_count)
 
@@ -63,10 +63,15 @@ defmodule Itest.Poller do
   def all_events_in_status?(expected_events), do: all_events_in_status?(expected_events, @retry_count)
 
   @doc """
-    Ethereum:: Waits on the receipt status as 'confirmed'
+  Ethereum:: Waits on the receipt status as 'confirmed'
   """
   def wait_on_receipt_confirmed(receipt_hash),
     do: wait_on_receipt_status(receipt_hash, "0x1", @retry_count)
+
+  @doc """
+  API:: Pull until utxo is not found for the address.
+  """
+  def utxo_absent?(address, utxo_pos), do: utxo_absent?(address, utxo_pos, @retry_count)
 
   #######################################################################################################
   ### PRIVATE
@@ -336,5 +341,22 @@ defmodule Itest.Poller do
     pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
     |> Map.fetch!("byzantine_events")
     |> Enum.map(& &1["event"])
+  end
+
+  defp utxo_absent?(address, utxo_pos, 0) do
+    _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed, but it is still detectable.")
+    false
+  end
+
+  defp utxo_absent?(address, utxo_pos, counter) do
+    {:ok, response} = Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address})
+    utxos = Jason.decode!(response.body)["data"]
+
+    if Enum.any?(utxos, fn utxo -> utxo["utxo_pos"] == utxo_pos end) do
+      true
+    else
+      Process.sleep(@sleep_retry_sec)
+      utxo_absent?(address, utxo_pos, counter - 1)
+    end
   end
 end

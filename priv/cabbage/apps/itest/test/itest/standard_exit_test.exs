@@ -69,9 +69,8 @@ defmodule StandardExitsTests do
     {:ok, state}
   end
 
-  defthen ~r/^Alice should no longer have an available utxo on the child chain$/, _, state do
-    {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: state.alice_account})
-    assert Enum.empty?(utxos)
+  defthen ~r/^Alice should no longer see the exiting utxo on the child chain$/, _, state do
+    assert Itest.Poller.utxo_absent?(state.alice_account, state.standard_exit.utxo.utxo_pos)
   end
 
   defwhen ~r/^Alice processes the standard exit on the child chain$/, _, state do
