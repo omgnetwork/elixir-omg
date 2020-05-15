@@ -319,15 +319,10 @@ defmodule OMG.Watcher.ExitProcessor do
         put_timestamp_and_sft(exit_event, state.min_exit_period_seconds, state.child_block_interval)
       end)
 
-    {:ok, db_updates_new} = NewExits.get_db_update(exit_maps, exit_contract_statuses)
-    {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
-
-    _ =
-      if db_updates_new != db_updates,
-        do:
-          Logger.error(
-            "[db_updates diverges] old db_update shows: #{db_updates} while new update shows: #{db_updates_new}"
-          )
+    # TODO: remove the use of Core.new_exits when we finish the refactor of
+    # https://github.com/omisego/new-tx-type-poc/issues/13
+    {new_state, _old_db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
+    {:ok, db_updates} = NewExits.get_db_update(exit_maps, exit_contract_statuses)
 
     {:reply, {:ok, db_updates}, new_state}
   end
