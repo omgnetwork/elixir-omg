@@ -58,9 +58,19 @@ defmodule Itest.Poller do
   end
 
   @doc """
-  Ethereum:: pull Eth account balance until succeeds. We're solving connection issues with this.
+  Ethereum:: pull root chain account balance until succeeds. We're solving connection issues with this.
   """
-  def eth_get_balance(address), do: eth_get_balance(address, @retry_count)
+  def root_chain_get_balance(address, currency \\ Currency.ether()) do
+    ether = Currency.ether()
+
+    case currency do
+      ^ether ->
+        root_chain_get_eth_balance(address, @retry_count)
+
+      _ ->
+        root_chain_get_erc20_balance(address, currency, @retry_count)
+    end
+  end
 
   @doc """
   Checks status until the list of the byzantine events (by name, regardless of order) matches to `expected_events`
@@ -211,13 +221,13 @@ defmodule Itest.Poller do
     end
   end
 
-  defp eth_get_balance(address, 0) do
+  defp root_chain_get_eth_balance(address, 0) do
     {:ok, initial_balance} = eth_account_get_balance(address)
     {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
     initial_balance
   end
 
-  defp eth_get_balance(address, counter) do
+  defp root_chain_get_eth_balance(address, counter) do
     response = eth_account_get_balance(address)
 
     case response do
@@ -227,12 +237,45 @@ defmodule Itest.Poller do
 
       _ ->
         Process.sleep(@sleep_retry_sec)
-        eth_get_balance(address, counter - 1)
+        root_chain_get_eth_balance(address, counter - 1)
     end
   end
 
   defp eth_account_get_balance(address) do
     Ethereumex.HttpClient.eth_get_balance(address)
+  end
+
+  defp root_chain_get_erc20_balance(address, currency, 0) do
+    do_root_chain_get_erc20_balance(address, currency)
+  end
+
+  defp root_chain_get_erc20_balance(address, currency, counter) do
+    case do_root_chain_get_erc20_balance(address, currency) do
+      {:ok, balance} ->
+        balance
+
+      _ ->
+        Process.sleep(@sleep_retry_sec)
+        root_chain_get_erc20_balance(address, currency, counter - 1)
+    end
+  end
+
+  defp do_root_chain_get_erc20_balance(address, currency) do
+    data = ABI.encode("balanceOf(address)", [Encoding.to_binary(address)])
+
+    case Ethereumex.HttpClient.eth_call(%{to: Encoding.to_hex(currency), data: Encoding.to_hex(data)}) do
+      {:ok, result} ->
+        balance =
+          result
+          |> Encoding.to_binary()
+          |> ABI.TypeDecoder.decode([{:uint, 256}])
+          |> hd()
+
+        {:ok, balance}
+
+      error ->
+        error
+    end
   end
 
   defp account_get_balances(address) do

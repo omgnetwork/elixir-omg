@@ -37,8 +37,8 @@ defmodule StandardExitsTests do
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" (?<symbol>[\w]+) to the root chain$/,
           %{amount: amount, symbol: symbol},
           %{alice_account: alice_account} = state do
-    initial_balance = Itest.Poller.eth_get_balance(alice_account)
     currency = get_currency(symbol)
+    initial_balance = Itest.Poller.root_chain_get_balance(alice_account, currency)
 
     {:ok, receipt_hash} =
       amount
@@ -52,7 +52,7 @@ defmodule StandardExitsTests do
         {current_gas, current_gas + gas_used}
       end)
 
-    balance_after_deposit = Itest.Poller.eth_get_balance(alice_account)
+    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account, currency)
 
     state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
@@ -104,7 +104,7 @@ defmodule StandardExitsTests do
         assert network_amount == Currency.to_wei(amount)
     end
 
-    balance = Itest.Poller.eth_get_balance(alice_account)
+    balance = Itest.Poller.root_chain_get_balance(alice_account, currency)
     {:ok, Map.put(state, :alice_ethereum_balance, balance)}
   end
 
