@@ -62,16 +62,15 @@ Application.put_env(:ex_plasma, :eip_712_domain,
   version: "1"
 )
 
-### add exit queue
+### add exit queues
 gas_add_exit_queue = 800_000
 {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
-address = faucet
 
-has_exit_queue = fn ->
+has_exit_queue = fn(currency) ->
   data =
     ABI.encode(
       "hasExitQueue(uint256,address)",
-      [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()]
+      [Itest.PlasmaFramework.vault_id(currency), currency]
     )
 
   {:ok, receipt_enc} =
@@ -83,30 +82,34 @@ has_exit_queue = fn ->
   |> hd()
 end
 
-if has_exit_queue.() do
-  _ = Logger.info("Exit queue was already added.")
-  nil
-else
-  _ = Logger.info("Exit queue missing. Adding...")
+add_exit_queue = fn(symbol, currency) ->
+  if has_exit_queue.(currency) do
+    _ = Logger.info("#{symbol} exit queue was already added.")
+    nil
+  else
+    _ = Logger.info("#{symbol} exit queue missing. Adding...")
 
-  data =
-    ABI.encode(
-      "addExitQueue(uint256,address)",
-      [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()]
-    )
+    data =
+      ABI.encode(
+        "addExitQueue(uint256,address)",
+        [Itest.PlasmaFramework.vault_id(currency), currency]
+      )
 
-  txmap = %{
-    from: address,
-    to: Itest.PlasmaFramework.address(),
-    value: Encoding.to_hex(0),
-    data: Encoding.to_hex(data),
-    gas: Encoding.to_hex(gas_add_exit_queue)
-  }
+    txmap = %{
+      from: faucet,
+      to: Itest.PlasmaFramework.address(),
+      value: Encoding.to_hex(0),
+      data: Encoding.to_hex(data),
+      gas: Encoding.to_hex(gas_add_exit_queue)
+    }
 
-  {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-  wait_on_receipt_confirmed(receipt_hash)
-  receipt_hash
+    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    wait_on_receipt_confirmed(receipt_hash)
+    receipt_hash
+  end
 end
 
-### add exit queue
+add_exit_queue.("ETH", Currency.ether())
+add_exit_queue.("ERC20", Currency.erc20())
+
 ExUnit.start(trace: "--trace" in System.argv(), timeout: miliseconds)

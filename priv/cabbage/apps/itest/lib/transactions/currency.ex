@@ -39,10 +39,7 @@ defmodule Itest.Transactions.Currency do
 
   def erc20() do
     contracts = parse_contracts()
-
-    contracts["CONTRACT_ERC20_MINTABLE"]
-    |> EIP55.encode()
-    |> elem(1)
+    Encoding.to_binary(contracts["CONTRACT_ERC20_MINTABLE"])
   end
 
   def mint_erc20(to_addr, amount) do
@@ -52,7 +49,7 @@ defmodule Itest.Transactions.Currency do
 
     txmap = %{
       from: faucet,
-      to: erc20(),
+      to: Encoding.to_hex(erc20()),
       data: Encoding.to_hex(data),
       gas: Encoding.to_hex(80_000)
     }
