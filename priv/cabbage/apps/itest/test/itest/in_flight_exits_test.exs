@@ -167,11 +167,11 @@ defmodule InFlightExitsTests do
     child_chain_balance =
       case amount do
         "0" ->
-          assert Client.get_balance(address, Currency.to_wei(amount)) == []
+          assert Client.get_exact_balance(address, Currency.to_wei(amount)) == []
           0
 
         _ ->
-          %{"amount" => network_amount} = Client.get_balance(address, Currency.to_wei(amount))
+          %{"amount" => network_amount} = Client.get_exact_balance(address, Currency.to_wei(amount))
           assert network_amount == Currency.to_wei(amount)
           network_amount
       end

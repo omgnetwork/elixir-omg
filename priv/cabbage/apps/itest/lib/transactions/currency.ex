@@ -54,8 +54,9 @@ defmodule Itest.Transactions.Currency do
       gas: Encoding.to_hex(80_000)
     }
 
-    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_call(txmap)
+    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     wait_on_receipt_confirmed(receipt_hash)
+    {:ok, receipt_hash}
   end
 
   # taken from the plasma-contracts deployment snapshot

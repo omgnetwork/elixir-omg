@@ -56,9 +56,9 @@ defmodule StandardExitsTests do
           %{amount: amount, symbol: symbol},
           %{alice_account: alice_account} = state do
     expecting_amount = Currency.to_wei(amount)
-    _currency = get_currency(symbol)
+    currency = get_currency(symbol)
 
-    balance = Client.get_balance(alice_account, expecting_amount)
+    balance = Client.get_exact_balance(alice_account, expecting_amount, currency)
 
     balance = balance["amount"]
     assert_equal(expecting_amount, balance, "For #{alice_account}")
@@ -87,14 +87,14 @@ defmodule StandardExitsTests do
   defthen ~r/^Alice should have "(?<amount>[^"]+)" (?<symbol>[\w]+) on the child chain after finality margin$/,
           %{amount: amount, symbol: symbol},
           %{alice_account: alice_account} = state do
-    _currency = get_currency(symbol)
+    currency = get_currency(symbol)
 
     case amount do
       "0" ->
-        assert Client.get_balance(alice_account, Currency.to_wei(amount)) == []
+        assert Client.get_exact_balance(alice_account, Currency.to_wei(amount), currency) == nil
 
       _ ->
-        %{"amount" => network_amount} = Client.get_balance(alice_account, Currency.to_wei(amount))
+        %{"amount" => network_amount} = Client.get_exact_balance(alice_account, Currency.to_wei(amount), currency)
         assert network_amount == Currency.to_wei(amount)
     end
 

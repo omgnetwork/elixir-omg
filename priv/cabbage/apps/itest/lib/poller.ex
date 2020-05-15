@@ -20,6 +20,8 @@ defmodule Itest.Poller do
   require Logger
 
   alias Itest.ApiModel.SubmitTransactionResponse
+  alias Itest.Transactions.Currency
+  alias Itest.Transactions.Encoding
   alias WatcherInfoAPI.Api.Transaction
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
@@ -44,12 +46,16 @@ defmodule Itest.Poller do
   @doc """
   API:: We pull account balance until we recongnize a change from 0 (which is []) to something
   """
-  def get_balance(address), do: get_balance(address, @retry_count)
+  def get_balance(address, currency \\ Currency.ether()) do
+    get_balance(address, Encoding.to_hex(currency), @retry_count)
+  end
 
   @doc """
   API:: We know exactly what amount in WEI we want to recognize so we aggressively pull until...
   """
-  def pull_balance_until_amount(address, amount), do: pull_balance_until_amount(address, amount, @retry_count)
+  def pull_balance_until_amount(address, amount, currency \\ Currency.ether()) do
+    pull_balance_until_amount(address, amount, Encoding.to_hex(currency), @retry_count)
+  end
 
   @doc """
   Ethereum:: pull Eth account balance until succeeds. We're solving connection issues with this.
@@ -143,61 +149,59 @@ defmodule Itest.Poller do
   defp get_transaction_receipt(receipt_hash),
     do: Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash)
 
-  defp get_balance(address, 0) do
-    {:ok, response} = account_get_balance(address)
-    Jason.decode!(response.body)["data"]
+  defp get_balance(address, currency, 0) do
+    {:ok, response} = account_get_balances(address)
+    data = Jason.decode!(response.body)["data"]
+    raise "Could not get the account balance for token address #{Encoding.to_hex(currency)}. Got: #{inspect(data)}"
   end
 
-  defp get_balance(address, counter) do
-    response = account_get_balance(address)
+  defp get_balance(address, currency, counter) do
+    response = account_get_balances(address)
 
     case response do
       {:ok, response} ->
         decoded_response = Jason.decode!(response.body)
 
-        case decoded_response["data"] do
-          [] ->
+        case Enum.find(decoded_response["data"], fn data -> data["currency"] == currency end) do
+          nil ->
             Process.sleep(@sleep_retry_sec)
-            get_balance(address, counter - 1)
+            get_balance(address, currency, counter - 1)
 
-          [data] ->
+          data ->
             data
         end
 
       _ ->
         # socket closed etc.
         Process.sleep(@sleep_retry_sec)
-        get_balance(address, counter - 1)
+        get_balance(address, currency, counter - 1)
     end
   end
 
-  defp pull_balance_until_amount(address, _amount, 0) do
-    {:ok, response} = account_get_balance(address)
-    Jason.decode!(response.body)["data"]
+  defp pull_balance_until_amount(address, amount, currency, 0) do
+    {:ok, response} = account_get_balances(address)
+    data = Jason.decode!(response.body)["data"]
+    raise "Could not get the account balance of #{amount} for token address #{Encoding.to_hex(currency)}. Got: #{inspect(data)}"
   end
 
-  defp pull_balance_until_amount(address, amount, counter) do
-    response = account_get_balance(address)
+  defp pull_balance_until_amount(address, amount, currency, counter) do
+    response = account_get_balances(address)
 
     case response do
       {:ok, response} ->
         decoded_response = Jason.decode!(response.body)
 
-        case decoded_response["data"] do
+        case Enum.find(decoded_response["data"], fn data -> data["currency"] == currency end) do
           # empty response is considered no account balance!
-          [] when amount == 0 ->
-            decoded_response["data"]
+          nil when amount == 0 ->
+            nil
 
-          [] ->
-            Process.sleep(@sleep_retry_sec)
-            pull_balance_until_amount(address, amount, counter - 1)
-
-          [%{"amount" => ^amount} = data] ->
+          %{"amount" => ^amount} = data ->
             data
 
-          [_data] ->
+          _ ->
             Process.sleep(@sleep_retry_sec)
-            pull_balance_until_amount(address, amount, counter - 1)
+            pull_balance_until_amount(address, amount, currency, counter - 1)
         end
 
       _ ->
@@ -231,7 +235,7 @@ defmodule Itest.Poller do
     Ethereumex.HttpClient.eth_get_balance(address)
   end
 
-  defp account_get_balance(address) do
+  defp account_get_balances(address) do
     WatcherInfoAPI.Api.Account.account_get_balance(
       WatcherInfo.new(),
       %{

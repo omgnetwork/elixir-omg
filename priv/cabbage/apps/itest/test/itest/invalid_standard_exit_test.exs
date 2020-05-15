@@ -49,7 +49,7 @@ defmodule InvalidStandardExitsTests do
     {:ok, receipt_hash} = Client.deposit(expecting_amount, alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
     gas_used = Client.get_gas_used(receipt_hash)
 
-    %{"amount" => ^expecting_amount} = Client.get_balance(alice_account, expecting_amount)
+    %{"amount" => ^expecting_amount} = Client.get_exact_balance(alice_account, expecting_amount)
 
     new_state =
       state
@@ -72,7 +72,7 @@ defmodule InvalidStandardExitsTests do
 
     {:ok, _receipt_hash} = Client.deposit(carol_amount, carol_account, Itest.PlasmaFramework.vault(Currency.ether()))
 
-    %{"amount" => ^carol_amount} = Client.get_balance(carol_account, carol_amount)
+    %{"amount" => ^carol_amount} = Client.get_exact_balance(carol_account, carol_amount)
 
     {:ok, [sign_hash, typed_data, _txbytes]} =
       Client.create_transaction(
@@ -87,7 +87,7 @@ defmodule InvalidStandardExitsTests do
       Client.submit_transaction(typed_data, sign_hash, [carol_pkey])
 
     expecting_amount = Currency.to_wei(amount)
-    %{"amount" => ^expecting_amount} = Client.get_balance(alice_account, expecting_amount)
+    %{"amount" => ^expecting_amount} = Client.get_exact_balance(alice_account, expecting_amount)
 
     new_state = Map.put_new(state, :alice_initial_balance_on_root_chain, initial_balance_on_root_chain)
 

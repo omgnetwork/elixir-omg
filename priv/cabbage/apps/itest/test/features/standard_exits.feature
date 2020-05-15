@@ -10,3 +10,4 @@ Feature: Standard Exits
 
   Scenario: Alice starts a Standard Exit for ERC-20
     When Alice deposits "1" ERC20 to the root chain
+    Then Alice should have "1" ERC20 on the child chain

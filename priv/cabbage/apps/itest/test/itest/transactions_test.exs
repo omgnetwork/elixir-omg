@@ -99,7 +99,7 @@ defmodule TransactionsTests do
 
         expected_amount = Currency.to_wei(amount)
 
-        balance = Client.get_balance(alice_account, expected_amount)
+        balance = Client.get_exact_balance(alice_account, expected_amount)
 
         balance = balance["amount"]
         assert_equal(expected_amount, balance, "For #{alice_account}")
@@ -149,7 +149,7 @@ defmodule TransactionsTests do
       fn {{alice_account, _}, index} ->
         expecting_amount = Currency.to_wei(amount)
 
-        balance = Client.get_balance(alice_account, expecting_amount)
+        balance = Client.get_exact_balance(alice_account, expecting_amount)
         balance = balance["amount"]
 
         assert_equal(Currency.to_wei(amount), balance, "For #{alice_account} #{index}.")
