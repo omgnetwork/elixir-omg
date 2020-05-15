@@ -152,7 +152,7 @@ defmodule Itest.Poller do
   defp get_balance(address, currency, 0) do
     {:ok, response} = account_get_balances(address)
     data = Jason.decode!(response.body)["data"]
-    raise "Could not get the account balance for token address #{Encoding.to_hex(currency)}. Got: #{inspect(data)}"
+    raise "Could not get the account balance for token address #{currency}. Got: #{inspect(data)}"
   end
 
   defp get_balance(address, currency, counter) do
@@ -181,7 +181,7 @@ defmodule Itest.Poller do
   defp pull_balance_until_amount(address, amount, currency, 0) do
     {:ok, response} = account_get_balances(address)
     data = Jason.decode!(response.body)["data"]
-    raise "Could not get the account balance of #{amount} for token address #{Encoding.to_hex(currency)}. Got: #{inspect(data)}"
+    raise "Could not get the account balance of #{amount} for token address #{currency}. Got: #{inspect(data)}"
   end
 
   defp pull_balance_until_amount(address, amount, currency, counter) do
