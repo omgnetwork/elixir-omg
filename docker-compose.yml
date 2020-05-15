@@ -48,7 +48,9 @@ services:
             --allow-insecure-unlock
     ports:
       - "8545:8545"
+      - "8546:8546"
     expose:
+      - "8546"
       - "8545"
     volumes:
       - ./data:/data
