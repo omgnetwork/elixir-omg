@@ -37,7 +37,7 @@ defmodule StandardExitsTests do
     {:ok, receipt_hash} =
       amount
       |> Currency.to_wei()
-      |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(currency))
+      |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(currency), currency)
 
     gas_used = Client.get_gas_used(receipt_hash)
 
