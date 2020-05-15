@@ -92,39 +92,37 @@ defmodule StandardExitsTests do
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" (?<symbol>[\w]+) on the child chain after finality margin$/,
           %{amount: amount, symbol: symbol},
-          %{alice_account: alice_account} = state do
+          state do
     currency = get_currency(symbol)
 
     case amount do
       "0" ->
-        assert Client.get_exact_balance(alice_account, Currency.to_wei(amount), currency) == nil
+        assert Client.get_exact_balance(state.alice_account, Currency.to_wei(amount), currency) == nil
 
       _ ->
-        %{"amount" => network_amount} = Client.get_exact_balance(alice_account, Currency.to_wei(amount), currency)
+        %{"amount" => network_amount} = Client.get_exact_balance(state.alice_account, Currency.to_wei(amount), currency)
         assert network_amount == Currency.to_wei(amount)
     end
-
-    balance = Itest.Poller.root_chain_get_balance(alice_account, currency)
-    {:ok, Map.put(state, :alice_ethereum_balance, balance)}
   end
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" (?<symbol>[\w]+) on the root chain$/,
           %{amount: amount, symbol: symbol},
-          %{
-            alice_account: _alice_account,
-            alice_initial_balance: alice_initial_balance,
-            alice_ethereum_balance: alice_ethereum_balance
-          } = state do
-    _currency = get_currency(symbol)
-    gas_wei = state[:standard_exit_total_gas_used] + state[:gas]
+          state do
+    currency = get_currency(symbol)
+    ether = Currency.ether()
+    eth_balance = Itest.Poller.root_chain_get_balance(state.alice_account, ether)
 
-    assert_equal(alice_ethereum_balance, alice_initial_balance - gas_wei)
-    assert_equal(alice_ethereum_balance, Currency.to_wei(amount) - gas_wei)
-    {:ok, state}
-  end
+    case currency do
+      ^ether ->
+        gas_wei = state.standard_exit_total_gas_used + state.gas
+        assert eth_balance == Currency.to_wei(amount) - gas_wei
 
-  defp assert_equal(left, right) do
-    assert_equal(left, right, "")
+      _ ->
+        erc20_balance = Itest.Poller.root_chain_get_balance(state.alice_account, currency)
+        assert erc20_balance == Currency.to_wei(amount) + 1
+    end
+
+    {:ok, Map.put(state, :alice_ethereum_balance, eth_balance)}
   end
 
   defp assert_equal(left, right, message) do
