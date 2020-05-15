@@ -22,7 +22,7 @@ Application.ensure_all_started(:ethereumex)
 data = ABI.encode("minExitPeriod()", [])
 {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
-miliseconds =
+milliseconds =
   result
   |> Encoding.to_binary()
   |> ABI.TypeDecoder.decode([{:uint, 160}])
@@ -112,4 +112,4 @@ end
 add_exit_queue.("ETH", Currency.ether())
 add_exit_queue.("ERC20", Currency.erc20())
 
-ExUnit.start(trace: "--trace" in System.argv(), timeout: miliseconds)
+ExUnit.start(trace: "--trace" in System.argv(), timeout: milliseconds)
