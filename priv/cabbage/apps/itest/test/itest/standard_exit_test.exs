@@ -119,7 +119,7 @@ defmodule StandardExitsTests do
 
       _ ->
         erc20_balance = Itest.Poller.root_chain_get_balance(state.alice_account, currency)
-        assert erc20_balance == Currency.to_wei(amount) + 1
+        assert erc20_balance == Currency.to_wei(amount)
     end
 
     {:ok, Map.put(state, :alice_ethereum_balance, eth_balance)}
