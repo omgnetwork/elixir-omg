@@ -48,7 +48,7 @@ defmodule Itest.Transactions.Currency do
   def mint_erc20(to_addr, amount) do
     {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
 
-    data = ABI.encode("mint(address,uint256)", [to_addr, amount])
+    data = ABI.encode("mint(address,uint256)", [Encoding.to_binary(to_addr), amount])
 
     txmap = %{
       from: Encoding.to_hex(faucet),

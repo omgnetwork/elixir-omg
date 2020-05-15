@@ -127,5 +127,5 @@ defmodule StandardExitsTests do
 
   defp get_currency("ETH"), do: Currency.ether()
   defp get_currency("ERC20"), do: Currency.erc20()
-  defp get_currency(symbol), do: raise "Unrecognized currency: #{symbol}"
+  defp get_currency(symbol), do: raise("Unrecognized currency: #{symbol}")
 end
