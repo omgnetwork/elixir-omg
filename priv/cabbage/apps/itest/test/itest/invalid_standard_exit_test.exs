@@ -133,6 +133,7 @@ defmodule InvalidStandardExitsTests do
 
     new_state =
       state
+      |> Map.put(:standard_exit, se)
       |> Map.update!(:alice_gas, fn current_gas -> current_gas + gas_used1 + gas_used2 end)
       |> Map.put_new(:alice_bond, se.standard_exit_bond_size)
 
@@ -162,11 +163,13 @@ defmodule InvalidStandardExitsTests do
     # need n_exits: <many>, because we're trying to prove that Alice's processing of the challenged exit fails
     # otherwise, you're risking not processing "enough" exits and it will seem like Alice's exit got challenged, while
     # it is not necessarily true
-    standard_exit_client = %StandardExitClient{address: alice_account, standard_exit_id: 0}
-    se = StandardExitClient.wait_and_process_standard_exit(standard_exit_client, n_exits: 2000)
-
+    se = StandardExitClient.wait_and_process_standard_exit(state.standard_exit, n_exits: 2000)
     gas_used = Client.get_gas_used(se.process_exit_receipt_hash)
-    new_state = Map.update!(state, :alice_gas, fn current_gas -> current_gas + gas_used end)
+
+    new_state =
+      state
+      |> Map.update!(:alice_gas, fn current_gas -> current_gas + gas_used end)
+      |> Map.put(:standard_exit, se)
 
     {:ok, new_state}
   end
