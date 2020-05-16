@@ -41,25 +41,20 @@ defmodule StandardExitsTests do
     initial_eth_balance = Itest.Poller.root_chain_get_balance(alice_account, Currency.ether())
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account, currency)
 
-    IO.inspect(initial_balance, label: "initial_balance")
-
     {:ok, receipt_hash} =
       amount
       |> Currency.to_wei()
       |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(currency), currency)
 
-    deposit_gas = Client.get_gas_used(receipt_hash) |> IO.inspect(label: "deposit_gas")
-    new_state = Map.update!(state, :gas_used, fn current_gas -> current_gas + deposit_gas end)
-    IO.inspect(new_state.gas_used, label: "new_state.gas_used")
-
+    deposit_gas = Client.get_gas_used(receipt_hash)
     balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account, currency)
-    IO.inspect(balance_after_deposit, label: "balance_after_deposit")
 
     new_state =
       new_state
       |> Map.put_new(:alice_root_chain_balance, balance_after_deposit)
       |> Map.put_new(:alice_initial_eth_balance, initial_eth_balance)
       |> Map.put_new(:alice_initial_balance, initial_balance)
+      |> Map.update!(state, :gas_used, fn current_gas -> current_gas + deposit_gas end)
 
     {:ok, new_state}
   end
@@ -71,9 +66,9 @@ defmodule StandardExitsTests do
     currency = get_currency(symbol)
 
     balance = Client.get_exact_balance(alice_account, expecting_amount, currency)
-
     balance = balance["amount"]
-    assert_equal(expecting_amount, balance, "For #{alice_account}")
+    assert expecting_amount == balance, "Expecting #{amount} #{symbol} for #{alice_account}"
+
     {:ok, state}
   end
 
@@ -91,11 +86,11 @@ defmodule StandardExitsTests do
 
   defwhen ~r/^Alice processes the standard exit on the child chain$/, _, state do
     se = StandardExitClient.wait_and_process_standard_exit(state.standard_exit)
-    IO.inspect(se.total_gas_used, label: "se.total_gas_used")
-    IO.inspect(state.gas_used, label: "state.gas_used before start & process exit")
-    state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
-    state = Map.update!(state, :gas_used, fn gas_used -> gas_used + se.total_gas_used end)
-    IO.inspect(state.gas_used, label: "state.gas_used after start & process exit")
+
+    state =
+      state
+      |> Map.put_new(:standard_exit_total_gas_used, se.total_gas_used)
+      |> Map.update!(:gas_used, fn gas_used -> gas_used + se.total_gas_used end)
 
     {:ok, state}
   end
@@ -117,10 +112,6 @@ defmodule StandardExitsTests do
 
   defthen ~r/^Alice should have the original ETH balance minus gas used on the root chain$/, _, state do
     eth_balance = Itest.Poller.root_chain_get_balance(state.alice_account, Currency.ether())
-    IO.inspect(eth_balance, label: "eth_balance")
-    IO.inspect(state.alice_initial_eth_balance, label: "state.alice_initial_eth_balance")
-    IO.inspect(state.alice_initial_balance, label: "state.alice_initial_balance")
-    IO.inspect(state.gas_used, label: "state.gas_used")
     assert eth_balance == state.alice_initial_eth_balance - state.gas_used
 
     {:ok, Map.put(state, :alice_root_chain_balance, eth_balance)}
@@ -135,10 +126,6 @@ defmodule StandardExitsTests do
     assert erc20_balance == state.alice_initial_balance
 
     {:ok, Map.put(state, :alice_root_chain_erc20_balance, erc20_balance)}
-  end
-
-  defp assert_equal(left, right, message) do
-    assert(left == right, "Expected #{left}, but have #{right}." <> message)
   end
 
   defp get_currency("ETH"), do: Currency.ether()
