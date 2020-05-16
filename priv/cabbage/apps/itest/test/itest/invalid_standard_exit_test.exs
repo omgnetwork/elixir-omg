@@ -147,9 +147,7 @@ defmodule InvalidStandardExitsTests do
     {:ok, Map.put(state, :prior_byzantine_events, [event | prior_byzantine_events])}
   end
 
-  defwhen ~r/^Bob challenges an invalid exit$/,
-          _,
-          %{bob_account: bob_account} = state do
+  defwhen ~r/^Bob challenges an invalid exit$/, _, %{bob_account: bob_account} = state do
     pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
     |> Map.fetch!("byzantine_events")
     |> hd
@@ -159,7 +157,7 @@ defmodule InvalidStandardExitsTests do
     {:ok, state}
   end
 
-  defthen ~r/^Exits are processed$/, _, %{alice_account: alice_account} = state do
+  defthen ~r/^Exits are processed$/, _, state do
     # need n_exits: <many>, because we're trying to prove that Alice's processing of the challenged exit fails
     # otherwise, you're risking not processing "enough" exits and it will seem like Alice's exit got challenged, while
     # it is not necessarily true
