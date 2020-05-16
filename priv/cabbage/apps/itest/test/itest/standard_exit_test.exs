@@ -36,7 +36,11 @@ defmodule StandardExitsTests do
           %{amount: amount, symbol: symbol},
           %{alice_account: alice_account} = state do
     currency = get_currency(symbol)
+
+    # We need both initial_eth_balance and initial_balance because in ERC-20 case we check both
+    initial_eth_balance = Itest.Poller.root_chain_get_balance(alice_account, Currency.ether())
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account, currency)
+
     IO.inspect(initial_balance, label: "initial_balance")
 
     {:ok, receipt_hash} =
@@ -51,8 +55,13 @@ defmodule StandardExitsTests do
     balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account, currency)
     IO.inspect(balance_after_deposit, label: "balance_after_deposit")
 
-    state = Map.put_new(new_state, :alice_root_chain_balance, balance_after_deposit)
-    {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
+    new_state =
+      new_state
+      |> Map.put_new(:alice_root_chain_balance, balance_after_deposit)
+      |> Map.put_new(:alice_initial_eth_balance, initial_eth_balance)
+      |> Map.put_new(:alice_initial_balance, initial_balance)
+
+    {:ok, new_state}
   end
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" (?<symbol>[\w]+) on the child chain$/,
@@ -109,9 +118,10 @@ defmodule StandardExitsTests do
   defthen ~r/^Alice should have the original ETH balance minus gas used on the root chain$/, _, state do
     eth_balance = Itest.Poller.root_chain_get_balance(state.alice_account, Currency.ether())
     IO.inspect(eth_balance, label: "eth_balance")
+    IO.inspect(state.alice_initial_eth_balance, label: "state.alice_initial_eth_balance")
     IO.inspect(state.alice_initial_balance, label: "state.alice_initial_balance")
     IO.inspect(state.gas_used, label: "state.gas_used")
-    assert eth_balance == state.alice_initial_balance - state.gas_used
+    assert eth_balance == state.alice_initial_eth_balance - state.gas_used
 
     {:ok, Map.put(state, :alice_root_chain_balance, eth_balance)}
   end
