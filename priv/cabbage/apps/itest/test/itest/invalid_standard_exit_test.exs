@@ -42,7 +42,7 @@ defmodule InvalidStandardExitsTests do
   defgiven ~r/^Alice deposited "(?<amount>[^"]+)" ETH on the child chain$/,
            %{amount: amount},
            %{alice_account: alice_account} = state do
-    initial_balance_on_root_chain = Itest.Poller.eth_get_balance(alice_account)
+    initial_balance_on_root_chain = Itest.Poller.root_chain_get_balance(alice_account)
 
     expecting_amount = Currency.to_wei(amount)
 
@@ -62,7 +62,7 @@ defmodule InvalidStandardExitsTests do
   defgiven ~r/^Alice received "(?<amount>[^"]+)" ETH on the child chain$/,
            %{amount: amount},
            %{alice_account: alice_account, carol_account: carol_account, carol_pkey: carol_pkey} = state do
-    initial_balance_on_root_chain = Itest.Poller.eth_get_balance(alice_account)
+    initial_balance_on_root_chain = Itest.Poller.root_chain_get_balance(alice_account)
 
     carol_amount =
       amount
@@ -179,7 +179,7 @@ defmodule InvalidStandardExitsTests do
             alice_gas: alice_gas,
             alice_bond: alice_bond
           } = state do
-    alice_ethereum_balance = Itest.Poller.eth_get_balance(alice_account)
+    alice_ethereum_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
     assert alice_ethereum_balance ==
              alice_initial_balance_on_root_chain - Currency.to_wei(difference) - alice_gas - alice_bond

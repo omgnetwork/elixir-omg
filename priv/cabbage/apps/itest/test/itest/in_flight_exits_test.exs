@@ -124,7 +124,7 @@ defmodule InFlightExitsTests do
            %{entity: entity, amount: amount},
            state do
     %{address: address} = entity_state = state[entity]
-    initial_balance = Itest.Poller.eth_get_balance(address)
+    initial_balance = Itest.Poller.root_chain_get_balance(address)
 
     {:ok, receipt_hash} =
       amount
@@ -148,7 +148,7 @@ defmodule InFlightExitsTests do
     |> Kernel.round()
     |> Process.sleep()
 
-    balance_after_deposit = Itest.Poller.eth_get_balance(address)
+    balance_after_deposit = Itest.Poller.root_chain_get_balance(address)
 
     entity_state =
       entity_state
@@ -187,7 +187,7 @@ defmodule InFlightExitsTests do
         blknum
       )
 
-    balance = Itest.Poller.eth_get_balance(address)
+    balance = Itest.Poller.root_chain_get_balance(address)
 
     entity_state =
       entity_state
