@@ -276,7 +276,7 @@ defmodule Itest.StandardExitClient do
 
     total_gas_used =
       Enum.reduce(receipt_hashes, 0, fn receipt_hash, acc ->
-        gas = Itest.Gas.get_gas_used(receipt_hash)
+        gas = Itest.Gas.get_gas_used(receipt_hash) |> IO.inspect(label: "three gases")
         acc + gas
       end)
 

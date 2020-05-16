@@ -37,16 +37,19 @@ defmodule StandardExitsTests do
           %{alice_account: alice_account} = state do
     currency = get_currency(symbol)
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account, currency)
+    IO.inspect(initial_balance, label: "initial_balance")
 
     {:ok, receipt_hash} =
       amount
       |> Currency.to_wei()
       |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(currency), currency)
 
-    deposit_gas = Client.get_gas_used(receipt_hash)
+    deposit_gas = Client.get_gas_used(receipt_hash) |> IO.inspect(label: "deposit_gas")
     new_state = Map.update!(state, :gas_used, fn current_gas -> current_gas + deposit_gas end)
+    IO.inspect(new_state.gas_used, label: "new_state.gas_used")
 
     balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account, currency)
+    IO.inspect(balance_after_deposit, label: "balance_after_deposit")
 
     state = Map.put_new(new_state, :alice_root_chain_balance, balance_after_deposit)
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
@@ -79,8 +82,11 @@ defmodule StandardExitsTests do
 
   defwhen ~r/^Alice processes the standard exit on the child chain$/, _, state do
     se = StandardExitClient.wait_and_process_standard_exit(state.standard_exit)
+    IO.inspect(se.total_gas_used, label: "se.total_gas_used")
+    IO.inspect(state.gas_used, label: "state.gas_used before start & process exit")
     state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
     state = Map.update!(state, :gas_used, fn gas_used -> gas_used + se.total_gas_used end)
+    IO.inspect(state.gas_used, label: "state.gas_used after start & process exit")
 
     {:ok, state}
   end
@@ -102,6 +108,9 @@ defmodule StandardExitsTests do
 
   defthen ~r/^Alice should have the original ETH balance minus gas used on the root chain$/, _, state do
     eth_balance = Itest.Poller.root_chain_get_balance(state.alice_account, Currency.ether())
+    IO.inspect(eth_balance, label: "eth_balance")
+    IO.inspect(state.alice_initial_balance, label: "state.alice_initial_balance")
+    IO.inspect(state.gas_used, label: "state.gas_used")
     assert eth_balance == state.alice_initial_balance - state.gas_used
 
     {:ok, Map.put(state, :alice_root_chain_balance, eth_balance)}
