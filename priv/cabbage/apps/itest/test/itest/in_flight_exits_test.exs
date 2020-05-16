@@ -750,9 +750,7 @@ defmodule InFlightExitsTests do
 
     assert utxo["amount"] == Currency.to_wei(5)
 
-    utxo = %{blknum: utxo["blknum"], oindex: utxo["oindex"], txindex: utxo["txindex"]}
-
-    standard_exit_client = %StandardExitClient{address: alice_address, utxo: %Utxo{utxo_pos: ExPlasma.Utxo.pos(utxo)}}
+    standard_exit_client = %StandardExitClient{address: alice_address, utxo: Utxo.to_struct(utxo)}
     StandardExitClient.start_standard_exit(standard_exit_client)
 
     {:ok, state}
