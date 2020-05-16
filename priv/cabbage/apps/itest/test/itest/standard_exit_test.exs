@@ -27,11 +27,9 @@ defmodule StandardExitsTests do
     erc20_amount = Currency.to_wei(100)
     erc20_vault = Itest.PlasmaFramework.vault(Currency.erc20())
     {:ok, _} = Currency.mint_erc20(alice_account, erc20_amount)
-    {:ok, approve_receipt} = Currency.approve_erc20(alice_account, erc20_amount, erc20_vault)
+    {:ok, _} = Currency.approve_erc20(alice_account, erc20_amount, erc20_vault)
 
-    gas_used = Client.get_gas_used(approve_receipt)
-
-    %{alice_account: alice_account, alice_pkey: alice_pkey, gas_used: gas_used}
+    %{alice_account: alice_account, alice_pkey: alice_pkey, gas_used: 0}
   end
 
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" (?<symbol>[\w]+) to the root chain$/,
