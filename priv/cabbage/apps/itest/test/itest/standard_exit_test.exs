@@ -29,9 +29,9 @@ defmodule StandardExitsTests do
     {:ok, mint_receipt} = Currency.mint_erc20(alice_account, erc20_amount)
     {:ok, approve_receipt} = Currency.approve_erc20(alice_account, erc20_amount, erc20_vault)
 
-    gas = Client.get_gas_used(mint_receipt) + Client.get_gas_used(approve_receipt)
+    gas_used = Client.get_gas_used(mint_receipt) + Client.get_gas_used(approve_receipt)
 
-    %{alice_account: alice_account, alice_pkey: alice_pkey, gas: gas}
+    %{alice_account: alice_account, alice_pkey: alice_pkey, gas_used: gas_used}
   end
 
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" (?<symbol>[\w]+) to the root chain$/,
@@ -45,16 +45,12 @@ defmodule StandardExitsTests do
       |> Currency.to_wei()
       |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(currency), currency)
 
-    gas_used = Client.get_gas_used(receipt_hash)
-
-    {_, new_state} =
-      Map.get_and_update!(state, :gas, fn current_gas ->
-        {current_gas, current_gas + gas_used}
-      end)
+    deposit_gas = Client.get_gas_used(receipt_hash)
+    new_state = Map.update!(state, :gas_used, fn current_gas -> current_gas + deposit_gas end)
 
     balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account, currency)
 
-    state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
+    state = Map.put_new(new_state, :alice_root_chain_balance, balance_after_deposit)
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
   end
 
@@ -86,6 +82,7 @@ defmodule StandardExitsTests do
   defwhen ~r/^Alice processes the standard exit on the child chain$/, _, state do
     se = StandardExitClient.wait_and_process_standard_exit(state.standard_exit)
     state = Map.put_new(state, :standard_exit_total_gas_used, se.total_gas_used)
+    state = Map.update!(state, :gas_used, fn gas_used -> gas_used + se.total_gas_used end)
 
     {:ok, state}
   end
@@ -105,24 +102,22 @@ defmodule StandardExitsTests do
     end
   end
 
-  defthen ~r/^Alice should have "(?<amount>[^"]+)" (?<symbol>[\w]+) on the root chain$/,
-          %{amount: amount, symbol: symbol},
+  defthen ~r/^Alice should have the original ETH balance minus gas used on the root chain$/, _, state do
+    eth_balance = Itest.Poller.root_chain_get_balance(state.alice_account, Currency.ether())
+    assert eth_balance == state.alice_initial_balance - state.gas_used
+
+    {:ok, Map.put(state, :alice_root_chain_balance, eth_balance)}
+  end
+
+  defthen ~r/^Alice should have the original (?<symbol>[\w]+) balance on the root chain$/,
+          %{symbol: symbol},
           state do
     currency = get_currency(symbol)
-    ether = Currency.ether()
-    eth_balance = Itest.Poller.root_chain_get_balance(state.alice_account, ether)
 
-    case currency do
-      ^ether ->
-        gas_wei = state.standard_exit_total_gas_used + state.gas
-        assert eth_balance == Currency.to_wei(amount) - gas_wei
+    erc20_balance = Itest.Poller.root_chain_get_balance(state.alice_account, currency)
+    assert erc20_balance == state.alice_initial_balance
 
-      _ ->
-        erc20_balance = Itest.Poller.root_chain_get_balance(state.alice_account, currency)
-        assert erc20_balance == Currency.to_wei(amount)
-    end
-
-    {:ok, Map.put(state, :alice_ethereum_balance, eth_balance)}
+    {:ok, Map.put(state, :alice_root_chain_erc20_balance, erc20_balance)}
   end
 
   defp assert_equal(left, right, message) do
