@@ -68,11 +68,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type new_piggyback_event_t() :: new_piggyback_input_event_t() | new_piggyback_output_event_t()
 
-<<<<<<< HEAD
-  defstruct [:sla_seconds, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
-=======
   defstruct [
-    :sla_margin,
+    :sla_seconds,
     :min_exit_period_seconds,
     :child_block_interval,
     exits: %{},
@@ -80,7 +77,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     exit_ids: %{},
     competitors: %{}
   ]
->>>>>>> master
 
   @type t :: %__MODULE__{
           sla_seconds: non_neg_integer(),
@@ -115,14 +111,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}],
           db_in_flight_exits :: [{Transaction.tx_hash(), InFlightExitInfo.t()}],
           db_competitors :: [{Transaction.tx_hash(), CompetitorInfo.t()}],
-<<<<<<< HEAD
-          sla_seconds :: non_neg_integer
-        ) :: {:ok, t()}
-  def init(db_exits, db_in_flight_exits, db_competitors, sla_seconds \\ @default_sla_seconds) do
-=======
           min_exit_period_seconds :: non_neg_integer(),
           child_block_interval :: non_neg_integer,
-          sla_margin :: non_neg_integer
+          sla_seconds :: non_neg_integer
         ) :: {:ok, t()}
   def init(
         db_exits,
@@ -130,9 +121,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         db_competitors,
         min_exit_period_seconds,
         child_block_interval,
-        sla_margin \\ @default_sla_margin
+        sla_seconds \\ @default_sla_seconds
       ) do
->>>>>>> master
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
 
     exit_ids = Enum.into(exits, %{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
@@ -143,13 +133,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
        in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
        exit_ids: exit_ids,
        competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
-<<<<<<< HEAD
-       sla_seconds: sla_seconds
-=======
-       sla_margin: sla_margin,
+       sla_seconds: sla_seconds,
        min_exit_period_seconds: min_exit_period_seconds,
        child_block_interval: child_block_interval
->>>>>>> master
      }}
   end
 
