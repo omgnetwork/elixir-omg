@@ -166,25 +166,23 @@ defmodule Itest.Poller do
   end
 
   defp get_balance(address, currency, counter) do
-    response = account_get_balances(address)
+    response =
+      case account_get_balances(address) do
+        {:ok, response} ->
+          decoded_response = Jason.decode!(response.body)
+          Enum.find(decoded_response["data"], :error, fn data -> data["currency"] == currency end)
+
+        _ ->
+          :error
+      end
 
     case response do
-      {:ok, response} ->
-        decoded_response = Jason.decode!(response.body)
-
-        case Enum.find(decoded_response["data"], fn data -> data["currency"] == currency end) do
-          nil ->
-            Process.sleep(@sleep_retry_sec)
-            get_balance(address, currency, counter - 1)
-
-          data ->
-            data
-        end
-
-      _ ->
-        # socket closed etc.
+      :error ->
         Process.sleep(@sleep_retry_sec)
         get_balance(address, currency, counter - 1)
+
+      balance ->
+        balance
     end
   end
 
@@ -195,29 +193,28 @@ defmodule Itest.Poller do
   end
 
   defp pull_balance_until_amount(address, amount, currency, counter) do
-    response = account_get_balances(address)
+    response =
+      case account_get_balances(address) do
+        {:ok, response} ->
+          decoded_response = Jason.decode!(response.body)
+          Enum.find(decoded_response["data"], fn data -> data["currency"] == currency end)
+
+        _ ->
+          # socket closed etc.
+          :error
+      end
 
     case response do
-      {:ok, response} ->
-        decoded_response = Jason.decode!(response.body)
+      # empty response is considered no account balance!
+      nil when amount == 0 ->
+        nil
 
-        case Enum.find(decoded_response["data"], fn data -> data["currency"] == currency end) do
-          # empty response is considered no account balance!
-          nil when amount == 0 ->
-            nil
-
-          %{"amount" => ^amount} = data ->
-            data
-
-          _ ->
-            Process.sleep(@sleep_retry_sec)
-            pull_balance_until_amount(address, amount, currency, counter - 1)
-        end
+      %{"amount" => ^amount} = balance ->
+        balance
 
       _ ->
-        # socket closed etc.
         Process.sleep(@sleep_retry_sec)
-        pull_balance_until_amount(address, amount, counter - 1)
+        pull_balance_until_amount(address, amount, currency, counter - 1)
     end
   end
 
