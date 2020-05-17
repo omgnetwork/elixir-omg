@@ -50,11 +50,11 @@ defmodule StandardExitsTests do
     balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account, currency)
 
     new_state =
-      new_state
+      state
       |> Map.put_new(:alice_root_chain_balance, balance_after_deposit)
       |> Map.put_new(:alice_initial_eth_balance, initial_eth_balance)
       |> Map.put_new(:alice_initial_balance, initial_balance)
-      |> Map.update!(state, :gas_used, fn current_gas -> current_gas + deposit_gas end)
+      |> Map.update!(:gas_used, fn current_gas -> current_gas + deposit_gas end)
 
     {:ok, new_state}
   end
