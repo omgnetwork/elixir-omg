@@ -31,6 +31,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   import OMG.Watcher.ExitProcessor.TestHelper
 
+  @default_min_exit_period_seconds 120
+  @default_child_block_interval 1000
   @eth OMG.Eth.zero_address()
 
   @utxo_pos1 Utxo.position(1, 0, 0)
@@ -45,7 +47,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
     alice = OMG.TestHelper.generate_entity()
     carol = OMG.TestHelper.generate_entity()
-    {:ok, processor_empty} = Core.init([], [], [])
+    {:ok, processor_empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)
 
     transactions = [
       Transaction.Payment.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}]),
@@ -60,13 +62,19 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
            owner: alice.addr,
            eth_height: 2,
            exit_id: 1,
-           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1}
+           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1},
+           root_chain_txhash: <<1::256>>,
+           block_timestamp: 1,
+           scheduled_finalization_time: 2
          },
          %{
            owner: alice.addr,
            eth_height: 4,
            exit_id: 2,
-           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2}
+           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2},
+           root_chain_txhash: <<2::256>>,
+           block_timestamp: 3,
+           scheduled_finalization_time: 4
          }
        ],
        [
@@ -193,7 +201,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     {:ok, db_ifes} = OMG.DB.in_flight_exits_info(db_pid)
     {:ok, db_competitors} = OMG.DB.competitors_info(db_pid)
 
-    {:ok, state} = Core.init(db_exits, db_ifes, db_competitors)
+    {:ok, state} =
+      Core.init(db_exits, db_ifes, db_competitors, @default_min_exit_period_seconds, @default_child_block_interval)
+
     state
   end
 

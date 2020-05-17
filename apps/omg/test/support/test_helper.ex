@@ -172,7 +172,7 @@ defmodule OMG.TestHelper do
   def write_fee_file(content, file_path) do
     path =
       case file_path do
-        nil -> "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{DateTime.to_unix(DateTime.utc_now())}"
+        nil -> "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{System.monotonic_time()}"
         _ -> file_path
       end
 
@@ -181,17 +181,21 @@ defmodule OMG.TestHelper do
   end
 
   defp parse_fees(fees) do
-    Enum.map(fees, fn {"0x" <> _ = token, fee} ->
-      %{
-        token: token,
-        amount: fee.amount,
-        subunit_to_unit: fee.subunit_to_unit,
-        pegged_amount: fee.pegged_amount,
-        pegged_currency: fee.pegged_currency,
-        pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
-        updated_at: fee.updated_at
-      }
+    fees
+    |> Enum.map(fn {"0x" <> _ = token, fee} ->
+      {token,
+       %{
+         amount: fee.amount,
+         subunit_to_unit: fee.subunit_to_unit,
+         pegged_amount: fee.pegged_amount,
+         pegged_currency: fee.pegged_currency,
+         pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+         updated_at: fee.updated_at,
+         symbol: "token",
+         type: "fixed"
+       }}
     end)
+    |> Map.new()
   end
 
   defp get_private_keys(inputs),

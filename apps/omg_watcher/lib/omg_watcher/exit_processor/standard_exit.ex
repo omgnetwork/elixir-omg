@@ -63,21 +63,33 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   end
 
   @doc """
-  Gets all standard exits that are invalid, all and late ones separately
+  Gets all standard exits that are invalid, all and late ones separately, also adds their :spending_txhash
   """
   @spec get_invalid(Core.t(), %{Utxo.Position.t() => boolean}, pos_integer()) ::
           {%{Utxo.Position.t() => ExitInfo.t()}, %{Utxo.Position.t() => ExitInfo.t()}}
   def get_invalid(%Core{sla_seconds: sla_seconds} = state, utxo_exists?, eth_height_now) do
     active_exits = active_exits(state)
 
+    exits_invalid_by_ife =
+      state
+      |> TxAppendix.get_all()
+      |> get_invalid_exits_based_on_ifes(active_exits)
+
     invalid_exit_positions =
       active_exits
       |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
       |> only_utxos_checked_and_missing(utxo_exists?)
 
-    tx_appendix = TxAppendix.get_all(state)
-    exits_invalid_by_ife = get_invalid_exits_based_on_ifes(active_exits, tx_appendix)
-    invalid_exits = active_exits |> Map.take(invalid_exit_positions) |> Enum.concat(exits_invalid_by_ife) |> Enum.uniq()
+    standard_invalid_exits =
+      active_exits
+      |> Map.take(invalid_exit_positions)
+      |> Enum.map(fn {utxo_pos, invalid_exit} ->
+        spending_txhash = spending_txhash_for_exit_at(utxo_pos)
+
+        {utxo_pos, %{invalid_exit | spending_txhash: spending_txhash}}
+      end)
+
+    invalid_exits = standard_invalid_exits |> Enum.concat(exits_invalid_by_ife) |> Enum.uniq()
 
     _ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
     # get exits which are still invalid and after the SLA margin
@@ -88,6 +100,30 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
       end)
 
     {Map.new(invalid_exits), Map.new(late_invalid_exits)}
+  end
+
+  defp spending_txhash_for_exit_at(utxo_pos) do
+    utxo_pos
+    |> Utxo.Position.to_input_db_key()
+    |> OMG.DB.spent_blknum()
+    |> List.wrap()
+    |> Core.handle_spent_blknum_result([utxo_pos])
+    |> do_get_blocks()
+    |> case do
+      [block] ->
+        %DoubleSpend{known_tx: %KnownTx{signed_tx: spending_tx}} = get_double_spend_for_standard_exit(block, utxo_pos)
+        Transaction.raw_txhash(spending_tx)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp do_get_blocks(blknums) do
+    {:ok, hashes} = OMG.DB.block_hashes(blknums)
+    {:ok, blocks} = OMG.DB.blocks(hashes)
+
+    Enum.map(blocks, &Block.from_db_value/1)
   end
 
   @doc """
@@ -172,12 +208,24 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     Enum.at(get_double_spends_by_utxo_pos(utxo_pos, known_tx), 0)
   end
 
-  # Gets all standard exits invalidated by IFEs exiting their utxo positions
-  @spec get_invalid_exits_based_on_ifes(%{Utxo.Position.t() => ExitInfo.t()}, TxAppendix.t()) ::
+  # Gets all standard exits invalidated by IFEs exiting their utxo positions and append the spending_txhash
+  @spec get_invalid_exits_based_on_ifes(TxAppendix.t(), %{Utxo.Position.t() => ExitInfo.t()}) ::
           list({Utxo.Position.t(), ExitInfo.t()})
-  defp get_invalid_exits_based_on_ifes(active_exits, tx_appendix) do
+  defp get_invalid_exits_based_on_ifes(tx_appendix, active_exits) do
     known_txs_by_input = get_ife_txs_by_spent_input(tx_appendix)
-    Enum.filter(active_exits, fn {utxo_pos, _exit_info} -> Map.has_key?(known_txs_by_input, utxo_pos) end)
+
+    active_exits
+    |> Enum.filter(fn {utxo_pos, _exit_info} -> Map.has_key?(known_txs_by_input, utxo_pos) end)
+    |> Enum.map(fn {utxo_pos, exit_info} ->
+      spending_txhash =
+        known_txs_by_input
+        |> Map.get(utxo_pos)
+        |> Enum.at(0)
+        |> Map.get(:signed_tx)
+        |> Transaction.raw_txhash()
+
+      {utxo_pos, %{exit_info | spending_txhash: spending_txhash}}
+    end)
   end
 
   @spec get_double_spends_by_utxo_pos(Utxo.Position.t(), KnownTx.t()) :: list(DoubleSpend.t())

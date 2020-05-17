@@ -13,7 +13,8 @@ config :logger,
 
 config :logger, Ink,
   name: "elixir-omg",
-  exclude_hostname: true
+  exclude_hostname: true,
+  log_encoding_error: true
 
 config :logger, Sentry.LoggerBackend,
   include_logger_metadata: true,

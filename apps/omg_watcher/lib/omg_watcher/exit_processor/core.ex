@@ -68,7 +68,19 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @type new_piggyback_event_t() :: new_piggyback_input_event_t() | new_piggyback_output_event_t()
 
+<<<<<<< HEAD
   defstruct [:sla_seconds, exits: %{}, in_flight_exits: %{}, exit_ids: %{}, competitors: %{}]
+=======
+  defstruct [
+    :sla_margin,
+    :min_exit_period_seconds,
+    :child_block_interval,
+    exits: %{},
+    in_flight_exits: %{},
+    exit_ids: %{},
+    competitors: %{}
+  ]
+>>>>>>> master
 
   @type t :: %__MODULE__{
           sla_seconds: non_neg_integer(),
@@ -78,7 +90,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           #       rethink the approach to the keys in the data structures - how to manage exit_ids? should the contract
           #       serve more data (e.g. input pointers/tx hashes) where it would normally only serve exit_ids?
           exit_ids: %{non_neg_integer() => Utxo.Position.t()},
-          competitors: %{Transaction.tx_hash() => CompetitorInfo.t()}
+          competitors: %{Transaction.tx_hash() => CompetitorInfo.t()},
+          min_exit_period_seconds: non_neg_integer(),
+          child_block_interval: non_neg_integer()
         }
 
   @type check_validity_result_t :: {:ok | {:error, :unchallenged_exit}, list(Event.byzantine_t())}
@@ -101,11 +115,27 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}],
           db_in_flight_exits :: [{Transaction.tx_hash(), InFlightExitInfo.t()}],
           db_competitors :: [{Transaction.tx_hash(), CompetitorInfo.t()}],
+<<<<<<< HEAD
           sla_seconds :: non_neg_integer
         ) :: {:ok, t()}
   def init(db_exits, db_in_flight_exits, db_competitors, sla_seconds \\ @default_sla_seconds) do
+=======
+          min_exit_period_seconds :: non_neg_integer(),
+          child_block_interval :: non_neg_integer,
+          sla_margin :: non_neg_integer
+        ) :: {:ok, t()}
+  def init(
+        db_exits,
+        db_in_flight_exits,
+        db_competitors,
+        min_exit_period_seconds,
+        child_block_interval,
+        sla_margin \\ @default_sla_margin
+      ) do
+>>>>>>> master
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
-    exit_ids = exits |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+
+    exit_ids = Enum.into(exits, %{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
 
     {:ok,
      %__MODULE__{
@@ -113,7 +143,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
        in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
        exit_ids: exit_ids,
        competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
+<<<<<<< HEAD
        sla_seconds: sla_seconds
+=======
+       sla_margin: sla_margin,
+       min_exit_period_seconds: min_exit_period_seconds,
+       child_block_interval: child_block_interval
+>>>>>>> master
      }}
   end
 
@@ -459,28 +495,33 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
 
-    ifes_with_competitors_events = ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input)
+    {non_canonical_ife_events, late_non_canonical_ife_events} =
+      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now)
+
     invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
-    invalid_piggybacks = ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input)
-    has_no_late_invalid_exits = Enum.empty?(late_invalid_exits)
+    {invalid_piggybacks_events, late_invalid_piggybacks_events} =
+      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, eth_height_now)
 
     available_piggybacks_events =
-      get_ifes_to_piggyback(state)
+      state
+      |> get_ifes_to_piggyback()
       |> Enum.flat_map(&prepare_available_piggyback/1)
 
+    unchallenged_exit_events =
+      late_non_canonical_ife_events ++ late_invalid_exits_events ++ late_invalid_piggybacks_events
+
+    chain_validity = if Enum.empty?(unchallenged_exit_events), do: :ok, else: {:error, :unchallenged_exit}
+
     events =
-      [
-        late_invalid_exits_events,
+      Enum.concat([
+        unchallenged_exit_events,
         invalid_exit_events,
-        invalid_piggybacks,
-        ifes_with_competitors_events,
+        invalid_piggybacks_events,
+        non_canonical_ife_events,
         invalid_ife_challenges_events,
         available_piggybacks_events
-      ]
-      |> Enum.concat()
-
-    chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
+      ])
 
     {chain_validity, events}
   end

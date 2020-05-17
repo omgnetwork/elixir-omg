@@ -42,8 +42,19 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     eth_height = Keyword.get(opts, :eth_height, 2)
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
     call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
+    root_chain_txhash = <<1::256>>
+    block_timestamp = :os.system_time(:second)
+    scheduled_finalization_time = block_timestamp + 100
 
-    event = %{owner: owner, eth_height: eth_height, exit_id: exit_id, call_data: call_data}
+    event = %{
+      owner: owner,
+      eth_height: eth_height,
+      exit_id: exit_id,
+      call_data: call_data,
+      root_chain_txhash: root_chain_txhash,
+      block_timestamp: block_timestamp,
+      scheduled_finalization_time: scheduled_finalization_time
+    }
 
     exitable = not Keyword.get(opts, :inactive, false)
     # those should be unused so setting to `nil`
@@ -60,7 +71,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
     status = Keyword.get(opts, :status, active_ife_status())
     status = if status == :inactive, do: inactive_ife_status(), else: status
+
     {processor, _} = Core.new_in_flight_exits(processor, [ife_event(tx, opts)], [{status, exit_id}])
+
     processor
   end
 
@@ -72,7 +85,11 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
   def piggyback_ife_from(%Core{} = processor, tx_hash, output_index, piggyback_type) do
     {processor, _} =
       Core.new_piggybacks(processor, [
-        %{tx_hash: tx_hash, output_index: output_index, omg_data: %{piggyback_type: piggyback_type}}
+        %{
+          tx_hash: tx_hash,
+          output_index: output_index,
+          omg_data: %{piggyback_type: piggyback_type}
+        }
       ])
 
     processor
@@ -81,7 +98,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
   def ife_event(tx, opts \\ []) do
     sigs = Keyword.get(opts, :sigs) || sigs(tx)
     input_utxos_pos = Transaction.get_inputs(tx) |> Enum.map(&Utxo.Position.encode/1)
+
     input_txs = Keyword.get(opts, :input_txs) || List.duplicate("input_tx", length(input_utxos_pos))
+
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     %{
@@ -102,7 +121,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     competitor_position = Keyword.get(opts, :competitor_position)
 
     competitor_position =
-      if competitor_position, do: Utxo.Position.encode(competitor_position), else: not_included_competitor_pos()
+      if competitor_position,
+        do: Utxo.Position.encode(competitor_position),
+        else: not_included_competitor_pos()
 
     %{
       tx_hash: Transaction.raw_txhash(tx),

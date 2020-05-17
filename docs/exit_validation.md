@@ -89,14 +89,19 @@ This is done by calling `/status.get` endpoint.
 
 This section treats this particular condition in-depth and explains the rationale.
 
-`unchallenged_exit` is raised and reported in the `byzantine_events` in `/status.get`'s response, whenever there is _any_ exit, which is invalid and old.
+Unchallenged exit events are reported in the `byzantine_events` in `/status.get`'s response, whenever there is _any_ exit, which is invalid and old.
 "Old" means that its respective challenge required _might be_ approaching scheduled finalization time, or just has been unchallenged for an unjustified amount of time.
+
+Unchallenged exits are signaled by either:
+ - `unchallenged_exit` event for unchallenged invalid standard exit
+ - `unchallenged_piggyback` event for unchallenged invalid piggyback on in-flight exit input or output
+ - `unchallenged_non_canononical_ife` event for in-flight exit, considered canonical that has a known competitor
 
 The action to take, when such condition is detected is to _exit all UTXOs_ held on the child chain.
 The rationale is that we suspect that the chain is imminent to become invalid, because some funds that shouldn't be exiting are being allowed to exit.
 We do not wait until it's "too late" and report _post factum_ - if we did, our mass exit could end up having too low a priority.
 
-Another thing to explain here is that the Watcher will **stop getting new child chain blocks** whenever it finds itself in an `unchallenged_exit` condition.
+Another thing to explain here is that the Watcher will **stop getting new child chain blocks** whenever it finds itself in an unchallenged exit condition.
 This stopping behavior is similar to as when an `invalid_block` condition is detected.
 The reason for this is to:
  - protect the user from relying on a possibly corrupt or insecure state of the system (e.g. accepting funds that won't be exitable)
@@ -106,7 +111,7 @@ The reason for this is to:
 In short, if at any point when watcher realizes it's in the "unsafe world" it stops processing blocks.
 
 An important thing to remember though, is that challenges keep on processing.
-In particular, the root cause of the `unchallenged_exit` condition, **might be gone** at one point, because the invalid exit got challenged.
+In particular, the root cause of the unchallenged exit condition, **might be gone** at one point, because the invalid exit got challenged.
 **In particular, it won't show up in the `byzantine_events` list, when queried from `/status.get`!**.
 However, by design, the Watcher won't resume getting new blocks without a manual restart; the process of "coming back to validity" is not supported.
 This behavior is driven by the notion that if things go this bad, it's game over, so yanking the watcher back into "safe world" automatically hasn't been considered,

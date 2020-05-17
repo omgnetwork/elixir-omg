@@ -14,19 +14,22 @@
 
 defmodule LoadTest.Scenario.CreateUtxos do
   @moduledoc """
-  Creates utxos owned by a sender provided in scenario config.
+  Funds an account and then splits the resulting utxo into many more utxos.
+
+  ## configuration values
+  - `sender` the owner of the utxos
+  - `utxos_to_create_per_session` the amount of utxos to create
   """
 
   use Chaperon.Scenario
 
   alias Chaperon.Session
   alias ExPlasma.Utxo
-  alias LoadTest.Service.Faucet
 
   @eth <<0::160>>
   @spawned_outputs_per_transaction 3
 
-  @spec run(Chaperon.Session.t()) :: Chaperon.Session.t()
+  @spec run(Session.t()) :: Session.t()
   def run(session) do
     fee_wei = Application.fetch_env!(:load_test, :fee_wei)
     session = Session.assign(session, fee_wei: fee_wei)
@@ -41,32 +44,30 @@ defmodule LoadTest.Scenario.CreateUtxos do
     amount_per_utxo = get_amount_per_created_utxo(fee_wei)
     initial_funds = number_of_transactions * fee_wei + utxos_to_create_per_session * amount_per_utxo + min_final_change
 
-    {:ok, utxo} = Faucet.fund_child_chain_account(sender, initial_funds, @eth)
-
     session
-    |> Chaperon.Session.assign(last_change: utxo)
+    |> run_scenario(LoadTest.Scenario.FundAccount, %{
+      account: sender,
+      initial_funds: initial_funds
+    })
     |> repeat(:submit_transaction, [sender], number_of_transactions)
   end
 
   def submit_transaction(session, sender) do
-    last_change = session.assigned.last_change
-    fee_wei = session.assigned.fee_wei
-    {inputs, outputs, change} = create_transaction(sender, last_change, fee_wei)
+    {inputs, outputs} = create_transaction(sender, session.assigned.utxo, session.assigned.fee_wei)
 
-    {:ok, blknum, txindex} = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
-    {:ok, last_change} = Utxo.new(%{blknum: blknum, txindex: txindex, oindex: 3, amount: change})
+    new_outputs = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
 
-    Chaperon.Session.assign(session, last_change: last_change)
+    Session.assign(session, utxo: List.last(new_outputs))
   end
 
-  defp create_transaction(sender, prev_change, fee_wei) do
+  defp create_transaction(sender, input, fee_wei) do
     amount_per_utxo = get_amount_per_created_utxo(fee_wei)
-    change = prev_change.amount - @spawned_outputs_per_transaction * amount_per_utxo - fee_wei
+    change = input.amount - @spawned_outputs_per_transaction * amount_per_utxo - fee_wei
 
     created_output = %Utxo{owner: sender.addr, currency: @eth, amount: amount_per_utxo}
     change_output = %Utxo{owner: sender.addr, currency: @eth, amount: change}
 
-    {[prev_change], List.duplicate(created_output, @spawned_outputs_per_transaction) ++ [change_output], change}
+    {[input], List.duplicate(created_output, @spawned_outputs_per_transaction) ++ [change_output]}
   end
 
   defp get_amount_per_created_utxo(fee_wei), do: fee_wei + 2

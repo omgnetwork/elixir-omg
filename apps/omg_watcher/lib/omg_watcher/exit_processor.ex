@@ -30,11 +30,13 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
+  alias OMG.Eth.RootChain
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExit
 
   use OMG.Utils.LoggerExt
@@ -258,7 +260,9 @@ defmodule OMG.Watcher.ExitProcessor do
         exit_processor_sla_seconds: exit_processor_sla_seconds,
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
         metrics_collection_interval: metrics_collection_interval,
-        min_exit_period_seconds: min_exit_period_seconds
+        min_exit_period_seconds: min_exit_period_seconds,
+        ethereum_block_time_seconds: ethereum_block_time_seconds,
+        child_block_interval: child_block_interval
       ) do
     {:ok, db_exits} = DB.exit_infos()
     {:ok, db_ifes} = DB.in_flight_exits_info()
@@ -271,7 +275,16 @@ defmodule OMG.Watcher.ExitProcessor do
         min_exit_period_seconds
       )
 
-    {:ok, processor} = Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_seconds)
+    {:ok, processor} =
+      Core.init(
+        db_exits,
+        db_ifes,
+        db_competitors,
+        min_exit_period_seconds,
+        child_block_interval,
+        exit_processor_sla_seconds
+      )
+
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
     _ = Logger.info("Initializing with: #{inspect(processor)}")
@@ -287,12 +300,21 @@ defmodule OMG.Watcher.ExitProcessor do
   - updates the `ExitProcessor`'s state
   - returns `db_updates`
   """
-  def handle_call({:new_exits, exits}, _from, state) do
+  def handle_call(
+        {:new_exits, exits},
+        _from,
+        state
+      ) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
     {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit_structs(get_in(exits, [Access.all(), :exit_id]))
 
-    {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
+    exit_maps =
+      Enum.map(exits, fn exit_event ->
+        put_timestamp_and_sft(exit_event, state.min_exit_period_seconds, state.child_block_interval)
+      end)
+
+    {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -648,5 +670,34 @@ defmodule OMG.Watcher.ExitProcessor do
     state_db_updates = exits_state_updates ++ state_db_updates
 
     {invalidities_by_ife_id, state_db_updates}
+  end
+
+  @spec put_timestamp_and_sft(
+          exit_event :: map(),
+          min_exit_period_seconds :: pos_integer(),
+          child_block_interval :: pos_integer()
+        ) ::
+          map()
+  defp put_timestamp_and_sft(
+         %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos_enc}} = exit_event,
+         min_exit_period_seconds,
+         child_block_interval
+       ) do
+    {:utxo_position, blknum, _, _} = Utxo.Position.decode!(utxo_pos_enc)
+    {_block_hash, utxo_creation_block_timestamp} = RootChain.blocks(blknum)
+    {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(eth_height)
+
+    {:ok, scheduled_finalization_time} =
+      ExitInfo.calculate_sft(
+        blknum,
+        exit_block_timestamp,
+        utxo_creation_block_timestamp,
+        min_exit_period_seconds,
+        child_block_interval
+      )
+
+    exit_event
+    |> Map.put(:scheduled_finalization_time, scheduled_finalization_time)
+    |> Map.put(:block_timestamp, exit_block_timestamp)
   end
 end

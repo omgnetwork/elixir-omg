@@ -429,6 +429,31 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       assert_proof_sound(proof_bytes)
     end
 
+    test "detects that invalid piggyback becomes unchalleneged exit when sla period passes",
+         %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
+      # 1. transaction which is, ife'd, output piggybacked, and included in a block
+      txbytes = txbytes(tx)
+      tx_blknum = 3000
+
+      # 2. transaction which spends that piggybacked output
+      comp = TestHelper.create_recovered([{tx_blknum, 0, 0, alice}], [{alice, @eth, 1}])
+
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5 + state.sla_margin,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
+      }
+
+      # 3. stuff happens in the contract
+      state =
+        state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0, :output) |> Core.find_ifes_in_blocks(request)
+
+      assert {{:error, :unchallenged_exit},
+              [
+                %Event.UnchallengedPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}
+              ]} = check_validity_filtered(request, state, only: [Event.UnchallengedPiggyback])
+    end
+
     test "detects double-spend of an output, found in a IFE, even if finalized",
          %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [tx_hash | _]} do
       txbytes = txbytes(tx)

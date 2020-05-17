@@ -16,7 +16,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @moduledoc """
   Test talking to OMG.State.Core
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias OMG.Eth.Configuration
   alias OMG.State
@@ -29,6 +29,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   import OMG.Watcher.ExitProcessor.TestHelper,
     only: [start_se_from: 3, start_se_from: 4, start_ife_from: 2, start_ife_from: 3, piggyback_ife_from: 4]
+
+  @default_min_exit_period_seconds 120
+  @default_child_block_interval 1000
 
   @eth OMG.Eth.zero_address()
   @fee_claimer_address "NO FEE CLAIMER ADDR!"
@@ -44,9 +47,20 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @exit_id 9876
 
   setup do
-    {:ok, processor_empty} = Core.init([], [], [])
+    db_path = Briefly.create!(directory: true)
+    Application.put_env(:omg_db, :path, db_path, persistent: true)
+    :ok = OMG.DB.init()
+    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+
+    {:ok, processor_empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)
     child_block_interval = Configuration.child_block_interval()
     {:ok, state_empty} = State.Core.extract_initial_state(0, child_block_interval, @fee_claimer_address)
+
+    on_exit(fn ->
+      Application.put_env(:omg_db, :path, nil)
+
+      Enum.map(started_apps, fn app -> :ok = Application.stop(app) end)
+    end)
 
     {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}
   end
