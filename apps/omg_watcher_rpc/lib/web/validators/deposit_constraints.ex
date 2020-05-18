@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Validator.EthEventConstraints do
+defmodule OMG.WatcherRPC.Web.Validator.DepositConstraints do
   @moduledoc """
   Validates query parameters for `deposit.all`
   """

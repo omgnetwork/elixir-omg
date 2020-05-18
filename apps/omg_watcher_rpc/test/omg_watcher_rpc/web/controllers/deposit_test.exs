@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Controller.EthEventTest do
+defmodule OMG.WatcherRPC.Web.Controller.DepositTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
