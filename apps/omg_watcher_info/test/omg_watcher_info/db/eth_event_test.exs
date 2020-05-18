@@ -41,6 +41,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     expected_root_chain_txnhash = Crypto.hash(<<1::256>>)
     expected_log_index = 0
     expected_event_type = :deposit
+    expected_eth_height = 1
 
     expected_blknum = 10_000
     expected_txindex = 0
@@ -62,6 +63,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  log_index: expected_log_index,
                  blknum: expected_blknum,
                  owner: expected_owner,
+                 eth_height: expected_eth_height,
                  currency: expected_currency,
                  amount: expected_amount
                }
@@ -72,7 +74,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert %DB.EthEvent{
              root_chain_txhash: ^expected_root_chain_txnhash,
              log_index: ^expected_log_index,
-             event_type: ^expected_event_type
+             event_type: ^expected_event_type,
+             eth_height: ^expected_eth_height
            } = event
 
     # check ethevent side of relationship
@@ -118,7 +121,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
              %DB.EthEvent{
                root_chain_txhash: ^expected_root_chain_txnhash,
                log_index: ^expected_log_index,
-               event_type: ^expected_event_type
+               event_type: ^expected_event_type,
+               eth_height: ^expected_eth_height
              }
              | _tail
            ] = txoutput.ethevents
@@ -131,6 +135,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     expected_currency = @eth
     expected_log_index = 0
     expected_amount = 1
+    expected_eth_height = 1
 
     expected_root_chain_txhash_1 = Crypto.hash(<<2::256>>)
 
@@ -161,7 +166,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  blknum: expected_blknum_1,
                  owner: expected_owner,
                  currency: expected_currency,
-                 amount: expected_amount
+                 amount: expected_amount,
+                 eth_height: expected_eth_height
                },
                %{
                  root_chain_txhash: expected_root_chain_txhash_2,
@@ -169,7 +175,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  blknum: expected_blknum_2,
                  owner: expected_owner,
                  currency: expected_currency,
-                 amount: expected_amount
+                 amount: expected_amount,
+                 eth_height: expected_eth_height
                },
                %{
                  root_chain_txhash: expected_root_chain_txhash_3,
@@ -177,26 +184,30 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  blknum: expected_blknum_3,
                  owner: expected_owner,
                  currency: expected_currency,
-                 amount: expected_amount
+                 amount: expected_amount,
+                 eth_height: expected_eth_height
                }
              ])
 
     assert %DB.EthEvent{
              root_chain_txhash: ^expected_root_chain_txhash_1,
              event_type: ^expected_event_type,
-             root_chain_txhash_event: ^expected_root_chain_txhash_event_1
+             root_chain_txhash_event: ^expected_root_chain_txhash_event_1,
+             eth_height: expected_eth_height
            } = DB.EthEvent.get(expected_root_chain_txhash_event_1)
 
     assert %DB.EthEvent{
              root_chain_txhash: ^expected_root_chain_txhash_2,
              event_type: ^expected_event_type,
-             root_chain_txhash_event: ^expected_root_chain_txhash_event_2
+             root_chain_txhash_event: ^expected_root_chain_txhash_event_2,
+             eth_height: expected_eth_height
            } = DB.EthEvent.get(expected_root_chain_txhash_event_2)
 
     assert %DB.EthEvent{
              root_chain_txhash: ^expected_root_chain_txhash_3,
              event_type: ^expected_event_type,
-             root_chain_txhash_event: ^expected_root_chain_txhash_event_3
+             root_chain_txhash_event: ^expected_root_chain_txhash_event_3,
+             eth_height: expected_eth_height
            } = DB.EthEvent.get(expected_root_chain_txhash_event_3)
 
     %{data: alice_utxos} = DB.TxOutput.get_utxos(address: alice.addr)
@@ -224,6 +235,9 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     expected_deposit_root_chain_txhash = Crypto.hash(<<5::256>>)
     expected_exit_root_chain_txhash = Crypto.hash(<<6::256>>)
 
+    expected_deposit_eth_height = 1
+    expected_exit_eth_height = 2
+
     assert :ok =
              DB.EthEvent.insert_deposits!([
                %{
@@ -232,7 +246,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  blknum: expected_blknum,
                  owner: expected_owner,
                  currency: expected_currency,
-                 amount: expected_amount
+                 amount: expected_amount,
+                 eth_height: expected_deposit_eth_height
                }
              ])
 
@@ -244,7 +259,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                %{
                  call_data: %{utxo_pos: expected_utxo_encoded_position},
                  root_chain_txhash: expected_exit_root_chain_txhash,
-                 log_index: expected_log_index
+                 log_index: expected_log_index,
+                 eth_height: expected_exit_eth_height
                }
              ])
 
@@ -259,6 +275,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
              DB.EthEvent.insert_deposits!([
                %{
                  root_chain_txhash: Crypto.hash(<<1000::256>>),
+                 eth_height: 1,
                  log_index: 0,
                  owner: alice.addr,
                  currency: @eth,
@@ -271,12 +288,14 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       %{
         root_chain_txhash: Crypto.hash(<<1000::256>>),
         log_index: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))}
+        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))},
+        eth_height: 2
       },
       %{
         root_chain_txhash: Crypto.hash(<<1000::256>>),
         log_index: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))}
+        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))},
+        eth_height: 2
       }
     ]
 
