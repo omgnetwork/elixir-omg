@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.API.EthEventTest do
+defmodule OMG.WatcherInfo.API.DepositTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
@@ -31,7 +31,7 @@ defmodule OMG.WatcherInfo.API.EthEventTest do
       _ = insert(:ethevent, event_type: :non_deposit)
 
       constraints = []
-      results = API.EthEvent.get_deposits(constraints)
+      results = API.Deposit.get_deposits(constraints)
 
       assert %Paginator{} = results
       assert length(results.data) == 2
@@ -44,8 +44,8 @@ defmodule OMG.WatcherInfo.API.EthEventTest do
       _ = insert(:ethevent, event_type: :deposit)
       _ = insert(:ethevent, event_type: :deposit)
 
-      assert [page: 1, limit: 2] |> API.EthEvent.get_deposits() |> Map.get(:data) |> length() == 2
-      assert [page: 2, limit: 2] |> API.EthEvent.get_deposits() |> Map.get(:data) |> length() == 1
+      assert [page: 1, limit: 2] |> API.Deposit.get_deposits() |> Map.get(:data) |> length() == 2
+      assert [page: 2, limit: 2] |> API.Deposit.get_deposits() |> Map.get(:data) |> length() == 1
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -60,7 +60,7 @@ defmodule OMG.WatcherInfo.API.EthEventTest do
       _ = insert(:ethevent, event_type: :deposit, txoutputs: [deposit_output_2])
 
       constraint = [address: owner_1]
-      result = API.EthEvent.get_deposits(constraint)
+      result = API.Deposit.get_deposits(constraint)
 
       assert %Paginator{data: [%DB.EthEvent{} = deposit]} = result
       assert deposit |> Map.get(:txoutputs) |> Enum.at(0) |> Map.get(:owner) == owner_1

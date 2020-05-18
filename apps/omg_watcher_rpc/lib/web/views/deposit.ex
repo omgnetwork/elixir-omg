@@ -12,27 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.API.EthEvent do
+defmodule OMG.WatcherRPC.Web.View.Deposit do
   @moduledoc """
-  Module provides operations related to Ethereum events - i.e. deposits and exits.
+  The eth_event view for rendering JSON.
   """
 
+  alias OMG.Utils.HttpRPC.Response
   alias OMG.Utils.Paginator
-  alias OMG.WatcherInfo.DB
+  alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
-  @default_events_limit 100
+  use OMG.WatcherRPC.Web, :view
 
-  @doc """
-  Retrieves a list of deposits.
-  Length of the list is limited by `limit` and `page` arguments.
-  Optionally filtered by `address`
-  """
-  @spec get_deposits(Keyword.t()) :: Paginator.t(%DB.EthEvent{})
-  def get_deposits(constraints) do
-    address = Keyword.get(constraints, :address)
+  def render("deposits.json", %{response: %Paginator{data: ethevents, data_paging: data_paging}}) do
+    ethevents
+    |> Enum.map(&render_ethevent/1)
+    |> Response.serialize_page(data_paging)
+    |> WatcherRPCResponse.add_app_infos()
+  end
 
-    constraints
-    |> Paginator.from_constraints(@default_events_limit)
-    |> DB.EthEvent.get_events(:deposit, address)
+  defp render_ethevent(event) do
+    event
+    |> Map.update!(:txoutputs, &render_txoutputs/1)
+  end
+
+  defp render_txoutputs(outputs) do
+    outputs
+    |> Enum.map(&to_utxo/1)
   end
 end

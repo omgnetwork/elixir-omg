@@ -76,7 +76,7 @@ defmodule OMG.WatcherRPC.Web.Router do
 
     post("/block.all", Controller.Block, :get_blocks)
 
-    post("/deposit.all", Controller.EthEvent, :get_deposits)
+    post("/deposit.all", Controller.Deposit, :get_deposits)
 
     post("/transaction.all", Controller.Transaction, :get_transactions)
     post("/transaction.get", Controller.Transaction, :get_transaction)

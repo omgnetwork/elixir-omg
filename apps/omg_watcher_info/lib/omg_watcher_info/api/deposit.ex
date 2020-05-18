@@ -12,24 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Controller.EthEvent do
+defmodule OMG.WatcherInfo.API.Deposit do
   @moduledoc """
-  Operations related to transaction.
+  Module provides operations related to Ethereum events - i.e. deposits and exits.
   """
 
-  use OMG.WatcherRPC.Web, :controller
+  alias OMG.Utils.Paginator
+  alias OMG.WatcherInfo.DB
 
-  alias OMG.WatcherInfo.API.EthEvent, as: InfoApiEthEvent
-  alias OMG.WatcherRPC.Web.Validator
+  @default_events_limit 100
 
   @doc """
-  Retrieves a list of transactions
+  Retrieves a list of deposits.
+  Length of the list is limited by `limit` and `page` arguments.
+  Optionally filtered by `address`
   """
-  def get_deposits(conn, params) do
-    with {:ok, constraints} <- Validator.EthEventConstraints.parse(params) do
-      constraints
-      |> InfoApiEthEvent.get_deposits()
-      |> api_response(conn, :ethevents)
-    end
+  @spec get_deposits(Keyword.t()) :: Paginator.t(%DB.EthEvent{})
+  def get_deposits(constraints) do
+    address = Keyword.get(constraints, :address)
+
+    constraints
+    |> Paginator.from_constraints(@default_events_limit)
+    |> DB.EthEvent.get_events(:deposit, address)
   end
 end
