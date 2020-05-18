@@ -34,8 +34,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   schema "ethevents" do
     field(:root_chain_txhash, :binary, primary_key: true)
     field(:log_index, :integer, primary_key: true)
-
     field(:event_type, OMG.WatcherInfo.DB.Types.AtomType)
+    field(:eth_height, :integer)
 
     field(:root_chain_txhash_event, :binary)
 
@@ -63,6 +63,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
          log_index: log_index,
          blknum: blknum,
          owner: owner,
+         eth_height: eth_height,
          currency: currency,
          amount: amount
        }) do
@@ -77,6 +78,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           log_index: log_index,
           root_chain_txhash: root_chain_txhash,
           event_type: event_type,
+          eth_height: eth_height,
 
           # a deposit from the root chain will only ever have 1 childchain txoutput object
           txoutputs: [
