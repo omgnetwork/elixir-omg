@@ -13,13 +13,18 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewExitsTest do
-  use ExUnit.Case, async: true
+  @moduledoc """
+  Unit tests for the NewExits module.
+  Temporary checks the logic with old Core module. Once refactor is all done, should remove those tests.
+  """
+  use OMG.Watcher.ExitProcessor.Case, async: true
 
   alias OMG.Utxo
   alias OMG.Utxo.Position
   alias OMG.Watcher.ExitProcessor.UpdateDB.NewExits
   alias OMG.Watcher.ExitProcessor.TestHelper, as: EPTestHelper
   alias OMG.TestHelper, as: OMGTestHelper
+  alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
 
@@ -38,7 +43,7 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewExitsTest do
       assert {:ok, []} = NewExits.get_db_update([], [])
     end
 
-    test "returns the expected db_updates given single event" do
+    test "returns the expected db_updates given single event", %{processor_empty: empty} do
       [alice, bob] = Enum.map(1..2, fn _ -> OMGTestHelper.generate_entity() end)
 
       test_amount = 10
@@ -67,9 +72,12 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewExitsTest do
 
       {:ok, db_updates} = NewExits.get_db_update([event], [status])
       assert [expected_db_update] == db_updates
+
+      # TODO: remove this once refactor is done.
+      {_state, ^db_updates} = Core.new_exits(empty, [event], [status])
     end
 
-    test "returns the expected db_updates given multiple events" do
+    test "returns the expected db_updates given multiple events", %{processor_empty: empty} do
       [alice, bob] = Enum.map(1..2, fn _ -> OMGTestHelper.generate_entity() end)
 
       test_amount = 10
@@ -80,6 +88,7 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewExitsTest do
 
       {event1, status1} = EPTestHelper.se_event_status(standard_exit_tx1, @utxo_pos1)
       {event2, status2} = EPTestHelper.se_event_status(standard_exit_tx2, @utxo_pos2)
+
       events = [event1, event2]
       statuses = [status1, status2]
 
@@ -125,6 +134,9 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewExitsTest do
 
       {:ok, db_updates} = NewExits.get_db_update(events, statuses)
       assert [expected_db_update_1, expected_db_update_2] == db_updates
+
+      # TODO: remove this once refactor is done.
+      {_state, ^db_updates} = Core.new_exits(empty, events, statuses)
     end
   end
 end
