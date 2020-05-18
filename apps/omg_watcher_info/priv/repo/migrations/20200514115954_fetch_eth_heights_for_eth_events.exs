@@ -8,7 +8,7 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
   def up() do
     request_block_numbers()
     |> format_responses()
-    |> Enum.each(&update_record/1)
+    |> Stream.each(&update_record/1)
   end
 
   defp request_block_numbers() do
@@ -39,7 +39,7 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
   end
 
   defp format_responses(res) do
-    Enum.map(res, fn event ->
+    Stream.map(res, fn event ->
       eth_height =
         event
         |> Map.get("blockNumber")
