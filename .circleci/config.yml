@@ -200,10 +200,11 @@ jobs:
           command: |
             if [ -n "$CIRCLE_TAG" ]; then
               _tagged_version="${CIRCLE_TAG#*v}"
+              _tagged_version_ignoring_pre="${_tagged_version%%-pre.*}"
               _filed_version="$(head -n 1 ./VERSION | sed 's/^[ \t]*//;s/[ \t]*$//')"
 
-              if [ "$_tagged_version" != "$_filed_version" ]; then
-                echo "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_tagged_version}\". Got \"${_filed_version}\"."
+              if [ "$_tagged_version_ignoring_pre" != "$_filed_version" ]; then
+                echo "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_tagged_version_ignoring_pre}\". Got \"${_filed_version}\"."
                 exit 1
               fi
             else
