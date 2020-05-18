@@ -14,7 +14,8 @@
 
 defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewExits do
   @moduledoc """
-  Functions related to the logic on updating DB for ExitProcessor.
+  Functions related to the logic on updating DB for 'new exit' events.
+  The event happens whenever a standard exit happens on the root chain.
   """
 
   alias OMG.Watcher.ExitProcessor.ExitInfo

@@ -41,6 +41,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.ExitProcessor.Tools
   alias OMG.Watcher.ExitProcessor.UpdateDB.NewExits
+  alias OMG.Watcher.ExitProcessor.UpdateDB.NewInflightExits
 
   use OMG.Utils.LoggerExt
   require Utxo
@@ -358,7 +359,12 @@ defmodule OMG.Watcher.ExitProcessor do
 
     {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
     ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
-    {new_state, db_updates} = Core.new_in_flight_exits(state, events, ife_contract_statuses)
+
+    # TODO: remove the use of Core.new_exits when we finish the refactor of
+    # https://github.com/omisego/new-tx-type-poc/issues/13
+    {new_state, _old_db_updates} = Core.new_in_flight_exits(state, events, ife_contract_statuses)
+
+    {:ok, db_updates} = NewInflightExits.get_db_updates(events, ife_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end
 

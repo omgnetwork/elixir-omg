@@ -85,6 +85,7 @@ defmodule OMG.Eth.RootChain do
     {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
 
     # solidity does not return arrays of structs
+    # following is tuple representing the struct in solidity: https://git.io/JfEi5
     return_types = [
       {:array, {:tuple, [:bool, {:uint, 64}, {:uint, 256}, {:uint, 256}, :address, {:uint, 256}, {:uint, 256}]}}
     ]

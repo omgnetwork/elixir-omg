@@ -226,6 +226,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
   @spec new_in_flight_exits(t(), list(map()), list(new_in_flight_exit_status_t())) ::
           {t(), list()} | {:error, :unexpected_events}
+  @deprecated "Use NewInflightExits.get_db_updates/2 instead"
   def new_in_flight_exits(state, new_ifes_events, contract_statuses)
 
   def new_in_flight_exits(_state, new_ifes_events, contract_statuses)
