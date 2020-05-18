@@ -11,7 +11,7 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
     |> Enum.each(&update_record/1)
   end
 
-  defp request_block_numbers do
+  defp request_block_numbers() do
     {:ok, batched_responses} =
       from(e in DB.EthEvent,
         where: is_nil(e.eth_height),
