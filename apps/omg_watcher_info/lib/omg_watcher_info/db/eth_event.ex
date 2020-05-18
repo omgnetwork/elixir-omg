@@ -124,11 +124,13 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   defp utxo_exit_from_exit_event(%{
          call_data: %{utxo_pos: utxo_pos},
          root_chain_txhash: root_chain_txhash,
-         log_index: log_index
+         log_index: log_index,
+         eth_height: eth_height
        }) do
     %{
       root_chain_txhash: root_chain_txhash,
       log_index: log_index,
+      eth_height: eth_height,
       decoded_utxo_position: Utxo.Position.decode!(utxo_pos)
     }
   end
@@ -141,7 +143,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   defp insert_exit!(%{
          root_chain_txhash: root_chain_txhash,
          log_index: log_index,
-         decoded_utxo_position: decoded_utxo_position
+         decoded_utxo_position: decoded_utxo_position,
+         eth_height: eth_height
        }) do
     event_type = :standard_exit
     root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
@@ -152,6 +155,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           root_chain_txhash_event: root_chain_txhash_event,
           log_index: log_index,
           root_chain_txhash: root_chain_txhash,
+          eth_height: eth_height,
           event_type: event_type
         }
 
