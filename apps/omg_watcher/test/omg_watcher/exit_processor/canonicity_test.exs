@@ -330,7 +330,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5 + processor.sla_margin,
+        eth_height_now: 5 + processor.sla_seconds,
         blocks_result: [Block.hashed_txs_at([comp, tx1], other_blknum)],
         ife_input_spending_blocks_result: [Block.hashed_txs_at([comp, tx1], other_blknum)]
       }

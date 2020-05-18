@@ -32,6 +32,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
 
   alias OMG.State.Transaction
   alias OMG.Utxo
+  alias OMG.Eth
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -87,13 +88,13 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   end
 
   @doc """
-  Returns a tuple of ivalid piggybacks and invalid piggybacks that are past SLA margin.
-  This is inclusive, invalid piggybacks past SLA margin are included in the invalid piggybacks list.
+  Returns a tuple of ivalid piggybacks and invalid piggybacks that are past SLA seconds.
+  This is inclusive, invalid piggybacks past SLA seconds are included in the invalid piggybacks list.
   """
   @spec get_invalid_piggybacks_events(Core.t(), KnownTx.known_txs_by_input_t(), pos_integer()) ::
           {list(Event.InvalidPiggyback.t()), list(Event.UnchallengedPiggyback.t())}
   def get_invalid_piggybacks_events(
-        %Core{sla_margin: sla_margin, in_flight_exits: ifes},
+        %Core{sla_seconds: sla_seconds, in_flight_exits: ifes},
         known_txs_by_input,
         eth_height_now
       ) do
@@ -102,15 +103,17 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
       |> Map.values()
       |> all_invalid_piggybacks_by_ife(known_txs_by_input)
 
+    {:ok, time_now} = Eth.get_block_timestamp_by_number(eth_height_now)
+
     invalid_piggybacks_events = to_events(invalid_piggybacks_by_ife, &to_invalid_piggyback_event/1)
 
-    past_sla_margin = fn {ife, _type, _materials} ->
-      ife.eth_height + sla_margin <= eth_height_now
+    past_sla_seconds = fn {ife, _type, _materials} ->
+      ife.timestamp + sla_seconds <= time_now
     end
 
     unchallenged_piggybacks_events =
       invalid_piggybacks_by_ife
-      |> Enum.filter(past_sla_margin)
+      |> Enum.filter(past_sla_seconds)
       |> to_events(&to_unchallenged_piggyback_event/1)
 
     {invalid_piggybacks_events, unchallenged_piggybacks_events}

@@ -610,7 +610,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp run_status_gets(%ExitProcessor.Request{eth_height_now: nil, blknum_now: nil} = request) do
-    {:ok, eth_height_now} = EthereumHeight.get()
+    {:ok, eth_height_now} = Eth.get_block_timestamp_by_number(EthereumHeight.get())
     {blknum_now, _} = State.get_status()
 
     _ = Logger.debug("eth_height_now: #{inspect(eth_height_now)}, blknum_now: #{inspect(blknum_now)}")
@@ -686,7 +686,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:utxo_position, blknum, _, _} = Utxo.Position.decode!(utxo_pos_enc)
     {_block_hash, utxo_creation_block_timestamp} = RootChain.blocks(blknum)
     {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(eth_height)
-
     {:ok, scheduled_finalization_time} =
       ExitInfo.calculate_sft(
         blknum,

@@ -41,6 +41,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.Utxo
+  alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.DoubleSpend
@@ -70,6 +71,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   def get_invalid(%Core{sla_seconds: sla_seconds} = state, utxo_exists?, eth_height_now) do
     active_exits = active_exits(state)
 
+    {:ok, time_now} = Eth.get_block_timestamp_by_number(eth_height_now)
     exits_invalid_by_ife =
       state
       |> TxAppendix.get_all()
@@ -90,13 +92,12 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
       end)
 
     invalid_exits = standard_invalid_exits |> Enum.concat(exits_invalid_by_ife) |> Enum.uniq()
-
+    
     _ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
     # get exits which are still invalid and after the SLA margin
-    # temporarily assigning ethereum_block_time_seconds= 1, will be removed on merge of #1495
     late_invalid_exits =
-      Enum.filter(invalid_exits, fn {_, %ExitInfo{eth_height: eth_height}} ->
-        eth_height + sla_seconds / 1 <= eth_height_now
+      Enum.filter(invalid_exits, fn {_, %ExitInfo{block_timestamp: block_timestamp}} ->
+        block_timestamp + sla_seconds <= time_now
       end)
 
     {Map.new(invalid_exits), Map.new(late_invalid_exits)}

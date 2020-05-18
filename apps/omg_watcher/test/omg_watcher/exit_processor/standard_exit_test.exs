@@ -33,7 +33,6 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     only: [start_ife_from: 2, start_se_from: 3, start_se_from: 4, check_validity_filtered: 3]
 
   @eth OMG.Eth.zero_address()
-
   @deposit_blknum 1
   @deposit_blknum2 2
   @early_blknum 1_000

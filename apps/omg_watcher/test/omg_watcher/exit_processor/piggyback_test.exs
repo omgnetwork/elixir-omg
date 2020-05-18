@@ -440,7 +440,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5 + state.sla_margin,
+        eth_height_now: 5 + state.sla_seconds,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 

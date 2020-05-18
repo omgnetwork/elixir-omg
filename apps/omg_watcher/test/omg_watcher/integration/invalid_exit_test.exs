@@ -117,7 +117,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     exit_processor_sla_seconds = Application.fetch_env!(:omg_watcher, :exit_processor_sla_seconds)
     exit_processor_sla_ms = exit_processor_sla_seconds * 1000
-    # after exit, the event fetch time + waiting for sla_margin goes beyond the required time
+    # after exit, the event fetch time + waiting for sla_seconds goes beyond the required time
     Process.sleep(exit_processor_sla_ms)
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name, %Event.UnchallengedExit{}.name], @timeout)
 
