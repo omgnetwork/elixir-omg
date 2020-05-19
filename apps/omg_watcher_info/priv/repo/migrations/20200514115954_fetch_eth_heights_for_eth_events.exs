@@ -5,29 +5,41 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
 
   import Ecto.Query, only: [from: 2]
 
+  @max_db_rows 100
+  @max_eth_requests 25
+
   def up() do
-    DB.Repo.transaction(fn ->
-      request_block_numbers()
-      |> Enum.map(&format_response/1)
-      |> Enum.each(&update_record/1)
-    end)
+    stream_events_from_db()
+    |> stream_create_requests()
+    |> stream_batch_requests()
+    |> stream_make_requests()
+    |> stream_concatenate_responses()
+    |> stream_format_responses()
+    |> Enum.map(&update_record/1)
   end
 
-  defp request_block_numbers() do
-    {:ok, batched_responses} =
+  defp stream_events_from_db() do
+    query =
       from(e in DB.EthEvent,
         where: is_nil(e.eth_height),
         select: e.root_chain_txhash
       )
-      |> DB.Repo.stream(max_rows: 100)
-      |> Enum.map(&create_request/1)
-      |> make_batched_request()
 
-    batched_responses
+    DB.Repo.stream(query, max_rows: @max_db_rows)
   end
 
-  defp create_request(root_chain_txhash) do
-    {:eth_get_transaction_by_hash, [Encoding.to_hex(root_chain_txhash)]}
+  defp stream_create_requests(events_stream) do
+    Stream.map(events_stream, fn root_chain_txhash ->
+      {:eth_get_transaction_by_hash, [Encoding.to_hex(root_chain_txhash)]}
+    end)
+  end
+
+  defp stream_batch_requests(request_stream) do
+    Stream.chunk_every(request_stream, @max_eth_requests)
+  end
+
+  defp stream_make_requests(batched_request_stream) do
+    Stream.map(batched_request_stream, &make_batched_request/1)
   end
 
   defp make_batched_request(eth_requests) do
@@ -36,8 +48,17 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
         {:ok, []}
 
       _ ->
-        Ethereumex.HttpClient.batch_request(eth_requests)
+        {:ok, batched_responses} = Ethereumex.HttpClient.batch_request(eth_requests)
+        batched_responses
     end
+  end
+
+  defp stream_concatenate_responses(batched_response_stream) do
+    Stream.concat(batched_response_stream)
+  end
+
+  defp stream_format_responses(response_stream) do
+    Stream.map(response_stream, &format_response/1)
   end
 
   defp format_response(event) do
