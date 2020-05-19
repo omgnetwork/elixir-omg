@@ -37,7 +37,6 @@ defmodule OMG.WatcherRPC.Web.Controller.DepositTest do
                    "event_type" => "deposit",
                    "log_index" => _,
                    "root_chain_txhash" => _,
-                   "root_chain_txhash_event" => _,
                    "txoutputs" => [
                      %{
                        "amount" => _,

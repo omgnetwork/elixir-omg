@@ -33,6 +33,9 @@ defmodule OMG.WatcherRPC.Web.View.Deposit do
   defp render_ethevent(event) do
     event
     |> Map.update!(:txoutputs, &render_txoutputs/1)
+    |> Map.drop([:root_chain_txhash_event])
+
+    # Drop root_chain_txhash_event because this is of no use to the consumer.
   end
 
   defp render_txoutputs(outputs) do
