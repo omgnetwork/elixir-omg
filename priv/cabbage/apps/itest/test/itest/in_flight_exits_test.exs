@@ -148,11 +148,13 @@ defmodule InFlightExitsTests do
     |> Process.sleep()
 
     balance_after_deposit = Itest.Poller.eth_get_balance(address)
+    deposited_amount = initial_balance - balance_after_deposit
 
     entity_state =
       entity_state
       |> Map.put(:ethereum_balance, balance_after_deposit)
       |> Map.put(:ethereum_initial_balance, initial_balance)
+      |> Map.put(:last_deposited_amount, deposited_amount)
       |> Map.put(:receipt_hashes, [receipt_hash | entity_state.receipt_hashes])
 
     {:ok, Map.put(state, entity, entity_state)}
@@ -280,6 +282,54 @@ defmodule InFlightExitsTests do
     {:ok, Map.put(state, entity, alice_state)}
   end
 
+  defgiven ~r/^Alice creates a transaction for "(?<amount>[^"]+)" ETH$/,
+           %{amount: amount},
+           state do
+    amount = Currency.to_wei(amount)
+
+    %{address: alice_address, utxos: alice_utxos, pkey: alice_pkey, child_chain_balance: alice_child_chain_balance} =
+      alice_state = state["Alice"]
+
+    # inputs
+    alice_deposit_utxo = hd(alice_utxos)
+
+    alice_deposit_input = %ExPlasma.Utxo{
+      blknum: alice_deposit_utxo["blknum"],
+      currency: Currency.ether(),
+      oindex: 0,
+      txindex: 0,
+      output_type: 1,
+      owner: alice_address
+    }
+
+    alice_output_1 = %ExPlasma.Utxo{
+      currency: Currency.ether(),
+      owner: alice_address,
+      amount: amount
+    }
+
+    rest = alice_child_chain_balance - amount - state["fee"]
+
+    alice_output_2 = %ExPlasma.Utxo{
+      currency: Currency.ether(),
+      owner: alice_address,
+      amount: rest
+    }
+
+    transaction = %Payment{inputs: [alice_deposit_input], outputs: [alice_output_1, alice_output_2]}
+
+    in_flight_tx =
+      ExPlasma.Transaction.sign(transaction,
+        keys: [alice_pkey]
+      )
+
+    txbytes = ExPlasma.Transaction.encode(in_flight_tx)
+    alice_state = Map.put(alice_state, :txbytes, txbytes)
+
+    entity = "Alice"
+    {:ok, Map.put(state, entity, alice_state)}
+  end
+
   defand ~r/^Bob gets in flight exit data for "(?<amount>[^"]+)" ETH from his most recent deposit$/,
          %{amount: amount},
          state do
@@ -342,7 +392,6 @@ defmodule InFlightExitsTests do
     alice_state = Map.put(alice_state, :transaction_submit, submit_transaction_response)
 
     entity = "Alice"
-
     {:ok, Map.put(state, entity, alice_state)}
   end
 
@@ -462,6 +511,29 @@ defmodule InFlightExitsTests do
     entity = "Bob"
 
     {:ok, Map.put(state, entity, bob_state)}
+  end
+
+  defgiven ~r/^Alice piggybacks output from her most recent in flight exit$/, _, state do
+    exit_game_contract_address = state["exit_game_contract_address"]
+
+    %{address: address, exit_data: exit_data, in_flight_exit_id: in_flight_exit_id} = alice_state = state["Alice"]
+
+    output_index = 0
+    receipt_hash_1 = piggyback_output(exit_game_contract_address, address, output_index, exit_data)
+
+    alice_state =
+      Map.put(
+        alice_state,
+        :receipt_hashes,
+        Enum.concat([receipt_hash_1], alice_state.receipt_hashes)
+      )
+
+    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    # bits is flagged when output is piggybacked
+    assert in_flight_exit_ids.exit_map != 0
+
+    entity = "Alice"
+    {:ok, Map.put(state, entity, alice_state)}
   end
 
   # ### start the competing IFE, to double-spend some inputs
@@ -835,6 +907,38 @@ defmodule InFlightExitsTests do
     entity = "Alice"
 
     {:ok, Map.put(state, entity, alice_state)}
+  end
+
+  # And "Alice" in flight transaction inputs are not spendable after exit finalization
+  defand ~r/^"(?<entity>[^"]+)" in flight transaction inputs are not spendable any more$/,
+         %{entity: entity},
+         state do
+    %{address: address, child_chain_balance: balance, last_deposited_amount: deposit} = state[entity]
+
+    # Get utxos and check above are not present
+    pull_balance_until_amount(address, balance - deposit)
+
+    {:ok, state}
+  end
+
+  defand ~r/^"(?<entity>[^"]+)" in flight transaction most recently piggybacked output is not spendable any more$/,
+         %{entity: entity},
+         state do
+    %{address: address, transaction_submit: submit_response, child_chain_balance: balance} = state[entity]
+    piggybacked_output_index = 0
+    %SubmitTransactionResponse{blknum: output_blknum, txindex: output_txindex} = submit_response
+
+    pull_balance_until_amount(address, balance - Currency.to_wei(5))
+
+    {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: address})
+
+    assert nil ==
+             Enum.find(
+               utxos,
+               fn %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex} ->
+                 blknum == output_blknum and txindex == output_txindex and oindex == piggybacked_output_index
+               end
+             )
   end
 
   ###############################################################################################

@@ -82,6 +82,17 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     )
   end
 
+  @spec get_by_output_id(txhash :: OMG.Crypto.hash_t(), oindex :: non_neg_integer()) :: map() | nil
+  def get_by_output_id(txhash, oindex) do
+    DB.Repo.one(
+      from(txoutput in __MODULE__,
+        preload: [:ethevents],
+        left_join: ethevent in assoc(txoutput, :ethevents),
+        where: txoutput.creating_txhash == ^txhash and txoutput.oindex == ^oindex
+      )
+    )
+  end
+
   @spec get_utxos(keyword) :: OMG.Utils.Paginator.t(%__MODULE__{})
   def get_utxos(params) do
     address = Keyword.fetch!(params, :address)

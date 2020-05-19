@@ -38,6 +38,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExit
+  alias OMG.Watcher.ExitProcessor.Tools
 
   use OMG.Utils.LoggerExt
   require Utxo
@@ -340,6 +341,15 @@ defmodule OMG.Watcher.ExitProcessor do
         end
       )
 
+    # Prepare events data for internal bus
+    :ok =
+      events
+      |> Enum.map(fn %{call_data: %{input_utxos_pos: inputs}} = event ->
+        {event, inputs}
+      end)
+      |> Tools.to_bus_events_data()
+      |> publish_internal_bus_events("InFlightExitStarted")
+
     {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
     ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
     {new_state, db_updates} = Core.new_in_flight_exits(state, events, ife_contract_statuses)
@@ -376,6 +386,12 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:piggyback_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized piggybacks: #{inspect(exits)}")
     {new_state, db_updates} = Core.new_piggybacks(state, exits)
+
+    :ok =
+      exits
+      |> Tools.to_bus_events_data()
+      |> publish_internal_bus_events("InFlightTxOutputPiggybacked")
+
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -449,7 +465,8 @@ defmodule OMG.Watcher.ExitProcessor do
     # necessary, so that the processor knows the current state of inclusion of exiting IFE txs
     state2 = update_with_ife_txs_from_blocks(state)
 
-    {:ok, exiting_positions} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
+    {:ok, exiting_positions, events_with_utxos} =
+      Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
 
     # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
     # See issue #671 https://github.com/omisego/elixir-omg/issues/671
@@ -457,6 +474,11 @@ defmodule OMG.Watcher.ExitProcessor do
       Enum.reduce(exiting_positions, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
 
     {:ok, state3, db_updates} = Core.finalize_in_flight_exits(state2, finalizations, invalidities)
+
+    :ok =
+      events_with_utxos
+      |> Tools.to_bus_events_data()
+      |> publish_internal_bus_events("InFlightExitOutputWithdrawn")
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end
@@ -701,5 +723,13 @@ defmodule OMG.Watcher.ExitProcessor do
     exit_event
     |> Map.put(:scheduled_finalization_time, scheduled_finalization_time)
     |> Map.put(:block_timestamp, exit_block_timestamp)
+  end
+
+  defp publish_internal_bus_events([], _), do: :ok
+
+  defp publish_internal_bus_events(events_data, topic) when is_list(events_data) and is_binary(topic) do
+    {:watcher, topic}
+    |> OMG.Bus.Event.new(:data, events_data)
+    |> OMG.Bus.direct_local_broadcast()
   end
 end
