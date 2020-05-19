@@ -263,4 +263,33 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert Enum.sort(expected_inputs) == Enum.sort(request.ife_input_utxos_to_check)
     end
   end
+
+  describe "active_standard_exiting_utxos" do
+    test "returns a set of exiting utxo positions" do
+      utxo_pos_active = {active_blknum, active_txindex, active_txoutput} = {1000, 0, 0}
+
+      active_exit = %{
+        amount: 1,
+        block_timestamp: 1,
+        currency: <<1::160>>,
+        eth_height: 1,
+        exit_id: 1,
+        exiting_txbytes: "txbytes",
+        is_active: true,
+        owner: <<1::160>>,
+        root_chain_txhash: <<1::256>>,
+        scheduled_finalization_time: 2,
+        spending_txhash: nil
+      }
+
+      utxo_pos_inactive = {1000, 0, 1}
+      inactive_exit = Map.replace!(active_exit, :is_active, false)
+
+      db_exits = [{utxo_pos_active, active_exit}, {utxo_pos_inactive, inactive_exit}]
+
+      expected = MapSet.new([OMG.Utxo.position(active_blknum, active_txindex, active_txoutput)])
+
+      assert expected == Core.active_standard_exiting_utxos(db_exits)
+    end
+  end
 end
