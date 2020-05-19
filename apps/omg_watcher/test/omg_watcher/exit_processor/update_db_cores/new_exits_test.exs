@@ -19,12 +19,12 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewExitsTest do
   """
   use OMG.Watcher.ExitProcessor.Case, async: true
 
+  alias OMG.TestHelper, as: OMGTestHelper
   alias OMG.Utxo
   alias OMG.Utxo.Position
-  alias OMG.Watcher.ExitProcessor.UpdateDB.NewExits
-  alias OMG.Watcher.ExitProcessor.TestHelper, as: EPTestHelper
-  alias OMG.TestHelper, as: OMGTestHelper
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.TestHelper, as: EPTestHelper
+  alias OMG.Watcher.ExitProcessor.UpdateDB.NewExits
 
   require Utxo
 

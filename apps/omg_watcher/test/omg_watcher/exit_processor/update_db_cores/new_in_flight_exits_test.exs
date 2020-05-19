@@ -23,9 +23,9 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewInFlightExitsTest do
   alias OMG.TestHelper, as: OMGTestHelper
   alias OMG.Utxo
   alias OMG.Utxo.Position
-  alias OMG.Watcher.ExitProcessor.UpdateDB.NewInflightExits
-  alias OMG.Watcher.ExitProcessor.TestHelper, as: EPTestHelper
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.TestHelper, as: EPTestHelper
+  alias OMG.Watcher.ExitProcessor.UpdateDB.NewInflightExits
 
   require Utxo
 
