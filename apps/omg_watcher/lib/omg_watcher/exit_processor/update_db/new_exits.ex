@@ -27,14 +27,14 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewExits do
   This is to prevent spurious invalid exit events being fired during syncing for exits that were challenged/finalized
   Still we do want to track these exits when syncing, to have them spend from `OMG.State` on their finalization
   """
-  @spec get_db_update(list(map()), list(map)) :: {:ok, list()} | {:error, :unexpected_events}
-  def get_db_update(new_exits, exit_contract_statuses)
+  @spec get_db_updates(list(map()), list(map)) :: {:ok, list()} | {:error, :unexpected_events}
+  def get_db_updates(new_exits, exit_contract_statuses)
 
-  def get_db_update(new_exits, exit_contract_statuses) when length(new_exits) != length(exit_contract_statuses) do
+  def get_db_updates(new_exits, exit_contract_statuses) when length(new_exits) != length(exit_contract_statuses) do
     {:error, :unexpected_events}
   end
 
-  def get_db_update(new_exits, exit_contract_statuses) do
+  def get_db_updates(new_exits, exit_contract_statuses) do
     new_exits_kv_pairs =
       new_exits
       |> Enum.zip(exit_contract_statuses)

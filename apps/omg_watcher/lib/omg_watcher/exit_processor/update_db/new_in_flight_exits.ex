@@ -25,15 +25,15 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewInflightExits do
   @doc """
   Add new in flight exits from Ethereum events into tracked state.
   """
-  @spec get_db_update(list(map()), list(new_in_flight_exit_status_t())) ::
+  @spec get_db_updates(list(map()), list(new_in_flight_exit_status_t())) ::
           {:ok, list()} | {:error, :unexpected_events}
-  def get_db_update(new_ifes_events, contract_statuses)
+  def get_db_updates(new_ifes_events, contract_statuses)
 
-  def get_db_update(new_ifes_events, contract_statuses)
+  def get_db_updates(new_ifes_events, contract_statuses)
       when length(new_ifes_events) != length(contract_statuses),
       do: {:error, :unexpected_events}
 
-  def get_db_update(new_ifes_events, contract_statuses) do
+  def get_db_updates(new_ifes_events, contract_statuses) do
     db_updates =
       new_ifes_events
       |> Enum.zip(contract_statuses)

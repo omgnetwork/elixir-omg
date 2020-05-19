@@ -323,7 +323,7 @@ defmodule OMG.Watcher.ExitProcessor do
     # TODO: remove the use of Core.new_exits when we finish the refactor of
     # https://github.com/omisego/new-tx-type-poc/issues/13
     {new_state, _old_db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
-    {:ok, db_updates} = NewExits.get_db_update(exit_maps, exit_contract_statuses)
+    {:ok, db_updates} = NewExits.get_db_updates(exit_maps, exit_contract_statuses)
 
     {:reply, {:ok, db_updates}, new_state}
   end

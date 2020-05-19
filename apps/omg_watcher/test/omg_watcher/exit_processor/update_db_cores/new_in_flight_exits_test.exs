@@ -35,14 +35,14 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewInFlightExitsTest do
   @utxo_pos1 Utxo.position(2, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
-  describe "get_db_update/2" do
+  describe "get_db_updates/2" do
     test "returns error as unexpected events when length of inputs mismatches" do
-      assert {:error, :unexpected_events} == NewInflightExits.get_db_update([], [:anything])
-      assert {:error, :unexpected_events} == NewInflightExits.get_db_update([:anything], [])
+      assert {:error, :unexpected_events} == NewInflightExits.get_db_updates([], [:anything])
+      assert {:error, :unexpected_events} == NewInflightExits.get_db_updates([:anything], [])
     end
 
     test "returns empty list when inputs are empty" do
-      assert {:ok, []} = NewInflightExits.get_db_update([], [])
+      assert {:ok, []} = NewInflightExits.get_db_updates([], [])
     end
 
     test "returns the expected db_updates given single events", %{processor_empty: empty} do
@@ -87,7 +87,7 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewInFlightExitsTest do
         }
       }
 
-      {:ok, db_updates} = NewInflightExits.get_db_update([event], [status])
+      {:ok, db_updates} = NewInflightExits.get_db_updates([event], [status])
       assert [expected_db_update] == db_updates
 
       # TODO: remove this once refactor is done.
@@ -171,7 +171,7 @@ defmodule OMG.Watcher.ExitProcessor.UpdateDB.NewInFlightExitsTest do
         }
       }
 
-      {:ok, db_updates} = NewInflightExits.get_db_update(events, statuses)
+      {:ok, db_updates} = NewInflightExits.get_db_updates(events, statuses)
       assert [expected_db_update1, expected_db_update2] == db_updates
 
       # TODO: remove this once refactor is done.
