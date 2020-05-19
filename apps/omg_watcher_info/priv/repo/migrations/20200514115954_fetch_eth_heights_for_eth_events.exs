@@ -9,13 +9,15 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
   @max_eth_requests 25
 
   def up() do
-    stream_events_from_db()
-    |> stream_create_requests()
-    |> stream_batch_requests()
-    |> stream_make_requests()
-    |> stream_concatenate_responses()
-    |> stream_format_responses()
-    |> Enum.map(&update_record/1)
+    DB.Repo.transaction(fn ->
+      stream_events_from_db()
+      |> stream_create_requests()
+      |> stream_batch_requests()
+      |> stream_make_requests()
+      |> stream_concatenate_responses()
+      |> stream_format_responses()
+      |> Enum.map(&update_record/1)
+    end)
   end
 
   defp stream_events_from_db() do
