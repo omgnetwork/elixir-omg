@@ -6,9 +6,11 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
   import Ecto.Query, only: [from: 2]
 
   def up() do
-    request_block_numbers()
-    |> Enum.map(&format_response/1)
-    |> Enum.each(&update_record/1)
+    DB.Repo.transaction(fn ->
+      request_block_numbers()
+      |> Enum.map(&format_response/1)
+      |> Enum.each(&update_record/1)
+    end)
   end
 
   defp request_block_numbers() do
