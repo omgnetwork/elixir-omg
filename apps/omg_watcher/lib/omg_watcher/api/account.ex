@@ -17,6 +17,8 @@ defmodule OMG.Watcher.API.Account do
   Module provides operations related to plasma accounts.
   """
 
+  require OMG.Utxo
+
   @doc """
   Gets all utxos belonging to the given address. Slow operation.
   """
@@ -24,7 +26,23 @@ defmodule OMG.Watcher.API.Account do
   def get_exitable_utxos(address) do
     # OMG.DB.utxos() takes a while.
     {:ok, utxos} = OMG.DB.utxos()
+    standard_exitable_utxos = OMG.State.Core.standard_exitable_utxos(utxos, address)
 
-    OMG.State.Core.standard_exitable_utxos(utxos, address)
+    # OMG.DB.exit_infos() takes a while.
+    {:ok, standard_exits} = OMG.DB.exit_infos()
+    active_standard_exiting_utxos = OMG.Watcher.ExitProcessor.Core.active_standard_exiting_utxos(standard_exits)
+
+    # active standard exiting utxos are excluded
+    filter_standard_exiting_utxos(standard_exitable_utxos, active_standard_exiting_utxos)
+  end
+
+  defp filter_standard_exiting_utxos(standard_exitable_utxos, active_standard_exiting_utxos) do
+    Enum.filter(
+      standard_exitable_utxos,
+      fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
+        exit_position = OMG.Utxo.position(blknum, txindex, oindex)
+        not MapSet.member?(active_standard_exiting_utxos, exit_position)
+      end
+    )
   end
 end
