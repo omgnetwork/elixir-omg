@@ -94,7 +94,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   defp utxo_pos_for(%{call_data: %{utxo_pos: utxo_pos_enc}} = _exit_info),
     do: Utxo.Position.decode!(utxo_pos_enc)
 
-  @spec do_new(map(), list(map())) :: t()
+  @spec do_new(map(), list(keyword())) :: t()
   defp do_new(contract_status, fields) do
     fields = Keyword.put_new(fields, :is_active, parse_contract_exit_status(contract_status))
     struct!(__MODULE__, fields)
@@ -109,7 +109,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   end
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
-  @spec make_db_update({Utxo.Position.t(), t()}) :: Utxo.Position.db_t()
+  @spec make_db_update({Utxo.Position.t(), t()}) :: {:put, :exit_info, {Utxo.Position.db_t(), map()}}
   def make_db_update({position, exit_info}) do
     value = %{
       amount: exit_info.amount,
@@ -127,7 +127,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     {:put, :exit_info, {Utxo.Position.to_db_key(position), value}}
   end
 
-  @spec from_db_kv({Utxo.Position.db_t(), t()}) :: Utxo.Position.t()
+  @spec from_db_kv({Utxo.Position.db_t(), map()}) :: {Utxo.Position.t(), t()}
   def from_db_kv({db_utxo_pos, exit_info}) do
     # mapping is used in case of changes in data structure
     value = %{
