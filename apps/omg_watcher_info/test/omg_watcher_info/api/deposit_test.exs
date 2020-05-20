@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.API.DepositTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   use OMG.WatcherInfo.Fixtures
 
   import OMG.WatcherInfo.Factory
