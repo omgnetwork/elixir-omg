@@ -39,7 +39,7 @@ defmodule OMG.ChildChainRPC.MixProject do
   defp deps() do
     [
       {:phoenix, "~> 1.5"},
-      {:plug_cowboy, "~> 1.0"},
+      {:plug_cowboy, "~> 2.0"},
       {:httpoison, "~> 1.4.0"},
       {:cors_plug, "~> 2.0"},
       {:spandex_phoenix, "~> 0.4.1"},

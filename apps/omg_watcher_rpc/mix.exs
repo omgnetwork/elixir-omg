@@ -33,7 +33,7 @@ defmodule OMG.WatcherRPC.Mixfile do
   defp deps() do
     [
       {:phoenix, "~> 1.5"},
-      {:plug_cowboy, "~> 1.0"},
+      {:plug_cowboy, "~> 2.0"},
       {:cors_plug, "~> 2.0"},
       {:spandex_phoenix, "~> 0.4.1"},
       {:spandex_datadog, "~> 0.4"},

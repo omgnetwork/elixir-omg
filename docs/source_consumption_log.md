@@ -33,7 +33,7 @@ ex_rlp 0.5.2            -> MIT
 ex_unit_fixtures        -> MIT
 exexec 0.1.0            -> Apache 2.0
 exth_crypto 0.1.4       -> MIT
-fake_server 1.5.0       -> Apache 2.0
+fake_server 2.1.0       -> Apache 2.0
 hackney 1.15.1          -> Apache 2
 httpoison 1.4.0         -> MIT
 idna 5.1.1              -> BSD
