@@ -17,6 +17,7 @@ defmodule OMG.Watcher.API.Account do
   Module provides operations related to plasma accounts.
   """
 
+  alias OMG.DB.Models.PaymentExitInfo
   require OMG.Utxo
 
   @doc """
@@ -28,8 +29,8 @@ defmodule OMG.Watcher.API.Account do
     {:ok, utxos} = OMG.DB.utxos()
     standard_exitable_utxos = OMG.State.Core.standard_exitable_utxos(utxos, address)
 
-    # OMG.DB.exit_infos() takes a while.
-    {:ok, standard_exits} = OMG.DB.exit_infos()
+    # PaymentExitInfo.exit_infos() takes a while.
+    {:ok, standard_exits} = PaymentExitInfo.exit_infos()
     active_standard_exiting_utxos = OMG.Watcher.ExitProcessor.Core.active_standard_exiting_utxos(standard_exits)
 
     # active standard exiting utxos are excluded
