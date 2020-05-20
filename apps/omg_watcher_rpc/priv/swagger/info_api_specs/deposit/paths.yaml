@@ -1,0 +1,17 @@
+deposit.all:
+  post:
+    tags:
+      - Deposit
+    summary: Gets a paginated list of deposits, optionally filtered by address.
+    description: >
+      Returns a list of deposits ordered by Ethereum height in descending order.
+
+
+    operationId: deposit_all
+    requestBody:
+      $ref: 'request_bodies.yaml#/AllDepositsBodySchema'
+    responses:
+      200:
+        $ref: 'responses.yaml#/DepositsAllResponse'
+      500:
+        $ref: '../responses.yaml#/InternalServerError'
