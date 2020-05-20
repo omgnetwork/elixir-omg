@@ -86,7 +86,7 @@ defmodule Itest.Poller do
   @doc """
   API:: Pull until the utxo is not found for the address.
   """
-  def utxo_absent?(address, utxo_pos), do: utxo_absent?(address, utxo_pos, 300)
+  def utxo_absent?(address, utxo_pos), do: utxo_absent?(address, utxo_pos, @retry_count)
 
   @doc """
   API:: Pull until the exitable utxo is not found for the address.
