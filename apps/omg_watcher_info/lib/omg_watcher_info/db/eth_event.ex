@@ -139,8 +139,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     (Encoding.to_hex(root_chain_txhash) <> Integer.to_string(log_index)) |> Crypto.hash()
   end
 
-
-
   @spec utxo_exit_from_exit_event(%{
           call_data: output_pointer_t(),
           root_chain_txhash: charlist(),
@@ -295,6 +293,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       offset: ^offset
     )
   end
+
   # Tells whether `TxOutput` was already spent
   # NOTE: it looks a little too deep into DB.TxOutput module, but I don't want to extent its API
   @spec output_spent?(%DB.TxOutput{}) :: boolean()

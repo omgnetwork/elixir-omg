@@ -396,8 +396,23 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
     assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
 
-    assert_txoutput_spent_by_event(txhash1, oindex1, expected_log_index1, expected_eth_txhash1, expected_eth_height1, expected_event_type)
-    assert_txoutput_spent_by_event(txhash2, oindex2, expected_log_index2, expected_eth_txhash2, expected_eth_height2, expected_event_type)
+    assert_txoutput_spent_by_event(
+      txhash1,
+      oindex1,
+      expected_log_index1,
+      expected_eth_txhash1,
+      expected_eth_height1,
+      expected_event_type
+    )
+
+    assert_txoutput_spent_by_event(
+      txhash2,
+      oindex2,
+      expected_log_index2,
+      expected_eth_txhash2,
+      expected_eth_height2,
+      expected_event_type
+    )
   end
 
   defp assert_txoutput_spent_by_event(txhash, oindex, log_index, eth_txhash, eth_height, event_type) do
@@ -406,7 +421,12 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert txo != nil
 
     assert [
-             %DB.EthEvent{log_index: ^log_index, root_chain_txhash: ^eth_txhash, eth_height: ^eth_height, event_type: ^event_type}
+             %DB.EthEvent{
+               log_index: ^log_index,
+               root_chain_txhash: ^eth_txhash,
+               eth_height: ^eth_height,
+               event_type: ^event_type
+             }
            ] = txo.ethevents
   end
 
