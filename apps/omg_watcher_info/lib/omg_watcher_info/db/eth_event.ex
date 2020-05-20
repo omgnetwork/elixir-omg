@@ -145,7 +145,12 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           log_index: non_neg_integer(),
           eth_height: pos_integer()
         }) ::
-          %{root_chain_txhash: binary(), log_index: non_neg_integer(), output_pointer: tuple()}
+          %{
+            root_chain_txhash: binary(),
+            log_index: non_neg_integer(),
+            eth_height: pos_integer(),
+            output_pointer: tuple()
+          }
   defp utxo_exit_from_exit_event(%{
          call_data: output_pointer,
          root_chain_txhash: root_chain_txhash,
