@@ -101,7 +101,7 @@ defmodule InFlightExitsTests do
         transaction_submit: nil,
         receipt_hashes: [],
         in_flight_exit_id: nil,
-        in_flight_exit_ids: nil
+        in_flight_exit: nil
       },
       "Bob" => %{
         address: bob_address,
@@ -115,7 +115,7 @@ defmodule InFlightExitsTests do
         transaction_submit: nil,
         receipt_hashes: [],
         in_flight_exit_id: nil,
-        in_flight_exit_ids: nil
+        in_flight_exit: nil
       }
     }
   end
@@ -476,13 +476,13 @@ defmodule InFlightExitsTests do
     %{exit_data: exit_data} = entity_state = state[entity]
 
     in_flight_exit_id = get_in_flight_exit_id(exit_game_contract_address, exit_data)
-    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
-    assert in_flight_exit_ids.exit_map == 0
+    [in_flight_exit] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    assert in_flight_exit.exit_map == 0
 
     entity_state =
       entity_state
       |> Map.put(:in_flight_exit_id, in_flight_exit_id)
-      |> Map.put(:in_flight_exit_ids, in_flight_exit_ids)
+      |> Map.put(:in_flight_exit, in_flight_exit)
 
     {:ok, Map.put(state, entity, entity_state)}
   end
@@ -506,9 +506,9 @@ defmodule InFlightExitsTests do
         Enum.concat([receipt_hash_1, receipt_hash_2], bob_state.receipt_hashes)
       )
 
-    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    [in_flight_exit] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     # bits is flagged when output is piggybacked
-    assert in_flight_exit_ids.exit_map != 0
+    assert in_flight_exit.exit_map != 0
     entity = "Bob"
 
     {:ok, Map.put(state, entity, bob_state)}
@@ -529,9 +529,9 @@ defmodule InFlightExitsTests do
         Enum.concat([receipt_hash_1], alice_state.receipt_hashes)
       )
 
-    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    [in_flight_exit] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     # bits is flagged when output is piggybacked
-    assert in_flight_exit_ids.exit_map != 0
+    assert in_flight_exit.exit_map != 0
 
     entity = "Alice"
     {:ok, Map.put(state, entity, alice_state)}
@@ -575,7 +575,7 @@ defmodule InFlightExitsTests do
     %{
       address: address,
       in_flight_exit_id: in_flight_exit_id,
-      in_flight_exit_ids: in_flight_exit_ids,
+      in_flight_exit: in_flight_exit,
       unsigned_txbytes: unsigned_txbytes
     } = alice_state = state["Alice"]
 
@@ -631,9 +631,9 @@ defmodule InFlightExitsTests do
     assert ife_input_challenge_0.in_flight_txbytes == Encoding.to_hex(unsigned_txbytes)
     receipt_hash_0 = challenge_in_flight_exit_input_spent(exit_game_contract_address, address, ife_input_challenge_0)
     # sanity check
-    [in_flight_exit_ids_0] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
-    assert in_flight_exit_ids_0.exit_map != in_flight_exit_ids.exit_map
-    assert in_flight_exit_ids_0.exit_map != 0
+    [in_flight_exit_0] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    assert in_flight_exit_0.exit_map != in_flight_exit.exit_map
+    assert in_flight_exit_0.exit_map != 0
 
     # Second input challenge
     payload_1 = %InFlightExitInputChallengeDataBodySchema{
@@ -660,8 +660,8 @@ defmodule InFlightExitsTests do
     assert ife_output_challenge_2.in_flight_txbytes == Encoding.to_hex(unsigned_txbytes)
     receipt_hash_2 = challenge_in_flight_exit_output_spent(exit_game_contract_address, address, ife_output_challenge_2)
     # observe the result - piggybacks are gone
-    [in_flight_exit_ids_2] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
-    assert in_flight_exit_ids_2.exit_map == 0
+    [in_flight_exit_2] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    assert in_flight_exit_2.exit_map == 0
 
     # observe the byzantine events gone
     # I’m waiting for clean state / secure chain to remain after all the challenges
@@ -863,9 +863,9 @@ defmodule InFlightExitsTests do
         Enum.concat([receipt_hash_1], bob_state.receipt_hashes)
       )
 
-    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    [in_flight_exit] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     # bits is flagged when output is piggybacked
-    assert in_flight_exit_ids.exit_map != 0
+    assert in_flight_exit.exit_map != 0
     entity = "Bob"
 
     {:ok, Map.put(state, entity, bob_state)}
@@ -900,9 +900,9 @@ defmodule InFlightExitsTests do
         Enum.concat([receipt_hash_1], alice_state.receipt_hashes)
       )
 
-    [in_flight_exit_ids] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
+    [in_flight_exit] = get_in_flight_exits(exit_game_contract_address, in_flight_exit_id)
     # bits is flagged when input is piggybacked
-    assert in_flight_exit_ids.exit_map != 0
+    assert in_flight_exit.exit_map != 0
     entity = "Alice"
 
     {:ok, Map.put(state, entity, alice_state)}
@@ -912,10 +912,10 @@ defmodule InFlightExitsTests do
   defand ~r/^"(?<entity>[^"]+)" in flight transaction inputs are not spendable any more$/,
          %{entity: entity},
          state do
-    %{address: address, child_chain_balance: balance, last_deposited_amount: deposit} = state[entity]
+    %{address: address, in_flight_exit: in_flight_exit} = state[entity]
 
-    # Get utxos and check above are not present
-    pull_balance_until_amount(address, balance - deposit)
+    assert Itest.Poller.utxo_absent?(address, in_flight_exit.position)
+    assert Itest.Poller.exitable_utxo_absent?(address, in_flight_exit.position)
 
     {:ok, state}
   end
@@ -923,11 +923,12 @@ defmodule InFlightExitsTests do
   defand ~r/^"(?<entity>[^"]+)" in flight transaction most recently piggybacked output is not spendable any more$/,
          %{entity: entity},
          state do
-    %{address: address, transaction_submit: submit_response, child_chain_balance: balance} = state[entity]
+    %{address: address, transaction_submit: submit_response, in_flight_exit: in_flight_exit} = state[entity]
     piggybacked_output_index = 0
     %SubmitTransactionResponse{blknum: output_blknum, txindex: output_txindex} = submit_response
 
-    pull_balance_until_amount(address, balance - Currency.to_wei(5))
+    assert Itest.Poller.utxo_absent?(address, in_flight_exit.position)
+    assert Itest.Poller.exitable_utxo_absent?(address, in_flight_exit.position)
 
     {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: address})
 
