@@ -193,7 +193,7 @@ defmodule OMG.EthereumEventListener do
 
     {:root_chain, event_signature}
     |> OMG.Bus.Event.new(:data, data)
-    |> OMG.Bus.direct_local_broadcast()
+    |> OMG.Bus.local_broadcast()
   end
 
   defp publish_events([]), do: :ok

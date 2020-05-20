@@ -147,7 +147,7 @@ defmodule OMG.Watcher.BlockGetter do
         :ok =
           {:child_chain, "block.get"}
           |> OMG.Bus.Event.new(:block_received, block_application)
-          |> OMG.Bus.direct_local_broadcast()
+          |> OMG.Bus.local_broadcast()
 
         {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}
 
@@ -364,7 +364,7 @@ defmodule OMG.Watcher.BlockGetter do
 
     {:root_chain, event_signature}
     |> OMG.Bus.Event.new(:data, data)
-    |> OMG.Bus.direct_local_broadcast()
+    |> OMG.Bus.local_broadcast()
   end
 
   defp publish_events([]), do: :ok

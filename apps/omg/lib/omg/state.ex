@@ -275,7 +275,7 @@ defmodule OMG.State do
   defp publish_block_to_event_bus(block) do
     {:child_chain, "blocks"}
     |> OMG.Bus.Event.new(:enqueue_block, block)
-    |> OMG.Bus.direct_local_broadcast()
+    |> OMG.Bus.local_broadcast()
   end
 
   @spec fetch_utxos_from_db(list(OMG.Utxo.Position.t()), Core.t()) :: UtxoSet.t()

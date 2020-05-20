@@ -31,7 +31,7 @@ defmodule OMG.Bus.PubSub do
   def child_spec(args \\ []) do
     args
     |> Keyword.put_new(:name, __MODULE__)
-    |> PubSub.PG2.child_spec()
+    |> PubSub.child_spec()
   end
 
   defmacro __using__(_) do
@@ -56,25 +56,8 @@ defmodule OMG.Bus.PubSub do
         PubSub.subscribe(OMG.Bus.PubSub, topic, opts)
       end
 
-      @doc """
-      Broadcast a message with a prefix indicating that it is originating from the internal event bus
-
-      Handle the message in the receiving process by e.g.
-      ```
-      def handle_info({:internal_bus_event, :some_event, my_payload}, state)
-      ```
-      """
-      def broadcast(%Event{topic: topic, event: event, payload: payload}) when is_atom(event) do
-        PubSub.broadcast(OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
-      end
-
-      @doc """
-      Same as `broadcast/1`, but performed on the local node
-      """
-      def direct_local_broadcast(%Event{topic: topic, event: event, payload: payload})
-          when is_atom(event) do
-        node_name = PubSub.node_name(OMG.Bus.PubSub)
-        PubSub.direct_broadcast(node_name, OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
+      def local_broadcast(%Event{topic: topic, event: event, payload: payload}) do
+        PubSub.local_broadcast(Bus.PubSub, topic, {:internal_event_bus, event, payload})
       end
     end
   end

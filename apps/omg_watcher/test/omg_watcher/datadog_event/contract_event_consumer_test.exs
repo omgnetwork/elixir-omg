@@ -45,7 +45,7 @@ defmodule OMG.Watcher.DatadogEvent.ContractEventConsumerTest do
     topic_name = self() |> :erlang.pid_to_list() |> to_string()
     sig = "#{topic_name}(bytes32)"
     data = [%{event_signature: sig}]
-    {:root_chain, topic_name} |> OMG.Bus.Event.new(:data, data) |> OMG.Bus.direct_local_broadcast()
+    {:root_chain, topic_name} |> OMG.Bus.Event.new(:data, data) |> OMG.Bus.local_broadcast()
     assert_receive {:event, _, _}
   end
 
@@ -53,7 +53,7 @@ defmodule OMG.Watcher.DatadogEvent.ContractEventConsumerTest do
     topic_name = self() |> :erlang.pid_to_list() |> to_string()
     sig = "#{topic_name}(bytes32)"
     data = [%{event_signature: sig, pos: 1}, %{event_signature: sig, pos: 2}]
-    {:root_chain, topic_name} |> OMG.Bus.Event.new(:data, data) |> OMG.Bus.direct_local_broadcast()
+    {:root_chain, topic_name} |> OMG.Bus.Event.new(:data, data) |> OMG.Bus.local_broadcast()
 
     Enum.each(data, fn ev ->
       %{pos: pos} = ev
