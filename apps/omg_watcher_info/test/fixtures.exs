@@ -82,6 +82,7 @@ defmodule OMG.WatcherInfo.Fixtures do
       )
 
     :ok = SQL.Sandbox.checkout(DB.Repo)
+    SQL.Sandbox.mode(DB.Repo, {:shared, self()})
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       wait_for_process(pid)
