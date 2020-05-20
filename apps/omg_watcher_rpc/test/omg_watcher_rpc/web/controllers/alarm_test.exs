@@ -18,7 +18,9 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
 
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
-  use Phoenix.ConnTest
+  import Plug.Conn
+
+  import Phoenix.ConnTest
 
   @endpoint OMG.WatcherRPC.Web.Endpoint
   setup do

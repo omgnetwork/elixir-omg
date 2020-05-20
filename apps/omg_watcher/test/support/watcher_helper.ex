@@ -23,7 +23,10 @@ defmodule Support.WatcherHelper do
   require Utxo
 
   import ExUnit.Assertions
-  use Phoenix.ConnTest
+  import Plug.Conn
+
+  import Phoenix.ConnTest
+
   @endpoint OMG.WatcherRPC.Web.Endpoint
 
   def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do
