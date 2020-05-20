@@ -923,12 +923,11 @@ defmodule InFlightExitsTests do
   defand ~r/^"(?<entity>[^"]+)" in flight transaction most recently piggybacked output is not spendable any more$/,
          %{entity: entity},
          state do
-    %{address: address, transaction_submit: submit_response, in_flight_exit: in_flight_exit} = state[entity]
+    %{address: address, transaction_submit: submit_response, child_chain_balance: balance} = state[entity]
     piggybacked_output_index = 0
     %SubmitTransactionResponse{blknum: output_blknum, txindex: output_txindex} = submit_response
 
-    assert Itest.Poller.utxo_absent?(address, in_flight_exit.position)
-    assert Itest.Poller.exitable_utxo_absent?(address, in_flight_exit.position)
+    pull_balance_until_amount(address, balance - Currency.to_wei(5))
 
     {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: address})
 
