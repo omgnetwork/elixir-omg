@@ -78,13 +78,28 @@ defmodule OMG.RocksDBTest do
     {:ok, ["xyz", "vxyz", "wvxyz"]} = OMG.DB.block_hashes([1, 2, 3], pid)
   end
 
-  test "it can get data with the type and specific key of the type", %{db_dir: _dir, db_pid: pid} do
-    type = :exit_info
-    specific_key = {1, 1, 1}
-    data = {specific_key, :crypto.strong_rand_bytes(123)}
-    :ok = DB.multi_update([{:put, type, data}], pid)
+  describe "get/2" do
+    test "can get single data with the type and single specific key", %{db_dir: _dir, db_pid: pid} do
+      type = :exit_info
+      specific_key = {1, 1, 1}
+      data = {specific_key, :crypto.strong_rand_bytes(123)}
+      :ok = DB.multi_update([{:put, type, data}], pid)
 
-    assert {:ok, data} == DB.get(type, specific_key, pid)
+      assert {:ok, [data]} == DB.get(type, [specific_key], pid)
+    end
+
+    test "can get multiple data with the type and multiple specific keys", %{db_dir: _dir, db_pid: pid} do
+      type = :exit_info
+      specific_keys = [{1, 1, 1}, {2, 2, 2}]
+      data_list = Enum.map(specific_keys, fn key -> {key, :crypto.strong_rand_bytes(123)} end)
+
+      :ok =
+        data_list
+        |> Enum.map(fn data -> {:put, type, data} end)
+        |> DB.multi_update(pid)
+
+      assert {:ok, data_list} == DB.get(type, specific_keys, pid)
+    end
   end
 
   test "it can get all data with the type", %{db_dir: _dir, db_pid: pid} do

@@ -111,14 +111,14 @@ defmodule OMG.DB.RocksDB.Server do
     do_spent_blknum(utxo_pos, state)
   end
 
-  def handle_call({:get, type, specific_key}, _from, state) do
+  def handle_call({:get, type, specific_keys}, _from, state) do
     result =
-      type
-      |> Core.key(specific_key)
-      |> get(state)
-      |> Core.decode_value()
+      Enum.map(
+        specific_keys,
+        fn key -> get_decoded_data_with_type_and_specific_key(type, key, state) end
+      )
 
-    {:reply, result, state}
+    {:reply, {:ok, result}, state}
   end
 
   def handle_call({:get_all_by_type, type}, _from, state) do
@@ -228,6 +228,16 @@ defmodule OMG.DB.RocksDB.Server do
   defp write(operations, %__MODULE__{db_ref: db_ref} = state) do
     :ok = :telemetry.execute([:update_write, __MODULE__], %{}, state)
     :rocksdb.write(db_ref, operations, [])
+  end
+
+  defp get_decoded_data_with_type_and_specific_key(type, specific_key, state) do
+    {:ok, result} =
+      type
+      |> Core.key(specific_key)
+      |> get(state)
+      |> Core.decode_value()
+
+    result
   end
 
   # get read options

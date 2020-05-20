@@ -98,8 +98,14 @@ defmodule OMG.DB.RocksDB do
     GenServer.call(server_name, {:get_single_value, parameter_name})
   end
 
-  def get(type, specific_key, server_name \\ @server_name) do
-    GenServer.call(server_name, {:get, type, specific_key})
+  def get(type, specific_keys, server_name \\ @server_name) do
+    log_msg =
+      "Reading data for type #{inspect(type)} with the following keys #{inspect(specific_keys)}." <>
+        " Allowing #{inspect(@one_minute)} ms"
+
+    _ = Logger.info(log_msg)
+
+    GenServer.call(server_name, {:get, type, specific_keys}, @one_minute)
   end
 
   def get_all_by_type(type, server_name \\ @server_name) do

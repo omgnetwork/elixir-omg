@@ -36,7 +36,7 @@ defmodule OMG.DB do
   @callback block_hashes(integer()) :: {:ok, list()}
   @callback child_top_block_number() :: {:ok, non_neg_integer()} | :not_found
   @callback get_single_value(atom()) :: {:ok, term} | :not_found
-  @callback get(atom(), term()) :: {:ok, term} | :not_found
+  @callback get(atom(), list(term)) :: {:ok, list(term)} | :not_found
   @callback get_all_by_type(atom()) :: {:ok, list(term)} | :not_found
 
   # callbacks useful for injecting a specific server implementation
@@ -50,7 +50,7 @@ defmodule OMG.DB do
   @callback block_hashes(integer(), GenServer.server()) :: {:ok, list()}
   @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()} | :not_found
   @callback get_single_value(atom(), GenServer.server()) :: {:ok, term} | :not_found
-  @callback get(atom(), term(), GenServer.server()) :: {:ok, term} | :not_found
+  @callback get(atom(), list(term), GenServer.server()) :: {:ok, list(term)} | :not_found
   @callback get_all_by_type(atom(), GenServer.server()) :: {:ok, list(term)} | :not_found
   @optional_callbacks child_spec: 1,
                       initiation_multiupdate: 1,
@@ -114,8 +114,8 @@ defmodule OMG.DB do
   This is generic DB function that can get the specific data of a specific type.
   If it is a single value data, use get_single_value/1 instead.
   """
-  def get(type, specific_key), do: driver().get(type, specific_key)
-  def get(type, specific_key, server), do: driver().get(type, specific_key, server)
+  def get(type, specific_keys), do: driver().get(type, specific_keys)
+  def get(type, specific_keys, server), do: driver().get(type, specific_keys, server)
 
   @doc """
   This is generic DB function that can get all data of a specific type.

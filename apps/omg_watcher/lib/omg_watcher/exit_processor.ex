@@ -267,7 +267,7 @@ defmodule OMG.Watcher.ExitProcessor do
         ethereum_block_time_seconds: ethereum_block_time_seconds,
         child_block_interval: child_block_interval
       ) do
-    {:ok, db_exits} = PaymentExitInfo.exit_infos()
+    {:ok, db_exits} = PaymentExitInfo.all_exit_infos()
     {:ok, db_ifes} = PaymentExitInfo.in_flight_exits_info()
     {:ok, db_competitors} = DB.competitors_info()
 

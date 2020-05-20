@@ -29,8 +29,8 @@ defmodule OMG.Watcher.API.Account do
     {:ok, utxos} = OMG.DB.utxos()
     standard_exitable_utxos = OMG.State.Core.standard_exitable_utxos(utxos, address)
 
-    # PaymentExitInfo.exit_infos() takes a while.
-    {:ok, standard_exits} = PaymentExitInfo.exit_infos()
+    # PaymentExitInfo.all_exit_infos() takes a while.
+    {:ok, standard_exits} = PaymentExitInfo.all_exit_infos()
     active_standard_exiting_utxos = OMG.Watcher.ExitProcessor.Core.active_standard_exiting_utxos(standard_exits)
 
     # active standard exiting utxos are excluded

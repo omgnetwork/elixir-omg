@@ -27,25 +27,53 @@ defmodule OMG.DB.PaymentExitInfoTest do
   @moduletag :common
   @writes 10
 
-  test "if single reading exit info returns writen results", %{db_dir: _dir, db_pid: pid} do
-    {utxo_pos, _} = db_write = :exit_info |> create_write(pid) |> Enum.at(0)
+  describe "exit_info" do
+    test "should return single exit info when given the utxo position", %{db_dir: _dir, db_pid: pid} do
+      {utxo_pos, _} = db_write = :exit_info |> create_write(pid) |> Enum.at(0)
 
-    {:ok, result} = PaymentExitInfo.exit_info(utxo_pos, pid)
+      {:ok, result} = PaymentExitInfo.exit_info(utxo_pos, pid)
 
-    assert result == db_write
+      assert result == db_write
+    end
   end
 
-  test "if multi reading exit infos returns writen results", %{db_dir: _dir, db_pid: pid} do
-    db_writes = create_write(:exit_info, pid)
-    {:ok, exits} = PaymentExitInfo.exit_infos(pid)
-    # what we wrote and what we read must be equal
-    [] = exits -- db_writes
+  describe "exit_infos" do
+    test "should return empty list if given empty list of positions", %{db_dir: _dir, db_pid: pid} do
+      db_writes = create_write(:exit_info, pid)
+
+      {:ok, exits} = PaymentExitInfo.exit_infos([], pid)
+
+      assert exits == []
+    end
+
+    test "should return all exit infos with the given utxo positions", %{db_dir: _dir, db_pid: pid} do
+      test_range = 0..Integer.floor_div(@writes, 2)
+
+      db_writes = create_write(:exit_info, pid)
+      sliced_db_writes = Enum.slice(db_writes, test_range)
+
+      utxo_pos_list = Enum.map(sliced_db_writes, fn {utxo_pos, _} = write -> utxo_pos end)
+
+      {:ok, exits} = PaymentExitInfo.exit_infos(utxo_pos_list, pid)
+
+      assert exits == sliced_db_writes
+    end
   end
 
-  test "if multi reading in flight exit infos returns writen results", %{db_dir: _dir, db_pid: pid} do
-    db_writes = create_write(:in_flight_exit_info, pid)
-    {:ok, in_flight_exits_infos} = PaymentExitInfo.in_flight_exits_info(pid)
-    [] = in_flight_exits_infos -- db_writes
+  describe "all_exit_infos" do
+    test "should return all exit infos", %{db_dir: _dir, db_pid: pid} do
+      db_writes = create_write(:exit_info, pid)
+      {:ok, exits} = PaymentExitInfo.all_exit_infos(pid)
+      assert exits == db_writes
+    end
+  end
+
+  describe "in_flight_exits_info" do
+    test "should return all in-flight exits info", %{db_dir: _dir, db_pid: pid} do
+      db_writes = create_write(:in_flight_exit_info, pid)
+      {:ok, in_flight_exits_infos} = PaymentExitInfo.in_flight_exits_info(pid)
+      assert in_flight_exits_infos == db_writes
+    end
   end
 
   defp create_write(:exit_info = type, pid) do
