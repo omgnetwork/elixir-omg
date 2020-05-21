@@ -17,9 +17,6 @@ defmodule OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB do
   @app :omg_watcher_info
 
   def migrate() do
-    # Start Ethereumex for migrations that make contract calls to populate the database.
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
-
     for repo <- repos() do
       {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
     end

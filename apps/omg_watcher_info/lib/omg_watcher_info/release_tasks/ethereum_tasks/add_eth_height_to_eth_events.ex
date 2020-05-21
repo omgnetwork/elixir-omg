@@ -1,4 +1,9 @@
-defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
+defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvents do
+  @moduledoc """
+  Running in May 2020.
+  `eth_height` is currently not persisted in the Watcher Info DB for `eth_events`
+  This module will add `eth_height` to all persisted `eth_events` where this value is non-existent.
+  """
   use Ecto.Migration
   alias OMG.Eth.Encoding
   alias OMG.WatcherInfo.DB
@@ -8,7 +13,7 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.FetchEthHeightsForEthEvents do
   @max_db_rows 100
   @max_eth_requests 25
 
-  def up() do
+  def run() do
     DB.Repo.transaction(fn ->
       stream_events_from_db()
       |> stream_create_requests()

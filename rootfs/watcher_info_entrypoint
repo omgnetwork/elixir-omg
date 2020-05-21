@@ -58,7 +58,10 @@ s6-env REPLACE_OS_VARS=yes
 ##
 
 ifelse { test $1 == "full_local" } {
-  /bin/bash -c "/app/bin/watcher_info eval \"OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()\" && /app/bin/watcher_info eval \"OMG.DB.ReleaseTasks.InitKeyValueDB.run()\" && /app/bin/watcher_info start"
+  /bin/bash -c "/app/bin/watcher_info eval \"OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()\" && \
+  /app/bin/watcher_info eval \"OMG.DB.ReleaseTasks.InitKeyValueDB.run()\" && \
+  /app/bin/watcher_info eval \"OMG.DB.ReleaseTasks.EthereumTasks.run()\" && \
+  /app/bin/watcher_info start"
 }
 
 ifelse { test $1 == "start_iex" } {
