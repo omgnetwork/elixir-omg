@@ -391,8 +391,12 @@ defmodule Itest.Poller do
     |> Enum.map(& &1["event"])
   end
 
-  defp utxo_absent?(_address, utxo_pos, 0) do
-    _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed, but it is still detectable.")
+  defp utxo_absent?(address, utxo_pos, 0) do
+    params = %AddressBodySchema1{address: address}
+    {:ok, response} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), params)
+    utxos = Jason.decode!(response.body)["data"]
+
+    _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed, but it is still detectable in: #{inspect(utxos)}")
     false
   end
 
@@ -409,8 +413,12 @@ defmodule Itest.Poller do
     end
   end
 
-  defp exitable_utxo_absent?(_address, utxo_pos, 0) do
-    _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed from exitable utxos, but it is still detectable.")
+  defp exitable_utxo_absent?(address, utxo_pos, 0) do
+    params = %AddressBodySchema1{address: address}
+    {:ok, response} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(WatcherInfo.new(), params)
+    utxos = Jason.decode!(response.body)["data"]
+
+    _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed from exitable utxos, but it is still detectable in #{inspect(utxos)}")
     false
   end
 
