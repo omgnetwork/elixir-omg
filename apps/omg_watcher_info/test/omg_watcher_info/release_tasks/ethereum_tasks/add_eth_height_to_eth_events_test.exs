@@ -1,4 +1,4 @@
-defmodule OMG.WatcherInfo.ReleaseTasks.SetChildChainTest do
+defmodule OMG.WatcherInfo.ReleaseTasks.AddEthHeightToEthEventsTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
   use OMG.WatcherInfo.Fixtures
