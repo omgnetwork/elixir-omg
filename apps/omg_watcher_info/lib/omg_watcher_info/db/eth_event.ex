@@ -266,6 +266,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   def base_query() do
     from(
       ethevent in __MODULE__,
+      order_by: [desc: :eth_height],
       left_join: txoutputs in assoc(ethevent, :txoutputs),
       preload: [txoutputs: txoutputs]
     )

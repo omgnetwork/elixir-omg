@@ -482,6 +482,19 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns Ethereum events sorted by descending eth_height" do
+      _ = insert(:ethevent, eth_height: 1)
+      _ = insert(:ethevent, eth_height: 3)
+      _ = insert(:ethevent, eth_height: 2)
+
+      results = DB.EthEvent.get_events(@default_paginator, :deposit)
+
+      assert results.data |> Enum.at(0) |> Map.get(:eth_height) == 3
+      assert results.data |> Enum.at(1) |> Map.get(:eth_height) == 2
+      assert results.data |> Enum.at(2) |> Map.get(:eth_height) == 1
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "pagination - correctly paginates responses" do
       _ = insert(:ethevent)
       _ = insert(:ethevent)
