@@ -927,7 +927,7 @@ defmodule InFlightExitsTests do
     piggybacked_output_index = 0
     %SubmitTransactionResponse{blknum: output_blknum, txindex: output_txindex} = submit_response
 
-    pull_balance_until_amount(address, balance - Currency.to_wei(5))
+    pull_balance_until_amount(address, balance - Currency.to_wei(5) - state["fee"])
 
     {:ok, %{"data" => utxos}} = Client.get_utxos(%{address: address})
 
