@@ -396,7 +396,8 @@ defmodule Itest.Poller do
     {:ok, response} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), params)
     utxos = Jason.decode!(response.body)["data"]
 
-    _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed, but it is still detectable in: #{inspect(utxos)}")
+    _ = Logger.warn("UTXO #{inspect(utxo_pos)} should be absent. Found in: #{inspect(utxos)}")
+
     false
   end
 
@@ -418,7 +419,8 @@ defmodule Itest.Poller do
     {:ok, response} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(WatcherInfo.new(), params)
     utxos = Jason.decode!(response.body)["data"]
 
-    _ = Logger.warn("UTXO #{inspect(utxo_pos)} expected to be removed from exitable utxos, but it is still detectable in #{inspect(utxos)}")
+    _ = Logger.warn("UTXO #{inspect(utxo_pos)} should be absent from exitable utxos. Found in #{inspect(utxos)}")
+
     false
   end
 
