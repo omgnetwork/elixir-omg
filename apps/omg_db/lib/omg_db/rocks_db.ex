@@ -98,23 +98,23 @@ defmodule OMG.DB.RocksDB do
     GenServer.call(server_name, {:get_single_value, parameter_name})
   end
 
-  def get(type, specific_keys, server_name \\ @server_name) do
+  def get(type, specific_keys, timeout, server_name \\ @server_name) do
     log_msg =
       "Reading data for type #{inspect(type)} with the following keys #{inspect(specific_keys)}." <>
-        " Allowing #{inspect(@one_minute)} ms"
+        " Allowing #{inspect(timeout)} ms"
 
     _ = Logger.info(log_msg)
 
-    GenServer.call(server_name, {:get, type, specific_keys}, @one_minute)
+    GenServer.call(server_name, {:get, type, specific_keys}, timeout)
   end
 
-  def get_all_by_type(type, server_name \\ @server_name) do
+  def get_all_by_type(type, timeout, server_name \\ @server_name) do
     _ =
       Logger.info(
-        "Reading all data for type #{inspect(type)}, this might take a while. Allowing #{inspect(@one_minute)} ms"
+        "Reading all data for type #{inspect(type)}, this might take a while. Allowing #{inspect(timeout)} ms"
       )
 
-    GenServer.call(server_name, {:get_all_by_type, type}, @one_minute)
+    GenServer.call(server_name, {:get_all_by_type, type}, timeout)
   end
 
   def initiation_multiupdate(server_name \\ @server_name) do
