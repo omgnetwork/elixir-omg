@@ -123,7 +123,7 @@ defmodule InFlightExitsTests do
   defgiven ~r/^"(?<entity>[^"]+)" deposits "(?<amount>[^"]+)" ETH to the root chain$/,
            %{entity: entity, amount: amount},
            state do
-    Itest.Poller.get_balance(state[entity]) |> IO.inspect(label: "#{entity} deposits #{amount} ETH to the root chain")
+    Itest.Poller.get_balance(state[entity].address) |> IO.inspect(label: "#{entity} deposits #{amount} ETH to the root chain")
     %{address: address} = entity_state = state[entity]
     initial_balance = Itest.Poller.root_chain_get_balance(address)
 
@@ -165,7 +165,7 @@ defmodule InFlightExitsTests do
   defthen ~r/^"(?<entity>[^"]+)" should have "(?<amount>[^"]+)" ETH on the child chain after finality margin$/,
           %{entity: entity, amount: amount},
           state do
-    Itest.Poller.get_balance(state[entity]) |> IO.inspect(label: "#{entity} should have #{amount} ETH on the child chain after finality margin")
+    Itest.Poller.get_balance(state[entity].address) |> IO.inspect(label: "#{entity} should have #{amount} ETH on the child chain after finality margin")
     %{address: address} = entity_state = state[entity]
     _ = Logger.info("#{entity} should have #{amount} ETH on the child chain after finality margin")
 
@@ -288,7 +288,7 @@ defmodule InFlightExitsTests do
   defgiven ~r/^Alice creates a transaction for "(?<amount>[^"]+)" ETH$/,
            %{amount: amount},
            state do
-    Itest.Poller.get_balance(state["Alice"]) |> IO.inspect(label: "Alice creates a transaction for #{amount} ETH")
+    Itest.Poller.get_balance(state["Alice"].address) |> IO.inspect(label: "Alice creates a transaction for #{amount} ETH")
     amount = Currency.to_wei(amount)
 
     %{address: alice_address, utxos: alice_utxos, pkey: alice_pkey, child_chain_balance: alice_child_chain_balance} =
@@ -389,7 +389,7 @@ defmodule InFlightExitsTests do
   end
 
   defand ~r/^Alice sends the most recently created transaction$/, _, state do
-    Itest.Poller.get_balance(state["Alice"]) |> IO.inspect(label: "Alice sends the most recently created transaction")
+    Itest.Poller.get_balance(state["Alice"].address) |> IO.inspect(label: "Alice sends the most recently created transaction")
     %{txbytes: txbytes} = alice_state = state["Alice"]
 
     submit_transaction_response = send_transaction(txbytes)
@@ -456,7 +456,7 @@ defmodule InFlightExitsTests do
   end
 
   defand ~r/^Alice starts an in flight exit from the most recently created transaction$/, _, state do
-    Itest.Poller.get_balance(state["Alice"]) |> IO.inspect(label: "Alice starts an in flight exit from the most recently created transaction")
+    Itest.Poller.get_balance(state["Alice"].address) |> IO.inspect(label: "Alice starts an in flight exit from the most recently created transaction")
 
     exit_game_contract_address = state["exit_game_contract_address"]
     in_flight_exit_bond_size = state["in_flight_exit_bond_size"]
@@ -478,7 +478,7 @@ defmodule InFlightExitsTests do
   defgiven ~r/^"(?<entity>[^"]+)" verifies its in flight exit from the most recently created transaction$/,
            %{entity: entity},
            state do
-    Itest.Poller.get_balance(state[entity]) |> IO.inspect(label: "#{entity} verifies its in flight exit from the most recently created transaction")
+    Itest.Poller.get_balance(state[entity].address) |> IO.inspect(label: "#{entity} verifies its in flight exit from the most recently created transaction")
     exit_game_contract_address = state["exit_game_contract_address"]
     %{exit_data: exit_data} = entity_state = state[entity]
 
@@ -522,7 +522,7 @@ defmodule InFlightExitsTests do
   end
 
   defgiven ~r/^Alice piggybacks output from her most recent in flight exit$/, _, state do
-    Itest.Poller.get_balance(state["Alice"]) |> IO.inspect(label: "Alice piggybacks output from her most recent in flight exit")
+    Itest.Poller.get_balance(state["Alice"].address) |> IO.inspect(label: "Alice piggybacks output from her most recent in flight exit")
     exit_game_contract_address = state["exit_game_contract_address"]
 
     %{address: address, exit_data: exit_data, in_flight_exit_id: in_flight_exit_id} = alice_state = state["Alice"]
@@ -892,7 +892,7 @@ defmodule InFlightExitsTests do
   end
 
   defwhen ~r/^Alice piggybacks inputs from Bobs most recent in flight exit$/, _, state do
-    Itest.Poller.get_balance(state["Alice"]) |> IO.inspect(label: "Alice piggybacks inputs from Bobs most recent in flight exit")
+    Itest.Poller.get_balance(state["Alice"].address) |> IO.inspect(label: "Alice piggybacks inputs from Bobs most recent in flight exit")
     exit_game_contract_address = state["exit_game_contract_address"]
 
     %{exit_data: exit_data, in_flight_exit_id: in_flight_exit_id} = state["Bob"]
@@ -932,7 +932,7 @@ defmodule InFlightExitsTests do
   defand ~r/^"(?<entity>[^"]+)" in flight transaction most recently piggybacked output is not spendable any more$/,
          %{entity: entity},
          state do
-    Itest.Poller.get_balance(state[entity]) |> IO.inspect(label: "#{entity} in flight transaction most recently piggybacked output is not spendable any more")
+    Itest.Poller.get_balance(state[entity].address) |> IO.inspect(label: "#{entity} in flight transaction most recently piggybacked output is not spendable any more")
 
     %{address: address, transaction_submit: submit_response, child_chain_balance: balance} = state[entity]
     piggybacked_output_index = 0
