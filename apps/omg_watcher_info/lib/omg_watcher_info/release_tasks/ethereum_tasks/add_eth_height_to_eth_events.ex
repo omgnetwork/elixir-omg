@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
     end)
   end
 
-  defp stream_events_from_db() do
+  def stream_events_from_db() do
     query =
       from(e in DB.EthEvent,
         where: is_nil(e.eth_height),
@@ -35,24 +35,24 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
     DB.Repo.stream(query, max_rows: @max_db_rows)
   end
 
-  defp stream_create_requests(events_stream) do
+  def stream_create_requests(events_stream) do
     Stream.map(events_stream, fn root_chain_txhash ->
       {:eth_get_transaction_by_hash, [Encoding.to_hex(root_chain_txhash)]}
     end)
   end
 
-  defp stream_batch_requests(request_stream) do
+  def stream_batch_requests(request_stream) do
     Stream.chunk_every(request_stream, @max_eth_requests)
   end
 
-  defp stream_make_requests(batched_request_stream) do
+  def stream_make_requests(batched_request_stream) do
     Stream.map(batched_request_stream, &make_batched_request/1)
   end
 
-  defp make_batched_request(eth_requests) do
+  def make_batched_request(eth_requests) do
     case eth_requests do
       [] ->
-        {:ok, []}
+        []
 
       _ ->
         {:ok, batched_responses} = Ethereumex.HttpClient.batch_request(eth_requests)
@@ -60,7 +60,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
     end
   end
 
-  defp stream_concatenate_responses(batched_response_stream) do
+  def stream_concatenate_responses(batched_response_stream) do
     Stream.concat(batched_response_stream)
   end
 
@@ -68,7 +68,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
     Stream.map(response_stream, &format_response/1)
   end
 
-  defp format_response(event) do
+  def format_response(event) do
     eth_height =
       event
       |> Map.get("blockNumber")
@@ -94,7 +94,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
     end
   end
 
-  defp update_record(%{root_chain_txhash: root_chain_txhash, eth_height: eth_height} = _response) do
+  def update_record(%{root_chain_txhash: root_chain_txhash, eth_height: eth_height} = _response) do
     from(e in DB.EthEvent,
       where: e.root_chain_txhash == ^root_chain_txhash,
       select: e
