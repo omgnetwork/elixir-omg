@@ -54,17 +54,31 @@ defmodule OMG.Watcher.SyncSupervisor do
     coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
     min_exit_period_seconds = OMG.Eth.Configuration.min_exit_period_seconds()
     ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
-    contracts = OMG.Eth.Configuration.contracts()
+    exit_games = OMG.Eth.Configuration.exit_games()
+    # To avoid changing the logic of the aggregator just yet,
+    # we just merge the exit games map into the contracts map
+    # Keys will be discarded in the init() func of the aggregator
+    contracts = Map.merge(OMG.Eth.Configuration.contracts(), exit_games)
 
-    [
-      {ExitProcessor,
-       [
-         exit_processor_sla_margin: exit_processor_sla_margin,
-         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
-         metrics_collection_interval: metrics_collection_interval,
-         min_exit_period_seconds: min_exit_period_seconds,
-         ethereum_block_time_seconds: ethereum_block_time_seconds
-       ]},
+    exit_processors = Enum.map(exit_games, fn {transaction_type, exit_game_contract_addr} ->
+      %{
+        id: transaction_type,
+        start: {ExitProcessor, :start_link, [[
+          name: transaction_type,
+          transaction_type: transaction_type,
+          exit_game_contract_addr: exit_game_contract_addr,
+          exit_processor_sla_margin: exit_processor_sla_margin,
+          exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
+          metrics_collection_interval: metrics_collection_interval,
+          min_exit_period_seconds: min_exit_period_seconds,
+          ethereum_block_time_seconds: ethereum_block_time_seconds
+        ]]},
+        restart: :permanent,
+        type: :worker
+      }
+    end)
+
+    exit_processors ++ [
       %{
         id: OMG.Watcher.BlockGetter.Supervisor,
         start:
@@ -115,7 +129,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,
         get_events_callback: &EthereumEventAggregator.exit_started/2,
-        process_events_callback: &Watcher.ExitProcessor.new_exits/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.new_exits/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -124,7 +138,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :exit_finalizer,
         synced_height_update_key: :last_exit_finalizer_eth_height,
         get_events_callback: &EthereumEventAggregator.exit_finalized/2,
-        process_events_callback: &Watcher.ExitProcessor.finalize_exits/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.finalize_exits/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -133,7 +147,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :exit_challenger,
         synced_height_update_key: :last_exit_challenger_eth_height,
         get_events_callback: &EthereumEventAggregator.exit_challenged/2,
-        process_events_callback: &Watcher.ExitProcessor.challenge_exits/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.challenge_exits/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -142,7 +156,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :in_flight_exit_processor,
         synced_height_update_key: :last_in_flight_exit_processor_eth_height,
         get_events_callback: &EthereumEventAggregator.in_flight_exit_started/2,
-        process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.new_in_flight_exits/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -151,7 +165,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :piggyback_processor,
         synced_height_update_key: :last_piggyback_processor_eth_height,
         get_events_callback: &EthereumEventAggregator.in_flight_exit_piggybacked/2,
-        process_events_callback: &Watcher.ExitProcessor.piggyback_exits/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.piggyback_exits/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -160,7 +174,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :competitor_processor,
         synced_height_update_key: :last_competitor_processor_eth_height,
         get_events_callback: &EthereumEventAggregator.in_flight_exit_challenged/2,
-        process_events_callback: &Watcher.ExitProcessor.new_ife_challenges/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.new_ife_challenges/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -169,7 +183,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :challenges_responds_processor,
         synced_height_update_key: :last_challenges_responds_processor_eth_height,
         get_events_callback: &EthereumEventAggregator.in_flight_exit_challenge_responded/2,
-        process_events_callback: &Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.respond_to_in_flight_exits_challenges/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -178,7 +192,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :piggyback_challenges_processor,
         synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
         get_events_callback: &EthereumEventAggregator.in_flight_exit_blocked/2,
-        process_events_callback: &Watcher.ExitProcessor.challenge_piggybacks/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.challenge_piggybacks/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -187,7 +201,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :ife_exit_finalizer,
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
         get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
-        process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
+        process_events_callback: &Watcher.ExitProcessorDispatcher.finalize_in_flight_exits/1
       ),
       {ChildManager, [monitor: Monitor]}
     ]

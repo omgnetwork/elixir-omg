@@ -28,6 +28,7 @@ defmodule OMG.Watcher.API.Status do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
+  alias OMG.Watcher.ExitProcessorDispatcher
   alias OMG.Watcher.ExitProcessor
 
   @opaque t() :: %{
@@ -70,8 +71,11 @@ defmodule OMG.Watcher.API.Status do
 
     {:ok, services_synced_heights} = RootChainCoordinator.get_ethereum_heights()
 
-    {_, events_processor} = ExitProcessor.check_validity()
-    {:ok, in_flight_exits} = ExitProcessor.get_active_in_flight_exits()
+    events_processor = Enum.reduce(ExitProcessorDispatcher.check_validity(), [], fn {_, events}, acc ->
+      events ++ acc
+    end)
+
+    {:ok, in_flight_exits} = ExitProcessorDispatcher.get_active_in_flight_exits()
 
     {:ok, {_, events_block_getter}} = BlockGetter.get_events()
 

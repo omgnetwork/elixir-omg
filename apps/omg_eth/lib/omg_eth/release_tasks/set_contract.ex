@@ -72,14 +72,13 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       end
 
     # get all the data from external sources
-    {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval} =
+    {exit_games, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval} =
       get_external_data(plasma_framework, rpc_api)
 
     contract_addresses = %{
       plasma_framework: plasma_framework,
       eth_vault: eth_vault,
-      erc20_vault: erc20_vault,
-      payment_exit_game: payment_exit_game
+      erc20_vault: erc20_vault
     }
 
     merge_configuration(
@@ -87,6 +86,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       txhash_contract,
       authority_address,
       contract_addresses,
+      exit_games,
       min_exit_period_seconds,
       contract_semver,
       network,
@@ -97,14 +97,21 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   defp get_external_data(plasma_framework, rpc_api) do
     min_exit_period_seconds = get_min_exit_period(plasma_framework, rpc_api)
 
-    payment_exit_game =
-      plasma_framework |> exit_game_contract_address(ExPlasma.payment_v1(), rpc_api) |> Encoding.to_hex()
+    # TODO: get the list of types from ex_plasma?
+    exit_games =
+      Enum.into(OMG.WireFormatTypes.exit_game_tx_types(), %{}, fn type ->
+        {type,
+          plasma_framework
+          |> exit_game_contract_address(OMG.WireFormatTypes.tx_type_for(type), rpc_api)
+          |> Encoding.to_hex()
+        }
+      end)
 
     eth_vault = plasma_framework |> get_vault(@ether_vault_id, rpc_api) |> Encoding.to_hex()
     erc20_vault = plasma_framework |> get_vault(@erc20_vault_id, rpc_api) |> Encoding.to_hex()
     contract_semver = get_contract_semver(plasma_framework, rpc_api)
     child_block_interval = get_child_block_interval(plasma_framework, rpc_api)
-    {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval}
+    {exit_games, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval}
   end
 
   defp merge_configuration(
@@ -112,6 +119,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
          txhash_contract,
          authority_address,
          contract_addresses,
+         exit_games,
          min_exit_period_seconds,
          contract_semver,
          network,
@@ -127,6 +135,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
         txhash_contract: String.downcase(txhash_contract),
         authority_address: String.downcase(authority_address),
         contract_addr: contract_addresses,
+        exit_games: exit_games,
         min_exit_period_seconds: min_exit_period_seconds,
         contract_semver: contract_semver,
         network: network,
@@ -135,7 +144,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     )
   end
 
-  defp merge_configuration(_, _, _, _, _, _, _, _), do: exit(@error)
+  defp merge_configuration(_, _, _, _, _, _, _, _, _), do: exit(@error)
 
   defp get_min_exit_period(plasma_framework_contract, rpc_api) do
     signature = "minExitPeriod()"
