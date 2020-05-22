@@ -23,9 +23,10 @@ defmodule OMG.WatcherInfo.DB.Block do
   alias OMG.State
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.DB.Block.Chunk
 
   import Ecto.Query, only: [from: 2]
-  @max_params_count 0xFFFF
+
   @type mined_block() :: %{
           transactions: [State.Transaction.Recovered.t()],
           blknum: pos_integer(),
@@ -133,17 +134,6 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> DB.Repo.one!()
   end
 
-  defp query_get_last(%{limit: limit, page: page}) do
-    offset = (page - 1) * limit
-
-    from(
-      block in base_query(),
-      order_by: [desc: :blknum],
-      limit: ^limit,
-      offset: ^offset
-    )
-  end
-
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   def insert(params) do
     %__MODULE__{}
@@ -171,8 +161,8 @@ defmodule OMG.WatcherInfo.DB.Block do
       eth_height: eth_height
     }
 
-    db_txs_stream = chunk(db_txs)
-    db_outputs_stream = chunk(db_outputs)
+    db_txs_stream = Chunk.chunk(db_txs)
+    db_outputs_stream = Chunk.chunk(db_outputs)
 
     multi =
       Ecto.Multi.new()
@@ -273,24 +263,14 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> validate_number(:eth_height, greater_than: 0)
   end
 
-  # Prepares entries to the database in chunks to avoid `too many parameters` error.
-  # Accepts the same parameters that `Repo.insert_all/3`.
-  defp chunk(entries) do
-    utc_now = DateTime.utc_now()
-    entries = Enum.map(entries, fn entry -> Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now}) end)
+  defp query_get_last(%{limit: limit, page: page}) do
+    offset = (page - 1) * limit
 
-    chunk_size = entries |> hd() |> chunk_size()
-
-    Stream.chunk_every(entries, chunk_size)
+    from(
+      block in base_query(),
+      order_by: [desc: :blknum],
+      limit: ^limit,
+      offset: ^offset
+    )
   end
-
-  # Note: an entry with 0 fields will cause a divide-by-zero error.
-  #
-  # DB.Repo.chunk_size(%{}) ==> (ArithmeticError) bad argument in arithmetic expression
-  #
-  # But we could not think of a case where this code happen, so no defensive
-  # checks here.
-  def chunk_size(entry), do: div(@max_params_count, fields_count(entry))
-
-  defp fields_count(map), do: Kernel.map_size(map)
 end
