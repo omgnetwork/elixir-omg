@@ -199,7 +199,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   # mimics `&OMG.Watcher.ExitProcessor.init/1`
   defp state_from(db_pid) do
     {:ok, db_exits} = PaymentExitInfo.all_exit_infos(db_pid)
-    {:ok, db_ifes} = PaymentExitInfo.in_flight_exits_info(db_pid)
+    {:ok, db_ifes} = PaymentExitInfo.all_in_flight_exits_infos(db_pid)
     {:ok, db_competitors} = OMG.DB.competitors_info(db_pid)
 
     {:ok, state} =

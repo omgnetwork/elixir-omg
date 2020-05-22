@@ -268,7 +268,7 @@ defmodule OMG.Watcher.ExitProcessor do
         child_block_interval: child_block_interval
       ) do
     {:ok, db_exits} = PaymentExitInfo.all_exit_infos()
-    {:ok, db_ifes} = PaymentExitInfo.in_flight_exits_info()
+    {:ok, db_ifes} = PaymentExitInfo.all_in_flight_exits_infos()
     {:ok, db_competitors} = DB.competitors_info()
 
     :ok =

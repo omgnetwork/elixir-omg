@@ -68,10 +68,10 @@ defmodule OMG.DB.PaymentExitInfoTest do
     end
   end
 
-  describe "in_flight_exits_info" do
+  describe "all_in_flight_exits_infos" do
     test "should return all in-flight exits info", %{db_dir: _dir, db_pid: pid} do
       db_writes = create_write(:in_flight_exit_info, pid)
-      {:ok, in_flight_exits_infos} = PaymentExitInfo.in_flight_exits_info(pid)
+      {:ok, in_flight_exits_infos} = PaymentExitInfo.all_in_flight_exits_infos(pid)
       assert in_flight_exits_infos == db_writes
     end
   end

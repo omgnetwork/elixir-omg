@@ -38,7 +38,7 @@ defmodule OMG.DB.Models.PaymentExitInfo do
     DB.get_all_by_type(:exit_info, server: server, timeout: @one_minute)
   end
 
-  def in_flight_exits_info(server \\ @server_name) do
+  def all_in_flight_exits_infos(server \\ @server_name) do
     DB.get_all_by_type(:in_flight_exit_info, server: server, timeout: @one_minute)
   end
 end
