@@ -19,9 +19,9 @@ defmodule OMG.WatcherInfo.DB.Block.ChunkTest do
 
   import OMG.WatcherInfo.Factory
 
+  alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Block.Chunk
-  alias OMG.Utxo
 
   require Utxo
 
@@ -119,7 +119,7 @@ defmodule OMG.WatcherInfo.DB.Block.ChunkTest do
   # `ExMachina.params_for/2` could be used here to make use of `OMG.WatcherInfo.Factory.Transaction`.
   # But the transaction factory does a lot of extra stuff unnecessary for this test. This stripped
   # down version is about 15x faster. Also using `ExMachina.params_for/2` here also requires some
-  # tweaking of the map it returns because `OMG.WatcherInfo.Chunk.chunk` is the code
+  # tweaking of the map it returns because `OMG.WatcherInfo.DB.Block.chunk/1` is the code
   # being tested rather than `Ecto.Repo.insert_all/3`. The 2 functions differ in the inputs they
   # expect.
   defp new_transaction(blknum, index, utc_now) do

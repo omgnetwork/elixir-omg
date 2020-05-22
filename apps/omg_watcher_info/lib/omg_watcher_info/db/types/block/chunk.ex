@@ -19,6 +19,7 @@ defmodule OMG.WatcherInfo.DB.Block.Chunk do
   @max_params_count 0xFFFF
   # Prepares entries to the database in chunks to avoid `too many parameters` error.
   # Accepts the same parameters that `Repo.insert_all/3`.
+  @spec chunk(Enumerable.t()) :: Enumerable.t()
   def chunk(entries) do
     utc_now = DateTime.utc_now()
     entries = Enum.map(entries, fn entry -> Map.merge(entry, %{inserted_at: utc_now, updated_at: utc_now}) end)
