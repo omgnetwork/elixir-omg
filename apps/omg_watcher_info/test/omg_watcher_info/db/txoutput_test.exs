@@ -86,15 +86,15 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     # is here: https://hexdocs.pm/ecto/Ecto.Repo.html#c:update_all/3
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "spend_utxos updates the updated_at timestamp correctly" do
-      deposit = build(:txoutput) |> with_deposit()
+      deposit = :txoutput |> build() |> with_deposit()
 
-      insert(:transaction) |> with_inputs([deposit])
+      :transaction |> insert() |> with_inputs([deposit])
 
       txinput = DB.TxOutput.get_by_position(Utxo.position(deposit.blknum, deposit.txindex, deposit.oindex))
 
-      spend_utxo_params = txinput |> spend_uxto_params_from_txoutput()
+      spend_utxo_params = spend_uxto_params_from_txoutput(txinput)
 
-      assert :ok == DB.TxOutput.spend_utxos([spend_utxo_params])
+      _ = DB.Repo.transaction(DB.TxOutput.spend_utxos(Ecto.Multi.new(), [spend_utxo_params]))
       spent_txoutput = DB.TxOutput.get_by_position(Utxo.position(txinput.blknum, txinput.txindex, txinput.oindex))
 
       assert :eq == DateTime.compare(txinput.inserted_at, spent_txoutput.inserted_at)
