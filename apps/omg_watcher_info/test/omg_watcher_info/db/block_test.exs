@@ -333,8 +333,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
       {:ok, block} = DB.Block.insert_with_transactions(mined_block)
 
-      assert %DB.Block{} = block
-      assert block.hash == mined_block.blkhash
+      assert %DB.Block{} = block["current_block"]
+      current_block_hash = block["current_block"].hash
+      assert mined_block.blkhash == current_block_hash
 
       assert DB.Repo.get(DB.Transaction, tx_1.tx_hash)
       assert DB.Repo.get(DB.Transaction, tx_2.tx_hash)

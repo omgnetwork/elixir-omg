@@ -133,32 +133,33 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     end)
   end
 
-  @spec spend_utxos([map()]) :: :ok
-  def spend_utxos(db_inputs) do
+  @spec spend_utxos(Ecto.Multi.t(), [map()]) :: Ecto.Multi.t()
+  def spend_utxos(multi, db_inputs) do
     utc_now = DateTime.utc_now()
 
-    db_inputs
-    |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
-      _ =
-        DB.TxOutput
-        |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)
-        |> Repo.update_all(
-          set: [
-            spending_tx_oindex: spending_oindex,
-            spending_txhash: spending_txhash,
-            updated_at: utc_now
-          ]
-        )
-    end)
+    {multi0, _} =
+      Enum.reduce(db_inputs, {multi, 0}, fn data, {multi, index} ->
+        {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} = data
+
+        {Ecto.Multi.update_all(
+           multi,
+           "spend_utxos_#{index}",
+           from(p in DB.TxOutput,
+             where: p.blknum == ^blknum and p.txindex == ^txindex and p.oindex == ^oindex
+           ),
+           set: [
+             spending_tx_oindex: spending_oindex,
+             spending_txhash: spending_txhash,
+             updated_at: utc_now
+           ]
+         ), index + 1}
+      end)
+
+    multi0
   end
 
   @spec create_outputs(pos_integer(), integer(), binary(), Transaction.any_flavor_t()) :: [map()]
-  def create_outputs(
-        blknum,
-        txindex,
-        txhash,
-        tx
-      ) do
+  def create_outputs(blknum, txindex, txhash, tx) do
     # zero-value outputs are not inserted, tx can have no outputs at all
     outputs =
       tx
