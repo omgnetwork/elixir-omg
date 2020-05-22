@@ -21,25 +21,24 @@ defmodule OMG.DB.Models.PaymentExitInfo do
 
   @server_name OMG.DB.RocksDB.Server
 
-  @five_seconds 5000
   @ten_seconds 10_000
   @one_minute 60_000
 
-  def exit_info(utxo_pos, server_name \\ @server_name) do
-    {:ok, data} = DB.get(:exit_info, [utxo_pos], @five_seconds, server_name)
+  def exit_info(utxo_pos, server \\ @server_name) do
+    {:ok, data} = DB.batch_get(:exit_info, [utxo_pos], server: server)
     {:ok, hd(data)}
   end
 
-  def exit_infos(utxo_pos_list, server_name \\ @server_name)
+  def exit_infos(utxo_pos_list, server \\ @server_name)
       when is_list(utxo_pos_list) do
-    DB.get(:exit_info, utxo_pos_list, @ten_seconds, server_name)
+    DB.batch_get(:exit_info, utxo_pos_list, server: server, timeout: @ten_seconds)
   end
 
-  def all_exit_infos(server_name \\ @server_name) do
-    DB.get_all_by_type(:exit_info, @one_minute, server_name)
+  def all_exit_infos(server \\ @server_name) do
+    DB.get_all_by_type(:exit_info, server: server, timeout: @one_minute)
   end
 
-  def in_flight_exits_info(server_name \\ @server_name) do
-    DB.get_all_by_type(:in_flight_exit_info, @one_minute, server_name)
+  def in_flight_exits_info(server \\ @server_name) do
+    DB.get_all_by_type(:in_flight_exit_info, server: server, timeout: @one_minute)
   end
 end
