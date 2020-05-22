@@ -179,10 +179,10 @@ defmodule OMG.WatcherInfo.DB.Block do
 
         result
 
-      {:error, changeset} ->
+      {:error, name, changeset, explain} ->
         _ = Logger.info("Block \##{block_number} not persisted in WatcherDB, done in #{insert_duration / 1000}ms")
 
-        _ = Logger.info("Error: #{inspect(changeset.errors)}")
+        _ = Logger.info("Error in transaction #{name}: #{inspect(changeset.errors)} #{inspect(explain)}")
         result
     end
   end

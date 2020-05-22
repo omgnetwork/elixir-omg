@@ -16,8 +16,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @moduledoc """
   Ecto schema for transaction's output or input
   """
-  import Ecto.Query, only: [from: 2]
-
   use Ecto.Schema
 
   alias OMG.State.Transaction
@@ -28,7 +26,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   require Utxo
 
-  import Ecto.Query, only: [from: 2, where: 2]
+  import Ecto.Query, only: [from: 2]
 
   @default_get_utxos_limit 200
 

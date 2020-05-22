@@ -344,16 +344,21 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns an error when inserting with an existing blknum" do
       existing = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
       mined_block = %{
-        transactions: [],
+        transactions: [tx_1, tx_2],
         blknum: existing.blknum,
         blkhash: existing.hash,
         timestamp: 1_576_500_000,
         eth_height: existing.eth_height
       }
 
-      {:error, changeset} = DB.Block.insert_with_transactions(mined_block)
+      {:error, "current_block", changeset, %{}} = DB.Block.insert_with_transactions(mined_block)
 
       assert changeset.errors == [
                blknum: {"has already been taken", [constraint: :unique, constraint_name: "blocks_pkey"]}
