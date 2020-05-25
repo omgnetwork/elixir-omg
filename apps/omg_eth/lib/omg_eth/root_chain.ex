@@ -85,7 +85,8 @@ defmodule OMG.Eth.RootChain do
     {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
 
     # solidity does not return arrays of structs
-    # following is tuple representing the struct in solidity: https://git.io/JfEi5
+    # following is tuple representing the struct in solidity:
+    # https://github.com/omisego/plasma-contracts/blob/7afc0b62623bc3f34e612256c3e2fd9a3e531a2c/plasma_framework/contracts/src/exits/payment/PaymentExitDataModel.sol#L60-L78
     return_types = [
       {:array, {:tuple, [:bool, {:uint, 64}, {:uint, 256}, {:uint, 256}, :address, {:uint, 256}, {:uint, 256}]}}
     ]

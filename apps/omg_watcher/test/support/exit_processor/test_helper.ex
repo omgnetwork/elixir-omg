@@ -79,7 +79,8 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   # See `OMG.Eth.RootChain.get_in_flight_exit_structs/2` for reference of where this comes from
   # `nil`s are unused portions of the returns data from the contract
-  # also see the reference the solidity struct data: https://git.io/JfEi5
+  # also see the reference the solidity struct data:
+  # https://github.com/omisego/plasma-contracts/blob/7afc0b62623bc3f34e612256c3e2fd9a3e531a2c/plasma_framework/contracts/src/exits/payment/PaymentExitDataModel.sol#L60-L78
   def active_ife_status(), do: {nil, 1, nil, nil, nil, nil, nil}
   def inactive_ife_status(), do: {nil, 0, nil, nil, nil, nil, nil}
 
