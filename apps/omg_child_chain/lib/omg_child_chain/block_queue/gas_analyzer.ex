@@ -64,8 +64,9 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzer do
           state.txhash_queue
 
         false ->
-          {{:value, {txhash, try_index}}, txhash_queue} = :queue.out(state.txhash_queue)
-          gas_used = txhash |> to_hex() |> get_gas_used(state.rpc)
+          {{:value, {txhash_binary, try_index}}, txhash_queue} = :queue.out(state.txhash_queue)
+          txhash = to_hex(txhash_binary)
+          gas_used = get_gas_used(txhash, state.rpc)
 
           case {gas_used, try_index} do
             {nil, @retries} ->
