@@ -21,6 +21,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   use Ecto.Schema
 
   alias OMG.State.Transaction
+  alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Repo
@@ -28,6 +29,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   require Utxo
 
   import Ecto.Query, only: [from: 2, where: 2]
+
+  @default_get_utxos_limit 200
 
   @type balance() :: %{
           currency: binary(),
@@ -79,24 +82,29 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     )
   end
 
-  def get_utxos(owner) do
-    query =
-      from(
-        txoutput in __MODULE__,
+  @spec get_by_output_id(txhash :: OMG.Crypto.hash_t(), oindex :: non_neg_integer()) :: map() | nil
+  def get_by_output_id(txhash, oindex) do
+    DB.Repo.one(
+      from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
-        # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
-        where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
- NOT EXISTS (SELECT 1
-             FROM ethevents_txoutputs AS etfrag
-             JOIN ethevents AS efrag ON
-                      etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                      AND efrag.event_type IN (?)
-                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
-        order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
+        where: txoutput.creating_txhash == ^txhash and txoutput.oindex == ^oindex
       )
+    )
+  end
 
-    Repo.all(query)
+  @spec get_utxos(keyword) :: OMG.Utils.Paginator.t(%__MODULE__{})
+  def get_utxos(params) do
+    address = Keyword.fetch!(params, :address)
+    paginator = Paginator.from_constraints(params, @default_get_utxos_limit)
+    %{limit: limit, page: page} = paginator.data_paging
+    offset = (page - 1) * limit
+
+    address
+    |> query_get_utxos()
+    |> from(limit: ^limit, offset: ^offset)
+    |> Repo.all()
+    |> Paginator.set_data(paginator)
   end
 
   @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
@@ -192,9 +200,33 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @spec get_sorted_grouped_utxos(OMG.Crypto.address_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
   def get_sorted_grouped_utxos(owner) do
     # TODO: use clever DB query to get following out of DB
-    get_utxos(owner)
+    owner
+    |> get_all_utxos()
     |> Enum.group_by(& &1.currency)
     |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
     |> Map.new()
+  end
+
+  defp query_get_utxos(address) do
+    from(
+      txoutput in __MODULE__,
+      preload: [:ethevents],
+      left_join: ethevent in assoc(txoutput, :ethevents),
+      # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
+      where: txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+NOT EXISTS (SELECT 1
+           FROM ethevents_txoutputs AS etfrag
+           JOIN ethevents AS efrag ON
+                    etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
+                    AND efrag.event_type IN (?)
+                    AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+      order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
+    )
+  end
+
+  @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
+  defp get_all_utxos(address) do
+    query = query_get_utxos(address)
+    Repo.all(query)
   end
 end

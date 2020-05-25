@@ -40,6 +40,7 @@ To bring the entire system up you will first need to bring in the compatible Get
 ```sh
 make init_test
 ```
+It creates a file `./localchain_contract_addresses.env`. It is required to have this file in current directory for running any `docker-compose` command.
 
 ```sh
 docker-compose up
@@ -71,7 +72,7 @@ If you want Docker to use the latest commit from `elixir-omg` you can trigger a 
 # Install on a Linux host
 Follow the guide to **[install](docs/install.md)** the Child Chain server, Watcher and Watcher Info.
 
-# Installing Plasma contract snapshots 
+# Installing Plasma contract snapshots
 
 To pull in the compatible snapshot for Geth:
 ```bash
@@ -119,11 +120,11 @@ MIX_ENV=test iex -S mix run --no-start
 
 # Working with API Spec's
 
-This repo contains `gh-pages` branch intended to host [Swagger-based](https://developer.omisego.co/elixir-omg/) API specification.
+This repo contains `gh-pages` branch intended to host [Swagger-based](https://docs.omg.network/elixir-omg/) API specification.
 Branch `gh-pages` is totally diseparated from other development branches and contains just Slate generated page's files.
 
-See [gh-pages README](https://github.com/omisego/elixir-omg/blob/gh-pages/docs/api_specs/README.md) for more details.
+See [gh-pages README](https://github.com/omisego/elixir-omg/tree/gh-pages) for more details.
 
-# More details about the design and arhitecture
+# More details about the design and architecture
 
-Details about the repository, code, arhitecture and design decisions are available **[here](docs/details.md)**.
+Details about the repository, code, architecture and design decisions are available **[here](docs/details.md)**.

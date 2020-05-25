@@ -1,0 +1,14 @@
+{
+    "1": {
+        "0x0000000000000000000000000000000000000000": {
+            "amount": 1,
+            "pegged_amount": null,
+            "pegged_currency": null,
+            "pegged_subunit_to_unit": null,
+            "subunit_to_unit": 1000000000000000000,
+            "updated_at": "2019-01-01T10:10:00+00:00",
+            "symbol": "ETH",
+            "type": "fixed"
+        }
+    }
+}

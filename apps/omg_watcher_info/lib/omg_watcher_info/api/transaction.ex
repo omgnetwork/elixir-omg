@@ -23,7 +23,6 @@ defmodule OMG.WatcherInfo.API.Transaction do
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.UtxoSelection
-
   require Utxo
 
   @default_transactions_limit 200
@@ -46,7 +45,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
   Length of the list is limited by `limit` argument
   """
-  @spec get_transactions(Keyword.t()) :: Paginator.t()
+  @spec get_transactions(Keyword.t()) :: Paginator.t(%DB.Transaction{})
   def get_transactions(constraints) do
     paginator = Paginator.from_constraints(constraints, @default_transactions_limit)
 

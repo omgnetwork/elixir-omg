@@ -15,7 +15,6 @@ defmodule Itest.Client do
   @moduledoc """
     An interface to Watcher API.
   """
-  alias Itest.ApiModel.Utxo
   alias Itest.Transactions.Currency
   alias Itest.Transactions.Deposit
   alias Itest.Transactions.Encoding
@@ -36,13 +35,13 @@ defmodule Itest.Client do
 
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
-
+    value = if currency == Currency.ether(), do: amount_in_wei, else: 0
     data = ABI.encode("deposit(bytes)", [deposit_transaction])
 
     txmap = %{
       from: output_address,
-      to: vault_address,
-      value: Encoding.to_hex(amount_in_wei),
+      to: Encoding.to_hex(vault_address),
+      value: Encoding.to_hex(value),
       data: Encoding.to_hex(data),
       gas: Encoding.to_hex(@gas)
     }
@@ -96,16 +95,26 @@ defmodule Itest.Client do
     submit_typed(typed_data_signed)
   end
 
-  def get_utxos(address) do
-    payload = %AddressBodySchema1{address: address}
-    {:ok, response} = Account.account_get_utxos(WatcherInfo.new(), payload)
-    Poison.decode!(response.body, as: %{"data" => [%Utxo{}]})["data"]
+  def get_utxos(params) do
+    default_paging = %{page: 1, limit: 200}
+    %{address: address, page: page, limit: limit} = Map.merge(default_paging, params)
+
+    {:ok, response} =
+      Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address, page: page, limit: limit})
+
+    data = Jason.decode!(response.body)
+    {:ok, data}
   end
 
   def get_gas_used(receipt_hash), do: Itest.Gas.get_gas_used(receipt_hash)
 
   def get_balance(address), do: Itest.Poller.get_balance(address)
-  def get_balance(address, amount), do: Itest.Poller.pull_balance_until_amount(address, amount)
+  def get_balance(address, currency), do: Itest.Poller.get_balance(address, currency)
+
+  def get_exact_balance(address, amount), do: Itest.Poller.pull_balance_until_amount(address, amount)
+
+  def get_exact_balance(address, amount, currency),
+    do: Itest.Poller.pull_balance_until_amount(address, amount, currency)
 
   def get_fees() do
     {:ok, response} = Fees.fees_all(WatcherInfo.new())

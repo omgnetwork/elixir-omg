@@ -54,7 +54,12 @@ config :omg,
 config :omg_child_chain,
   block_queue_eth_height_check_interval_ms: 100,
   fee_adapter_check_interval_ms: 1_000,
-  fee_buffer_duration_ms: 5_000
+  fee_buffer_duration_ms: 5_000,
+  fee_adapter:
+    {OMG.ChildChain.Fees.FileAdapter,
+     opts: [
+       specs_file_path: Path.join(__DIR__, "../apps/omg_child_chain/test/omg_child_chain/support/fee_specs.json")
+     ]}
 
 # We need to start OMG.ChildChainRPC.Web.Endpoint with HTTP server for Performance and Watcher tests to work
 # as a drawback lightweight (without HTTP server) controller tests are no longer an option.
@@ -131,9 +136,9 @@ config :omg_watcher, child_chain_url: "http://localhost:9657"
 
 config :omg_watcher,
   block_getter_loops_interval_ms: 50,
-  # NOTE `exit_processor_sla_margin` can't be made shorter. At 3 it sometimes
-  # causes :unchallenged_exit because `geth --dev` is too fast
-  exit_processor_sla_margin: 5,
+  # NOTE `exit_processor_sla_margin` can't be made shorter. At 8 it sometimes
+  # causes unchallenged exits events because `geth --dev` is too fast
+  exit_processor_sla_margin: 10,
   # this means we allow the `sla_margin` above be larger than the `min_exit_period`
   exit_processor_sla_margin_forced: true,
   # NOTE: `maximum_block_withholding_time_ms` must be here - one of our integration tests

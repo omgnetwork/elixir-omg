@@ -28,14 +28,18 @@ defmodule OMG.Watcher.ExitProcessor do
 
   alias OMG.Block
   alias OMG.DB
+  alias OMG.DB.Models.PaymentExitInfo
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
+  alias OMG.Eth.RootChain
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExit
+  alias OMG.Watcher.ExitProcessor.Tools
 
   use OMG.Utils.LoggerExt
   require Utxo
@@ -260,10 +264,11 @@ defmodule OMG.Watcher.ExitProcessor do
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
         metrics_collection_interval: metrics_collection_interval,
         min_exit_period_seconds: min_exit_period_seconds,
-        ethereum_block_time_seconds: ethereum_block_time_seconds
+        ethereum_block_time_seconds: ethereum_block_time_seconds,
+        child_block_interval: child_block_interval
       ) do
-    {:ok, db_exits} = DB.exit_infos()
-    {:ok, db_ifes} = DB.in_flight_exits_info()
+    {:ok, db_exits} = PaymentExitInfo.all_exit_infos()
+    {:ok, db_ifes} = PaymentExitInfo.all_in_flight_exits_infos()
     {:ok, db_competitors} = DB.competitors_info()
 
     :ok =
@@ -274,7 +279,16 @@ defmodule OMG.Watcher.ExitProcessor do
         ethereum_block_time_seconds
       )
 
-    {:ok, processor} = Core.init(db_exits, db_ifes, db_competitors, exit_processor_sla_margin)
+    {:ok, processor} =
+      Core.init(
+        db_exits,
+        db_ifes,
+        db_competitors,
+        min_exit_period_seconds,
+        child_block_interval,
+        exit_processor_sla_margin
+      )
+
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
     _ = Logger.info("Initializing with: #{inspect(processor)}")
@@ -290,12 +304,21 @@ defmodule OMG.Watcher.ExitProcessor do
   - updates the `ExitProcessor`'s state
   - returns `db_updates`
   """
-  def handle_call({:new_exits, exits}, _from, state) do
+  def handle_call(
+        {:new_exits, exits},
+        _from,
+        state
+      ) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
     {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit_structs(get_in(exits, [Access.all(), :exit_id]))
 
-    {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
+    exit_maps =
+      Enum.map(exits, fn exit_event ->
+        put_timestamp_and_sft(exit_event, state.min_exit_period_seconds, state.child_block_interval)
+      end)
+
+    {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -318,6 +341,15 @@ defmodule OMG.Watcher.ExitProcessor do
           ExPlasma.InFlightExit.txbytes_to_id(txbytes)
         end
       )
+
+    # Prepare events data for internal bus
+    :ok =
+      events
+      |> Enum.map(fn %{call_data: %{input_utxos_pos: inputs}} = event ->
+        {event, inputs}
+      end)
+      |> Tools.to_bus_events_data()
+      |> publish_internal_bus_events("InFlightExitStarted")
 
     {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
     ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
@@ -355,6 +387,12 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:piggyback_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized piggybacks: #{inspect(exits)}")
     {new_state, db_updates} = Core.new_piggybacks(state, exits)
+
+    :ok =
+      exits
+      |> Tools.to_bus_events_data()
+      |> publish_internal_bus_events("InFlightTxOutputPiggybacked")
+
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -428,7 +466,8 @@ defmodule OMG.Watcher.ExitProcessor do
     # necessary, so that the processor knows the current state of inclusion of exiting IFE txs
     state2 = update_with_ife_txs_from_blocks(state)
 
-    {:ok, exiting_positions} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
+    {:ok, exiting_positions, events_with_utxos} =
+      Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
 
     # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
     # See issue #671 https://github.com/omisego/elixir-omg/issues/671
@@ -436,6 +475,11 @@ defmodule OMG.Watcher.ExitProcessor do
       Enum.reduce(exiting_positions, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
 
     {:ok, state3, db_updates} = Core.finalize_in_flight_exits(state2, finalizations, invalidities)
+
+    :ok =
+      events_with_utxos
+      |> Tools.to_bus_events_data()
+      |> publish_internal_bus_events("InFlightExitOutputWithdrawn")
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end
@@ -651,5 +695,42 @@ defmodule OMG.Watcher.ExitProcessor do
     state_db_updates = exits_state_updates ++ state_db_updates
 
     {invalidities_by_ife_id, state_db_updates}
+  end
+
+  @spec put_timestamp_and_sft(
+          exit_event :: map(),
+          min_exit_period_seconds :: pos_integer(),
+          child_block_interval :: pos_integer()
+        ) ::
+          map()
+  defp put_timestamp_and_sft(
+         %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos_enc}} = exit_event,
+         min_exit_period_seconds,
+         child_block_interval
+       ) do
+    {:utxo_position, blknum, _, _} = Utxo.Position.decode!(utxo_pos_enc)
+    {_block_hash, utxo_creation_block_timestamp} = RootChain.blocks(blknum)
+    {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(eth_height)
+
+    {:ok, scheduled_finalization_time} =
+      ExitInfo.calculate_sft(
+        blknum,
+        exit_block_timestamp,
+        utxo_creation_block_timestamp,
+        min_exit_period_seconds,
+        child_block_interval
+      )
+
+    exit_event
+    |> Map.put(:scheduled_finalization_time, scheduled_finalization_time)
+    |> Map.put(:block_timestamp, exit_block_timestamp)
+  end
+
+  defp publish_internal_bus_events([], _), do: :ok
+
+  defp publish_internal_bus_events(events_data, topic) when is_list(events_data) and is_binary(topic) do
+    {:watcher, topic}
+    |> OMG.Bus.Event.new(:data, events_data)
+    |> OMG.Bus.direct_local_broadcast()
   end
 end

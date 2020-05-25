@@ -44,14 +44,17 @@ defmodule LoadTest.Service.Faucet do
   # allow the faucet to retry to avoid failing the test prematurely.
   @fund_child_chain_account_retries 100
 
+  @eth <<0::160>>
+
   @type state :: %__MODULE__{
           faucet_account: Account.t(),
           fee: pos_integer(),
           faucet_deposit_wei: pos_integer(),
           deposit_finality_margin: pos_integer(),
+          gas_price: pos_integer(),
           utxos: map()
         }
-  defstruct [:faucet_account, :fee, :faucet_deposit_wei, :deposit_finality_margin, utxos: %{}]
+  defstruct [:faucet_account, :fee, :faucet_deposit_wei, :deposit_finality_margin, :gas_price, utxos: %{}]
 
   @doc """
   Sends funds to an account on the childchain.
@@ -96,7 +99,8 @@ defmodule LoadTest.Service.Faucet do
         faucet_account: faucet_account,
         fee: Keyword.fetch!(config, :fee_wei),
         faucet_deposit_wei: Keyword.fetch!(config, :faucet_deposit_wei),
-        deposit_finality_margin: Keyword.fetch!(config, :deposit_finality_margin)
+        deposit_finality_margin: Keyword.fetch!(config, :deposit_finality_margin),
+        gas_price: Keyword.fetch!(config, :gas_price)
       )
 
     {:ok, state}
@@ -109,20 +113,24 @@ defmodule LoadTest.Service.Faucet do
   def handle_call({:fund_child_chain, receiver, amount, currency}, _from, state) do
     utxo = get_funding_utxo(state, currency, amount)
 
-    change = utxo.amount - amount - state.fee
-
-    outputs = [
-      %Utxo{amount: change, currency: currency, owner: state.faucet_account.addr},
-      %Utxo{amount: amount, currency: currency, owner: receiver.addr}
-    ]
-
     Logger.debug("Funding user #{Encoding.to_hex(receiver.addr)} with #{amount} from utxo: #{Utxo.pos(utxo)}")
 
-    {:ok, blknum, txindex} =
-      Transaction.submit_tx([utxo], outputs, [state.faucet_account], @fund_child_chain_account_retries)
+    outputs =
+      Transaction.spend_utxo(
+        utxo,
+        amount,
+        state.fee,
+        state.faucet_account,
+        receiver,
+        @eth,
+        @fund_child_chain_account_retries
+      )
 
-    next_faucet_utxo = %Utxo{blknum: blknum, txindex: txindex, oindex: 0, amount: change}
-    user_utxo = %Utxo{blknum: blknum, txindex: txindex, oindex: 1, amount: amount}
+    [next_faucet_utxo, user_utxo] =
+      case outputs do
+        [single_output] -> [nil, single_output]
+        [change_output, user_output] -> [change_output, user_output]
+      end
 
     updated_state = Map.put(state, :utxos, Map.put(state.utxos, currency, next_faucet_utxo))
 
@@ -145,7 +153,8 @@ defmodule LoadTest.Service.Faucet do
         state.faucet_account,
         max(state.faucet_deposit_wei, amount + state.fee),
         currency,
-        state.deposit_finality_margin
+        state.deposit_finality_margin,
+        state.gas_price
       )
     else
       utxo
@@ -160,11 +169,11 @@ defmodule LoadTest.Service.Faucet do
 
   defp choose_largest_utxo(utxo, _account, _currency), do: utxo
 
-  @spec deposit(Account.t(), pos_integer(), Utxo.address_binary(), pos_integer()) :: Utxo.t()
-  defp deposit(faucet_account, amount, currency, deposit_finality_margin) do
-    Logger.debug("Not enough funds in the faucet, depositing more from the root chain")
+  @spec deposit(Account.t(), pos_integer(), Utxo.address_binary(), pos_integer(), pos_integer()) :: Utxo.t()
+  defp deposit(faucet_account, amount, currency, deposit_finality_margin, gas_price) do
+    Logger.debug("Not enough funds in the faucet, depositing #{amount} from the root chain")
 
-    {:ok, utxo} = Deposit.deposit_from(faucet_account, amount, currency, deposit_finality_margin)
+    {:ok, utxo} = Deposit.deposit_from(faucet_account, amount, currency, deposit_finality_margin, gas_price)
     utxo
   end
 end

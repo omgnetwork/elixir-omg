@@ -28,12 +28,30 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.InvalidExit.t()
           | OMG.Watcher.Event.UnchallengedExit.t()
           | OMG.Watcher.Event.NonCanonicalIFE.t()
+          | OMG.Watcher.Event.UnchallengedNonCanonicalIFE.t()
           | OMG.Watcher.Event.InvalidIFEChallenge.t()
           | OMG.Watcher.Event.PiggybackAvailable.t()
           | OMG.Watcher.Event.InvalidPiggyback.t()
+          | OMG.Watcher.Event.UnchallengedPiggyback.t()
 
-  @type t :: OMG.Watcher.Event.AddressReceived.t() | OMG.Watcher.Event.ExitFinalized.t() | byzantine_t()
+  @type t ::
+          OMG.Watcher.Event.AddressReceived.t()
+          | OMG.Watcher.Event.ExitFinalized.t()
+          | byzantine_t()
 
+  @type module_t ::
+          OMG.Watcher.Event.InvalidBlock
+          | OMG.Watcher.Event.BlockWithholding
+          | OMG.Watcher.Event.InvalidExit
+          | OMG.Watcher.Event.UnchallengedExit
+          | OMG.Watcher.Event.NonCanonicalIFE
+          | OMG.Watcher.Event.UnchallengedNonCanonicalIFE.t()
+          | OMG.Watcher.Event.InvalidIFEChallenge
+          | OMG.Watcher.Event.PiggybackAvailable
+          | OMG.Watcher.Event.InvalidPiggyback
+          | OMG.Watcher.Event.UnchallengedPiggyback
+          | OMG.Watcher.Event.AddressReceived
+          | OMG.Watcher.Event.ExitFinalized
   #  TODO The reason why events have name as String and byzantine events as atom is that
   #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
   #  the same way in `OMG.Watcher.Web.Serializers.Response`
@@ -119,7 +137,17 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid exit
     """
 
-    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, name: :invalid_exit]
+    defstruct [
+      :amount,
+      :currency,
+      :eth_height,
+      :owner,
+      :root_chain_txhash,
+      :scheduled_finalization_time,
+      :utxo_pos,
+      :spending_txhash,
+      name: :invalid_exit
+    ]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
@@ -127,6 +155,11 @@ defmodule OMG.Watcher.Event do
             owner: binary(),
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
+            name: atom(),
+            root_chain_txhash: Transaction.tx_hash() | nil,
+            scheduled_finalization_time: pos_integer() | nil,
+            spending_txhash: Transaction.tx_hash() | nil,
+            root_chain_txhash: Transaction.tx_hash() | nil,
             name: atom()
           }
   end
@@ -138,7 +171,17 @@ defmodule OMG.Watcher.Event do
     It is a prompt to exit
     """
 
-    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, name: :unchallenged_exit]
+    defstruct [
+      :amount,
+      :currency,
+      :eth_height,
+      :owner,
+      :root_chain_txhash,
+      :scheduled_finalization_time,
+      :utxo_pos,
+      :spending_txhash,
+      name: :unchallenged_exit
+    ]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
@@ -146,6 +189,11 @@ defmodule OMG.Watcher.Event do
             owner: binary(),
             utxo_pos: pos_integer(),
             eth_height: pos_integer(),
+            name: atom(),
+            root_chain_txhash: Transaction.tx_hash() | nil,
+            scheduled_finalization_time: pos_integer() | nil,
+            root_chain_txhash: Transaction.tx_hash() | nil,
+            spending_txhash: Transaction.tx_hash() | nil,
             name: atom()
           }
   end
@@ -163,9 +211,24 @@ defmodule OMG.Watcher.Event do
           }
   end
 
+  defmodule UnchallengedNonCanonicalIFE do
+    @moduledoc """
+    Notifies about an in-flight exit which has a competitor but is dangerously close to finalization.
+
+    It is a prompt to exit
+    """
+
+    defstruct [:txbytes, name: :unchallenged_non_canonical_ife]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            name: atom()
+          }
+  end
+
   defmodule InvalidIFEChallenge do
     @moduledoc """
-    Notifies about an in-flight exit which has a competitor
+    Notifies that a canonical in-flight exit has been challenged. The challenge should be responded to.
     """
 
     defstruct [:txbytes, name: :invalid_ife_challenge]
@@ -202,6 +265,23 @@ defmodule OMG.Watcher.Event do
     """
 
     defstruct [:txbytes, :inputs, :outputs, name: :invalid_piggyback]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            inputs: [non_neg_integer()],
+            outputs: [non_neg_integer()],
+            name: atom()
+          }
+  end
+
+  defmodule UnchallengedPiggyback do
+    @moduledoc """
+    Notifies about invalid piggyback, that is dangerously approaching finalization, without being challenged
+
+    It is a prompt to exit
+    """
+
+    defstruct [:txbytes, :inputs, :outputs, name: :unchallenged_piggyback]
 
     @type t :: %__MODULE__{
             txbytes: binary(),

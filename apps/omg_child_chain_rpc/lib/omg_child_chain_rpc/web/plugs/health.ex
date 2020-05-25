@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Plugs.Health do
+defmodule OMG.ChildChainRPC.Web.Plugs.Health do
   @moduledoc """
   Observes the systems alarms and prevents calls towards an unhealthy one.
   """
@@ -38,7 +38,7 @@ defmodule OMG.ChildChainRPC.Plugs.Health do
       data =
         Error.serialize(
           "operation:service_unavailable",
-          "The server is not ready to handle the request."
+          "The server is not ready to handle the request. Check the alarms for more info."
         )
 
       conn

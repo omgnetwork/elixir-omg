@@ -17,7 +17,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
   Test of the logic of exit processor, in the area of standard exits
   """
 
-  use OMG.Watcher.ExitProcessor.Case, async: true
+  use OMG.Watcher.ExitProcessor.Case, async: false
 
   alias OMG.Block
   alias OMG.State.Transaction
@@ -51,8 +51,22 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
   # needs to match up with the default from `ExitProcessor.Case` :(
   @exit_id 9876
 
+  @default_min_exit_period_seconds 120
+  @default_child_block_interval 1000
+
   setup do
-    {:ok, empty} = Core.init([], [], [])
+    {:ok, empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)
+    db_path = Briefly.create!(directory: true)
+    Application.put_env(:omg_db, :path, db_path, persistent: true)
+    :ok = OMG.DB.init()
+    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+
+    on_exit(fn ->
+      Application.put_env(:omg_db, :path, nil)
+
+      Enum.map(started_apps, fn app -> :ok = Application.stop(app) end)
+    end)
+
     %{processor_empty: empty, alice: TestHelper.generate_entity(), bob: TestHelper.generate_entity()}
   end
 
@@ -348,7 +362,9 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
          %{processor_empty: processor, alice: alice} do
       exiting_pos = @utxo_pos_tx
       exiting_pos_enc = Utxo.Position.encode(exiting_pos)
-      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      # standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      %{signed_tx_bytes: signed_tx_bytes, tx_hash: tx_hash} =
+        standard_exit_tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
       request = %ExitProcessor.Request{
         eth_height_now: 5,
@@ -358,15 +374,24 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       }
 
       # before the exit starts
-      assert {:ok, []} = request |> Core.check_validity(processor)
+      assert {:ok, []} = Core.check_validity(request, processor)
       # after
-      processor = processor |> start_se_from(standard_exit_tx, exiting_pos)
-      assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_pos_enc}]} = request |> Core.check_validity(processor)
+      processor = start_se_from(processor, standard_exit_tx, exiting_pos)
+
+      block_updates = [{:put, :block, %{number: @blknum, hash: <<0::160>>, transactions: [signed_tx_bytes]}}]
+      spent_blknum_updates = [{:put, :spend, {Utxo.Position.to_input_db_key(@utxo_pos_tx), @blknum}}]
+      :ok = OMG.DB.multi_update(block_updates ++ spent_blknum_updates)
+
+      assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_pos_enc, spending_txhash: ^tx_hash}]} =
+               Core.check_validity(request, processor)
     end
 
     test "detect old invalid standard exit", %{processor_empty: processor, alice: alice} do
       exiting_pos = @utxo_pos_tx
-      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      exiting_pos_enc = Utxo.Position.encode(exiting_pos)
+
+      %{signed_tx_bytes: signed_tx_bytes, tx_hash: tx_hash} =
+        standard_exit_tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
       request = %ExitProcessor.Request{
         eth_height_now: 50,
@@ -375,10 +400,17 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
         utxo_exists_result: [false]
       }
 
-      processor = processor |> start_se_from(standard_exit_tx, exiting_pos)
+      processor = start_se_from(processor, standard_exit_tx, exiting_pos)
 
-      assert {{:error, :unchallenged_exit}, [%Event.UnchallengedExit{}, %Event.InvalidExit{}]} =
-               request |> Core.check_validity(processor)
+      block_updates = [{:put, :block, %{number: @blknum, hash: <<0::160>>, transactions: [signed_tx_bytes]}}]
+      spent_blknum_updates = [{:put, :spend, {Utxo.Position.to_input_db_key(@utxo_pos_tx), @blknum}}]
+      :ok = OMG.DB.multi_update(block_updates ++ spent_blknum_updates)
+
+      assert {{:error, :unchallenged_exit},
+              [
+                %Event.UnchallengedExit{utxo_pos: ^exiting_pos_enc, spending_txhash: ^tx_hash},
+                %Event.InvalidExit{utxo_pos: ^exiting_pos_enc, spending_txhash: ^tx_hash}
+              ]} = Core.check_validity(request, processor)
     end
 
     test "invalid exits that have been witnessed already inactive don't excite events",
@@ -412,19 +444,22 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     test "detect invalid standard exit based on ife tx which spends same input",
          %{processor_empty: processor, alice: alice} do
       standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-      tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], [{alice, @eth, 1}])
+      %{tx_hash: tx_hash} = tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], [{alice, @eth, 1}])
       exiting_pos = @utxo_pos_tx
       exiting_pos_enc = Utxo.Position.encode(exiting_pos)
       processor = processor |> start_se_from(standard_exit_tx, exiting_pos) |> start_ife_from(tx)
 
-      assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_pos_enc}]} =
-               %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
-               |> check_validity_filtered(processor, only: [Event.InvalidExit])
+      assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_pos_enc, spending_txhash: ^tx_hash}]} =
+               check_validity_filtered(%ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}, processor,
+                 only: [Event.InvalidExit]
+               )
     end
 
     test "ifes and standard exits don't interfere",
          %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
-      standard_exit_tx = TestHelper.create_recovered([{@deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+      %{signed_tx_bytes: signed_tx_bytes, tx_hash: tx_hash} =
+        standard_exit_tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [{alice, 10}])
+
       processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_tx) |> start_ife_from(tx)
 
       assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos_tx]} =
@@ -432,9 +467,13 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
                %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
                |> Core.determine_utxo_existence_to_get(processor)
 
+      block_updates = [{:put, :block, %{number: @blknum, hash: <<0::160>>, transactions: [signed_tx_bytes]}}]
+      spent_blknum_updates = [{:put, :spend, {Utxo.Position.to_input_db_key(@utxo_pos_tx), @blknum}}]
+      :ok = OMG.DB.multi_update(block_updates ++ spent_blknum_updates)
+
       # here it's crucial that the missing utxo related to the ife isn't interpeted as a standard invalid exit
       # that missing utxo isn't enough for any IFE-related event too
-      assert {:ok, [%Event.InvalidExit{}]} =
+      assert {:ok, [%Event.InvalidExit{spending_txhash: ^tx_hash}]} =
                exit_processor_request
                |> struct!(utxo_exists_result: [false, false, false])
                |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])

@@ -125,8 +125,16 @@ defmodule Support.WatcherHelper do
     |> Map.get("amount")
   end
 
-  def get_utxos(address) do
-    success?("/account.get_utxos", %{"address" => Encoding.to_hex(address)})
+  def get_utxos(params) when is_map(params) do
+    hex_string_address = Encoding.to_hex(params.address)
+    success?("/account.get_utxos", %{params | address: hex_string_address})
+  end
+
+  @doc """
+  shortcut helper for get_utxos that inject pagination data for you
+  """
+  def get_utxos(address, page \\ 1, limit \\ 100) do
+    success?("/account.get_utxos", %{"address" => Encoding.to_hex(address), "page" => page, "limit" => limit})
   end
 
   def get_exitable_utxos(address) do

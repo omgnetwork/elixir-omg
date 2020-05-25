@@ -58,7 +58,6 @@ defmodule OMG.Watcher.API.Status do
     eth_syncing = syncing?()
 
     validated_child_block_number = get_validated_child_block_number()
-    # wtf is eth diagnostics?
     contracts = Configuration.contracts()
     contract_addr = contract_map_from_hex(contracts)
 

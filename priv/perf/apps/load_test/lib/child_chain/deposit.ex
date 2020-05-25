@@ -27,22 +27,22 @@ defmodule LoadTest.ChildChain.Deposit do
   @eth <<0::160>>
   @poll_interval 5_000
 
-  def deposit_from(%Account{} = depositor, amount, currency, deposit_finality_margin) do
+  def deposit_from(%Account{} = depositor, amount, currency, deposit_finality_margin, gas_price) do
     deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}
     {:ok, deposit} = Deposit.new(deposit_utxo)
-    {:ok, {deposit_blknum, eth_blknum}} = send_deposit(deposit, depositor, amount, currency)
+    {:ok, {deposit_blknum, eth_blknum}} = send_deposit(deposit, depositor, amount, currency, gas_price)
     :ok = wait_deposit_finality(eth_blknum, deposit_finality_margin)
     Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
   end
 
-  defp send_deposit(deposit, account, value, @eth) do
+  defp send_deposit(deposit, account, value, @eth, gas_price) do
     eth_vault_address = Application.fetch_env!(:load_test, :eth_vault_address)
     %{data: deposit_data} = LoadTest.Utils.Encoding.encode_deposit(deposit)
 
     tx = %LoadTest.Ethereum.Transaction{
       to: Encoding.to_binary(eth_vault_address),
       value: value,
-      gas_price: 20_000_000,
+      gas_price: gas_price,
       gas_limit: 200_000,
       init: <<>>,
       data: Encoding.to_binary(deposit_data)

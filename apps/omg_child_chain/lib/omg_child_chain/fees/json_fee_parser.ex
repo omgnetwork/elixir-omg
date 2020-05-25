@@ -39,7 +39,7 @@ defmodule OMG.ChildChain.Fees.JSONFeeParser do
     with {:ok, json} <- Jason.decode(file_content), do: parse(json)
   end
 
-  def parse(json) when is_map(json) or is_list(json) do
+  def parse(json) when is_map(json) do
     {errors, fee_specs} = Enum.reduce(json, {[], %{}}, &reduce_json/2)
 
     errors

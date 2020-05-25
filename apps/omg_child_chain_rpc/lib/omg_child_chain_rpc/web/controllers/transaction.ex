@@ -16,15 +16,15 @@ defmodule OMG.ChildChainRPC.Web.Controller.Transaction do
   @moduledoc """
   Provides endpoint action to submit transaction to the Child Chain.
   """
-
   use OMG.ChildChainRPC.Web, :controller
+  alias OMG.ChildChain.API.Transaction, as: TransactionAPI
+
   # check for health before calling action
-  plug(OMG.ChildChainRPC.Plugs.Health)
-  alias OMG.ChildChain
+  plug(OMG.ChildChainRPC.Web.Plugs.Health)
 
   def submit(conn, params) do
     with {:ok, txbytes} <- expect(params, "transaction", :hex),
-         {:ok, details} <- ChildChain.submit(txbytes) do
+         {:ok, details} <- TransactionAPI.submit(txbytes) do
       api_response(details, conn, :submit)
     end
   end

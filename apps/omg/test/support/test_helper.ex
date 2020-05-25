@@ -154,10 +154,10 @@ defmodule OMG.TestHelper do
   @doc """
   Always creates file in the priv/ folder of the application.
   """
-  @spec write_fee_file(%{Crypto.address_t() => map()} | binary(), binary() | nil) :: {:ok, binary, binary}
-  def write_fee_file(fee_map, file_name \\ nil)
+  @spec write_fee_file(%{Crypto.address_t() => map()} | binary()) :: {:ok, binary}
+  def write_fee_file(map_or_content, file_path \\ nil)
 
-  def write_fee_file(map, file_name) when is_map(map) do
+  def write_fee_file(map, file_path) when is_map(map) do
     {:ok, json} =
       map
       |> Enum.map(fn {tx_type, fees} ->
@@ -166,30 +166,36 @@ defmodule OMG.TestHelper do
       |> Enum.into(%{})
       |> Jason.encode()
 
-    write_fee_file(json, file_name)
+    write_fee_file(json, file_path)
   end
 
-  def write_fee_file(content, file_name) do
-    priv_dir = :code.priv_dir(:omg_child_chain)
-    file = file_name || "omisego_operator_test_fees_file-#{DateTime.to_unix(DateTime.utc_now())}"
-    full_path = "#{priv_dir}/#{file}"
+  def write_fee_file(content, file_path) do
+    path =
+      case file_path do
+        nil -> "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{System.monotonic_time()}"
+        _ -> file_path
+      end
 
-    :ok = File.write(full_path, content, [:write])
-    {:ok, full_path, file}
+    :ok = File.write(path, content, [:write])
+    {:ok, path}
   end
 
   defp parse_fees(fees) do
-    Enum.map(fees, fn {"0x" <> _ = token, fee} ->
-      %{
-        token: token,
-        amount: fee.amount,
-        subunit_to_unit: fee.subunit_to_unit,
-        pegged_amount: fee.pegged_amount,
-        pegged_currency: fee.pegged_currency,
-        pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
-        updated_at: fee.updated_at
-      }
+    fees
+    |> Enum.map(fn {"0x" <> _ = token, fee} ->
+      {token,
+       %{
+         amount: fee.amount,
+         subunit_to_unit: fee.subunit_to_unit,
+         pegged_amount: fee.pegged_amount,
+         pegged_currency: fee.pegged_currency,
+         pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
+         updated_at: fee.updated_at,
+         symbol: "token",
+         type: "fixed"
+       }}
     end)
+    |> Map.new()
   end
 
   defp get_private_keys(inputs),

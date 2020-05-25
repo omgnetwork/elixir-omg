@@ -29,19 +29,25 @@ defmodule Itest.PlasmaFramework do
   end
 
   @ether_vault_id 1
+  @erc20_vault_id 2
+
   def vault_id(currency) do
     ether = Currency.ether()
+    erc20 = Currency.erc20()
 
     case currency do
       ^ether -> @ether_vault_id
+      ^erc20 -> @erc20_vault_id
     end
   end
 
   def vault(currency) do
     ether = Currency.ether()
+    erc20 = Currency.erc20()
 
     case currency do
       ^ether -> get_vault(@ether_vault_id)
+      ^erc20 -> get_vault(@erc20_vault_id)
     end
   end
 
@@ -64,9 +70,6 @@ defmodule Itest.PlasmaFramework do
     |> Encoding.to_binary()
     |> ABI.TypeDecoder.decode([:address])
     |> hd()
-    |> Encoding.to_hex()
-    |> EIP55.encode()
-    |> elem(1)
   end
 
   # taken from the plasma-contracts deployment snapshot

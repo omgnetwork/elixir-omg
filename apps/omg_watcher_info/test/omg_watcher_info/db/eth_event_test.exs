@@ -189,9 +189,10 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
              root_chain_txhash_event: ^expected_root_chain_txhash_event_3
            } = DB.EthEvent.get(expected_root_chain_txhash_event_3)
 
+    %{data: alice_utxos} = DB.TxOutput.get_utxos(address: alice.addr)
+
     assert [^expected_root_chain_txhash_1, ^expected_root_chain_txhash_2, ^expected_root_chain_txhash_3] =
-             DB.TxOutput.get_utxos(alice.addr)
-             |> Enum.map(fn txoutput ->
+             Enum.map(alice_utxos, fn txoutput ->
                [head | _tail] = txoutput.ethevents
                head.root_chain_txhash
              end)
@@ -225,7 +226,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                }
              ])
 
-    assert length(DB.TxOutput.get_utxos(expected_owner)) == 1
+    %{data: utxos} = DB.TxOutput.get_utxos(address: expected_owner)
+    assert length(utxos) == 1
 
     assert :ok =
              DB.EthEvent.insert_exits!([
@@ -236,7 +238,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                }
              ])
 
-    assert Enum.empty?(DB.TxOutput.get_utxos(expected_owner))
+    %{data: utxos_after_exit} = DB.TxOutput.get_utxos(address: expected_owner)
+    assert Enum.empty?(utxos_after_exit)
   end
 
   @tag fixtures: [:alice, :initial_blocks]
@@ -268,5 +271,106 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     ]
 
     assert :ok = DB.EthEvent.insert_exits!(exits)
+  end
+
+  @tag fixtures: [:alice, :initial_blocks]
+  test "Can spend multiple outputs with single start_ife event", %{alice: alice} do
+    expected_log_index = 0
+    expected_eth_txhash = Crypto.hash(<<6::256>>)
+    expected_event_type = :in_flight_exit
+
+    %{data: utxos} = DB.TxOutput.get_utxos(address: alice.addr)
+
+    [
+      %DB.TxOutput{blknum: blknum1, txindex: txindex1, oindex: oindex1},
+      %DB.TxOutput{blknum: blknum2, txindex: txindex2, oindex: oindex2} | _
+    ] = utxos
+
+    utxo_pos1 = Utxo.position(blknum1, txindex1, oindex1)
+    utxo_pos2 = Utxo.position(blknum2, txindex2, oindex2)
+
+    exits = [
+      %{
+        root_chain_txhash: expected_eth_txhash,
+        log_index: expected_log_index,
+        call_data: %{utxo_pos: Utxo.Position.encode(utxo_pos1)}
+      },
+      %{
+        root_chain_txhash: expected_eth_txhash,
+        log_index: expected_log_index,
+        call_data: %{utxo_pos: Utxo.Position.encode(utxo_pos2)}
+      }
+    ]
+
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
+
+    txo1 = DB.TxOutput.get_by_position(utxo_pos1)
+    assert txo1 != nil
+
+    assert [
+             %DB.EthEvent{
+               log_index: ^expected_log_index,
+               root_chain_txhash: ^expected_eth_txhash,
+               event_type: ^expected_event_type
+             }
+           ] = txo1.ethevents
+
+    txo2 = DB.TxOutput.get_by_position(utxo_pos2)
+    assert txo2 != nil
+
+    assert [
+             %DB.EthEvent{
+               log_index: ^expected_log_index,
+               root_chain_txhash: ^expected_eth_txhash,
+               event_type: ^expected_event_type
+             }
+           ] = txo2.ethevents
+  end
+
+  @tag fixtures: [:alice, :initial_blocks]
+  test "Can spend ife piggybacked output", %{alice: alice} do
+    expected_log_index1 = 0
+    expected_log_index2 = 1
+    expected_eth_txhash1 = Crypto.hash(<<6::256>>)
+    expected_eth_txhash2 = Crypto.hash(<<7::256>>)
+    expected_event_type = :in_flight_exit
+
+    %{data: utxos} = DB.TxOutput.get_utxos(address: alice.addr)
+
+    [
+      %DB.TxOutput{creating_txhash: txhash1, oindex: oindex1},
+      %DB.TxOutput{creating_txhash: txhash2, oindex: oindex2}
+    ] =
+      utxos
+      |> Enum.drop(1)
+      |> Enum.take(2)
+
+    exits = [
+      %{
+        root_chain_txhash: expected_eth_txhash1,
+        log_index: expected_log_index1,
+        call_data: %{txhash: txhash1, oindex: oindex1}
+      },
+      %{
+        root_chain_txhash: expected_eth_txhash2,
+        log_index: expected_log_index2,
+        call_data: %{txhash: txhash2, oindex: oindex2}
+      }
+    ]
+
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
+
+    assert_txoutout_spent_by_event(txhash1, oindex1, expected_log_index1, expected_eth_txhash1, expected_event_type)
+    assert_txoutout_spent_by_event(txhash2, oindex2, expected_log_index2, expected_eth_txhash2, expected_event_type)
+  end
+
+  defp assert_txoutout_spent_by_event(txhash, oindex, log_index, eth_txhash, event_type) do
+    txo = DB.TxOutput.get_by_output_id(txhash, oindex)
+
+    assert txo != nil
+
+    assert [
+             %DB.EthEvent{log_index: ^log_index, root_chain_txhash: ^eth_txhash, event_type: ^event_type}
+           ] = txo.ethevents
   end
 end
