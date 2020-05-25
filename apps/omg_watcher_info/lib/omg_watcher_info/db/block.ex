@@ -221,7 +221,6 @@ defmodule OMG.WatcherInfo.DB.Block do
     transaction = create(block_number, txindex, tx_hash, tx_type, signed_tx_bytes, metadata)
     outputs = DB.TxOutput.create_outputs(block_number, txindex, tx_hash, tx)
     inputs = DB.TxOutput.create_inputs(tx, tx_hash)
-
     {transaction, outputs, inputs}
   end
 

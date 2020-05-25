@@ -172,8 +172,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   defp create_output(_otype, _blknum, _txindex, _txhash, _oindex, _owner, _currency, 0), do: []
 
-  defp create_output(otype, blknum, txindex, oindex, txhash, owner, currency, amount) when amount > 0,
-    do: [
+  defp create_output(otype, blknum, txindex, oindex, txhash, owner, currency, amount) when amount > 0 do
+    [
       %{
         otype: otype,
         blknum: blknum,
@@ -185,6 +185,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         creating_txhash: txhash
       }
     ]
+  end
 
   @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
   def create_inputs(tx, spending_txhash) do

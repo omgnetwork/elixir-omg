@@ -376,7 +376,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}])
 
       transactions =
-        Enum.map(3..64000, fn _index ->
+        Enum.map(3..64_000, fn _index ->
           a = OMG.TestHelper.generate_entity()
           b = OMG.TestHelper.generate_entity()
           amount = 5
