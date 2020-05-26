@@ -200,7 +200,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
       ),
-      {OMG.Watcher.API.StatusCache, [bus: OMG.Bus, ets: status_cache()]},
+      {OMG.Watcher.API.StatusCache, [event_bus: OMG.Bus, ets: status_cache()]},
       {ChildManager, [monitor: Monitor]}
     ]
   end

@@ -49,7 +49,9 @@ defmodule OMG.Watcher.API.StatusCache do
 
   @spec get() :: status()
   def get() do
-    :ets.lookup_element(SyncSupervisor.status_cache(), key(), 2)
+    SyncSupervisor.status_cache()
+    |> :ets.lookup_element(key(), 2)
+    |> hd()
   end
 
   def start_link(args) do
@@ -70,15 +72,15 @@ defmodule OMG.Watcher.API.StatusCache do
   """
   def handle_info({:internal_event_bus, :ethereum_new_height, eth_block_number}, state) do
     {:ok, status} = get_status(eth_block_number)
-    _ = :ets.insert(state, {key(), Jason.encode!(status)})
+    _ = :ets.insert(state, {key(), status})
     {:noreply, state}
   end
 
   # Returns status of the watcher. Status consists of last validated child block number,
   # last mined child block number and it's timestamp, and a flag indicating if watcher is syncing with Ethereum.
 
-  # This function calls into a number of services (internal and external), collects the results. If any of the underlying
-  # services are unavailable, it will crash
+  # This function calls into a number of services (internal and external), collects the results.
+  # If any of the underlying services are unavailable, it will crash
   @spec get_status(non_neg_integer()) :: {:ok, status()}
   defp get_status(eth_block_number) do
     {:ok, eth_block_timestamp} = Eth.get_block_timestamp_by_number(eth_block_number)
