@@ -14,9 +14,8 @@
 
 defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvents do
   @moduledoc """
-  Running in May 2020.
-  `eth_height` is currently not persisted in the Watcher Info DB for `eth_events`
-  This module will add `eth_height` to all persisted `eth_events` where this value is non-existent.
+  Prior to https://github.com/omisego/elixir-omg/pull/1509, `eth_height` was not persisted in the Watcher Info DB
+  for `eth_events`. This module will add `eth_height` to all persisted `eth_events` where this value is non-existent.
   """
   use Ecto.Migration
   alias OMG.Eth.Encoding

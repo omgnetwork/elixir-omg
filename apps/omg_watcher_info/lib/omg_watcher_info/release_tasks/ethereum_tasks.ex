@@ -14,13 +14,19 @@
 
 defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks do
   @moduledoc """
-  Some updates to data persisted in the `watcher-info` database requires calls to the root chain.
-  This module serves the purpose of running such database updates at release.
-  A task can be "retired" (or not) once there all environments have updated.
+  Some updates to data persisted in the `watcher-info` database require making calls to Ethereum.
 
-  N.B. A release task was chosen over a migration considering:
-   1. Risks associated with coupling a migration to particular dependencies - e.g. Ethereumex
-   2. Expectation that we will want to update the database from root chain data every once in a while.
+  This task executes such updates. Currently, the only update is the addition of `eth_height`, but
+  we anticipate that the need for database updates from Ethereum will arise in the future.
+
+  Each update would make changes to the database ONCE per environment. For example, if no `ethevent`
+  has an `eth_height` of `nil`, no Ethereum calls and subsequent database updates will be made, though
+  a database query will check this condition at each deploy.
+
+  An update can be "removed" once all environments have updated.
+
+  A release task was chosen over a migration due to the risk associated with coupling a migration to
+  Ethereumex.
   """
   require Logger
   @app :omg_watcher_info
