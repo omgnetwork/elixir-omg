@@ -27,7 +27,7 @@ defmodule OMG.Watcher.API.StatusCache do
 
   @spec get() :: Storage.status()
   def get() do
-    [status: data] = :ets.lookup_element(SyncSupervisor.status_cache(), key(), 2)
+    :ets.lookup_element(SyncSupervisor.status_cache(), key(), 2)
   end
 
   def start_link(args) do

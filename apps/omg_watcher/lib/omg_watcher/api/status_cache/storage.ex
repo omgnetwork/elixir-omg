@@ -46,7 +46,6 @@ defmodule OMG.Watcher.API.StatusCache.Storage do
   """
   def update_status(state, key, eth_block_number) do
     {:ok, status} = get_status(eth_block_number)
-   # IO.inspect status
     :ets.insert(state, {key, status})
   end
 
