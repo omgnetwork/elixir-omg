@@ -48,6 +48,7 @@ defmodule OMG.Watcher.API.StatusCache do
 
   @type t() :: atom()
 
+  @spec get() :: status()
   def get() do
     :ets.lookup_element(SyncSupervisor.status_cache(), key(), 2)
   end

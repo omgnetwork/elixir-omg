@@ -17,14 +17,13 @@ defmodule OMG.Watcher.API.Status do
   Watcher status API
   """
 
-  alias  OMG.Watcher.API.StatusCache
+  alias OMG.Watcher.API.StatusCache
 
   @doc """
   Returns status of the watcher from the ETS cache.
   """
-  @spec get_status() :: {:ok, t()}
+  @spec get_status() :: {:ok, StatusCache.t()}
   def get_status() do
     {:ok, StatusCache.get()}
   end
-
 end
