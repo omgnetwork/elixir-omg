@@ -22,7 +22,7 @@ defmodule OMG.Watcher.API.Status do
   @doc """
   Returns status of the watcher from the ETS cache.
   """
-  @spec get_status() :: {:ok, StatusCache.t()}
+  @spec get_status() :: {:ok, StatusCache.status()}
   def get_status() do
     {:ok, StatusCache.get()}
   end
