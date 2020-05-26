@@ -74,7 +74,6 @@ defmodule OMG.Watcher.API.StatusCache.Storage do
 
     {_, events_processor} = ExitProcessor.check_validity()
     {:ok, in_flight_exits} = ExitProcessor.get_active_in_flight_exits()
-IO.inspect in_flight_exits, label: "#{eth_block_number}"
     {:ok, {_, events_block_getter}} = BlockGetter.get_events()
 
     status = %{
