@@ -81,9 +81,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
     eth_height =
       event
       |> Map.get("blockNumber")
-      |> normalize_hash()
-      |> Encoding.from_hex()
-      |> :binary.decode_unsigned()
+      |> Encoding.int_from_hex()
 
     root_chain_txhash =
       event
@@ -91,16 +89,6 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
       |> Encoding.from_hex()
 
     %{root_chain_txhash: root_chain_txhash, eth_height: eth_height}
-  end
-
-  defp normalize_hash("0x" <> hex = hash) do
-    case hex |> String.length() |> rem(2) do
-      0 ->
-        hash
-
-      _ ->
-        "0x0" <> hex
-    end
   end
 
   def update_record(%{root_chain_txhash: root_chain_txhash, eth_height: eth_height} = _response) do
