@@ -17,7 +17,7 @@ services:
 
   watcher:
     #last stable integration watcher	
-    image: omisego/watcher:4445aee
+    image: omisego/watcher:v0.4.8
     command: "full_local"
     environment:
       - ETHEREUM_RPC_URL=https://ropsten.infura.io/v3/${INFURA_API_KEY}
@@ -50,7 +50,7 @@ services:
       retries: 5
 
   watcher_info:
-    image: omisego/watcher_info:4445aee
+    image: omisego/watcher_info:v0.4.8
     command: "full_local"
     environment:
       - ETHEREUM_RPC_URL=https://ropsten.infura.io/v3/${INFURA_API_KEY}
