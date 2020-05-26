@@ -30,6 +30,15 @@ defmodule OMG.Watcher.SyncSupervisor do
   alias OMG.Watcher.Monitor
 
   @events_bucket :events_bucket
+  @status_cache :status_cache
+
+  def status_cache() do
+    @status_cache
+  end
+
+  def events_bucket() do
+    @events_bucket
+  end
 
   def start_link(args) do
     Supervisor.start_link(__MODULE__, args, name: __MODULE__)
@@ -83,7 +92,7 @@ defmodule OMG.Watcher.SyncSupervisor do
        )},
       {EthereumEventAggregator,
        contracts: contracts,
-       ets_bucket: @events_bucket,
+       ets_bucket: events_bucket(),
        events: [
          [name: :deposit_created, enrich: false],
          [name: :exit_started, enrich: true],
@@ -191,12 +200,14 @@ defmodule OMG.Watcher.SyncSupervisor do
         get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
       ),
+      {OMG.Watcher.API.StatusCache, [bus: OMG.Bus, ets: status_cache()]},
       {ChildManager, [monitor: Monitor]}
     ]
   end
 
   defp ensure_ets_init() do
-    _ = if :undefined == :ets.info(@events_bucket), do: :ets.new(@events_bucket, [:bag, :public, :named_table])
+    _ = if :undefined == :ets.info(events_bucket()), do: :ets.new(events_bucket(), [:bag, :public, :named_table])
+    _ = if :undefined == :ets.info(status_cache()), do: :ets.new(status_cache(), [:bag, :public, :named_table])
     :ok
   end
 end
