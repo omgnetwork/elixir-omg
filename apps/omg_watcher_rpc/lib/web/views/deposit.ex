@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.View.Deposit do
   @moduledoc """
-  The eth_event view for rendering JSON.
+  The deposit view for rendering JSON.
   """
 
   alias OMG.Utils.HttpRPC.Response
@@ -42,8 +42,6 @@ defmodule OMG.WatcherRPC.Web.View.Deposit do
       :inserted_at,
       :updated_at
     ])
-
-    # Drop root_chain_txhash_event because this is of no use to the consumer.
   end
 
   defp render_txoutputs(outputs) do

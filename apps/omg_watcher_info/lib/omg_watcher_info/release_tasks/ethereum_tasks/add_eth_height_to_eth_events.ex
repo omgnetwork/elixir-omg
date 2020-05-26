@@ -49,32 +49,28 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
     DB.Repo.stream(query, max_rows: @max_db_rows)
   end
 
-  def stream_create_requests(events_stream) do
+  defp stream_create_requests(events_stream) do
     Stream.map(events_stream, fn root_chain_txhash ->
       {:eth_get_transaction_by_hash, [Encoding.to_hex(root_chain_txhash)]}
     end)
   end
 
-  def stream_batch_requests(request_stream) do
+  defp stream_batch_requests(request_stream) do
     Stream.chunk_every(request_stream, @max_eth_requests)
   end
 
-  def stream_make_requests(batched_request_stream) do
+  defp stream_make_requests(batched_request_stream) do
     Stream.map(batched_request_stream, &make_batched_request/1)
   end
 
-  def make_batched_request(eth_requests) do
-    case eth_requests do
-      [] ->
-        []
+  def make_batched_request([]), do: []
 
-      _ ->
-        {:ok, batched_responses} = Ethereumex.HttpClient.batch_request(eth_requests)
-        batched_responses
-    end
+  def make_batched_request(eth_requests) do
+    {:ok, batched_responses} = Ethereumex.HttpClient.batch_request(eth_requests)
+    batched_responses
   end
 
-  def stream_concatenate_responses(batched_response_stream) do
+  defp stream_concatenate_responses(batched_response_stream) do
     Stream.concat(batched_response_stream)
   end
 
@@ -98,7 +94,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
     %{root_chain_txhash: root_chain_txhash, eth_height: eth_height}
   end
 
-  def normalize_hash("0x" <> hex = hash) do
+  defp normalize_hash("0x" <> hex = hash) do
     case hex |> String.length() |> rem(2) do
       0 ->
         hash

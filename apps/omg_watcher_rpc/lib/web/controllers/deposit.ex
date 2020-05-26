@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.Deposit do
   @moduledoc """
-  Operations related to transaction.
+  Operations related to deposits.
   """
 
   use OMG.WatcherRPC.Web, :controller
@@ -23,7 +23,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Deposit do
   alias OMG.WatcherRPC.Web.Validator
 
   @doc """
-  Retrieves a list of transactions
+  Retrieves a list of deposits.
   """
   def get_deposits(conn, params) do
     with {:ok, constraints} <- Validator.DepositConstraints.parse(params) do

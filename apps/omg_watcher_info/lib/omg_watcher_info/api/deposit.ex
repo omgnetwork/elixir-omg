@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.API.Deposit do
   @moduledoc """
-  Module provides operations related to Ethereum events - i.e. deposits and exits.
+  Module provides operations related to deposits.
   """
 
   alias OMG.Utils.Paginator

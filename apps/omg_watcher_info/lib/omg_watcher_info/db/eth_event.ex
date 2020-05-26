@@ -263,7 +263,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     |> Paginator.set_data(paginator)
   end
 
-  def base_query() do
+  defp base_query() do
     from(
       ethevent in __MODULE__,
       order_by: [desc: :eth_height],
