@@ -28,19 +28,19 @@ defmodule OMG.Watcher.API.StatusCache.Storage do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
-  @opaque status() :: %{
-            last_validated_child_block_number: non_neg_integer(),
-            last_validated_child_block_timestamp: non_neg_integer(),
-            last_mined_child_block_number: non_neg_integer(),
-            last_mined_child_block_timestamp: non_neg_integer(),
-            last_seen_eth_block_number: non_neg_integer(),
-            last_seen_eth_block_timestamp: non_neg_integer(),
-            eth_syncing: boolean(),
-            byzantine_events: list(Event.t()),
-            in_flight_exits: ExitProcessor.Core.in_flight_exits_response_t(),
-            contract_addr: binary,
-            services_synced_heights: RootChainCoordinator.Core.ethereum_heights_result_t()
-          }
+  @type t() :: %{
+          last_validated_child_block_number: non_neg_integer(),
+          last_validated_child_block_timestamp: non_neg_integer(),
+          last_mined_child_block_number: non_neg_integer(),
+          last_mined_child_block_timestamp: non_neg_integer(),
+          last_seen_eth_block_number: non_neg_integer(),
+          last_seen_eth_block_timestamp: non_neg_integer(),
+          eth_syncing: boolean(),
+          byzantine_events: list(Event.t()),
+          in_flight_exits: ExitProcessor.Core.in_flight_exits_response_t(),
+          contract_addr: binary,
+          services_synced_heights: RootChainCoordinator.Core.ethereum_heights_result_t()
+        }
   @doc """
   This gets periodically called (defined by Ethereum height change).
   """
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.API.StatusCache.Storage do
 
   # This function calls into a number of services (internal and external), collects the results.
   # If any of the underlying services are unavailable, it will crash
-  @spec get_status(non_neg_integer()) :: {:ok, status()}
+  @spec get_status(non_neg_integer()) :: {:ok, t()}
   defp get_status(eth_block_number) do
     {:ok, eth_block_timestamp} = Eth.get_block_timestamp_by_number(eth_block_number)
     eth_syncing = syncing?()

@@ -24,8 +24,9 @@ defmodule OMG.Watcher.API.StatusCache do
   use GenServer
 
   @type t() :: atom()
+  @type status() :: Storage.t()
 
-  @spec get() :: Storage.status()
+  @spec get() :: status()
   def get() do
     :ets.lookup_element(SyncSupervisor.status_cache(), key(), 2)
   end
