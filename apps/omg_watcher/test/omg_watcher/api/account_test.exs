@@ -13,24 +13,42 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.API.AccountTest do
-  use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.DB.Fixtures
 
   alias OMG.TestHelper
+  alias OMG.Utxo
   alias OMG.Watcher.API.Account
+
+  require Utxo
 
   @eth OMG.Eth.zero_address()
   @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
 
+  setup do
+    db_path = Briefly.create!(directory: true)
+    Application.put_env(:omg_db, :path, db_path, persistent: true)
+
+    :ok = OMG.DB.init(db_path)
+
+    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+
+    on_exit(fn ->
+      Application.put_env(:omg_db, :path, nil)
+
+      started_apps
+      |> Enum.reverse()
+      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+    end)
+
+    :ok
+  end
+
   describe "get_exitable_utxos/1" do
-    @tag fixtures: [:db_initialized]
     test "returns an empty list if the address does not have any utxo" do
       alice = TestHelper.generate_entity()
       assert Account.get_exitable_utxos(alice.addr) == []
     end
 
-    @tag fixtures: [:db_initialized]
     test "returns utxos for the given address" do
       alice = TestHelper.generate_entity()
       bob = TestHelper.generate_entity()
@@ -62,6 +80,44 @@ defmodule OMG.Watcher.API.AccountTest do
       [utxo] = Account.get_exitable_utxos(alice.addr)
 
       assert %{blknum: ^blknum, txindex: ^txindex, oindex: ^oindex} = utxo
+    end
+
+    test "does not return exiting utxos" do
+      alice = TestHelper.generate_entity()
+
+      amount = 333
+      blknum = 1927
+      txindex = 78
+      oindex = 1
+      utxo_position = Utxo.position(blknum, txindex, oindex)
+
+      _ =
+        OMG.DB.multi_update([
+          {:put, :utxo,
+           {
+             {blknum, txindex, oindex},
+             %{
+               output: %{amount: amount, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
+               creating_txhash: nil
+             }
+           }},
+          {:put, :exit_info,
+           {
+             Utxo.Position.to_db_key(utxo_position),
+             %{
+               amount: amount,
+               currency: @eth,
+               owner: alice.addr,
+               is_active: true,
+               exit_id: 1,
+               exiting_txbytes: <<0>>,
+               eth_height: 1,
+               root_chain_txhash: nil
+             }
+           }}
+        ])
+
+      assert [] == Account.get_exitable_utxos(alice.addr)
     end
   end
 end

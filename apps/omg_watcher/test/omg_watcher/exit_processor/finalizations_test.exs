@@ -34,8 +34,8 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
     test "can process empty finalizations", %{processor_empty: empty, processor_filled: filled} do
       assert {^empty, []} = Core.finalize_exits(empty, {[], []})
       assert {^filled, []} = Core.finalize_exits(filled, {[], []})
-      assert {:ok, %{}} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(empty, [])
-      assert {:ok, %{}} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(filled, [])
+      assert {:ok, %{}, []} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(empty, [])
+      assert {:ok, %{}, []} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(filled, [])
       assert {:ok, ^empty, []} = Core.finalize_in_flight_exits(empty, [], %{})
       assert {:ok, ^filled, []} = Core.finalize_in_flight_exits(filled, [], %{})
     end
@@ -74,8 +74,11 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       tx1_first_output = Utxo.position(tx1_blknum, 0, 0)
       tx1_second_output = Utxo.position(tx1_blknum, 0, 1)
 
-      assert {:ok, %{^ife_id1 => [^tx1_first_output, ^tx1_second_output]}} =
-               Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+      assert {
+               :ok,
+               %{^ife_id1 => [^tx1_first_output, ^tx1_second_output]},
+               [{%{output_index: 0}, [^tx1_first_output]}, {%{output_index: 1}, [^tx1_second_output]}]
+             } = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
     end
 
     test "doesn't signal non-included txs' outputs as exiting when piggybacked output exits",
@@ -103,7 +106,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       ife_id1 = <<ife_id1::192>>
 
-      assert {:ok, %{^ife_id1 => []}} =
+      assert {:ok, %{^ife_id1 => []}, []} =
                Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
     end
 
@@ -137,7 +140,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
         %{in_flight_exit_id: ife_id2, output_index: 0, omg_data: %{piggyback_type: :output}}
       ]
 
-      assert {:ok, %{}} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, [])
+      assert {:ok, %{}, []} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, [])
 
       ife_id1 = <<ife_id1::192>>
       ife_id2 = <<ife_id2::192>>
@@ -145,8 +148,14 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       tx1_first_input = tx1 |> Transaction.get_inputs() |> hd()
       tx2_first_output = Utxo.position(tx2_blknum, 1, 0)
 
-      assert {:ok, %{^ife_id1 => [^tx1_first_input], ^ife_id2 => [^tx2_first_output]}} =
-               Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+      assert {
+               :ok,
+               %{^ife_id1 => [^tx1_first_input], ^ife_id2 => [^tx2_first_output]},
+               [
+                 {%{in_flight_exit_id: ^ife_id1}, [^tx1_first_input]},
+                 {%{in_flight_exit_id: ^ife_id2}, [^tx2_first_output]}
+               ]
+             } = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
     end
 
     test "fails when unknown in-flight exit is being finalized", %{processor_empty: processor} do

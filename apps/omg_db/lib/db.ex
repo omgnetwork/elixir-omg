@@ -31,13 +31,13 @@ defmodule OMG.DB do
   @callback blocks(block_to_fetch :: list()) :: {:ok, list(term)}
   @callback utxos() :: {:ok, list({utxo_pos_db_t, term})}
   @callback utxo(utxo_pos_db_t) :: {:ok, term} | :not_found
-  @callback exit_infos() :: {:ok, list(term)}
-  @callback in_flight_exits_info() :: {:ok, list(term)}
   @callback competitors_info() :: {:ok, list(term)}
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}) :: {:ok, map} | :not_found
   @callback spent_blknum(utxo_pos_db_t()) :: {:ok, pos_integer} | :not_found
   @callback block_hashes(integer()) :: {:ok, list()}
   @callback child_top_block_number() :: {:ok, non_neg_integer()} | :not_found
+  @callback get_single_value(atom()) :: {:ok, term} | :not_found
+  @callback batch_get(atom(), list(term)) :: {:ok, list(term)} | :not_found
+  @callback get_all_by_type(atom()) :: {:ok, list(term)} | :not_found
 
   # callbacks useful for injecting a specific server implementation
   @callback initiation_multiupdate(GenServer.server()) :: :ok | {:error, any}
@@ -45,27 +45,23 @@ defmodule OMG.DB do
   @callback blocks(block_to_fetch :: list(), GenServer.server()) :: {:ok, list()} | {:error, any}
   @callback utxos(GenServer.server()) :: {:ok, list({utxo_pos_db_t, term})} | {:error, any}
   @callback utxo(utxo_pos_db_t, GenServer.server()) :: {:ok, term} | :not_found
-  @callback exit_infos(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback in_flight_exits_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
   @callback competitors_info(GenServer.server()) :: {:ok, list(term)} | {:error, any}
-  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}, GenServer.server()) ::
-              {:ok, map} | :not_found
   @callback spent_blknum(utxo_pos_db_t(), GenServer.server()) :: {:ok, pos_integer} | :not_found
   @callback block_hashes(integer(), GenServer.server()) :: {:ok, list()}
   @callback child_top_block_number(GenServer.server()) :: {:ok, non_neg_integer()} | :not_found
+  @callback get_single_value(atom(), GenServer.server()) :: {:ok, term} | :not_found
+  @callback batch_get(atom(), list(term), keyword()) :: {:ok, list(term)} | :not_found
+  @callback get_all_by_type(atom(), keyword()) :: {:ok, list(term)} | :not_found
   @optional_callbacks child_spec: 1,
                       initiation_multiupdate: 1,
                       multi_update: 2,
                       blocks: 2,
                       utxos: 1,
                       utxo: 2,
-                      exit_infos: 1,
-                      in_flight_exits_info: 1,
-                      competitors_info: 1,
-                      exit_info: 2,
                       spent_blknum: 2,
                       block_hashes: 2,
-                      child_top_block_number: 1
+                      child_top_block_number: 1,
+                      get_single_value: 2
 
   def start_link(args), do: driver().start_link(args)
 
@@ -100,16 +96,8 @@ defmodule OMG.DB do
   def utxo(utxo_pos), do: driver().utxo(utxo_pos)
   def utxo(utxo_pos, server), do: driver().utxo(utxo_pos, server)
 
-  def exit_infos(), do: driver().exit_infos
-  def exit_infos(server), do: driver().exit_infos(server)
-
-  def in_flight_exits_info(), do: driver().in_flight_exits_info()
-  def in_flight_exits_info(server), do: driver().in_flight_exits_info(server)
-
   def competitors_info(), do: driver().competitors_info
   def competitors_info(server), do: driver().competitors_info(server)
-
-  def exit_info(utxo_pos), do: driver().exit_info(utxo_pos)
 
   def spent_blknum(utxo_pos), do: driver().spent_blknum(utxo_pos)
   def spent_blknum(utxo_pos, server), do: driver().spent_blknum(utxo_pos, server)
@@ -121,6 +109,19 @@ defmodule OMG.DB do
 
   def get_single_value(parameter_name), do: driver().get_single_value(parameter_name)
   def get_single_value(parameter_name, server), do: driver().get_single_value(parameter_name, server)
+
+  @doc """
+  This is generic DB function that can batch get the specific data of a
+  specific type with the given specific keys of the type.
+  """
+  def batch_get(type, specific_keys), do: driver().batch_get(type, specific_keys)
+  def batch_get(type, specific_keys, opts), do: driver().batch_get(type, specific_keys, opts)
+
+  @doc """
+  This is generic DB function that can get all data of a specific type.
+  """
+  def get_all_by_type(type), do: driver().get_all_by_type(type)
+  def get_all_by_type(type, opts), do: driver().get_all_by_type(type, opts)
 
   @doc """
   A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)

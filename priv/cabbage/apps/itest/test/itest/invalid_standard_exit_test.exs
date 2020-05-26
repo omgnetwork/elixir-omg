@@ -42,14 +42,14 @@ defmodule InvalidStandardExitsTests do
   defgiven ~r/^Alice deposited "(?<amount>[^"]+)" ETH on the child chain$/,
            %{amount: amount},
            %{alice_account: alice_account} = state do
-    initial_balance_on_root_chain = Itest.Poller.eth_get_balance(alice_account)
+    initial_balance_on_root_chain = Itest.Poller.root_chain_get_balance(alice_account)
 
     expecting_amount = Currency.to_wei(amount)
 
     {:ok, receipt_hash} = Client.deposit(expecting_amount, alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
     gas_used = Client.get_gas_used(receipt_hash)
 
-    %{"amount" => ^expecting_amount} = Client.get_balance(alice_account, expecting_amount)
+    %{"amount" => ^expecting_amount} = Client.get_exact_balance(alice_account, expecting_amount)
 
     new_state =
       state
@@ -62,7 +62,7 @@ defmodule InvalidStandardExitsTests do
   defgiven ~r/^Alice received "(?<amount>[^"]+)" ETH on the child chain$/,
            %{amount: amount},
            %{alice_account: alice_account, carol_account: carol_account, carol_pkey: carol_pkey} = state do
-    initial_balance_on_root_chain = Itest.Poller.eth_get_balance(alice_account)
+    initial_balance_on_root_chain = Itest.Poller.root_chain_get_balance(alice_account)
 
     carol_amount =
       amount
@@ -72,7 +72,7 @@ defmodule InvalidStandardExitsTests do
 
     {:ok, _receipt_hash} = Client.deposit(carol_amount, carol_account, Itest.PlasmaFramework.vault(Currency.ether()))
 
-    %{"amount" => ^carol_amount} = Client.get_balance(carol_account, carol_amount)
+    %{"amount" => ^carol_amount} = Client.get_exact_balance(carol_account, carol_amount)
 
     {:ok, [sign_hash, typed_data, _txbytes]} =
       Client.create_transaction(
@@ -87,7 +87,7 @@ defmodule InvalidStandardExitsTests do
       Client.submit_transaction(typed_data, sign_hash, [carol_pkey])
 
     expecting_amount = Currency.to_wei(amount)
-    %{"amount" => ^expecting_amount} = Client.get_balance(alice_account, expecting_amount)
+    %{"amount" => ^expecting_amount} = Client.get_exact_balance(alice_account, expecting_amount)
 
     new_state = Map.put_new(state, :alice_initial_balance_on_root_chain, initial_balance_on_root_chain)
 
@@ -133,6 +133,7 @@ defmodule InvalidStandardExitsTests do
 
     new_state =
       state
+      |> Map.put(:standard_exit, se)
       |> Map.update!(:alice_gas, fn current_gas -> current_gas + gas_used1 + gas_used2 end)
       |> Map.put_new(:alice_bond, se.standard_exit_bond_size)
 
@@ -146,9 +147,7 @@ defmodule InvalidStandardExitsTests do
     {:ok, Map.put(state, :prior_byzantine_events, [event | prior_byzantine_events])}
   end
 
-  defwhen ~r/^Bob challenges an invalid exit$/,
-          _,
-          %{bob_account: bob_account} = state do
+  defwhen ~r/^Bob challenges an invalid exit$/, _, %{bob_account: bob_account} = state do
     pull_api_until_successful(Status, :status_get, WatcherSecurityCriticalAPI.Connection.new())
     |> Map.fetch!("byzantine_events")
     |> hd
@@ -158,15 +157,17 @@ defmodule InvalidStandardExitsTests do
     {:ok, state}
   end
 
-  defthen ~r/^Exits are processed$/, _, %{alice_account: alice_account} = state do
+  defthen ~r/^Exits are processed$/, _, state do
     # need n_exits: <many>, because we're trying to prove that Alice's processing of the challenged exit fails
     # otherwise, you're risking not processing "enough" exits and it will seem like Alice's exit got challenged, while
     # it is not necessarily true
-    standard_exit_client = %StandardExitClient{address: alice_account, standard_exit_id: 0}
-    se = StandardExitClient.wait_and_process_standard_exit(standard_exit_client, n_exits: 2000)
-
+    se = StandardExitClient.wait_and_process_standard_exit(state.standard_exit, n_exits: 2000)
     gas_used = Client.get_gas_used(se.process_exit_receipt_hash)
-    new_state = Map.update!(state, :alice_gas, fn current_gas -> current_gas + gas_used end)
+
+    new_state =
+      state
+      |> Map.update!(:alice_gas, fn current_gas -> current_gas + gas_used end)
+      |> Map.put(:standard_exit, se)
 
     {:ok, new_state}
   end
@@ -179,7 +180,7 @@ defmodule InvalidStandardExitsTests do
             alice_gas: alice_gas,
             alice_bond: alice_bond
           } = state do
-    alice_ethereum_balance = Itest.Poller.eth_get_balance(alice_account)
+    alice_ethereum_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
     assert alice_ethereum_balance ==
              alice_initial_balance_on_root_chain - Currency.to_wei(difference) - alice_gas - alice_bond
