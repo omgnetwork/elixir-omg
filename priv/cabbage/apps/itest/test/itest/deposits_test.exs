@@ -30,7 +30,7 @@ defmodule DepositsTests do
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
-    initial_balance = Itest.Poller.eth_get_balance(alice_account)
+    initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
     {:ok, receipt_hash} =
       amount
@@ -44,7 +44,7 @@ defmodule DepositsTests do
         {current_gas, current_gas + gas_used}
       end)
 
-    balance_after_deposit = Itest.Poller.eth_get_balance(alice_account)
+    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
 
     state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
@@ -72,7 +72,7 @@ defmodule DepositsTests do
 
     expecting_amount = Currency.to_wei(amount)
 
-    balance = Client.get_balance(alice_account, expecting_amount)
+    balance = Client.get_exact_balance(alice_account, expecting_amount)
 
     balance = balance["amount"]
     assert_equal(expecting_amount, balance, "For #{alice_account}")

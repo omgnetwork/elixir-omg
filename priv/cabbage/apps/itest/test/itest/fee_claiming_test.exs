@@ -95,7 +95,7 @@ defmodule FeeClaimingTests do
 
     balance =
       entity_address
-      |> Client.get_balance(expecting_amount)
+      |> Client.get_exact_balance(expecting_amount)
       |> fix_balance_response()
 
     balance = balance["amount"]

@@ -24,6 +24,7 @@ defmodule OMG.DB.RocksDB do
 
   @server_name OMG.DB.RocksDB.Server
 
+  @default_genserver_timeout 5000
   @one_minute 60_000
   @ten_minutes 10 * @one_minute
 
@@ -74,23 +75,9 @@ defmodule OMG.DB.RocksDB do
     GenServer.call(server_name, {:utxo, utxo_pos})
   end
 
-  def exit_infos(server_name \\ @server_name) do
-    _ = Logger.info("Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
-    GenServer.call(server_name, :exit_infos, @one_minute)
-  end
-
-  def in_flight_exits_info(server_name \\ @server_name) do
-    _ = Logger.info("Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
-    GenServer.call(server_name, :in_flight_exits_info, @one_minute)
-  end
-
   def competitors_info(server_name \\ @server_name) do
     _ = Logger.info("Reading competitors' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, :competitors_info, @one_minute)
-  end
-
-  def exit_info(utxo_pos, server_name \\ @server_name) do
-    GenServer.call(server_name, {:exit_info, utxo_pos})
   end
 
   def spent_blknum(utxo_pos, server_name \\ @server_name) do
@@ -110,6 +97,45 @@ defmodule OMG.DB.RocksDB do
 
   def get_single_value(parameter_name, server_name \\ @server_name) do
     GenServer.call(server_name, {:get_single_value, parameter_name})
+  end
+
+  @doc """
+  Batch get data of a type with the given specific keys.
+
+  optional args includes:
+  1. timeout (in ms). Defaults to 5000 which is the same default value of Genserver.
+  2. server (type in Genserver.server()). Defaults to OMG.DB.RocksDB.Server.
+  """
+  def batch_get(type, specific_keys, opts \\ []) do
+    timeout = opts[:timeout] || @default_genserver_timeout
+    server = opts[:server] || @server_name
+
+    _ =
+      Logger.info(
+        "Batch get data for type #{inspect(type)} with the following keys #{inspect(specific_keys)}." <>
+          " Allowing #{inspect(timeout)} ms"
+      )
+
+    GenServer.call(server, {:get, type, specific_keys}, timeout)
+  end
+
+  @doc """
+  Get ALL data of a type.
+
+  optional args includes:
+  1. timeout (in ms). Defaults to 5000 which is the same default value of Genserver.
+  2. server (type in Genserver.server()). Defaults to OMG.DB.RocksDB.Server.
+  """
+  def get_all_by_type(type, opts \\ []) do
+    timeout = opts[:timeout] || @default_genserver_timeout
+    server = opts[:server] || @server_name
+
+    _ =
+      Logger.info(
+        "Reading all data for type #{inspect(type)}, this might take a while. Allowing #{inspect(timeout)} ms"
+      )
+
+    GenServer.call(server, {:get_all_by_type, type}, timeout)
   end
 
   def initiation_multiupdate(server_name \\ @server_name) do

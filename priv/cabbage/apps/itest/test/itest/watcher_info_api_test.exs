@@ -37,7 +37,7 @@ defmodule WatcherInfoApiTest do
     {alice_addr, _alice_priv} = alice_account
 
     {:ok, _} = Client.deposit(Currency.to_wei(amount), alice_addr, Itest.PlasmaFramework.vault(Currency.ether()))
-    wait_for_balance_equal(alice_addr, Currency.to_wei(Currency.to_wei(1)))
+    wait_for_balance_equal(alice_addr, Currency.to_wei(1))
     {:ok, state}
   end
 
