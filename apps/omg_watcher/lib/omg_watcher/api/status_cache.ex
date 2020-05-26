@@ -20,7 +20,6 @@ defmodule OMG.Watcher.API.StatusCache do
   alias OMG.Eth
   alias OMG.Eth.Client
   alias OMG.Eth.Configuration
-  alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
   alias OMG.RootChainCoordinator
   alias OMG.State
