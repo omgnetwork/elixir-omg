@@ -161,7 +161,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           event_type :: available_event_type_t() | nil,
           address :: Crypto.address_t() | nil
         ) :: Paginator.t(%DB.EthEvent{})
-  def get_events(paginator, event_type \\ nil, address \\ nil) do
+  def get_events(paginator, event_type, address) do
     base_query()
     |> query_by_address(address)
     |> query_by_type(event_type)

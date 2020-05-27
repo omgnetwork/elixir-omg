@@ -472,9 +472,9 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       _ = insert(:ethevent, event_type: :standard_exit)
       _ = insert(:ethevent, event_type: :standard_exit)
 
-      %{data: [deposit]} = DB.EthEvent.get_events(@default_paginator, :deposit)
+      %{data: [deposit]} = DB.EthEvent.get_events(@default_paginator, :deposit, nil)
 
-      %{data: [se_1, se_2]} = DB.EthEvent.get_events(@default_paginator, :standard_exit)
+      %{data: [se_1, se_2]} = DB.EthEvent.get_events(@default_paginator, :standard_exit, nil)
 
       assert Map.get(deposit, :event_type) == :deposit
       assert Map.get(se_1, :event_type) == :standard_exit
@@ -487,7 +487,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       _ = insert(:ethevent, eth_height: 3)
       _ = insert(:ethevent, eth_height: 2)
 
-      results = DB.EthEvent.get_events(@default_paginator, :deposit)
+      results = DB.EthEvent.get_events(@default_paginator, nil, nil)
 
       assert results.data |> Enum.at(0) |> Map.get(:eth_height) == 3
       assert results.data |> Enum.at(1) |> Map.get(:eth_height) == 2
@@ -516,8 +516,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
         }
       }
 
-      %{data: data_page_1} = DB.EthEvent.get_events(paginator_1)
-      %{data: data_page_2} = DB.EthEvent.get_events(paginator_2)
+      %{data: data_page_1} = DB.EthEvent.get_events(paginator_1, nil, nil)
+      %{data: data_page_2} = DB.EthEvent.get_events(paginator_2, nil, nil)
 
       assert length(data_page_1) == 2
       assert length(data_page_2) == 1
@@ -537,7 +537,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
         }
       }
 
-      %{data: data} = DB.EthEvent.get_events(paginator)
+      %{data: data} = DB.EthEvent.get_events(paginator, nil, nil)
 
       assert Enum.empty?(data)
     end
