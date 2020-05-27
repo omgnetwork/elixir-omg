@@ -54,7 +54,7 @@ defmodule OMG.Utxo.Position do
   """
   @spec encode(t()) :: non_neg_integer()
   def encode(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
-    do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+    do: ExPlasma.Output.Position.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
   @doc """
   Decode an integer or binary into a utxo position tuple.
@@ -66,7 +66,7 @@ defmodule OMG.Utxo.Position do
       {:utxo_position, 4, 5, 1}
 
       # Decode a binary encoded utxo position.
-      iex> encoded_pos = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 238, 107, 235, 81>>
+      iex> encoded_pos = <<238, 107, 235, 81>>
       iex> OMG.Utxo.Position.decode!(encoded_pos)
       {:utxo_position, 4, 5, 1}
   """
@@ -93,14 +93,21 @@ defmodule OMG.Utxo.Position do
       {:error, :encoded_utxo_position_too_low}
 
       # Decode a binary encoded utxo position.
-      iex> encoded_pos = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 238, 107, 235, 81>>
+      iex> encoded_pos = <<238, 107, 235, 81>>
       iex> OMG.Utxo.Position.decode(encoded_pos)
       {:ok, {:utxo_position, 4, 5, 1}}
   """
   @spec decode(binary()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low | {:blknum, :exceeds_maximum}}
   def decode(encoded) when is_number(encoded) and encoded <= 0, do: {:error, :encoded_utxo_position_too_low}
-  def decode(encoded) when is_integer(encoded) and encoded > 0, do: do_decode(encoded)
-  def decode(encoded) when is_binary(encoded) and byte_size(encoded) == 32, do: do_decode(encoded)
+
+  def decode(encoded) when is_integer(encoded) and encoded > 0 do
+    encoded
+    |> :binary.encode_unsigned(:big)
+    |> do_decode()
+  end
+
+  def decode(encoded) when is_binary(encoded) and (byte_size(encoded) == 4 or byte_size(encoded) == 32),
+    do: do_decode(encoded)
 
   # TODO(achiurizo)
   # Refactor to_input_db_key/1 and to_db_key/1. Doing this because
@@ -162,17 +169,16 @@ defmodule OMG.Utxo.Position do
 
       iex> utxo_pos = {:utxo_position, 1, 2, 3}
       iex> OMG.Utxo.Position.get_data_for_rlp(utxo_pos)
-      <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 59, 155, 24, 35>>
+      <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 155, 24, 35>>
   """
   @spec get_data_for_rlp(t()) :: binary()
   def get_data_for_rlp(Utxo.position(blknum, txindex, oindex)) do
-    utxo = %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex}
-    ExPlasma.Utxo.to_rlp(utxo)
+    utxo = %{blknum: blknum, txindex: txindex, oindex: oindex}
+    ExPlasma.Output.Position.to_rlp(utxo)
   end
 
   defp do_decode(encoded) do
-    with {:ok, utxo} <- ExPlasma.Utxo.new(encoded),
-         do: {:ok, Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)}
+    with %ExPlasma.Output{output_id: output_id} <- ExPlasma.Output.decode_id(encoded),
+         do: {:ok, Utxo.position(output_id.blknum, output_id.txindex, output_id.oindex)}
   end
 end

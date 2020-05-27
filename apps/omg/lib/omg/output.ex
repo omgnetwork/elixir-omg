@@ -38,8 +38,13 @@ defmodule OMG.Output do
   """
   def reconstruct([raw_type, [_owner, _currency, _amount]] = rlp_data) when is_binary(raw_type) do
     with :ok <- validate_data(rlp_data),
-         {:ok, utxo} <- ExPlasma.Utxo.new(rlp_data),
-         do: %__MODULE__{output_type: utxo.output_type, owner: utxo.owner, currency: utxo.currency, amount: utxo.amount}
+         %ExPlasma.Output{output_data: output_data} = utxo <- ExPlasma.Output.decode(rlp_data),
+         do: %__MODULE__{
+           output_type: utxo.output_type,
+           owner: output_data.output_guard,
+           currency: output_data.token,
+           amount: output_data.amount
+         }
   end
 
   def reconstruct([_raw_type, [_owner, _currency, _amount]]), do: {:error, :unrecognized_output_type}

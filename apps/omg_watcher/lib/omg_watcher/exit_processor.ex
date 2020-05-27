@@ -334,7 +334,7 @@ defmodule OMG.Watcher.ExitProcessor do
       Enum.map(
         events,
         fn %{call_data: %{in_flight_tx: txbytes}} ->
-          ExPlasma.InFlightExit.txbytes_to_id(txbytes)
+          ExPlasma.InFlightExit.tx_bytes_to_id(txbytes)
         end
       )
 
