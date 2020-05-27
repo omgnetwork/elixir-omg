@@ -255,14 +255,17 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     assert length(utxos) == 1
 
     assert :ok =
-             DB.EthEvent.insert_exits!([
-               %{
-                 call_data: %{utxo_pos: expected_utxo_encoded_position},
-                 root_chain_txhash: expected_exit_root_chain_txhash,
-                 log_index: expected_log_index,
-                 eth_height: expected_exit_eth_height
-               }
-             ])
+             DB.EthEvent.insert_exits!(
+               [
+                 %{
+                   call_data: %{utxo_pos: expected_utxo_encoded_position},
+                   root_chain_txhash: expected_exit_root_chain_txhash,
+                   log_index: expected_log_index,
+                   eth_height: expected_exit_eth_height
+                 }
+               ],
+               :standard_exit
+             )
 
     %{data: utxos_after_exit} = DB.TxOutput.get_utxos(address: expected_owner)
     assert Enum.empty?(utxos_after_exit)
@@ -299,7 +302,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits)
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit)
   end
 
   @tag fixtures: [:alice, :initial_blocks]

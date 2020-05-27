@@ -112,7 +112,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   Uses a list of encoded `Utxo.Position`s to insert the exits (if not already inserted before)
   """
   @spec insert_exits!([non_neg_integer()], available_event_type_t()) :: :ok
-  def insert_exits!(exits, event_type \\ :standard_exit) do
+  def insert_exits!(exits, event_type) do
     exits
     |> Stream.map(&utxo_exit_from_exit_event/1)
     |> Enum.each(&insert_exit!(&1, event_type))
