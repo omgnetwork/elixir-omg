@@ -31,16 +31,17 @@ defmodule OMG.WatcherInfo.ExitConsumer do
 
   def init(args) do
     topic = Keyword.fetch!(args, :topic)
+    event_type = Keyword.fetch!(args, :event_type)
     bus_module = Keyword.get(args, :bus_module, @default_bus_module)
 
     :ok = bus_module.subscribe(topic, link: true)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}, listen to #{inspect(topic)}")
-    {:ok, %{}}
+    {:ok, %{event_type: event_type}}
   end
 
   def handle_info({:internal_event_bus, :data, data}, state) do
-    _ = EthEvent.insert_exits!(data)
+    _ = EthEvent.insert_exits!(data, state.event_type)
     {:noreply, state}
   end
 end
