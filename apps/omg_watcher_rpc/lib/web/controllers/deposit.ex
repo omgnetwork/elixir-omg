@@ -26,10 +26,14 @@ defmodule OMG.WatcherRPC.Web.Controller.Deposit do
   Retrieves a list of deposits.
   """
   def get_deposits(conn, params) do
-    with {:ok, constraints} <- Validator.DepositConstraints.parse(params) do
-      constraints
-      |> InfoApiDeposit.get_deposits()
-      |> api_response(conn, :deposits)
+    case Validator.DepositConstraints.parse(params) do
+      {:ok, constraints} ->
+        constraints
+        |> InfoApiDeposit.get_deposits()
+        |> api_response(conn, :deposits)
+
+      error ->
+        error
     end
   end
 end
