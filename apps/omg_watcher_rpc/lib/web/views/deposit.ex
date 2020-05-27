@@ -45,7 +45,6 @@ defmodule OMG.WatcherRPC.Web.View.Deposit do
   end
 
   defp render_txoutputs(outputs) do
-    outputs
-    |> Enum.map(&to_utxo/1)
+    Enum.map(outputs, &to_utxo/1)
   end
 end
