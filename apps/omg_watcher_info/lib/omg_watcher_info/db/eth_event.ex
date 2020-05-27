@@ -30,7 +30,9 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   require Utxo
 
-  @typep available_event_type_t() :: :standard_exit | :in_flight_exit
+  @typep available_exit_event_type_t() :: :standard_exit | :in_flight_exit
+  @typep available_deposit_event_type_t() :: :deposit
+  @typep available_event_type_t() :: available_deposit_event_type_t() | available_exit_event_type_t()
   @typep output_pointer_t() :: %{utxo_pos: pos_integer()} | %{txhash: Crypto.hash_t(), oindex: non_neg_integer()}
 
   @primary_key false
@@ -156,7 +158,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   """
   @spec get_events(
           paginator :: Paginator.t(%DB.EthEvent{}),
-          event_type :: atom() | nil,
+          event_type :: available_event_type_t() | nil,
           address :: Crypto.address_t() | nil
         ) :: Paginator.t(%DB.EthEvent{})
   def get_events(paginator, event_type \\ nil, address \\ nil) do
