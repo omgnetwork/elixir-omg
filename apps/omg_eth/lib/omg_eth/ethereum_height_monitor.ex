@@ -90,6 +90,23 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     {:noreply, state}
   end
 
+  # we need to figure out where :sslsocket is getting closed
+  # because it randomly kills this process and block getter
+  # https://github.com/omisego/elixir-omg/issues/1541
+  # https://sentry.io/organizations/omisego/issues/1582175010/?project=1477673
+  def handle_info({:ssl_closed, {:sslsocket, {:gen_tcp, port, :tls_connection, :undefined}, pids}}, state) do
+    port_info = Port.info(port)
+    _ = Logger.error("Getting ssl closed from port #{inspect(port_info)}")
+
+    _ =
+      Enum.map(pids, fn pid ->
+        process_info = Process.info(pid)
+        _ = Logger.error("Affected pids #{inspect(process_info)}")
+      end)
+
+    {:stop, :killed_by_ssl_closed, state}
+  end
+
   def handle_info(:check_new_height, state) do
     height = fetch_height(state.eth_module)
     stalled? = stalled?(height, state.ethereum_height, state.synced_at, state.stall_threshold_ms)
