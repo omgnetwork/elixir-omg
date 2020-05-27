@@ -18,11 +18,12 @@ defmodule OMG.WatcherRPC.Web.Plugs.MethodParamFilterTest do
 
   alias OMG.WatcherRPC.Web.Plugs.MethodParamFilter
 
+  # this test seems like it's reaching far to deep into internals of plugs
   test "filters query params for POST" do
     conn =
       :post
       |> conn("/some_endpoint?foo=bar", %{"foo_1" => "bar_1"})
-      |> Plug.Parsers.call({[:json], [], nil})
+      |> Plug.Parsers.call({[:json], [], nil, false})
       |> MethodParamFilter.call([])
 
     assert conn.body_params == %{"foo_1" => "bar_1"}
@@ -30,11 +31,12 @@ defmodule OMG.WatcherRPC.Web.Plugs.MethodParamFilterTest do
     assert conn.params == %{"foo_1" => "bar_1"}
   end
 
+  # this test seems like it's reaching far to deep into internals of plugs
   test "filters body params for GET" do
     conn =
       :get
       |> conn("/some_endpoint?foo=bar", %{"foo_1" => "bar_1"})
-      |> Plug.Parsers.call({[:json], [], nil})
+      |> Plug.Parsers.call({[:json], [], nil, false})
       |> MethodParamFilter.call([])
 
     assert conn.body_params == %{}
