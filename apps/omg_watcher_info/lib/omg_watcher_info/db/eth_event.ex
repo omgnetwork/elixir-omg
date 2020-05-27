@@ -139,6 +139,35 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     (Encoding.to_hex(root_chain_txhash) <> Integer.to_string(log_index)) |> Crypto.hash()
   end
 
+  @doc """
+  Retrieves event by `root_chain_txhash_event` (unique identifier). Preload txoutputs in a single query as there will not be a large number of them.
+  """
+  @spec get(binary()) :: %__MODULE__{}
+  def get(root_chain_txhash_event) do
+    DB.Repo.one(
+      from(ethevent in base_query(),
+        where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event
+      )
+    )
+  end
+
+  @doc """
+  Gets a paginated list of events, optionally filtered by address and/or type.
+  """
+  @spec get_events(
+          paginator :: Paginator.t(%DB.EthEvent{}),
+          event_type :: atom() | nil,
+          address :: Crypto.address_t() | nil
+        ) :: Paginator.t(%DB.EthEvent{})
+  def get_events(paginator, event_type \\ nil, address \\ nil) do
+    base_query()
+    |> query_by_address(address)
+    |> query_by_type(event_type)
+    |> query_paginated(paginator.data_paging)
+    |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
+  end
+
   @spec utxo_exit_from_exit_event(%{
           call_data: output_pointer_t(),
           root_chain_txhash: charlist(),
@@ -235,32 +264,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     # a txoutput row just got updated, but we need to return the associated ethevent with all populated
     # fields including those populated by the DB (eg: inserted_at, updated_at, ...)
     {:ok, get(ethevent.root_chain_txhash_event)}
-  end
-
-  # preload txoutputs in a single query as there will not be a large number of them
-  def get(root_chain_txhash_event) do
-    DB.Repo.one(
-      from(ethevent in base_query(),
-        where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event
-      )
-    )
-  end
-
-  @doc """
-  Gets a paginated list of events, optionally filtered by address and/or type.
-  """
-  @spec get_events(
-          paginator :: Paginator.t(%DB.EthEvent{}),
-          event_type :: atom() | nil,
-          address :: Crypto.address_t() | nil
-        ) :: Paginator.t(%DB.EthEvent{})
-  def get_events(paginator, event_type \\ nil, address \\ nil) do
-    base_query()
-    |> query_by_address(address)
-    |> query_by_type(event_type)
-    |> query_paginated(paginator.data_paging)
-    |> DB.Repo.all()
-    |> Paginator.set_data(paginator)
   end
 
   defp base_query() do
