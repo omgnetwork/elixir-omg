@@ -1,6 +1,23 @@
 # Changelog
 
-## v0.4.7 (Unreleased)
+## [v0.4.8](https://github.com/omisego/elixir-omg/releases/tag/v0.4.8)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.7...v0.4.8).
+
+#### APIs
+- None
+
+#### Core
+- None
+
+#### Miscellaneous
+- [Fix] Missing error logging when the error cannot be serialized (#1518)
+
+## [v0.4.7](https://github.com/omisego/elixir-omg/releases/tag/v0.4.7)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.6...v0.4.7).
 
 #### APIs
 - [Fixed] Proper error message when retrieving In-Flight Exit data for a spent deposit (#1397)
