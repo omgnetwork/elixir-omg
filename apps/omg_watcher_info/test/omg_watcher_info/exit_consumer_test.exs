@@ -32,7 +32,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
     {:ok, _} =
       GenServer.start_link(
         ExitConsumer,
-        [topic: :watcher_test_topic, bus_module: __MODULE__.FakeBus],
+        [topic: :watcher_test_topic, bus_module: __MODULE__.FakeBus, event_type: :in_flight_exit],
         name: TestExitConsumer
       )
 

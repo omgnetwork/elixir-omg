@@ -213,13 +213,20 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
       preload: [:ethevents],
       left_join: ethevent in assoc(txoutput, :ethevents),
       # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
-      where: txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+      where:
+        txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and
+          (is_nil(ethevent) or
+             fragment(
+               "
 NOT EXISTS (SELECT 1
            FROM ethevents_txoutputs AS etfrag
            JOIN ethevents AS efrag ON
                     etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                    AND efrag.event_type IN (?)
-                    AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+                    AND efrag.event_type = ANY(?)
+                    AND etfrag.child_chain_utxohash = ?)",
+               ["standard_exit", "in_flight_exit"],
+               txoutput.child_chain_utxohash
+             )),
       order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
     )
   end
