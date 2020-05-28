@@ -15,10 +15,10 @@
 defmodule OMG.Watcher.API.StatusCacheTest do
   use ExUnit.Case, async: true
 
-  alias OMG.Watcher.API.StatusCache
-  alias OMG.Watcher.SyncSupervisor
   alias __MODULE__.BusMock
   alias __MODULE__.IntegrationModuleMock
+  alias OMG.Watcher.API.StatusCache
+  alias OMG.Watcher.SyncSupervisork
 
   setup do
     _ =
