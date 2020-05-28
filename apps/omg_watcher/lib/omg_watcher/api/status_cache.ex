@@ -17,15 +17,20 @@ defmodule OMG.Watcher.API.StatusCache do
   Watcher status API cache
   """
 
-  alias OMG.Eth.EthereumHeight
+  alias OMG.Watcher.API.StatusCache.External
   alias OMG.Watcher.API.StatusCache.Storage
   alias OMG.Watcher.SyncSupervisor
 
   use GenServer
 
-  @type t() :: atom()
-  @type status() :: Storage.t()
+  @type status() :: External.t()
 
+  defstruct [:ets, :integration_module]
+
+  @type t :: %__MODULE__{
+          ets: atom(),
+          integration_module: module()
+        }
   @spec get() :: status()
   def get() do
     :ets.lookup_element(SyncSupervisor.status_cache(), key(), 2)
@@ -39,11 +44,11 @@ defmodule OMG.Watcher.API.StatusCache do
   def init(opts) do
     event_bus = Keyword.fetch!(opts, :event_bus)
     ets = Keyword.fetch!(opts, :ets)
+    integration_module = Keyword.get(opts, :integration_module, External)
     :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
-    state = ets
-    {:ok, eth_block_number} = EthereumHeight.get()
-    Storage.update_status(state, key(), eth_block_number)
-    {:ok, state}
+    {:ok, eth_block_number} = integration_module.get_ethereum_height()
+    Storage.update_status(ets, key(), eth_block_number, integration_module)
+    {:ok, %__MODULE__{ets: ets, integration_module: integration_module}}
   end
 
   @doc """
@@ -51,7 +56,7 @@ defmodule OMG.Watcher.API.StatusCache do
   """
 
   def handle_info({:internal_event_bus, :ethereum_new_height, eth_block_number}, state) do
-    Storage.update_status(state, key(), eth_block_number)
+    _ = Storage.update_status(state.ets, key(), eth_block_number, state.integration_module)
     {:noreply, state}
   end
 
