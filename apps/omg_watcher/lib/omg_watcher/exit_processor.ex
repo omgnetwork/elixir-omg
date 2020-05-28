@@ -609,12 +609,12 @@ defmodule OMG.Watcher.ExitProcessor do
     Core.find_ifes_in_blocks(state, prepared_request)
   end
 
-  defp run_status_gets(%ExitProcessor.Request{eth_height_now: nil, blknum_now: nil} = request) do
-    {:ok, eth_height_now} = EthereumHeight.get()
+  defp run_status_gets(%ExitProcessor.Request{eth_timestamp_now: nil, blknum_now: nil} = request) do
+    {:ok, eth_timestamp_now} = Eth.get_block_timestamp_by_number(EthereumHeight.get())
     {blknum_now, _} = State.get_status()
 
-    _ = Logger.debug("eth_height_now: #{inspect(eth_height_now)}, blknum_now: #{inspect(blknum_now)}")
-    %{request | eth_height_now: eth_height_now, blknum_now: blknum_now}
+    _ = Logger.debug("eth_timestamp_now: #{inspect(eth_timestamp_now)}, blknum_now: #{inspect(blknum_now)}")
+    %{request | eth_timestamp_now: eth_timestamp_now, blknum_now: blknum_now}
   end
 
   defp get_utxo_existence(%ExitProcessor.Request{utxos_to_check: positions} = request),

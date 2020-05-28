@@ -68,10 +68,13 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   """
   @spec get_invalid(Core.t(), %{Utxo.Position.t() => boolean}, pos_integer()) ::
           {%{Utxo.Position.t() => ExitInfo.t()}, %{Utxo.Position.t() => ExitInfo.t()}}
-  def get_invalid(%Core{sla_seconds: sla_seconds} = state, utxo_exists?, eth_height_now) do
+  def get_invalid(
+        %Core{sla_seconds: sla_seconds} = state,
+        utxo_exists?,
+        eth_timestamp_now
+      ) do
     active_exits = active_exits(state)
 
-    {:ok, time_now} = Eth.get_block_timestamp_by_number(eth_height_now)
     exits_invalid_by_ife =
       state
       |> TxAppendix.get_all()
@@ -97,7 +100,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     # get exits which are still invalid and after the SLA margin
     late_invalid_exits =
       Enum.filter(invalid_exits, fn {_, %ExitInfo{block_timestamp: block_timestamp}} ->
-        block_timestamp + sla_seconds <= time_now
+        block_timestamp + sla_seconds <= eth_timestamp_now
       end)
 
     {Map.new(invalid_exits), Map.new(late_invalid_exits)}

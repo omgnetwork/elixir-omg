@@ -96,19 +96,17 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   def get_invalid_piggybacks_events(
         %Core{sla_seconds: sla_seconds, in_flight_exits: ifes},
         known_txs_by_input,
-        eth_height_now
+        eth_timestamp_now
       ) do
     invalid_piggybacks_by_ife =
       ifes
       |> Map.values()
       |> all_invalid_piggybacks_by_ife(known_txs_by_input)
 
-    {:ok, time_now} = Eth.get_block_timestamp_by_number(eth_height_now)
-
     invalid_piggybacks_events = to_events(invalid_piggybacks_by_ife, &to_invalid_piggyback_event/1)
 
     past_sla_seconds = fn {ife, _type, _materials} ->
-      ife.timestamp + sla_seconds <= time_now
+      ife.timestamp + sla_seconds <= eth_timestamp_now
     end
 
     unchallenged_piggybacks_events =

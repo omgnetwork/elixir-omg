@@ -72,7 +72,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   """
   @spec get_ife_txs_with_competitors(Core.t(), KnownTx.known_txs_by_input_t(), pos_integer()) ::
           {list(Event.NonCanonicalIFE.t()), list(Event.UnchallengedNonCanonicalIFE.t())}
-  def get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now) do
+  def get_ife_txs_with_competitors(state, known_txs_by_input, eth_timestamp_now) do
     non_canonical_ifes =
       state.in_flight_exits
       |> Map.values()
@@ -82,8 +82,6 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
         InFlightExitInfo.is_viable_competitor?(ife, utxo_pos)
       end)
 
-    {:ok, time_now} = Eth.get_block_timestamp_by_number(eth_height_now)
-
     non_canonical_ife_events =
       non_canonical_ifes
       |> Stream.map(fn {ife, _double_spend} -> Transaction.raw_txbytes(ife.tx) end)
@@ -91,7 +89,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
       |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
 
     past_sla_seconds = fn {ife, _double_spend} ->
-      ife.timestamp + state.sla_seconds <= time_now
+      ife.timestamp + state.sla_seconds <= eth_timestamp_now
     end
 
     late_non_canonical_ife_events =

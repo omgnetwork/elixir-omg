@@ -459,17 +459,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec check_validity(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
   def check_validity(
         %ExitProcessor.Request{
-          eth_height_now: eth_height_now,
+          eth_timestamp_now: eth_timestamp_now,
           utxos_to_check: utxos_to_check,
           utxo_exists_result: utxo_exists_result,
           blocks_result: blocks
         },
         %__MODULE__{} = state
       )
-      when not is_nil(eth_height_now) do
+      when not is_nil(eth_timestamp_now) do
     utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
 
-    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_height_now)
+    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_timestamp_now)
 
     invalid_exit_events =
       invalid_exits
@@ -482,12 +482,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
 
     {non_canonical_ife_events, late_non_canonical_ife_events} =
-      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now)
+      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, eth_timestamp_now)
 
     invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
     {invalid_piggybacks_events, late_invalid_piggybacks_events} =
-      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, eth_height_now)
+      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, eth_timestamp_now)
 
     available_piggybacks_events =
       state

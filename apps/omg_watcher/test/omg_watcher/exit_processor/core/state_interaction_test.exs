@@ -73,7 +73,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     processor = start_se_from(processor, standard_exit_tx, @utxo_pos1)
 
     assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_position}]} =
-             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+             %ExitProcessor.Request{eth_timestamp_now: 5 + :os.system_time(:second), blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.check_validity(processor)
@@ -85,7 +85,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     processor = start_se_from(processor, standard_exit_tx, Utxo.position(@late_blknum, 0, 0))
 
     assert {:ok, []} =
-             %ExitProcessor.Request{eth_height_now: 13, blknum_now: @early_blknum}
+             %ExitProcessor.Request{eth_timestamp_now: 13 + :os.system_time(:second), blknum_now: @early_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.check_validity(processor)
@@ -111,7 +111,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert {processor, _} = Core.finalize_exits(processor, two_spend)
 
     assert {{:error, :unchallenged_exit}, [_event1, _event2, _event3]} =
-             %ExitProcessor.Request{eth_height_now: 12, blknum_now: @late_blknum}
+             %ExitProcessor.Request{eth_timestamp_now: 12 + :os.system_time(:second), blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state_after_spend)
              |> Core.check_validity(processor)
@@ -125,14 +125,14 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     processor = start_se_from(processor, standard_exit_tx, @utxo_pos1)
 
     assert {:ok, []} =
-             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+             %ExitProcessor.Request{eth_timestamp_now: 5 + :os.system_time(:second), blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.check_validity(processor)
 
     # go into the future - old exits work the same
     assert {:ok, []} =
-             %ExitProcessor.Request{eth_height_now: 105, blknum_now: @late_blknum}
+             %ExitProcessor.Request{eth_timestamp_now: 105 + :os.system_time(:second), blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.check_validity(processor)
@@ -196,7 +196,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     {:ok, {block, _}, state} = State.Core.form_block(state)
 
-    request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}
+    request = %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5 + :os.system_time(:second), ife_input_spending_blocks_result: [block]}
 
     processor =
       processor
@@ -229,7 +229,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     ife_id = 1
 
     # ife tx cannot be found in blocks, hence `ife_input_spending_blocks_result: []`
-    request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: []}
+    request = %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5 + :os.system_time(:second), ife_input_spending_blocks_result: []}
 
     processor =
       processor
@@ -262,7 +262,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     {:ok, {_, _, _}, state} = State.Core.exec(state, spending_tx, @fee)
     {:ok, {block, _}, state} = State.Core.form_block(state)
 
-    request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}
+    request = %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5 + :os.system_time(:second), ife_input_spending_blocks_result: [block]}
 
     processor =
       processor

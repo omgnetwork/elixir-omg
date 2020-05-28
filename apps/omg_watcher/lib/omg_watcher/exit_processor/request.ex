@@ -23,7 +23,7 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   alias OMG.Utxo
 
   defstruct [
-    :eth_height_now,
+    :eth_timestamp_now,
     :blknum_now,
     utxos_to_check: [],
     spends_to_get: [],
@@ -41,7 +41,7 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   ]
 
   @type t :: %__MODULE__{
-          eth_height_now: nil | pos_integer,
+          eth_timestamp_now: nil | pos_integer,
           blknum_now: nil | pos_integer,
           utxos_to_check: list(Utxo.Position.t()),
           spends_to_get: list(Utxo.Position.t()),
