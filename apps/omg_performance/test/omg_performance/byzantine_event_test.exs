@@ -24,7 +24,7 @@ defmodule OMG.Performance.ByzantineEventsTest do
 
   use OMG.Performance
 
-  @moduletag :integration
+  @moduletag :skip
   @moduletag timeout: 180_000
 
   @number_of_transactions_to_send 10
