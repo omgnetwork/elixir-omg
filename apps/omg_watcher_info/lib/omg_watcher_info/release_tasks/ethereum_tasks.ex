@@ -31,12 +31,12 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks do
   require Logger
   @app :omg_watcher_info
 
-  alias OMG.WatcherInfo.ReleaseTasks.EthereumTasks
+  alias OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvents
 
   def run() do
     _ = Application.ensure_all_started(@app)
 
     # Run Ethereum tasks
-    EthereumTasks.AddEthereumHeightToEthEvents.run()
+    AddEthereumHeightToEthEvents.run()
   end
 end

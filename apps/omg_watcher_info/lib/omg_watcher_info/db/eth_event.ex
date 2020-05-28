@@ -30,9 +30,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   require Utxo
 
-  @typep available_exit_event_type_t() :: :standard_exit | :in_flight_exit
-  @typep available_deposit_event_type_t() :: :deposit
-  @typep available_event_type_t() :: available_deposit_event_type_t() | available_exit_event_type_t()
+  @typep available_event_type_t() :: :standard_exit | :in_flight_exit
   @typep output_pointer_t() :: %{utxo_pos: pos_integer()} | %{txhash: Crypto.hash_t(), oindex: non_neg_integer()}
 
   @primary_key false
