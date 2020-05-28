@@ -25,11 +25,10 @@ defmodule OMG.WatcherInfo.API.Deposit do
   @doc """
   Retrieves a list of deposits.
   Length of the list is limited by `limit` and `page` arguments.
-  Optionally filtered by `address`
   """
   @spec get_deposits(Keyword.t()) :: Paginator.t(%DB.EthEvent{})
   def get_deposits(constraints) do
-    address = Keyword.get(constraints, :address)
+    {:ok, address} = Keyword.fetch(constraints, :address)
 
     constraints
     |> Paginator.from_constraints(@default_events_limit)

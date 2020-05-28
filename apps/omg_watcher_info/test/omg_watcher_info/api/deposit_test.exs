@@ -26,11 +26,13 @@ defmodule OMG.WatcherInfo.API.DepositTest do
   describe "get_deposits/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a paginator with a list of deposits" do
-      _ = insert(:ethevent, event_type: :deposit)
-      _ = insert(:ethevent, event_type: :deposit)
-      _ = insert(:ethevent, event_type: :non_deposit)
+      owner = <<1::160>>
 
-      constraints = []
+      _ = insert(:ethevent, event_type: :deposit, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, event_type: :deposit, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, event_type: :standard_exit, txoutputs: [build(:txoutput, %{owner: owner})])
+
+      constraints = [address: owner]
       results = API.Deposit.get_deposits(constraints)
 
       assert %Paginator{} = results
@@ -40,16 +42,18 @@ defmodule OMG.WatcherInfo.API.DepositTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a paginator according to the provided paginator constraints" do
-      _ = insert(:ethevent, event_type: :deposit)
-      _ = insert(:ethevent, event_type: :deposit)
-      _ = insert(:ethevent, event_type: :deposit)
+      owner = <<1::160>>
 
-      assert [page: 1, limit: 2] |> API.Deposit.get_deposits() |> Map.get(:data) |> length() == 2
-      assert [page: 2, limit: 2] |> API.Deposit.get_deposits() |> Map.get(:data) |> length() == 1
+      _ = insert(:ethevent, event_type: :deposit, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, event_type: :deposit, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, event_type: :deposit, txoutputs: [build(:txoutput, %{owner: owner})])
+
+      assert [page: 1, limit: 2, address: owner] |> API.Deposit.get_deposits() |> Map.get(:data) |> length() == 2
+      assert [page: 2, limit: 2, address: owner] |> API.Deposit.get_deposits() |> Map.get(:data) |> length() == 1
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns results filtered by address when given an address constraint" do
+    test "returns results filtered by address" do
       owner_1 = <<1::160>>
       owner_2 = <<2::160>>
 
