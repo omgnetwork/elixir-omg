@@ -219,6 +219,21 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
       assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", greater: 0)
     end
 
+    test "lesser: positive cases" do
+      upper_bound = 1000
+      limit_param = 999
+
+      assert {:ok, 999} = expect(%{"limit" => limit_param}, "limit", lesser: upper_bound)
+    end
+
+    test "lesser: negative cases" do
+      upper_bound = 1000
+      limit_param = 1001
+
+      assert {:error, {:validation_error, "limit", {:lesser, 1000}}} =
+               expect(%{"limit" => limit_param}, "limit", lesser: upper_bound)
+    end
+
     test "address should validate both hex value and length" do
       {:ok, address_value} = @params |> Map.get("valid_address") |> Encoding.from_hex()
       assert {:ok, address_value} == expect(@params, "valid_address", :address)

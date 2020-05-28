@@ -23,6 +23,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   alias OMG.Crypto
   alias OMG.Eth.Encoding
+  alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WireFormatTypes
@@ -36,8 +37,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   schema "ethevents" do
     field(:root_chain_txhash, :binary, primary_key: true)
     field(:log_index, :integer, primary_key: true)
-
     field(:event_type, OMG.WatcherInfo.DB.Types.AtomType)
+    field(:eth_height, :integer)
 
     field(:root_chain_txhash_event, :binary)
 
@@ -65,6 +66,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
          log_index: log_index,
          blknum: blknum,
          owner: owner,
+         eth_height: eth_height,
          currency: currency,
          amount: amount
        }) do
@@ -79,6 +81,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           log_index: log_index,
           root_chain_txhash: root_chain_txhash,
           event_type: event_type,
+          eth_height: eth_height,
 
           # a deposit from the root chain will only ever have 1 childchain txoutput object
           txoutputs: [
@@ -136,32 +139,57 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     (Encoding.to_hex(root_chain_txhash) <> Integer.to_string(log_index)) |> Crypto.hash()
   end
 
-  # preload txoutputs in a single query as there will not be a large number of them
+  @doc """
+  Retrieves event by `root_chain_txhash_event` (unique identifier). Preload txoutputs in a single query as there will not be a large number of them.
+  """
+  @spec get(binary()) :: %__MODULE__{}
   def get(root_chain_txhash_event) do
     DB.Repo.one(
-      from(ethevent in __MODULE__,
-        where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event,
-        left_join: txoutputs in assoc(ethevent, :txoutputs),
-        preload: [txoutputs: txoutputs]
+      from(ethevent in base_query(),
+        where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event
       )
     )
+  end
+
+  @doc """
+  Gets a paginated list of deposits filtered by address.
+  """
+  @spec get_deposits(
+          paginator :: Paginator.t(%DB.EthEvent{}),
+          address :: Crypto.address_t()
+        ) :: Paginator.t(%DB.EthEvent{})
+  def get_deposits(paginator, address) do
+    base_query()
+    |> query_deposits()
+    |> query_by_address(address)
+    |> query_paginated(paginator.data_paging)
+    |> DB.Repo.all()
+    |> Paginator.set_data(paginator)
   end
 
   @spec utxo_exit_from_exit_event(%{
           call_data: output_pointer_t(),
           root_chain_txhash: charlist(),
-          log_index: non_neg_integer()
+          log_index: non_neg_integer(),
+          eth_height: pos_integer()
         }) ::
-          %{root_chain_txhash: binary(), log_index: non_neg_integer(), output_pointer: tuple()}
+          %{
+            root_chain_txhash: binary(),
+            log_index: non_neg_integer(),
+            eth_height: pos_integer(),
+            output_pointer: tuple()
+          }
   defp utxo_exit_from_exit_event(%{
          call_data: output_pointer,
          root_chain_txhash: root_chain_txhash,
-         log_index: log_index
+         log_index: log_index,
+         eth_height: eth_height
        }) do
     %{
       root_chain_txhash: root_chain_txhash,
       log_index: log_index,
-      output_pointer: transform_output_pointer(output_pointer)
+      output_pointer: transform_output_pointer(output_pointer),
+      eth_height: eth_height
     }
   end
 
@@ -175,7 +203,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           %{
             root_chain_txhash: binary(),
             log_index: non_neg_integer(),
-            output_pointer: {:utxo_position, Utxo.Position.t()} | {:output_id, tuple()}
+            output_pointer: {:utxo_position, Utxo.Position.t()} | {:output_id, tuple()},
+            eth_height: pos_integer()
           },
           available_event_type_t()
         ) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()} | :noop
@@ -183,6 +212,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
          %{
            root_chain_txhash: root_chain_txhash,
            log_index: log_index,
+           eth_height: eth_height,
            output_pointer: output_pointer
          },
          event_type
@@ -190,13 +220,19 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
     ethevent =
-      get(root_chain_txhash_event) ||
-        %__MODULE__{
-          root_chain_txhash_event: root_chain_txhash_event,
-          log_index: log_index,
-          root_chain_txhash: root_chain_txhash,
-          event_type: event_type
-        }
+      case get(root_chain_txhash_event) do
+        nil ->
+          %__MODULE__{
+            root_chain_txhash_event: root_chain_txhash_event,
+            log_index: log_index,
+            root_chain_txhash: root_chain_txhash,
+            eth_height: eth_height,
+            event_type: event_type
+          }
+
+        event ->
+          event
+      end
 
     tx_output = resolve_tx_output(output_pointer)
 
@@ -232,6 +268,39 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     # a txoutput row just got updated, but we need to return the associated ethevent with all populated
     # fields including those populated by the DB (eg: inserted_at, updated_at, ...)
     {:ok, get(ethevent.root_chain_txhash_event)}
+  end
+
+  defp base_query() do
+    from(
+      ethevent in __MODULE__,
+      order_by: [desc: :eth_height],
+      left_join: txoutputs in assoc(ethevent, :txoutputs),
+      preload: [txoutputs: txoutputs]
+    )
+  end
+
+  defp query_by_address(query, address) do
+    from(
+      [ethevent, txoutputs] in query,
+      where: txoutputs.owner == ^address
+    )
+  end
+
+  defp query_deposits(query) do
+    from(
+      ethevent in query,
+      where: ethevent.event_type == ^:deposit
+    )
+  end
+
+  defp query_paginated(query, paginator) do
+    offset = (paginator.page - 1) * paginator.limit
+
+    from(
+      event in query,
+      limit: ^paginator.limit,
+      offset: ^offset
+    )
   end
 
   # Tells whether `TxOutput` was already spent
