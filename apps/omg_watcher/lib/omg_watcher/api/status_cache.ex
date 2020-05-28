@@ -22,6 +22,7 @@ defmodule OMG.Watcher.API.StatusCache do
   alias OMG.Watcher.SyncSupervisor
 
   use GenServer
+  require Logger
 
   @type status() :: External.t()
 
@@ -48,6 +49,7 @@ defmodule OMG.Watcher.API.StatusCache do
     :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
     {:ok, eth_block_number} = integration_module.get_ethereum_height()
     Storage.update_status(ets, key(), eth_block_number, integration_module)
+    _ = Logger.info("Started #{inspect(__MODULE__)}.")
     {:ok, %__MODULE__{ets: ets, integration_module: integration_module}}
   end
 

@@ -18,7 +18,7 @@ defmodule OMG.Watcher.API.StatusCacheTest do
   alias __MODULE__.BusMock
   alias __MODULE__.IntegrationModuleMock
   alias OMG.Watcher.API.StatusCache
-  alias OMG.Watcher.SyncSupervisork
+  alias OMG.Watcher.SyncSupervisor
 
   setup do
     _ =
