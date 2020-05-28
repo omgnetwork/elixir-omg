@@ -92,7 +92,7 @@ defmodule OMG.Eth.EthereumHeightMonitor do
 
   # we need to figure out where :sslsocket is getting closed
   # because it randomly kills this process and block getter
-  # https://github.com/omisego/elixir-omg/issues/1541
+  # https://github.com/omisego/elixir-omg/issues/1529
   # https://sentry.io/organizations/omisego/issues/1582175010/?project=1477673
   def handle_info({:ssl_closed, {:sslsocket, {:gen_tcp, port, :tls_connection, :undefined}, pids}}, state) do
     port_info = Port.info(port)
