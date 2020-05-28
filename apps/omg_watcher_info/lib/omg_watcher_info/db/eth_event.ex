@@ -154,17 +154,16 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   @doc """
-  Gets a paginated list of events, optionally filtered by address and/or type.
+  Gets a paginated list of deposits filtered by address.
   """
-  @spec get_events(
+  @spec get_deposits(
           paginator :: Paginator.t(%DB.EthEvent{}),
-          event_type :: available_event_type_t() | nil,
-          address :: Crypto.address_t() | nil
+          address :: Crypto.address_t()
         ) :: Paginator.t(%DB.EthEvent{})
-  def get_events(paginator, event_type, address) do
+  def get_deposits(paginator, address) do
     base_query()
+    |> query_deposits()
     |> query_by_address(address)
-    |> query_by_type(event_type)
     |> query_paginated(paginator.data_paging)
     |> DB.Repo.all()
     |> Paginator.set_data(paginator)
@@ -282,8 +281,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     )
   end
 
-  defp query_by_address(query, nil), do: query
-
   defp query_by_address(query, address) do
     from(
       [ethevent, txoutputs] in query,
@@ -291,12 +288,10 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     )
   end
 
-  defp query_by_type(query, nil), do: query
-
-  defp query_by_type(query, type) do
+  defp query_deposits(query) do
     from(
       ethevent in query,
-      where: ethevent.event_type == ^type
+      where: ethevent.event_type == ^:deposit
     )
   end
 

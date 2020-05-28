@@ -430,9 +430,9 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
            ] = txo.ethevents
   end
 
-  describe "get_events" do
+  describe "get_deposits" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "filters ethevents by address if given an address argument" do
+    test "filters deposits by address" do
       owner_1 = <<1::160>>
       owner_2 = <<2::160>>
 
@@ -442,52 +442,22 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       _ = insert(:ethevent, event_type: :deposit, txoutputs: [deposit_output_1])
       _ = insert(:ethevent, event_type: :deposit, txoutputs: [deposit_output_2])
 
-      %{data: [event_1]} = DB.EthEvent.get_events(@default_paginator, nil, owner_1)
-      %{data: [event_2]} = DB.EthEvent.get_events(@default_paginator, nil, owner_2)
+      %{data: [deposit_1]} = DB.EthEvent.get_deposits(@default_paginator, owner_1)
+      %{data: [deposit_2]} = DB.EthEvent.get_deposits(@default_paginator, owner_2)
 
-      assert event_1 |> Map.get(:txoutputs) |> Enum.at(0) |> Map.get(:owner) == owner_1
-      assert event_2 |> Map.get(:txoutputs) |> Enum.at(0) |> Map.get(:owner) == owner_2
+      assert deposit_1 |> Map.get(:txoutputs) |> Enum.at(0) |> Map.get(:owner) == owner_1
+      assert deposit_2 |> Map.get(:txoutputs) |> Enum.at(0) |> Map.get(:owner) == owner_2
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "includes ethevents with multiple outputs if at least one is owned by the given address" do
-      owner_1 = <<1::160>>
-      owner_2 = <<2::160>>
+    test "returns deposits sorted by descending eth_height" do
+      owner = <<1::160>>
 
-      txo_1 = build(:txoutput, %{owner: owner_1})
-      txo_2 = build(:txoutput, %{owner: owner_2})
-      txo_3 = build(:txoutput, %{owner: owner_2})
+      _ = insert(:ethevent, eth_height: 1, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, eth_height: 3, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, eth_height: 2, txoutputs: [build(:txoutput, %{owner: owner})])
 
-      inserted_event = insert(:ethevent, txoutputs: [txo_1, txo_2])
-      _ = insert(:ethevent, txoutputs: [txo_3])
-
-      %{data: [returned_event]} = DB.EthEvent.get_events(@default_paginator, nil, owner_1)
-
-      assert inserted_event.root_chain_txhash == returned_event.root_chain_txhash
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "filters Ethereum events by type if given an event_type argument" do
-      _ = insert(:ethevent, event_type: :deposit)
-      _ = insert(:ethevent, event_type: :standard_exit)
-      _ = insert(:ethevent, event_type: :standard_exit)
-
-      %{data: [deposit]} = DB.EthEvent.get_events(@default_paginator, :deposit, nil)
-
-      %{data: [se_1, se_2]} = DB.EthEvent.get_events(@default_paginator, :standard_exit, nil)
-
-      assert Map.get(deposit, :event_type) == :deposit
-      assert Map.get(se_1, :event_type) == :standard_exit
-      assert Map.get(se_2, :event_type) == :standard_exit
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns Ethereum events sorted by descending eth_height" do
-      _ = insert(:ethevent, eth_height: 1)
-      _ = insert(:ethevent, eth_height: 3)
-      _ = insert(:ethevent, eth_height: 2)
-
-      results = DB.EthEvent.get_events(@default_paginator, nil, nil)
+      results = DB.EthEvent.get_deposits(@default_paginator, owner)
 
       assert results.data |> Enum.at(0) |> Map.get(:eth_height) == 3
       assert results.data |> Enum.at(1) |> Map.get(:eth_height) == 2
@@ -496,9 +466,11 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "pagination - correctly paginates responses" do
-      _ = insert(:ethevent)
-      _ = insert(:ethevent)
-      _ = insert(:ethevent)
+      owner = <<1::160>>
+
+      _ = insert(:ethevent, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, txoutputs: [build(:txoutput, %{owner: owner})])
 
       paginator_1 = %Paginator{
         data: [],
@@ -516,8 +488,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
         }
       }
 
-      %{data: data_page_1} = DB.EthEvent.get_events(paginator_1, nil, nil)
-      %{data: data_page_2} = DB.EthEvent.get_events(paginator_2, nil, nil)
+      %{data: data_page_1} = DB.EthEvent.get_deposits(paginator_1, owner)
+      %{data: data_page_2} = DB.EthEvent.get_deposits(paginator_2, owner)
 
       assert length(data_page_1) == 2
       assert length(data_page_2) == 1
@@ -525,9 +497,11 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "pagination - returns empty array if given limit 0" do
-      _ = insert(:ethevent)
-      _ = insert(:ethevent)
-      _ = insert(:ethevent)
+      owner = <<1::160>>
+
+      _ = insert(:ethevent, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, txoutputs: [build(:txoutput, %{owner: owner})])
+      _ = insert(:ethevent, txoutputs: [build(:txoutput, %{owner: owner})])
 
       paginator = %Paginator{
         data: [],
@@ -537,7 +511,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
         }
       }
 
-      %{data: data} = DB.EthEvent.get_events(paginator, nil, nil)
+      %{data: data} = DB.EthEvent.get_deposits(paginator, owner)
 
       assert Enum.empty?(data)
     end

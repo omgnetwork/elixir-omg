@@ -32,6 +32,6 @@ defmodule OMG.WatcherInfo.API.Deposit do
 
     constraints
     |> Paginator.from_constraints(@default_events_limit)
-    |> DB.EthEvent.get_events(:deposit, address)
+    |> DB.EthEvent.get_deposits(address)
   end
 end
