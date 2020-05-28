@@ -17,12 +17,11 @@ defmodule OMG.ChildChain.Supervisor do
    OMG.ChildChain top level supervisor.
   """
   use Supervisor
-  use OMG.Utils.LoggerExt
 
+  alias OMG.ChildChain.BlocksCache
   alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
-  alias OMG.ChildChain.FreshBlocks
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
   alias OMG.ChildChain.Tracer
@@ -30,11 +29,20 @@ defmodule OMG.ChildChain.Supervisor do
   alias OMG.State
   alias OMG.Status.Alert.Alarm
 
+  require Logger
+
+  @blocks_cache :blocks_cache
+
+  def blocks_cache() do
+    @blocks_cache
+  end
+
   def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
+    :ok = ensure_ets_init()
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
     metrics_collection_interval = Configuration.metrics_collection_interval()
     fee_server_opts = Configuration.fee_server_opts()
@@ -48,7 +56,7 @@ defmodule OMG.ChildChain.Supervisor do
          child_block_interval: child_block_interval,
          metrics_collection_interval: metrics_collection_interval
        ]},
-      {FreshBlocks, []},
+      {BlocksCache, [ets: blocks_cache()]},
       {FeeServer, fee_server_opts},
       {Monitor,
        [
@@ -106,4 +114,10 @@ defmodule OMG.ChildChain.Supervisor do
 
   @spec is_disabled?() :: boolean()
   defp is_disabled?(), do: Application.get_env(:omg_child_chain, Tracer)[:disabled?]
+
+  defp ensure_ets_init() do
+    _ =
+      if :undefined == :ets.info(blocks_cache()),
+        do: :ets.new(blocks_cache(), [:set, :public, :named_table, read_concurrency: true])
+  end
 end

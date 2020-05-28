@@ -12,18 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChainRPC.Web.Controller.Block do
+defmodule OMG.ChildChain.BlocksCache.Storage do
   @moduledoc """
-  Provides endpoint action to retrieve block details of Plasma blocks.
+  Logic of the service to serve freshest blocks quickly.
   """
+  alias OMG.Block
+  alias OMG.DB
 
-  use OMG.ChildChainRPC.Web, :controller
-  alias OMG.ChildChain.API.Block
+  @spec get(binary(), atom()) :: :not_found | Block.t()
+  def get(block_hash, ets) do
+    case DB.blocks([block_hash]) do
+      :not_found ->
+        :not_found
 
-  def get_block(conn, params) do
-    with {:ok, hash} <- expect(params, "hash", :hash),
-         {:ok, block} <- API.get_block(hash) do
-      api_response(block, conn, :block)
+      {:ok, db_block} ->
+        block = Block.from_db_value(db_block)
+        :ets.insert(ets, {block_hash, block})
+        block
     end
   end
 end

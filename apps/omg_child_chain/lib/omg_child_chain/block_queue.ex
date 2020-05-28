@@ -47,7 +47,6 @@ defmodule OMG.ChildChain.BlockQueue do
   alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
-  alias OMG.ChildChain.FreshBlocks
   alias OMG.Eth
   alias OMG.Eth.Client
   alias OMG.Eth.Encoding
@@ -191,7 +190,6 @@ defmodule OMG.ChildChain.BlockQueue do
     state1 = Core.enqueue_block(state, block.hash, block.number, parent_height)
     _ = Logger.info("Enqueuing block num '#{inspect(block.number)}', hash '#{inspect(Encoding.to_hex(block.hash))}'")
 
-    FreshBlocks.push(block)
     submit_blocks(state1)
     {:noreply, state1}
   end
