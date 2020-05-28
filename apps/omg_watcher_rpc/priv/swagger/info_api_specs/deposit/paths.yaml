@@ -2,9 +2,9 @@ deposit.all:
   post:
     tags:
       - Deposit
-    summary: Gets a paginated list of deposits, optionally filtered by address.
+    summary: Gets a paginated list of deposit for the given address.
     description: >
-      Returns a list of deposits ordered by Ethereum height in descending order.
+      Returns a list of deposits ordered by Ethereum height in descending order for the given address.
 
 
     operationId: deposit_all
