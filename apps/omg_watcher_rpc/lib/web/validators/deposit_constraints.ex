@@ -27,7 +27,7 @@ defmodule OMG.WatcherRPC.Web.Validator.DepositConstraints do
     constraints = [
       {"limit", [pos_integer: true, lesser: 1000, optional: true], :limit},
       {"page", [:pos_integer, :optional], :page},
-      {"address", [:address, :optional], :address}
+      {"address", :address, :address}
     ]
 
     Helpers.validate_constraints(params, constraints)

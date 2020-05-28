@@ -24,10 +24,14 @@ defmodule OMG.WatcherRPC.Web.Controller.DepositTest do
 
   describe "get_deposits/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns API response with events" do
-      _ = insert(:ethevent, txoutputs: [build(:txoutput)])
+    test "returns expected API response format with listed deposits" do
+      owner_1 = <<1::160>>
 
-      request_body = %{"limit" => 10, "page" => 1}
+      _ = insert(:ethevent, txoutputs: [build(:txoutput, %{owner: owner_1})])
+
+      address = Encoding.to_hex(owner_1)
+      request_body = %{"limit" => 10, "page" => 1, "address" => address}
+
       WatcherHelper.rpc_call("deposit.all", request_body, 200)
 
       assert %{
@@ -47,7 +51,7 @@ defmodule OMG.WatcherRPC.Web.Controller.DepositTest do
                        "creating_txhash" => _,
                        "oindex" => _,
                        "otype" => _,
-                       "owner" => _,
+                       "owner" => address,
                        "spending_txhash" => _,
                        "txindex" => _
                      }
@@ -64,7 +68,7 @@ defmodule OMG.WatcherRPC.Web.Controller.DepositTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "filters events by address if address parameters given" do
+    test "filters events by address" do
       owner_1 = <<1::160>>
       owner_2 = <<2::160>>
 
@@ -105,5 +109,22 @@ defmodule OMG.WatcherRPC.Web.Controller.DepositTest do
                "version" => _
              } = WatcherHelper.rpc_call("deposit.all", request_body, 200)
     end
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "returns expected error if no address parameter is given" do
+    assert %{
+             "data" => %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{"parameter" => "address", "validator" => ":hex"}
+               },
+               "object" => "error"
+             },
+             "service_name" => "watcher_info",
+             "success" => false,
+             "version" => _
+           } = WatcherHelper.rpc_call("deposit.all", %{}, 200)
   end
 end
