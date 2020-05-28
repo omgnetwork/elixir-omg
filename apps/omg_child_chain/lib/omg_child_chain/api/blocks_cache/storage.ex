@@ -22,11 +22,11 @@ defmodule OMG.ChildChain.BlocksCache.Storage do
   @spec get(binary(), atom()) :: :not_found | Block.t()
   def get(block_hash, ets) do
     case DB.blocks([block_hash]) do
-      :not_found ->
+      {:ok, [:not_found]} ->
         :not_found
 
-      {:ok, db_block} ->
-        block = Block.from_db_value(db_block)
+      {:ok, [db_block]} ->
+        block = db_block |> Block.from_db_value() |> Block.to_api_format()
         :ets.insert(ets, {block_hash, block})
         block
     end

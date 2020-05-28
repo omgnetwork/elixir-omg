@@ -17,7 +17,6 @@ defmodule OMG.ChildChain.API.BlocksCache do
   Allows for quick access to a fresh subset of blocks by keeping them in ETS, independent of `OMG.DB`.
   """
 
-  alias OMG.Block
   alias OMG.ChildChain.BlocksCache.Storage
   alias OMG.ChildChain.Supervisor
 
@@ -26,12 +25,11 @@ defmodule OMG.ChildChain.API.BlocksCache do
   @type t :: %__MODULE__{ets: atom()}
   defstruct [:ets]
 
-  @spec get(block_hash :: binary) :: {:ok, Block.t()} | {:error, :not_found | any}
   def get(block_hash) do
-    case :ets.select(Supervisor.blocks_cache(), block_hash, 2) do
-      [] -> result(GenServer.call(__MODULE__, {:get, block_hash}, 60_000))
-      :not_found -> result(:not_found)
-      block -> result(block)
+    case :ets.lookup(Supervisor.blocks_cache(), block_hash) do
+      [] -> GenServer.call(__MODULE__, {:get, block_hash}, 60_000)
+      :not_found -> :not_found
+      [{^block_hash, block}] -> block
     end
   end
 
@@ -50,15 +48,7 @@ defmodule OMG.ChildChain.API.BlocksCache do
 
   def handle_call({:get, block_hash}, _from, state) do
     result = Storage.get(block_hash, state.ets)
-    _ = Logger.info("Cache miss for #{block_hash}.")
+    _ = Logger.info("Cache miss for #{inspect(block_hash)}.")
     {:reply, result, state}
-  end
-
-  defp result(:not_found) do
-    {:ok, :not_found}
-  end
-
-  defp result(block) do
-    Block.to_api_format(block)
   end
 end

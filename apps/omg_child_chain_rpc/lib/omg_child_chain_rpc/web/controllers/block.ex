@@ -22,7 +22,7 @@ defmodule OMG.ChildChainRPC.Web.Controller.Block do
 
   def get_block(conn, params) do
     with {:ok, hash} <- expect(params, "hash", :hash),
-         {:ok, block} <- API.get_block(hash) do
+         {:ok, block} <- Block.get_block(hash) do
       api_response(block, conn, :block)
     end
   end

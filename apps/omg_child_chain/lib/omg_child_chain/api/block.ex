@@ -18,7 +18,13 @@ defmodule OMG.ChildChain.API.Block do
   """
 
   alias OMG.ChildChain.API.BlocksCache
+  alias OMG.Block
 
-  # @spec get_block(hash) :: {:ok, Alarm.alarms()}
-  def get_block(hash), do: {:ok, BlocksCache.get(hash)}
+  @spec get_block(binary()) :: {:ok, Block.t()} | {:error, :not_found}
+  def get_block(hash) do
+    case BlocksCache.get(hash) do
+      :not_found -> {:error, :not_found}
+      block -> {:ok, block}
+    end
+  end
 end

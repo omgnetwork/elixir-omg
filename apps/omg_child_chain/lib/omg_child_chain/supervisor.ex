@@ -18,7 +18,7 @@ defmodule OMG.ChildChain.Supervisor do
   """
   use Supervisor
 
-  alias OMG.ChildChain.BlocksCache
+  alias OMG.ChildChain.API.BlocksCache
   alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
@@ -119,5 +119,7 @@ defmodule OMG.ChildChain.Supervisor do
     _ =
       if :undefined == :ets.info(blocks_cache()),
         do: :ets.new(blocks_cache(), [:set, :public, :named_table, read_concurrency: true])
+
+    :ok
   end
 end
