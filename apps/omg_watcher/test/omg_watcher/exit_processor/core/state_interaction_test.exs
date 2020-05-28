@@ -20,6 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   alias OMG.Eth.Configuration
   alias OMG.State
+  alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.Event
@@ -213,9 +214,14 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     ife_id1 = <<ife_id1::192>>
     ife_id2 = <<ife_id2::192>>
+    ife_tx1_output_pos = Utxo.position(1000, 0, 0)
+    ife_tx2_input_pos = Utxo.position(2, 0, 0)
 
-    {:ok, %{^ife_id1 => exiting_positions1, ^ife_id2 => exiting_positions2}} =
-      Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+    {:ok, %{^ife_id1 => exiting_positions1, ^ife_id2 => exiting_positions2},
+     [
+       {%{in_flight_exit_id: ^ife_id1}, [^ife_tx1_output_pos]},
+       {%{in_flight_exit_id: ^ife_id2}, [^ife_tx2_input_pos]}
+     ]} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
     assert {:ok,
             {[{:delete, :utxo, _}, {:delete, :utxo, _}], {[Utxo.position(1000, 0, 0), Utxo.position(2, 0, 0)], []}},
@@ -240,7 +246,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     finalizations = [%{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :output}}]
     ife_id = <<ife_id::192>>
 
-    {:ok, %{^ife_id => exiting_positions}} =
+    {:ok, %{^ife_id => exiting_positions}, []} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
     {:ok, {_, {[], [] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state)
@@ -272,8 +278,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     finalizations = [%{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :output}}]
     ife_id = <<ife_id::192>>
+    [exiting_utxo] = Transaction.get_inputs(spending_tx)
 
-    {:ok, %{^ife_id => exiting_positions}} =
+    {:ok, %{^ife_id => exiting_positions}, [{%{in_flight_exit_id: ^ife_id}, [^exiting_utxo]}]} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
     {:ok, {_, {[], [_] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state)

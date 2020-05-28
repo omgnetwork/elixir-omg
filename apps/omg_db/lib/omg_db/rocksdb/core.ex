@@ -51,9 +51,9 @@ defmodule OMG.DB.RocksDB.Core do
   @doc """
   Interprets the response from rocksdb and returns a success-decorated result
   """
-  @spec decode_value({:ok, binary()} | :not_found, atom()) :: {:ok, term()} | :not_found
-  def decode_value(db_response, type) do
-    case decode_response(type, db_response) do
+  @spec decode_value({:ok, binary()} | :not_found) :: {:ok, term()} | :not_found
+  def decode_value(db_response) do
+    case decode_response(db_response) do
       :not_found -> :not_found
       other -> {:ok, other}
     end
@@ -63,9 +63,9 @@ defmodule OMG.DB.RocksDB.Core do
   Interprets an enumerable of responses from rocksdb and decorates the enumerable with a `{:ok, _enumerable}`
   if no errors occurred
   """
-  @spec decode_values(Enumerable.t(), atom) :: {:ok, list}
-  def decode_values(encoded_enumerable, type) do
-    raw_decoded = Enum.map(encoded_enumerable, fn encoded -> decode_response(type, encoded) end)
+  @spec decode_values(Enumerable.t()) :: {:ok, list}
+  def decode_values(encoded_enumerable) do
+    raw_decoded = Enum.map(encoded_enumerable, fn encoded -> decode_response(encoded) end)
     {:ok, raw_decoded}
   end
 
@@ -104,7 +104,7 @@ defmodule OMG.DB.RocksDB.Core do
   defp encode_value(_type, value), do: :erlang.term_to_binary(value)
 
   # sobelow_skip ["Misc.BinToTerm"]
-  defp decode_response(_type, db_response) do
+  defp decode_response(db_response) do
     case db_response do
       :not_found ->
         :not_found
