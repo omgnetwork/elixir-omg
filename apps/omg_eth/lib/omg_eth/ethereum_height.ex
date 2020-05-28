@@ -32,7 +32,7 @@ defmodule OMG.Eth.EthereumHeight do
   end
 
   def init(opts) do
-    event_bus = Keyword.get(opts, :event_bus)
+    event_bus = Keyword.fetch!(opts, :event_bus)
     :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
     {:ok, get_ethereum_height()}
   end

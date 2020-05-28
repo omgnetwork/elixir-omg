@@ -12,18 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.Status do
+defmodule OMG.WatcherRPC.Web.Controller.Deposit do
   @moduledoc """
-  Watcher status API
+  Operations related to deposits.
   """
 
-  alias OMG.Watcher.API.StatusCache
+  use OMG.WatcherRPC.Web, :controller
+
+  alias OMG.WatcherInfo.API.Deposit, as: InfoApiDeposit
+  alias OMG.WatcherRPC.Web.Validator
 
   @doc """
-  Returns status of the watcher from the ETS cache.
+  Retrieves a list of deposits.
   """
-  @spec get_status() :: {:ok, StatusCache.status()}
-  def get_status() do
-    {:ok, StatusCache.get()}
+  def get_deposits(conn, params) do
+    case Validator.DepositConstraints.parse(params) do
+      {:ok, constraints} ->
+        constraints
+        |> InfoApiDeposit.get_deposits()
+        |> api_response(conn, :deposits)
+
+      error ->
+        error
+    end
   end
 end

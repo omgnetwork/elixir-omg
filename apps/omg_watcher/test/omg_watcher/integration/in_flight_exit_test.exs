@@ -219,8 +219,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     _ = exit_in_flight_and_wait_for_ife(ife1, alice)
 
-    assert %{"in_flight_exits" => [%{}]} = WatcherHelper.success?("/status.get")
-
+    assert %{"in_flight_exits" => [ife]} = WatcherHelper.success?("/status.get")
+    assert is_map(ife)
     _ = piggyback_and_process_exits(tx, 1, :output, bob)
 
     assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.success?("/status.get")
