@@ -20,7 +20,7 @@ defmodule OMG.ChildChain.BlockQueue.GasPriceAdjustment do
   defstruct eth_gap_without_child_blocks: 2,
             gas_price_lowering_factor: 0.9,
             gas_price_raising_factor: 2.0,
-            max_gas_price: 85_000_000_000,
+            max_gas_price: 20_000_000_000,
             last_block_mined: nil
 
   @type t() :: %__MODULE__{
