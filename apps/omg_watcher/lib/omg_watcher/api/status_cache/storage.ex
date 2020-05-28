@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.Status do
+defmodule OMG.Watcher.API.StatusCache.Storage do
   @moduledoc """
-  Watcher status API
+  Watcher status API storage
   """
-
-  alias OMG.Watcher.API.StatusCache
 
   @doc """
-  Returns status of the watcher from the ETS cache.
+  This gets periodically called (defined by Ethereum height change).
   """
-  @spec get_status() :: {:ok, StatusCache.status()}
-  def get_status() do
-    {:ok, StatusCache.get()}
+  def update_status(ets, key, eth_block_number, integration_module) do
+    {:ok, status} = integration_module.get_status(eth_block_number)
+    :ets.insert(ets, {key, status})
   end
 end

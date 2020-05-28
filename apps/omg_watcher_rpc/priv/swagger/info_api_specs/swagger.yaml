@@ -22,6 +22,8 @@ tags:
     description: Account related API.
   - name: Block
     description: Block related API.
+  - name: Deposit
+    description: Deposit related API.
   - name: Transaction
     description: Transaction related API.
   - name: Fees
@@ -46,6 +48,8 @@ paths:
     $ref: 'block/paths.yaml#/block.get'
   /block.all:
     $ref: 'block/paths.yaml#/block.all'
+  /deposit.all:
+    $ref: 'deposit/paths.yaml#/deposit.all'
   /transaction.all:
     $ref: 'transaction/paths.yaml#/transaction.all'
   /transaction.create:

@@ -38,6 +38,7 @@ defmodule OMG.WatcherInfo.Factory.EthEvent do
           # within a log there may be 0 or more ethereum events, this is the index of the
           # event within the log
           log_index: 0,
+          eth_height: 1,
           event_type: :deposit,
           txoutputs: []
         }
