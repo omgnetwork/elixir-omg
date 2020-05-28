@@ -37,6 +37,7 @@ defmodule OMG.Eth.MixProject do
     [
       {:ex_abi, "~> 0.2.1"},
       {:ethereumex, "~> 0.6.0"},
+      {:retry, "~> 0.14"},
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},

@@ -29,6 +29,8 @@ defmodule OMG.Eth.RootChain do
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Rpc
 
+  use Retry.Annotation
+
   @type optional_address_t() :: %{atom => Eth.address()} | %{atom => nil}
 
   def get_mined_child_block() do
@@ -135,7 +137,12 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp get_external_data(contract_address, signature, args) do
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
+    {:ok, data} = rpc_call_contract(contract_address, signature, args)
     Abi.decode_function(data, signature)
+  end
+
+  @retry with: exponential_backoff() |> randomize() |> expiry(30_000)
+  defp rpc_call_contract(contract_address, signature, args) do
+    Rpc.call_contract(contract_address, signature, args)
   end
 end

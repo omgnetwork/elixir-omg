@@ -17,6 +17,7 @@ defmodule OMG.Eth.RootChain.Rpc do
   """
   require Logger
   alias OMG.Eth.Encoding
+  use Retry.Annotation
 
   def call_contract(client \\ Ethereumex.HttpClient, contract, signature, args) do
     data = signature |> ABI.encode(args) |> Encoding.to_hex()
@@ -40,7 +41,7 @@ defmodule OMG.Eth.RootChain.Rpc do
       topics: [topics]
     }
 
-    {:ok, logs} = Ethereumex.HttpClient.eth_get_logs(params)
+    {:ok, logs} = eth_get_logs(params)
     filtered_and_enriched_logs = handle_result(logs, topics, topics_and_signatures)
     {:ok, filtered_and_enriched_logs}
   end
@@ -64,6 +65,11 @@ defmodule OMG.Eth.RootChain.Rpc do
       |> Ethereumex.HttpClient.eth_get_transaction_by_hash()
 
     {:ok, input}
+  end
+
+  @retry with: exponential_backoff() |> randomize() |> expiry(30_000)
+  defp eth_get_logs(params) do
+    Ethereumex.HttpClient.eth_get_logs(params)
   end
 
   defp event_topic_for_signature(signature) do
