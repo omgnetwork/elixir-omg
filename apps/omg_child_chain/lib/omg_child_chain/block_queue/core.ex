@@ -145,18 +145,16 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
   def new(opts \\ []) do
     true = Keyword.has_key?(opts, :mined_child_block_num)
+    known_hashes = Keyword.fetch!(opts, :known_hashes)
+    top_mined_hash = Keyword.fetch!(opts, :top_mined_hash)
     parent_height = Keyword.fetch!(opts, :parent_height)
-    {known_hashes, opts} = Keyword.pop!(opts, :known_hashes)
-    {top_mined_hash, opts} = Keyword.pop!(opts, :top_mined_hash)
-    {max_gas_price, opts} = Keyword.pop!(opts, :block_submit_max_gas_price)
-    gas_price_adjustment = %GasPriceAdjustment{max_gas_price: max_gas_price}
 
     fields =
       opts
       |> Keyword.put(:blocks, Map.new())
       |> Keyword.put(:last_enqueued_block_at_height, parent_height)
       |> Keyword.put(:wait_for_enqueue, false)
-      |> Keyword.put(:gas_price_adj_params, gas_price_adjustment)
+      |> Keyword.drop([:known_hashes, :top_mined_hash])
 
     state = struct!(__MODULE__, fields)
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
