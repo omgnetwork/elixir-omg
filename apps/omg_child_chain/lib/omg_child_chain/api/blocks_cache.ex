@@ -28,7 +28,6 @@ defmodule OMG.ChildChain.API.BlocksCache do
   def get(block_hash) do
     case :ets.lookup(Supervisor.blocks_cache(), block_hash) do
       [] -> GenServer.call(__MODULE__, {:get, block_hash}, 60_000)
-      :not_found -> :not_found
       [{^block_hash, block}] -> block
     end
   end
