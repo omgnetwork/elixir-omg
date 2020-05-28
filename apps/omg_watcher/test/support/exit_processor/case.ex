@@ -85,7 +85,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
   defp invalid_piggyback_on_input(state, [tx | _], [ife_id | _], competing_tx) do
     request = %ExitProcessor.Request{
       blknum_now: 4000,
-      eth_timestamp_now: 5,
+      eth_timestamp_now: :os.system_time(:second) + 5,
       ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], 3000)]
     }
 
@@ -118,7 +118,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
 
     request = %ExitProcessor.Request{
       blknum_now: 5000,
-      eth_timestamp_now: 5,
+      eth_timestamp_now: :os.system_time(:second) + 5,
       blocks_result: [block],
       ife_input_spending_blocks_result: [block, Block.hashed_txs_at([comp], comp_blknum)]
     }
