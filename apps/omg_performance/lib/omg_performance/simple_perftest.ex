@@ -152,6 +152,7 @@ defmodule OMG.Performance.SimplePerftest do
         %{
           # these two are irrelevant
           root_chain_txhash: <<0::256>>,
+          eth_height: 1,
           log_index: 0,
           owner: spender.addr,
           currency: @eth,
