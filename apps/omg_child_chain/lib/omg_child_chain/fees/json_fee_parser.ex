@@ -99,7 +99,7 @@ defmodule OMG.ChildChain.Fees.JSONFeeParser do
   end
 
   defp handle_parser_output({[], fee_specs}) do
-    _ = Logger.debug("Parsing fee specification file completes successfully.")
+    _ = Logger.info("Parsing fee specification file completes successfully.")
     {:ok, fee_specs}
   end
 

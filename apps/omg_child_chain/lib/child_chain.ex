@@ -67,7 +67,7 @@ defmodule OMG.ChildChain do
   defp is_supported(%Transaction.Recovered{}), do: :ok
 
   defp result_with_logging(result) do
-    _ = Logger.debug(" resulted with #{inspect(result)}")
+    _ = Logger.info(" resulted with #{inspect(result)}")
     result
   end
 end

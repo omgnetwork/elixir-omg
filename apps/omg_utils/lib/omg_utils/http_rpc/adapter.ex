@@ -28,7 +28,7 @@ defmodule OMG.Utils.HttpRPC.Adapter do
 
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
-      _ = Logger.debug("rpc post #{inspect(addr)} completed successfully")
+      _ = Logger.info("rpc post #{inspect(addr)} completed successfully")
       response
     else
       err ->

@@ -175,7 +175,7 @@ defmodule OMG.Watcher.BlockGetter do
 
     {state, synced_height, db_updates} = Core.apply_block(state, block_application)
 
-    _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
+    _ = Logger.info("Synced height update: #{inspect(db_updates)}")
 
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
     :ok = check_in_to_coordinator(synced_height)
@@ -292,7 +292,7 @@ defmodule OMG.Watcher.BlockGetter do
       {blocks_to_apply, synced_height, db_updates, state} =
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
 
-      _ = Logger.debug("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
+      _ = Logger.info("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
 
       Enum.each(blocks_to_apply, &GenServer.cast(__MODULE__, {:apply_block, &1}))
 

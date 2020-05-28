@@ -197,7 +197,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         eth_height: eth_height,
         eth_height_done: eth_height_done
       }) do
-    _ = Logger.debug("\##{inspect(blknum)}, from: #{inspect(eth_height)}, eth height done: #{inspect(eth_height_done)}")
+    _ = Logger.info("\##{inspect(blknum)}, from: #{inspect(eth_height)}, eth height done: #{inspect(eth_height_done)}")
 
     if eth_height_done do
       # final - we need to mark this eth height as processed
@@ -330,7 +330,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         _time
       ) do
     _ =
-      Logger.debug(fn ->
+      Logger.info(fn ->
         short_hash = returned_hash |> OMG.Eth.Encoding.to_hex() |> Binary.drop(-48)
 
         "Validating block \##{inspect(requested_number)} #{inspect(short_hash)}... " <>

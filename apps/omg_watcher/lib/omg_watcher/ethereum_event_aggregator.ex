@@ -14,7 +14,7 @@
 defmodule OMG.Watcher.EthereumEventAggregator do
   @moduledoc """
   This process combines all plasma contract events we're interested in and does eth_getLogs + enriches them if needed
-  for all Ethereum Event Listener processes. 
+  for all Ethereum Event Listener processes.
   """
   use GenServer
   require Logger
@@ -336,7 +336,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
         missing_to_block = List.last(missing_blocks)
 
         _ =
-          Logger.debug(
+          Logger.info(
             "Missing block information (#{missing_from_block}, #{missing_to_block}) in event fetcher. Retrieving from RPC."
           )
 

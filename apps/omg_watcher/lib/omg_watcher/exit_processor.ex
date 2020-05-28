@@ -638,7 +638,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, eth_height_now} = EthereumHeight.get()
     {blknum_now, _} = State.get_status()
 
-    _ = Logger.debug("eth_height_now: #{inspect(eth_height_now)}, blknum_now: #{inspect(blknum_now)}")
+    _ = Logger.info("eth_height_now: #{inspect(eth_height_now)}, blknum_now: #{inspect(blknum_now)}")
     %{request | eth_height_now: eth_height_now, blknum_now: blknum_now}
   end
 
@@ -650,7 +650,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp do_utxo_exists?(positions) do
     result = positions |> Enum.map(&State.utxo_exists?/1)
-    _ = Logger.debug("utxos_to_check: #{inspect(positions)}, utxo_exists_result: #{inspect(result)}")
+    _ = Logger.info("utxos_to_check: #{inspect(positions)}, utxo_exists_result: #{inspect(result)}")
     result
   end
 
@@ -662,7 +662,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp do_get_spending_blocks(spent_positions_to_get) do
     blknums = spent_positions_to_get |> Enum.map(&do_get_spent_blknum/1)
-    _ = Logger.debug("spends_to_get: #{inspect(spent_positions_to_get)}, spent_blknum_result: #{inspect(blknums)}")
+    _ = Logger.info("spends_to_get: #{inspect(spent_positions_to_get)}, spent_blknum_result: #{inspect(blknums)}")
 
     blknums
     |> Core.handle_spent_blknum_result(spent_positions_to_get)
@@ -671,9 +671,9 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp do_get_blocks(blknums) do
     {:ok, hashes} = OMG.DB.block_hashes(blknums)
-    _ = Logger.debug("blknums: #{inspect(blknums)}, hashes: #{inspect(hashes)}")
+    _ = Logger.info("blknums: #{inspect(blknums)}, hashes: #{inspect(hashes)}")
     {:ok, blocks} = OMG.DB.blocks(hashes)
-    _ = Logger.debug("blocks_result: #{inspect(blocks)}")
+    _ = Logger.info("blocks_result: #{inspect(blocks)}")
 
     Enum.map(blocks, &Block.from_db_value/1)
   end

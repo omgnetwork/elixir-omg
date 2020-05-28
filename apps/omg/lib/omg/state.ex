@@ -259,10 +259,10 @@ defmodule OMG.State do
     - pushes the new block to subscribers of `"blocks"` internal event bus topic
   """
   def handle_cast(:form_block, state) do
-    _ = Logger.debug("Forming new block...")
+    _ = Logger.info("Forming new block...")
     state = Core.claim_fees(state)
     {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = Core.form_block(state)
-    _ = Logger.debug("Formed new block ##{blknum}")
+    _ = Logger.info("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
     # new block

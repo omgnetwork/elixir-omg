@@ -214,7 +214,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   """
   @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
   def get_blocks_to_submit(%{blocks: blocks, formed_child_block_num: formed} = state) do
-    _ = Logger.debug("preparing blocks #{inspect(next_blknum_to_mine(state))}..#{inspect(formed)} for submission")
+    _ = Logger.info("preparing blocks #{inspect(next_blknum_to_mine(state))}..#{inspect(formed)} for submission")
 
     blocks
     |> Enum.filter(to_mined_block_filter(state))
@@ -401,7 +401,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
       state
     else
       new_gas_price = calculate_gas_price(state)
-      _ = Logger.debug("using new gas price '#{inspect(new_gas_price)}'")
+      _ = Logger.info("using new gas price '#{inspect(new_gas_price)}'")
 
       new_state =
         state
@@ -514,7 +514,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           is_empty_block: is_empty_block
         }
 
-        Logger.debug("Skipping forming block because: #{inspect(log_data)}")
+        Logger.info("Skipping forming block because: #{inspect(log_data)}")
       end
 
     should_form_block
@@ -612,12 +612,12 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   end
 
   defp log_known_tx(submission) do
-    _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+    _ = Logger.info("Submission #{inspect(submission)} is known transaction - ignored")
     :ok
   end
 
   defp log_low_replacement_price(submission) do
-    _ = Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
+    _ = Logger.info("Submission #{inspect(submission)} is known, but with higher price - ignored")
     :ok
   end
 
