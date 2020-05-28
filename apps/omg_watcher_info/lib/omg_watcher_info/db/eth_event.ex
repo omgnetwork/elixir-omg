@@ -223,14 +223,19 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
     ethevent =
-      get(root_chain_txhash_event) ||
-        %__MODULE__{
-          root_chain_txhash_event: root_chain_txhash_event,
-          log_index: log_index,
-          root_chain_txhash: root_chain_txhash,
-          eth_height: eth_height,
-          event_type: event_type
-        }
+      case get(root_chain_txhash_event) do
+        nil ->
+          %__MODULE__{
+            root_chain_txhash_event: root_chain_txhash_event,
+            log_index: log_index,
+            root_chain_txhash: root_chain_txhash,
+            eth_height: eth_height,
+            event_type: event_type
+          }
+
+        event ->
+          event
+      end
 
     tx_output = resolve_tx_output(output_pointer)
 
