@@ -121,6 +121,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp do_new(tx_bytes, tx_signatures, contract_status, fields) do
     {timestamp, is_active} = parse_contract_in_flight_exit_status(contract_status)
+
     with {:ok, tx} <- prepare_tx(tx_bytes, tx_signatures) do
       # NOTE: in case of using output_id as the input pointer, getting the youngest will be entirely different
       Utxo.position(youngest_input_blknum, _, _) =

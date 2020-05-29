@@ -34,7 +34,6 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Eth
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core

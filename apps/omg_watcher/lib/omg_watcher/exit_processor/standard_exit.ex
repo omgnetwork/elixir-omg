@@ -41,7 +41,6 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
   alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.DoubleSpend
@@ -95,7 +94,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
       end)
 
     invalid_exits = standard_invalid_exits |> Enum.concat(exits_invalid_by_ife) |> Enum.uniq()
-    
+
     _ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
     # get exits which are still invalid and after the SLA margin
     late_invalid_exits =

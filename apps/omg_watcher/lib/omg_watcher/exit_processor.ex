@@ -263,7 +263,7 @@ defmodule OMG.Watcher.ExitProcessor do
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
         metrics_collection_interval: metrics_collection_interval,
         min_exit_period_seconds: min_exit_period_seconds,
-        ethereum_block_time_seconds: ethereum_block_time_seconds,
+        ethereum_block_time_seconds: _ethereum_block_time_seconds,
         child_block_interval: child_block_interval
       ) do
     {:ok, db_exits} = PaymentExitInfo.all_exit_infos()
@@ -710,6 +710,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:utxo_position, blknum, _, _} = Utxo.Position.decode!(utxo_pos_enc)
     {_block_hash, utxo_creation_block_timestamp} = RootChain.blocks(blknum)
     {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(eth_height)
+
     {:ok, scheduled_finalization_time} =
       ExitInfo.calculate_sft(
         blknum,

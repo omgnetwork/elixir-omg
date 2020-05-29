@@ -449,7 +449,9 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
       processor = processor |> start_se_from(standard_exit_tx, exiting_pos) |> start_ife_from(tx)
 
       assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_pos_enc, spending_txhash: ^tx_hash}]} =
-               check_validity_filtered(%ExitProcessor.Request{eth_timestamp_now: 5, blknum_now: @late_blknum}, processor,
+               check_validity_filtered(
+                 %ExitProcessor.Request{eth_timestamp_now: 5, blknum_now: @late_blknum},
+                 processor,
                  only: [Event.InvalidExit]
                )
     end
