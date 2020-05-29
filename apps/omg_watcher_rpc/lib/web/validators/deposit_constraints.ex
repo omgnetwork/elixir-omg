@@ -12,18 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.Status do
+defmodule OMG.WatcherRPC.Web.Validator.DepositConstraints do
   @moduledoc """
-  Watcher status API
+  Validates query parameters for `deposit.all`
   """
 
-  alias OMG.Watcher.API.StatusCache
+  alias OMG.WatcherRPC.Web.Validator.Helpers
 
   @doc """
-  Returns status of the watcher from the ETS cache.
+  Validates possible query constraints, stops on first error.
   """
-  @spec get_status() :: {:ok, StatusCache.status()}
-  def get_status() do
-    {:ok, StatusCache.get()}
+  @spec parse(%{binary() => any()}) :: {:ok, Keyword.t()} | {:error, any()}
+  def parse(params) do
+    constraints = [
+      {"limit", [pos_integer: true, lesser: 1000, optional: true], :limit},
+      {"page", [:pos_integer, :optional], :page},
+      {"address", :address, :address}
+    ]
+
+    Helpers.validate_constraints(params, constraints)
   end
 end

@@ -12,18 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.Status do
+defmodule OMG.WatcherInfo.API.Deposit do
   @moduledoc """
-  Watcher status API
+  Module provides operations related to deposits.
   """
 
-  alias OMG.Watcher.API.StatusCache
+  alias OMG.Utils.Paginator
+  alias OMG.WatcherInfo.DB
+
+  @default_events_limit 100
 
   @doc """
-  Returns status of the watcher from the ETS cache.
+  Retrieves a list of deposits.
+  Length of the list is limited by `limit` and `page` arguments.
   """
-  @spec get_status() :: {:ok, StatusCache.status()}
-  def get_status() do
-    {:ok, StatusCache.get()}
+  @spec get_deposits(Keyword.t()) :: Paginator.t(%DB.EthEvent{})
+  def get_deposits(constraints) do
+    {:ok, address} = Keyword.fetch(constraints, :address)
+
+    constraints
+    |> Paginator.from_constraints(@default_events_limit)
+    |> DB.EthEvent.get_deposits(address)
   end
 end

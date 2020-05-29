@@ -111,7 +111,7 @@ defmodule OMG.Status.Monitor.MemoryMonitor do
   end
 
   def handle_event(event, state) do
-    _ = Logger.info("#{inspect(__MODULE__)} got event: #{inspect(event)}. Ignoring.")
+    _ = Logger.info("#{__MODULE__} got event: #{inspect(event)}. Ignoring.")
     {:ok, state}
   end
 

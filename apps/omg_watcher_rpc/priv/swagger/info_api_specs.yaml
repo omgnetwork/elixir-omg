@@ -19,6 +19,8 @@ tags:
     description: Account related API.
   - name: Block
     description: Block related API.
+  - name: Deposit
+    description: Deposit related API.
   - name: Transaction
     description: Transaction related API.
   - name: Fees
@@ -1171,6 +1173,213 @@ paths:
                           tx_count: 2
                           inserted_at: '2020-02-10T12:07:32Z'
                           updated_at: '2020-02-15T04:07:57Z'
+                      data_paging:
+                        page: 1
+                        limit: 100
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher_info
+                      version: 1.0.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /deposit.all:
+    post:
+      tags:
+        - Deposit
+      summary: Gets a paginated list of deposit for the given address.
+      description: |
+        Returns a list of deposits ordered by Ethereum height in descending order for the given address.
+      operationId: deposit_all
+      requestBody:
+        description: The supported request parameters for /deposit.all. The "address" parameter is required.
+        required: true
+        content:
+          application/json:
+            schema:
+              title: AllDepositsBodySchema
+              type: object
+              properties:
+                page:
+                  type: integer
+                  format: int32
+                  default: 1
+                limit:
+                  type: integer
+                  format: int32
+                  default: 100
+                address:
+                  type: string
+              example:
+                page: 2
+                limit: 100
+                address: '0xb01cb6f56d798a62d1e0bace406c73a122c39c9d'
+      responses:
+        '200':
+          description: /deposit.all succcessful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful list operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: array
+                        items:
+                          type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher_info
+                      version: 1.0+abcdefa
+                      success: true
+                      data: []
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            event_type:
+                              type: string
+                            root_chain_txhash:
+                              type: string
+                            log_index:
+                              type: integer
+                            eth_height:
+                              type: integer
+                              format: int64
+                            inserted_at:
+                              type: string
+                            updated_at:
+                              type: string
+                            txoutputs:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  blknum:
+                                    type: integer
+                                    format: int64
+                                  txindex:
+                                    type: integer
+                                    format: int16
+                                  oindex:
+                                    type: integer
+                                    format: int8
+                                  otype:
+                                    type: integer
+                                    format: int8
+                                  utxo_pos:
+                                    type: integer
+                                    format: int256
+                                  owner:
+                                    type: string
+                                  currency:
+                                    type: string
+                                  amount:
+                                    type: integer
+                                    format: int256
+                                  creating_txhash:
+                                    type: string
+                                  spending_txhash:
+                                    type: string
+                                  inserted_at:
+                                    type: string
+                                  updated_at:
+                                    type: string
+                      data_paging:
+                        type: object
+                        properties:
+                          page:
+                            type: integer
+                            format: int32
+                            default: 1
+                          limit:
+                            type: integer
+                            format: int32
+                            default: 100
+                    example:
+                      data:
+                        - event_type: deposit
+                          inserted_at: '2020-05-15T12:37:40Z'
+                          eth_height: 168637
+                          log_index: 0
+                          root_chain_txhash: '0x63c056f122f5bf30bf8119ec0a2184b73f975951229995a427ea58d904eaab85'
+                          txoutputs:
+                            - blknum: 1
+                              txindex: 0
+                              otype: 1
+                              oindex: 0
+                              utxo_pos: 1000000000
+                              owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                              currency: '0x0000000000000000000000000000000000000000'
+                              creating_txhash: null
+                              spending_txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                              amount: 20000000
+                              inserted_at: '2020-02-10T12:07:32Z'
+                              updated_at: '2020-02-10T12:07:32Z'
                       data_paging:
                         page: 1
                         limit: 100
