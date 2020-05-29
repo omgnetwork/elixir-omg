@@ -45,6 +45,7 @@ config :omg_child_chain,
   submission_finality_margin: 20,
   block_queue_eth_height_check_interval_ms: 6_000,
   block_submit_every_nth: 1,
+  block_submit_max_gas_price: 20_000_000_000,
   metrics_collection_interval: 60_000,
   fee_adapter_check_interval_ms: 10_000,
   fee_buffer_duration_ms: 30_000,
@@ -181,8 +182,8 @@ config :omg_watcher_info,
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   # NOTE: not sure if appropriate, but this allows reasonable blocks to be written to unoptimized Postgres setup
-  timeout: 60_000,
-  connect_timeout: 60_000,
+  timeout: 180_000,
+  connect_timeout: 180_000,
   url: "postgres://omisego_dev:omisego_dev@localhost/omisego_dev",
   migration_timestamps: [type: :timestamptz]
 

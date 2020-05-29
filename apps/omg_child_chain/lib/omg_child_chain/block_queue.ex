@@ -46,6 +46,7 @@ defmodule OMG.ChildChain.BlockQueue do
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
+  alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
   alias OMG.ChildChain.FreshBlocks
   alias OMG.Eth
   alias OMG.Eth.Client
@@ -104,6 +105,8 @@ defmodule OMG.ChildChain.BlockQueue do
     _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
     block_submit_every_nth = Keyword.fetch!(args, :block_submit_every_nth)
+    block_submit_max_gas_price = Keyword.fetch!(args, :block_submit_max_gas_price)
+    gas_price_adj_params = %GasPriceAdjustment{max_gas_price: block_submit_max_gas_price}
 
     core =
       Core.new(
@@ -113,7 +116,8 @@ defmodule OMG.ChildChain.BlockQueue do
         parent_height: parent_height,
         child_block_interval: child_block_interval,
         block_submit_every_nth: block_submit_every_nth,
-        finality_threshold: finality_threshold
+        finality_threshold: finality_threshold,
+        gas_price_adj_params: gas_price_adj_params
       )
 
     {:ok, state} =
