@@ -203,6 +203,9 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 
 * **`block_submit_every_nth`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 
+* **`block_submit_max_gas_price`** - the maximum gas price to use for block submission. The first block submission after application boot will use the max price,
+  and gradually adjusts to the current optimum price for subsequent blocks.
+
 * **`fee_specs_file_path`** - path to the file which defines fee requirements
 
 * **`fee_adapter`** - is a tuple, where first element is a module name implementing `FeeAdapter` behaviour, e.g. `OMG.ChildChain.Fees.FileAdapter` and the second element is a Keyword `[opts: fee_adapter_opts]`
