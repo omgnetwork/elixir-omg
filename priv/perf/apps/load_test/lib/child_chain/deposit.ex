@@ -19,8 +19,7 @@ defmodule LoadTest.ChildChain.Deposit do
   require Logger
 
   alias ExPlasma.Encoding
-  alias ExPlasma.Transaction.Deposit
-  alias ExPlasma.Utxo
+  alias ExPlasma.Transaction
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
 
@@ -28,8 +27,11 @@ defmodule LoadTest.ChildChain.Deposit do
   @poll_interval 5_000
 
   def deposit_from(%Account{} = depositor, amount, currency, deposit_finality_margin, gas_price) do
-    deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}
-    {:ok, deposit} = Deposit.new(deposit_utxo)
+    output_data = %{amount: abount, token: currency, output_guard: depositor.addr}
+    deposit_utxo = %ExPlasma.Output{data: outptut_data, type: 1}
+    deposit = %ExPlasma.Transaction{inputs: [], outputs: [deposit_utxo]}
+
+    # {:ok, deposit} = Deposit.new(deposit_utxo)
     {:ok, {deposit_blknum, eth_blknum}} = send_deposit(deposit, depositor, amount, currency, gas_price)
     :ok = wait_deposit_finality(eth_blknum, deposit_finality_margin)
     Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
