@@ -51,7 +51,7 @@ defmodule OMG.ChildChain.BlocksCacheTest do
   end
 
   test "that concurrent access to the cache works", %{pid: _pid, blocks: blocks} do
-    workers = Enum.count(blocks) + 10000
+    workers = Enum.count(blocks) + 10_000
 
     1..workers
     |> Task.async_stream(fn _ -> get_block(blocks) end,

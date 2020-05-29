@@ -25,6 +25,8 @@ defmodule OMG.ChildChain.API.BlocksCache do
   @type t :: %__MODULE__{ets: atom(), cache_miss_counter: pos_integer()}
   defstruct [:ets, cache_miss_counter: 0]
 
+  # this is executed in the request process so while the ETS is getting populated
+  # we hit the genserver
   def get(block_hash) do
     case :ets.lookup(Supervisor.blocks_cache(), block_hash) do
       [] -> GenServer.call(__MODULE__, {:get, block_hash}, 60_000)
