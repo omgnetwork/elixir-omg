@@ -102,7 +102,12 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
       [%{currency: @eth, amount: initial_balance}] = DB.TxOutput.get_balance(alice.addr)
 
       event_data = [
-        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{txhash: txhash, oindex: oindex}}
+        %{
+          log_index: 2,
+          eth_height: 2,
+          root_chain_txhash: @root_chain_txhash2,
+          call_data: %{txhash: txhash, oindex: oindex}
+        }
       ]
 
       send_events_and_wait_until_processed(event_data)
