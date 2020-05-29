@@ -100,7 +100,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     processor =
       processor
       |> start_se_from(standard_exit_tx1, @utxo_pos1, exit_id: 1)
-      |> start_se_from(standard_exit_tx2, @utxo_pos2, eth_height: 4, exit_id: 2)
+      |> start_se_from(standard_exit_tx2, @utxo_pos2, block_timestamp: 4, exit_id: 2)
 
     # exits invalidly finalize and continue/start emitting events and complain
     {:ok, {_, two_spend}, state_after_spend} =
