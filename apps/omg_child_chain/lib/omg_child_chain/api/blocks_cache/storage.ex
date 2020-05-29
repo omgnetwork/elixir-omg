@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.BlocksCache.Storage do
+defmodule OMG.ChildChain.API.BlocksCache.Storage do
   @moduledoc """
   Logic of the service to serve freshest blocks quickly.
   """
@@ -30,5 +30,13 @@ defmodule OMG.ChildChain.BlocksCache.Storage do
         true = :ets.insert(ets, {block_hash, block})
         block
     end
+  end
+
+  def ensure_ets_init(blocks_cache) do
+    _ =
+      if :undefined == :ets.info(blocks_cache),
+        do: :ets.new(blocks_cache, [:set, :public, :named_table, read_concurrency: true])
+
+    :ok
   end
 end

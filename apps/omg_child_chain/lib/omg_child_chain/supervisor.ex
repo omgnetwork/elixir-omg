@@ -19,6 +19,7 @@ defmodule OMG.ChildChain.Supervisor do
   use Supervisor
 
   alias OMG.ChildChain.API.BlocksCache
+  alias OMG.ChildChain.API.BlocksCache.Storage
   alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
@@ -42,7 +43,7 @@ defmodule OMG.ChildChain.Supervisor do
   end
 
   def init(:ok) do
-    :ok = ensure_ets_init()
+    :ok = Storage.ensure_ets_init(blocks_cache())
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
     metrics_collection_interval = Configuration.metrics_collection_interval()
     fee_server_opts = Configuration.fee_server_opts()
@@ -114,12 +115,4 @@ defmodule OMG.ChildChain.Supervisor do
 
   @spec is_disabled?() :: boolean()
   defp is_disabled?(), do: Application.get_env(:omg_child_chain, Tracer)[:disabled?]
-
-  defp ensure_ets_init() do
-    _ =
-      if :undefined == :ets.info(blocks_cache()),
-        do: :ets.new(blocks_cache(), [:set, :public, :named_table, read_concurrency: true])
-
-    :ok
-  end
 end

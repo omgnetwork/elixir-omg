@@ -17,13 +17,13 @@ defmodule OMG.ChildChain.API.BlocksCache do
   Allows for quick access to a fresh subset of blocks by keeping them in ETS, independent of `OMG.DB`.
   """
 
-  alias OMG.ChildChain.BlocksCache.Storage
+  alias OMG.ChildChain.API.BlocksCache.Storage
   alias OMG.ChildChain.Supervisor
 
   require Logger
 
-  @type t :: %__MODULE__{ets: atom()}
-  defstruct [:ets]
+  @type t :: %__MODULE__{ets: atom(), cache_miss_counter: pos_integer()}
+  defstruct [:ets, cache_miss_counter: 0]
 
   def get(block_hash) do
     case :ets.lookup(Supervisor.blocks_cache(), block_hash) do
@@ -47,7 +47,8 @@ defmodule OMG.ChildChain.API.BlocksCache do
 
   def handle_call({:get, block_hash}, _from, state) do
     result = Storage.get(block_hash, state.ets)
-    _ = Logger.info("Cache miss for #{inspect(block_hash)}.")
-    {:reply, result, state}
+    cache_miss_counter = state.cache_miss_counter + 1
+    _ = Logger.info("Cache miss for #{inspect(block_hash)}, counter #{cache_miss_counter}.")
+    {:reply, result, %{state | cache_miss_counter: cache_miss_counter}}
   end
 end

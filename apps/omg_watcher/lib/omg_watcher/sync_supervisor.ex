@@ -22,6 +22,8 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   alias OMG.EthereumEventListener
   alias OMG.Watcher
+  alias OMG.Watcher.API.StatusCache
+  alias OMG.Watcher.API.StatusCache.Storage
   alias OMG.Watcher.ChildManager
   alias OMG.Watcher.Configuration
   alias OMG.Watcher.CoordinatorSetup
@@ -48,7 +50,8 @@ defmodule OMG.Watcher.SyncSupervisor do
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    :ok = ensure_ets_init()
+    :ok = Storage.ensure_ets_init(status_cache())
+    :ok = ensure_ets_init(events_bucket())
     Supervisor.init(children(args), opts)
   end
 
@@ -200,17 +203,13 @@ defmodule OMG.Watcher.SyncSupervisor do
         get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
       ),
-      {OMG.Watcher.API.StatusCache, [event_bus: OMG.Bus, ets: status_cache()]},
+      {StatusCache, [event_bus: OMG.Bus, ets: status_cache()]},
       {ChildManager, [monitor: Monitor]}
     ]
   end
 
-  defp ensure_ets_init() do
-    _ = if :undefined == :ets.info(events_bucket()), do: :ets.new(events_bucket(), [:bag, :public, :named_table])
-
-    _ =
-      if :undefined == :ets.info(status_cache()),
-        do: :ets.new(status_cache(), [:set, :public, :named_table, read_concurrency: true])
+  defp ensure_ets_init(events_bucket) do
+    _ = if :undefined == :ets.info(events_bucket), do: :ets.new(events_bucket, [:bag, :public, :named_table])
 
     :ok
   end
