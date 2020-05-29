@@ -182,8 +182,8 @@ config :omg_watcher_info,
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   # NOTE: not sure if appropriate, but this allows reasonable blocks to be written to unoptimized Postgres setup
-  timeout: 60_000,
-  connect_timeout: 60_000,
+  timeout: 180_000,
+  connect_timeout: 180_000,
   url: "postgres://omisego_dev:omisego_dev@localhost/omisego_dev",
   migration_timestamps: [type: :timestamptz]
 
