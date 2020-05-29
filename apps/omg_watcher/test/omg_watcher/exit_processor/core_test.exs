@@ -204,7 +204,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   describe "finding IFE txs in blocks" do
     test "handles well situation when syncing is in progress", %{processor_filled: state} do
       assert %ExitProcessor.Request{utxos_to_check: [], ife_input_utxos_to_check: []} =
-               %ExitProcessor.Request{eth_timestamp_now: :os.system_time(:second) + 13, blknum_now: 0}
+               %ExitProcessor.Request{eth_timestamp_now: 13, blknum_now: 0}
                |> Core.determine_ife_input_utxos_existence_to_get(state)
                |> Core.determine_utxo_existence_to_get(state)
     end
@@ -212,7 +212,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "seeks all IFE txs' inputs spends in blocks", %{processor_filled: processor, transactions: txs} do
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_timestamp_now: :os.system_time(:second) + 5
+        eth_timestamp_now: 5
       }
 
       # for one piggybacked output, we're asking for its inputs positions to check utxo existence
@@ -237,7 +237,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_timestamp_now: :os.system_time(:second) + 5
+        eth_timestamp_now: 5
       }
 
       # for one piggybacked output, we're asking for its inputs positions to check utxo existence
@@ -251,7 +251,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_filled: processor, transactions: [tx1, tx2]} do
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_timestamp_now: :os.system_time(:second) + 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1], 3000)]
       }
 

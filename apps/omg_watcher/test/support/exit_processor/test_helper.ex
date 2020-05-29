@@ -43,7 +43,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
     call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
     root_chain_txhash = <<1::256>>
-    block_timestamp = :os.system_time(:second)
+    block_timestamp = 2
     scheduled_finalization_time = block_timestamp + 100
 
     event = %{
@@ -79,7 +79,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   # See `OMG.Eth.RootChain.get_in_flight_exits_structs/2` for reference of where this comes from
   # `nil`s are unused portions of the returns data from the contract
-  def active_ife_status(), do: {nil, :os.system_time(:second), nil, nil, nil, nil, nil}
+  def active_ife_status(), do: {nil, 1, nil, nil, nil, nil, nil}
   def inactive_ife_status(), do: {nil, 0, nil, nil, nil, nil, nil}
 
   def piggyback_ife_from(%Core{} = processor, tx_hash, output_index, piggyback_type) do
