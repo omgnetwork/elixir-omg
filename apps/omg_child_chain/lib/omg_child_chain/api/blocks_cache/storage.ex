@@ -19,16 +19,29 @@ defmodule OMG.ChildChain.API.BlocksCache.Storage do
   alias OMG.Block
   alias OMG.DB
 
+  @doc """
+  The idea behind having another lookup in ETS is that once a 
+  fresh block is published every watcher is racing to get that block.
+  The first read in BlocksCache would be a miss, and the request message would go sit in the
+  gen server queue. But the first Watcher that requested the block would insert the block in
+  ETS. We're trying to protect RocksDB single server.
+  """
   @spec get(binary(), atom()) :: :not_found | Block.t()
   def get(block_hash, ets) do
-    case DB.blocks([block_hash]) do
-      {:ok, [:not_found]} ->
-        :not_found
+    case lookup(ets, block_hash) do
+      [] ->
+        case DB.blocks([block_hash]) do
+          {:ok, [:not_found]} ->
+            :not_found
 
-      {:ok, [db_block]} ->
-        block = db_block |> Block.from_db_value() |> Block.to_api_format()
-        true = :ets.insert(ets, {block_hash, block})
-        block
+          {:ok, [db_block]} ->
+            block = db_block |> Block.from_db_value() |> Block.to_api_format()
+            true = :ets.insert(ets, {block_hash, block})
+            {:db_read, block}
+        end
+
+      [{^block_hash, block}] ->
+        {:ets, block}
     end
   end
 
@@ -38,5 +51,9 @@ defmodule OMG.ChildChain.API.BlocksCache.Storage do
         do: :ets.new(blocks_cache, [:set, :public, :named_table, read_concurrency: true])
 
     :ok
+  end
+
+  def lookup(ets, block_hash) do
+    :ets.lookup(ets, block_hash)
   end
 end

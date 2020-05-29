@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.BlocksCacheTest do
+defmodule OMG.ChildChain.API.BlocksCacheTest do
   use ExUnit.Case
 
   alias OMG.ChildChain.API.BlocksCache
@@ -43,25 +43,25 @@ defmodule OMG.ChildChain.BlocksCacheTest do
     :ok = Storage.ensure_ets_init(Supervisor.blocks_cache())
 
     db_updates_block =
-      Enum.map(1..100, fn _ -> {:put, :block, Map.put(@block, :hash, :crypto.strong_rand_bytes(32))} end)
+      Enum.map(1..10, fn _ -> {:put, :block, Map.put(@block, :hash, :crypto.strong_rand_bytes(32))} end)
 
     DB.multi_update(db_updates_block)
     {:ok, pid} = BlocksCache.start_link(ets: Supervisor.blocks_cache())
     {:ok, %{pid: pid, blocks: db_updates_block}}
   end
 
-  test "that concurrent access to the cache works", %{pid: _pid, blocks: blocks} do
-    workers = Enum.count(blocks) + 10_000
+  test "that concurrent access to the cache works", %{pid: pid, blocks: blocks} do
+    workers = Enum.count(blocks) + 10_0000
 
     1..workers
     |> Task.async_stream(fn _ -> get_block(blocks) end,
-      timeout: 1000,
+      timeout: 5000,
       on_timeout: :kill_task,
-      max_concurrency: System.schedulers_online() * 8
+      max_concurrency: 1000
     )
     |> Enum.map(fn {:ok, result} -> result end)
 
-    # IO.puts :sys.get_state(pid).cache_miss_counter
+    #IO.puts(:sys.get_state(pid).cache_miss_counter)
     assert Enum.count(:ets.tab2list(Supervisor.blocks_cache())) == Enum.count(blocks)
   end
 

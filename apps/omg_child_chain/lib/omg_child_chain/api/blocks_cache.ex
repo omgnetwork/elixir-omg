@@ -28,7 +28,7 @@ defmodule OMG.ChildChain.API.BlocksCache do
   # this is executed in the request process so while the ETS is getting populated
   # we hit the genserver
   def get(block_hash) do
-    case :ets.lookup(Supervisor.blocks_cache(), block_hash) do
+    case Storage.lookup(Supervisor.blocks_cache(), block_hash) do
       [] -> GenServer.call(__MODULE__, {:get, block_hash}, 60_000)
       [{^block_hash, block}] -> block
     end
@@ -48,9 +48,15 @@ defmodule OMG.ChildChain.API.BlocksCache do
   end
 
   def handle_call({:get, block_hash}, _from, state) do
-    result = Storage.get(block_hash, state.ets)
-    cache_miss_counter = state.cache_miss_counter + 1
-    _ = Logger.info("Cache miss for #{inspect(block_hash)}, counter #{cache_miss_counter}.")
+    {read_type, result} = Storage.get(block_hash, state.ets)
+
+    cache_miss_counter =
+      case read_type do
+        :db_read -> state.cache_miss_counter + 1
+        _ -> state.cache_miss_counter
+      end
+
+    _ = Logger.info("Cache miss for #{inspect(block_hash)}, RocksDB read counter #{cache_miss_counter}.")
     {:reply, result, %{state | cache_miss_counter: cache_miss_counter}}
   end
 end
