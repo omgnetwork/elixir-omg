@@ -23,6 +23,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   alias OMG.State
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.DB.Block.Chunk
 
   import Ecto.Query, only: [from: 2]
 
@@ -45,16 +46,6 @@ defmodule OMG.WatcherInfo.DB.Block do
     has_many(:transactions, DB.Transaction, foreign_key: :blknum)
 
     timestamps(type: :utc_datetime_usec)
-  end
-
-  defp changeset(block, params) do
-    block
-    |> cast(params, [:blknum, :hash, :timestamp, :eth_height])
-    |> unique_constraint(:blknum, name: :blocks_pkey)
-    |> validate_required([:blknum, :hash, :timestamp, :eth_height])
-    |> validate_number(:blknum, greater_than: 0)
-    |> validate_number(:timestamp, greater_than: 0)
-    |> validate_number(:eth_height, greater_than: 0)
   end
 
   @spec get_max_blknum() :: non_neg_integer()
@@ -94,11 +85,6 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> Paginator.set_data(paginator)
   end
 
-  @spec query_count() :: Ecto.Query.t()
-  defp query_count() do
-    from(block in __MODULE__, select: count())
-  end
-
   @spec query_timestamp_between(Ecto.Query.t(), non_neg_integer(), non_neg_integer()) ::
           Ecto.Query.t()
   def query_timestamp_between(query, start_datetime, end_datetime) do
@@ -127,16 +113,6 @@ defmodule OMG.WatcherInfo.DB.Block do
     DB.Repo.one!(query_count())
   end
 
-  @spec query_timestamp_range() :: Ecto.Query.t()
-  defp query_timestamp_range() do
-    from(block in __MODULE__,
-      select: %{
-        max: max(block.timestamp),
-        min: min(block.timestamp)
-      }
-    )
-  end
-
   @doc """
   Returns a map with the timestamps of the earliest and latest blocks of all time.
   """
@@ -156,17 +132,6 @@ defmodule OMG.WatcherInfo.DB.Block do
     query_timestamp_range()
     |> query_timestamp_between(start_datetime, end_datetime)
     |> DB.Repo.one!()
-  end
-
-  defp query_get_last(%{limit: limit, page: page}) do
-    offset = (page - 1) * limit
-
-    from(
-      block in base_query(),
-      order_by: [desc: :blknum],
-      limit: ^limit,
-      offset: ^offset
-    )
   end
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
@@ -196,36 +161,39 @@ defmodule OMG.WatcherInfo.DB.Block do
       eth_height: eth_height
     }
 
-    {insert_duration, result} =
-      :timer.tc(
-        &DB.Repo.transaction/1,
-        [
-          fn ->
-            with {:ok, block} <- insert(current_block),
-                 :ok <- DB.Repo.insert_all_chunked(DB.Transaction, db_txs),
-                 :ok <- DB.Repo.insert_all_chunked(DB.TxOutput, db_outputs),
-                 # inputs are set as spent after outputs are inserted to support spending utxo from the same block
-                 :ok <- DB.TxOutput.spend_utxos(db_inputs) do
-              block
-            else
-              {:error, changeset} -> DB.Repo.rollback(changeset)
-            end
-          end
-        ]
-      )
+    db_txs_stream = Chunk.chunk(db_txs)
+    db_outputs_stream = Chunk.chunk(db_outputs)
+
+    multi =
+      Ecto.Multi.new()
+      |> Ecto.Multi.insert("current_block", changeset(%__MODULE__{}, current_block), [])
+      |> prepare_inserts(db_txs_stream, "db_txs_", DB.Transaction)
+      |> prepare_inserts(db_outputs_stream, "db_outputs_", DB.TxOutput)
+      |> DB.TxOutput.spend_utxos(db_inputs)
+
+    {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
 
     case result do
       {:ok, _} ->
-        _ = Logger.debug("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+        _ = Logger.info("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
 
         result
 
-      {:error, changeset} ->
-        _ = Logger.debug("Block \##{block_number} not persisted in WatcherDB, done in #{insert_duration / 1000}ms")
+      {:error, name, changeset, explain} ->
+        _ = Logger.info("Block \##{block_number} not persisted in WatcherDB, done in #{insert_duration / 1000}ms")
 
-        _ = Logger.debug("Error: #{inspect(changeset.errors)}")
+        _ = Logger.info("Error in transaction #{name}: #{inspect(changeset.errors)} #{inspect(explain)}")
         result
     end
+  end
+
+  defp prepare_inserts(multi, stream, name, schema) do
+    {ecto_multi, _} =
+      Enum.reduce(stream, {multi, 0}, fn action, {multi, index} ->
+        {Ecto.Multi.insert_all(multi, name <> "#{index}", schema, action), index + 1}
+      end)
+
+    ecto_multi
   end
 
   @spec prepare_db_transactions(State.Transaction.Recovered.t(), pos_integer()) ::
@@ -253,7 +221,6 @@ defmodule OMG.WatcherInfo.DB.Block do
     transaction = create(block_number, txindex, tx_hash, tx_type, signed_tx_bytes, metadata)
     outputs = DB.TxOutput.create_outputs(block_number, txindex, tx_hash, tx)
     inputs = DB.TxOutput.create_inputs(tx, tx_hash)
-
     {transaction, outputs, inputs}
   end
 
@@ -268,5 +235,41 @@ defmodule OMG.WatcherInfo.DB.Block do
       txindex: txindex,
       metadata: metadata
     }
+  end
+
+  @spec query_timestamp_range() :: Ecto.Query.t()
+  defp query_timestamp_range() do
+    from(block in __MODULE__,
+      select: %{
+        max: max(block.timestamp),
+        min: min(block.timestamp)
+      }
+    )
+  end
+
+  @spec query_count() :: Ecto.Query.t()
+  defp query_count() do
+    from(block in __MODULE__, select: count())
+  end
+
+  defp changeset(block, params) do
+    block
+    |> cast(params, [:blknum, :hash, :timestamp, :eth_height])
+    |> unique_constraint(:blknum, name: :blocks_pkey)
+    |> validate_required([:blknum, :hash, :timestamp, :eth_height])
+    |> validate_number(:blknum, greater_than: 0)
+    |> validate_number(:timestamp, greater_than: 0)
+    |> validate_number(:eth_height, greater_than: 0)
+  end
+
+  defp query_get_last(%{limit: limit, page: page}) do
+    offset = (page - 1) * limit
+
+    from(
+      block in base_query(),
+      order_by: [desc: :blknum],
+      limit: ^limit,
+      offset: ^offset
+    )
   end
 end
