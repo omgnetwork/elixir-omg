@@ -63,7 +63,11 @@ defmodule OMG.Eth.RootChainTest do
 
   defp deposit_then_start_exit(owner, amount, currency) do
     owner = Encoding.from_hex(owner)
-    {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: owner, currency: currency, amount: amount)
+
+    output_data = %{amount: amount, token: currency, output_guard: owner}
+    deposit_utxo = %ExPlasma.Output{output_data: output_data, output_type: 1}
+    deposit = %ExPlasma.Transaction{inputs: [], outputs: [deposit_utxo], tx_type: 1}
+
     rlp = ExPlasma.Transaction.encode(deposit)
 
     {:ok, deposit_tx} =
@@ -75,7 +79,7 @@ defmodule OMG.Eth.RootChainTest do
     deposit_blknum = RootChainHelper.deposit_blknum_from_receipt(deposit_tx)
     deposit_txindex = OMG.Eth.Encoding.int_from_hex(deposit_txlog["transactionIndex"])
 
-    utxo_pos = ExPlasma.Utxo.pos(%{blknum: deposit_blknum, txindex: deposit_txindex, oindex: 0})
+    utxo_pos = ExPlasma.Output.Position.pos(%{blknum: deposit_blknum, txindex: deposit_txindex, oindex: 0})
     proof = ExPlasma.Encoding.merkle_proof([rlp], 0)
 
     {:ok, start_exit_tx} =
