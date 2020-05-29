@@ -53,7 +53,8 @@ defmodule OMG.ChildChain.BlocksCache.StorageTest do
       db_updates_block = {:put, :block, @block}
       DB.multi_update([db_updates_block])
       ets_ref = :ets.new(test_name, [])
-      block = Storage.get(@block[:hash], ets_ref)
+      {:db, block} = Storage.get(@block[:hash], ets_ref)
+      {:ets, ^block} = Storage.get(@block[:hash], ets_ref)
       assert is_map(block)
       assert ets_ref |> :ets.tab2list() |> hd() == {@block[:hash], block}
     end

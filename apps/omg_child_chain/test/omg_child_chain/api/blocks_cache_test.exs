@@ -50,7 +50,7 @@ defmodule OMG.ChildChain.API.BlocksCacheTest do
     {:ok, %{pid: pid, blocks: db_updates_block}}
   end
 
-  test "that concurrent access to the cache works", %{pid: pid, blocks: blocks} do
+  test "that concurrent access to the cache works", %{pid: _pid, blocks: blocks} do
     workers = Enum.count(blocks) + 100_000
 
     1..workers

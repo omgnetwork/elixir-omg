@@ -26,7 +26,7 @@ defmodule OMG.ChildChain.API.BlocksCache.Storage do
   gen server queue. But the first Watcher that requested the block would insert the block in
   ETS. We're trying to protect RocksDB single server.
   """
-  @spec get(binary(), atom()) :: :not_found | Block.t()
+  @spec get(binary(), atom()) :: :not_found | {:ets, Block.t()} | {:db, Block.t()}
   def get(block_hash, ets) do
     case lookup(ets, block_hash) do
       [] ->
@@ -37,7 +37,7 @@ defmodule OMG.ChildChain.API.BlocksCache.Storage do
           {:ok, [db_block]} ->
             block = db_block |> Block.from_db_value() |> Block.to_api_format()
             true = :ets.insert(ets, {block_hash, block})
-            {:db_read, block}
+            {:db, block}
         end
 
       [{^block_hash, block}] ->

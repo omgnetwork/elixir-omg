@@ -48,12 +48,11 @@ defmodule OMG.ChildChain.API.BlocksCache do
   end
 
   def handle_call({:get, block_hash}, _from, state) do
-    {read_type, result} = Storage.get(block_hash, state.ets)
-
-    cache_miss_counter =
-      case read_type do
-        :db_read -> state.cache_miss_counter + 1
-        _ -> state.cache_miss_counter
+    {cache_miss_counter, result} =
+      case Storage.get(block_hash, state.ets) do
+        {:db, result} -> {state.cache_miss_counter + 1, result}
+        {_, result} -> {state.cache_miss_counter, result}
+        :not_found -> {state.cache_miss_counter, :not_found}
       end
 
     _ = Logger.info("Cache miss for #{inspect(block_hash)}, RocksDB read counter #{cache_miss_counter}.")
