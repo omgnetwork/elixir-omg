@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.RocksDB.Core do
+defmodule RocksDB.Core do
   @moduledoc """
   Responsible for converting type-aware, logic-specific queries and updates into rocksdb specific queries and updates
   """

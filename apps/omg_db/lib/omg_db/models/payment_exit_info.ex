@@ -19,7 +19,7 @@ defmodule OMG.DB.Models.PaymentExitInfo do
 
   alias OMG.DB
 
-  @server_name OMG.DB.RocksDB.Server
+  @server_name RocksDB.Server
 
   @ten_seconds 10_000
   @one_minute 60_000

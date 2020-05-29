@@ -19,7 +19,7 @@ defmodule OMG.DB.Measure do
   alias OMG.Status.Metric.Datadog
   import OMG.Status.Metric.Event, only: [name: 1]
 
-  alias OMG.DB.RocksDB.Server
+  alias RocksDB.Server
 
   @write :write
   @read :read

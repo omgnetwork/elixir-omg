@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.RocksDB.Server do
+defmodule RocksDB.Server do
   @moduledoc """
   Handles connection to rocksdb
   """
 
-  # All complex operations on data written/read should go into OMG.DB.RocksDB.Core
+  # All complex operations on data written/read should go into RocksDB.Core
 
   use GenServer
 
-  alias OMG.DB.RocksDB.Core
+  alias RocksDB.Core
   require Logger
 
   defstruct [:db_ref, :name]

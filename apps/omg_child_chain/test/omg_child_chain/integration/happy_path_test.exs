@@ -128,6 +128,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     invalid_raw_tx = Transaction.Payment.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
     invalid_tx = OMG.TestHelper.sign_encode(invalid_raw_tx, [alice.priv])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
+    IO.inspect(:ets.tab2list(:blocks_cache), limit: :infinity)
   end
 
   @tag fixtures: [:alice, :in_beam_child_chain, :alice_deposits]

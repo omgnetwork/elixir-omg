@@ -27,7 +27,7 @@ defmodule OMG.ChildChain.BlocksCache.Storage do
 
       {:ok, [db_block]} ->
         block = db_block |> Block.from_db_value() |> Block.to_api_format()
-        :ets.insert(ets, {block_hash, block})
+        true = :ets.insert(ets, {block_hash, block})
         block
     end
   end

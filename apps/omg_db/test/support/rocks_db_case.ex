@@ -20,7 +20,7 @@ defmodule OMG.DB.RocksDBCase do
   """
 
   use ExUnit.CaseTemplate
-  alias OMG.DB.RocksDB.Server
+  alias RocksDB.Server
 
   setup %{test: test_name} do
     {:ok, dir} = Briefly.create(directory: true)
