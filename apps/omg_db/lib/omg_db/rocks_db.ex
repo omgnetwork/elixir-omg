@@ -104,7 +104,7 @@ defmodule OMG.DB.RocksDB do
 
   optional args includes:
   1. timeout (in ms). Defaults to 5000 which is the same default value of Genserver.
-  2. server (type in Genserver.server()). Defaults to Defaults to OMG.DB.RocksDB.Server.
+  2. server (type in Genserver.server()). Defaults to OMG.DB.RocksDB.Server.
   """
   def batch_get(type, specific_keys, opts \\ []) do
     timeout = opts[:timeout] || @default_genserver_timeout
