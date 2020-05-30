@@ -24,6 +24,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Block.Chunk
+  alias OMG.WatcherInfo.DB.PendingBlock
 
   import Ecto.Query, only: [from: 2]
 
@@ -141,17 +142,28 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> DB.Repo.insert()
   end
 
+  def insert_pending_block(block) do
+    {:ok, %{data: data}} = PendingBlock.update(block, %{status: {:ok, _} = PendingBlock.status_processing()})
+
+    data
+    |> :erlang.binary_to_term()
+    |> insert_with_transactions(block)
+  end
+
   @doc """
   Inserts complete and sorted enumerable of transactions for particular block number
   """
-  @spec insert_with_transactions(mined_block()) :: {:ok, %__MODULE__{}}
-  def insert_with_transactions(%{
-        transactions: transactions,
-        blknum: block_number,
-        blkhash: blkhash,
-        timestamp: timestamp,
-        eth_height: eth_height
-      }) do
+  # @spec insert_with_transactions(mined_block()) :: {:ok, %__MODULE__{}}
+  defp insert_with_transactions(
+         %{
+           transactions: transactions,
+           blknum: block_number,
+           blkhash: blkhash,
+           timestamp: timestamp,
+           eth_height: eth_height
+         },
+         pending_block
+       ) do
     {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, block_number)
 
     current_block = %{
@@ -170,6 +182,11 @@ defmodule OMG.WatcherInfo.DB.Block do
       |> prepare_inserts(db_txs_stream, "db_txs_", DB.Transaction)
       |> prepare_inserts(db_outputs_stream, "db_outputs_", DB.TxOutput)
       |> DB.TxOutput.spend_utxos(db_inputs)
+      |> Ecto.Multi.update(
+        "pending_block",
+        PendingBlock.update_changeset(pending_block, %{status: PendingBlock.status_done()}),
+        []
+      )
 
     {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
 
@@ -177,13 +194,13 @@ defmodule OMG.WatcherInfo.DB.Block do
       {:ok, _} ->
         _ = Logger.info("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
 
-        result
+        {:ok, result}
 
       {:error, name, changeset, explain} ->
         _ = Logger.info("Block \##{block_number} not persisted in WatcherDB, done in #{insert_duration / 1000}ms")
 
         _ = Logger.info("Error in transaction #{name}: #{inspect(changeset.errors)} #{inspect(explain)}")
-        result
+        {:error, result}
     end
   end
 
