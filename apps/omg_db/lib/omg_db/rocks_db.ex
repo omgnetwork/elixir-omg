@@ -22,7 +22,7 @@ defmodule OMG.DB.RocksDB do
 
   require Logger
 
-  @server_name RocksDB.Server
+  @server_name OMG.DB.RocksDB.Server
 
   @default_genserver_timeout 5000
   @one_minute 60_000
@@ -36,11 +36,11 @@ defmodule OMG.DB.RocksDB do
 
   def child_spec() do
     db_path = Application.fetch_env!(:omg_db, :path)
-    args = [db_path: db_path, name: RocksDB.Server]
+    args = [db_path: db_path, name: OMG.DB.RocksDB.Server]
 
     %{
-      id: RocksDB.Server,
-      start: {RocksDB.Server, :start_link, [args]},
+      id: OMG.DB.RocksDB.Server,
+      start: {OMG.DB.RocksDB.Server, :start_link, [args]},
       type: :worker
     }
   end
@@ -48,7 +48,7 @@ defmodule OMG.DB.RocksDB do
   def child_spec([db_path: _db_path, name: server_name] = args) do
     %{
       id: server_name,
-      start: {RocksDB.Server, :start_link, [args]},
+      start: {OMG.DB.RocksDB.Server, :start_link, [args]},
       type: :worker
     }
   end
@@ -104,7 +104,7 @@ defmodule OMG.DB.RocksDB do
 
   optional args includes:
   1. timeout (in ms). Defaults to 5000 which is the same default value of Genserver.
-  2. server (type in Genserver.server()). Defaults to RocksDB.Server.
+  2. server (type in Genserver.server()). Defaults to Defaults to OMG.DB.RocksDB.Server.
   """
   def batch_get(type, specific_keys, opts \\ []) do
     timeout = opts[:timeout] || @default_genserver_timeout
@@ -124,7 +124,7 @@ defmodule OMG.DB.RocksDB do
 
   optional args includes:
   1. timeout (in ms). Defaults to 5000 which is the same default value of Genserver.
-  2. server (type in Genserver.server()). Defaults to RocksDB.Server.
+  2. server (type in Genserver.server()). Defaults to OMG.DB.RocksDB.Server.
   """
   def get_all_by_type(type, opts \\ []) do
     timeout = opts[:timeout] || @default_genserver_timeout

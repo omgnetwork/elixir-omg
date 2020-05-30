@@ -101,8 +101,13 @@ defmodule OMG.Performance.SimplePerftest do
   # Instead, we start the artificial `BlockCreator`
   defp start_simple_perftest_chain(opts) do
     _ =
-      if :undefined == :ets.info(OMG.ChildChain.Supervisor.blocks_cache()),
-        do: :ets.new(OMG.ChildChain.Supervisor.blocks_cache(), [:set, :public, :named_table, read_concurrency: true])
+      case :ets.info(OMG.ChildChain.Supervisor.blocks_cache()) do
+        :undefined ->
+          :ets.new(OMG.ChildChain.Supervisor.blocks_cache(), [:set, :public, :named_table, read_concurrency: true])
+
+        _ ->
+          :ok
+      end
 
     children = [
       {OMG.ChildChainRPC.Web.Endpoint, []},

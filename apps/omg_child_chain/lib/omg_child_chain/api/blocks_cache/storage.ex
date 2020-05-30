@@ -46,11 +46,14 @@ defmodule OMG.ChildChain.API.BlocksCache.Storage do
   end
 
   def ensure_ets_init(blocks_cache) do
-    _ =
-      if :undefined == :ets.info(blocks_cache),
-        do: :ets.new(blocks_cache, [:set, :public, :named_table, read_concurrency: true])
+    case :ets.info(blocks_cache) do
+      :undefined ->
+        :ets.new(blocks_cache, [:set, :public, :named_table, read_concurrency: true])
+        :ok
 
-    :ok
+      _ ->
+        :ok
+    end
   end
 
   def lookup(ets, block_hash) do

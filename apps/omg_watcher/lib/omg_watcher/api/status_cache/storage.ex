@@ -26,10 +26,13 @@ defmodule OMG.Watcher.API.StatusCache.Storage do
   end
 
   def ensure_ets_init(status_cache) do
-    _ =
-      if :undefined == :ets.info(status_cache),
-        do: :ets.new(status_cache, [:set, :public, :named_table, read_concurrency: true])
+    case :ets.info(status_cache) do
+      :undefined ->
+        :ets.new(status_cache, [:set, :public, :named_table, read_concurrency: true])
+        :ok
 
-    :ok
+      _ ->
+        :ok
+    end
   end
 end

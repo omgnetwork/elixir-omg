@@ -95,7 +95,7 @@ defmodule OMG.Status.Metric.Event do
   def name(:eventer_message_queue_len), do: "eventer_message_queue_len"
 
   @doc """
-  OMG.DB server implementation (OMG.DB.LevelDB.Server, or RocksDB.Server,)  message queue length
+  OMG.DB server implementation (OMG.DB.LevelDB.Server, or OMG.DB.RocksDB.Server,)  message queue length
   """
   def name(:db_message_queue_len), do: "db_message_queue_len"
 
