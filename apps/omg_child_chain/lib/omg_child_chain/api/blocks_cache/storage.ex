@@ -48,7 +48,7 @@ defmodule OMG.ChildChain.API.BlocksCache.Storage do
   def ensure_ets_init(blocks_cache) do
     case :ets.info(blocks_cache) do
       :undefined ->
-        :ets.new(blocks_cache, [:set, :public, :named_table, read_concurrency: true])
+        ^blocks_cache = :ets.new(blocks_cache, [:set, :public, :named_table, read_concurrency: true])
         :ok
 
       _ ->
