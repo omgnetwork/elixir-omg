@@ -60,7 +60,7 @@ defmodule OMG.Eth.RootChain do
     signature = "BlockSubmitted(uint256)"
     {:ok, logs} = Rpc.get_ethereum_events(from_height, to_height, signature, contract)
 
-    Enum.map(logs, &Abi.decode_log(&1))
+    {:ok, Enum.map(logs, &Abi.decode_log(&1))}
   end
 
   ##
