@@ -175,7 +175,8 @@ config :omg_watcher_info,
   child_chain_url: "http://localhost:9656",
   namespace: OMG.WatcherInfo,
   ecto_repos: [OMG.WatcherInfo.DB.Repo],
-  metrics_collection_interval: 60_000
+  metrics_collection_interval: 60_000,
+  pending_block_processing_interval: 1000
 
 # Configures the endpoint
 

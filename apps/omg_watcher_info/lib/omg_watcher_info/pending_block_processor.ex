@@ -15,43 +15,59 @@
 defmodule OMG.WatcherInfo.PendingBlockProcessor do
   @moduledoc """
   """
-  alias OMG.WatcherInfo.DB.Block
-  alias OMG.WatcherInfo.DB.PendingBlock
+
   require Logger
 
-  ### Client
+  use GenServer
+
+  alias OMG.WatcherInfo.DB.Block
+  alias OMG.WatcherInfo.DB.PendingBlock
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  ### Server
-
-  use GenServer
-
   def init(args) do
     interval = Keyword.fetch!(args, :processing_interval)
-    {:ok, processing_timer} = :timer.send_interval(interval, self(), :process_block)
+    {:ok, processing_timer} = :timer.send_interval(interval, self(), :check_queue)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
-    {:ok, %{processing_timer: processing_timer}}
+    {:ok, %{processing_timer: processing_timer, status: :idle}}
   end
 
-  def handle_info(:process_block, state) do
+  def handle_info(:check_queue, %{status: :processing} = state), do: {:noreply, state}
+
+  def handle_info(:check_queue, state) do
     case PendingBlock.get_next_to_process() do
       nil ->
         {:noreply, state}
 
       block ->
-        process_block(block)
-        {:noreply, state}
+        {:noreply, %{state | status: :processing}, {:continue, {:process_block, block}}}
     end
   end
 
-  defp process_block(block) do
-    # TODO: process "processing" block when app start
+  def handle_continue({:process_block, block}, state) do
+    case Block.insert_pending_block(block) do
+      {:ok, _} ->
+        :ok
 
-    Block.insert_pending_block(block)
-    # set state as done
+      {:error, _} ->
+        handle_insert_error(block)
+    end
+
+    {:noreply, %{state | status: :idle}}
+  end
+
+  defp handle_insert_error(%{retry_count: count} = block) when count < 3 do
+    _ = Logger.info("Retrying insertion of block #{block.blknum}")
+    PendingBlock.update(block, %{retry_count: block.retry_count + 1})
+    :ok
+  end
+
+  defp handle_insert_error(block) do
+    _ = Logger.info("Block insertion failed for block #{block.blknum}")
+    PendingBlock.update(block, %{status: PendingBlock.status_failed()})
+    :ok
   end
 end

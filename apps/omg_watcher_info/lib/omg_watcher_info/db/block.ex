@@ -143,9 +143,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   def insert_pending_block(block) do
-    {:ok, %{data: data}} = PendingBlock.update(block, %{status: {:ok, _} = PendingBlock.status_processing()})
-
-    data
+    block.data
     |> :erlang.binary_to_term()
     |> insert_with_transactions(block)
   end

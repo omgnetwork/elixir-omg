@@ -14,49 +14,32 @@
 
 defmodule OMG.WatcherInfo.BlockApplicationConsumer do
   @moduledoc """
-  Subscribes for new blocks and inserts them to WatcherInfo.DB.
+  Subscribes for new blocks and inserts them into a pending queue.
   """
-  alias OMG.WatcherInfo.DB
   require Logger
 
-  ### Client
+  use GenServer
+
+  alias OMG.WatcherInfo.DB
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  ### Server
-
-  use GenServer
-
   def init(:ok) do
+    _ = Logger.info("Started #{inspect(__MODULE__)}")
+
     :ok = OMG.Bus.subscribe({:child_chain, "block.get"}, link: true)
 
-    _ = Logger.info("Started #{inspect(__MODULE__)}")
     {:ok, %{}}
   end
 
   # Listens for blocks and insert them to the WatcherDB.
   def handle_info({:internal_event_bus, :block_received, block_application}, state) do
-    {to_pending_block_time, data} = :timer.tc(&to_pending_block/1, [block_application])
-    IO.inspect("to_pending_block_time: #{to_pending_block_time / 1000}ms")
-    {insert_time, _} = :timer.tc(&DB.PendingBlock.insert/1, [data])
-    IO.inspect("insert_time: #{insert_time / 1000}ms")
-
-    # _ =
-    #   block_application
-    #   |> to_pending_block()
-    #   |> DB.PendingBlock.insert()
-
-    # _ =
-    #   %{
-    #     eth_height: block_application.eth_height,
-    #     blknum: block_application.number,
-    #     blkhash: block_application.hash,
-    #     timestamp: block_application.timestamp,
-    #     transactions: block_application.transactions
-    #   }
-    #   |> DB.Block.insert_with_transactions()
+    _ =
+      block_application
+      |> to_pending_block()
+      |> DB.PendingBlock.insert()
 
     {:noreply, state}
   end

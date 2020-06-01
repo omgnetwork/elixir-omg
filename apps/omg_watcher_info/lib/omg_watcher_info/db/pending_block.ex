@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
-  alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.DB.Repo
 
   @type pending_block() :: %{
           blknum: pos_integer(),
@@ -35,14 +35,14 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
         }
 
   @status_pending "pending"
-  @status_processing "processing"
   @status_done "done"
+  @status_failed "failed"
 
   @primary_key {:blknum, :integer, []}
 
   def status_pending, do: @status_pending
-  def status_processing, do: @status_processing
   def status_done, do: @status_done
+  def status_failed, do: @status_failed
 
   schema "pending_blocks" do
     field(:data, :binary)
@@ -56,13 +56,13 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
   def insert(params) do
     params
     |> insert_changeset()
-    |> DB.Repo.insert()
+    |> Repo.insert()
   end
 
   def update(block, params) do
     block
     |> update_changeset(params)
-    |> DB.Repo.update()
+    |> Repo.update()
   end
 
   def update_changeset(pending_block, params) do
@@ -71,26 +71,14 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
 
   @spec get_next_to_process() :: nil | %__MODULE__{}
   def get_next_to_process() do
-    @status_processing
-    |> query_next_with_status()
-    |> DB.Repo.one()
-    |> case do
-      nil ->
-        @status_pending
-        |> query_next_with_status()
-        |> DB.Repo.one()
-
-      _ ->
-        nil
-    end
-  end
-
-  defp query_next_with_status(status) do
     from(
       pending_block in __MODULE__,
-      where: [status: ^status],
-      order_by: :blknum
+      where: [status: @status_pending],
+      order_by: :blknum,
+      limit: 1
     )
+    |> Repo.all()
+    |> Enum.at(0)
   end
 
   defp insert_changeset(params) do
