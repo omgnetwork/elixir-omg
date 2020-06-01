@@ -18,6 +18,8 @@ defmodule OMG.DB do
   underlying database layer.
   """
   use Spandex.Decorators
+
+  alias OMG.DB.RocksDB
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
   @callback start_link(term) :: GenServer.on_start()
@@ -63,65 +65,65 @@ defmodule OMG.DB do
                       child_top_block_number: 1,
                       get_single_value: 2
 
-  def start_link(args), do: driver().start_link(args)
+  def start_link(args), do: RocksDB.start_link(args)
 
-  def child_spec(), do: driver().child_spec()
-  def child_spec(args), do: driver().child_spec(args)
+  def child_spec(), do: RocksDB.child_spec()
+  def child_spec(args), do: RocksDB.child_spec(args)
 
   def init(path) do
-    driver().init(path)
+    RocksDB.init(path)
   end
 
   def init() do
-    driver().init()
+    RocksDB.init()
   end
 
   @doc """
   Puts all zeroes and other init values to a generically initialized `OMG.DB`
   """
 
-  def initiation_multiupdate(), do: driver().initiation_multiupdate
-  def initiation_multiupdate(server), do: driver().initiation_multiupdate(server)
+  def initiation_multiupdate(), do: RocksDB.initiation_multiupdate()
+  def initiation_multiupdate(server), do: RocksDB.initiation_multiupdate(server)
 
   @decorate span(service: :ethereum_event_listener, type: :backend, name: "multi_update/1")
-  def multi_update(db_updates), do: driver().multi_update(db_updates)
-  def multi_update(db_updates, server), do: driver().multi_update(db_updates, server)
+  def multi_update(db_updates), do: RocksDB.multi_update(db_updates)
+  def multi_update(db_updates, server), do: RocksDB.multi_update(db_updates, server)
 
-  def blocks(blocks_to_fetch), do: driver().blocks(blocks_to_fetch)
-  def blocks(blocks_to_fetch, server), do: driver().blocks(blocks_to_fetch, server)
+  def blocks(blocks_to_fetch), do: RocksDB.blocks(blocks_to_fetch)
+  def blocks(blocks_to_fetch, server), do: RocksDB.blocks(blocks_to_fetch, server)
 
-  def utxos(), do: driver().utxos()
-  def utxos(server), do: driver().utxos(server)
+  def utxos(), do: RocksDB.utxos()
+  def utxos(server), do: RocksDB.utxos(server)
 
-  def utxo(utxo_pos), do: driver().utxo(utxo_pos)
-  def utxo(utxo_pos, server), do: driver().utxo(utxo_pos, server)
+  def utxo(utxo_pos), do: RocksDB.utxo(utxo_pos)
+  def utxo(utxo_pos, server), do: RocksDB.utxo(utxo_pos, server)
 
-  def competitors_info(), do: driver().competitors_info
-  def competitors_info(server), do: driver().competitors_info(server)
+  def competitors_info(), do: RocksDB.competitors_info()
+  def competitors_info(server), do: RocksDB.competitors_info(server)
 
-  def spent_blknum(utxo_pos), do: driver().spent_blknum(utxo_pos)
-  def spent_blknum(utxo_pos, server), do: driver().spent_blknum(utxo_pos, server)
+  def spent_blknum(utxo_pos), do: RocksDB.spent_blknum(utxo_pos)
+  def spent_blknum(utxo_pos, server), do: RocksDB.spent_blknum(utxo_pos, server)
 
-  def block_hashes(block_numbers_to_fetch), do: driver().block_hashes(block_numbers_to_fetch)
-  def block_hashes(block_numbers_to_fetch, server), do: driver().block_hashes(block_numbers_to_fetch, server)
+  def block_hashes(block_numbers_to_fetch), do: RocksDB.block_hashes(block_numbers_to_fetch)
+  def block_hashes(block_numbers_to_fetch, server), do: RocksDB.block_hashes(block_numbers_to_fetch, server)
 
-  def child_top_block_number(), do: driver().child_top_block_number
+  def child_top_block_number(), do: RocksDB.child_top_block_number()
 
-  def get_single_value(parameter_name), do: driver().get_single_value(parameter_name)
-  def get_single_value(parameter_name, server), do: driver().get_single_value(parameter_name, server)
+  def get_single_value(parameter_name), do: RocksDB.get_single_value(parameter_name)
+  def get_single_value(parameter_name, server), do: RocksDB.get_single_value(parameter_name, server)
 
   @doc """
   This is generic DB function that can batch get the specific data of a
   specific type with the given specific keys of the type.
   """
-  def batch_get(type, specific_keys), do: driver().batch_get(type, specific_keys)
-  def batch_get(type, specific_keys, opts), do: driver().batch_get(type, specific_keys, opts)
+  def batch_get(type, specific_keys), do: RocksDB.batch_get(type, specific_keys)
+  def batch_get(type, specific_keys, opts), do: RocksDB.batch_get(type, specific_keys, opts)
 
   @doc """
   This is generic DB function that can get all data of a specific type.
   """
-  def get_all_by_type(type), do: driver().get_all_by_type(type)
-  def get_all_by_type(type, opts), do: driver().get_all_by_type(type, opts)
+  def get_all_by_type(type), do: RocksDB.get_all_by_type(type)
+  def get_all_by_type(type, opts), do: RocksDB.get_all_by_type(type, opts)
 
   @doc """
   A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)
@@ -149,6 +151,4 @@ defmodule OMG.DB do
       :omg_eth_contracts
     ]
   end
-
-  defp driver(), do: OMG.DB.RocksDB
 end

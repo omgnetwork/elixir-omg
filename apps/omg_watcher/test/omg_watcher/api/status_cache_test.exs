@@ -18,13 +18,11 @@ defmodule OMG.Watcher.API.StatusCacheTest do
   alias __MODULE__.BusMock
   alias __MODULE__.IntegrationModuleMock
   alias OMG.Watcher.API.StatusCache
+  alias OMG.Watcher.API.StatusCache.Storage
   alias OMG.Watcher.SyncSupervisor
 
   setup do
-    _ =
-      if :undefined == :ets.info(SyncSupervisor.status_cache()),
-        do: :ets.new(SyncSupervisor.status_cache(), [:set, :public, :named_table, read_concurrency: true])
-
+    :ok = Storage.ensure_ets_init(SyncSupervisor.status_cache())
     :ok
   end
 

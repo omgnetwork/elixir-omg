@@ -161,10 +161,10 @@ defmodule OMG.Watcher.BlockGetter do
   @doc """
   Schedules more blocks to download in case some work downloading is finished and we want to progress.
   """
-  def handle_continue({:apply_block_step, :run_block_download_task, block_application}, state),
-    do:
-      {:noreply, run_block_download_task(state),
-       {:continue, {:apply_block_step, :close_and_apply_block, block_application}}}
+  def handle_continue({:apply_block_step, :run_block_download_task, block_application}, state) do
+    {:noreply, run_block_download_task(state),
+     {:continue, {:apply_block_step, :close_and_apply_block, block_application}}}
+  end
 
   @doc """
   Marks a block as applied and updates `OMG.DB` values. Also commits the updates to `OMG.DB` that `OMG.State` handed off
@@ -239,6 +239,11 @@ defmodule OMG.Watcher.BlockGetter do
 
   def handle_info(:send_metrics, state) do
     :ok = :telemetry.execute([:process, __MODULE__], %{}, state)
+    {:noreply, state}
+  end
+
+  def handle_info({:ssl_closed, _}, state) do
+    # eat this bug https://github.com/benoitc/hackney/issues/464
     {:noreply, state}
   end
 
