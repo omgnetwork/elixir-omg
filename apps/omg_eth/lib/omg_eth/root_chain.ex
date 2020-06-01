@@ -58,7 +58,7 @@ defmodule OMG.Eth.RootChain do
   def get_block_submitted_events(from_height, to_height) do
     contract = Configuration.contracts().plasma_framework
     signature = "BlockSubmitted(uint256)"
-    {:ok, logs} = Rpc.get_ethereum_events(from_height, to_heigh, signature, contract)
+    {:ok, logs} = Rpc.get_ethereum_events(from_height, to_height, signature, contract)
 
     Enum.map(logs, &Abi.decode_log(&1))
   end
