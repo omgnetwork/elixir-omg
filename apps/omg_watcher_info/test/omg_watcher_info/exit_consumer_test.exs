@@ -25,6 +25,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
 
   require Utxo
 
+  @eth OMG.Eth.zero_address()
   @root_chain_txhash1 <<11::256>>
   @root_chain_txhash2 <<12::256>>
 
@@ -32,7 +33,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
     {:ok, _} =
       GenServer.start_link(
         ExitConsumer,
-        [topic: :watcher_test_topic, bus_module: __MODULE__.FakeBus],
+        [topic: :watcher_test_topic, bus_module: __MODULE__.FakeBus, event_type: :in_flight_exit],
         name: TestExitConsumer
       )
 
@@ -51,8 +52,8 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
       txhash = Crypto.hash(<<pos_1>>)
 
       event_data = [
-        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_1}},
-        %{log_index: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{txhash: txhash, oindex: 1}}
+        %{log_index: 2, eth_height: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_1}},
+        %{log_index: 1, eth_height: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{txhash: txhash, oindex: 1}}
       ]
 
       send_events_and_wait_until_processed(event_data)
@@ -67,8 +68,8 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
 
       # Note: event data is the same for InFlightExitStarted and InFlightExitOutputWithdrawn events
       event_data = [
-        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_2}},
-        %{log_index: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{utxo_pos: pos_1}}
+        %{log_index: 2, eth_height: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_2}},
+        %{log_index: 1, eth_height: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{utxo_pos: pos_1}}
       ]
 
       send_events_and_wait_until_processed(event_data)
@@ -82,7 +83,12 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
       spent_utxos_pos = get_utxos_pos([output])
 
       event_data = [
-        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{txhash: txhash, oindex: oindex}}
+        %{
+          log_index: 2,
+          eth_height: 2,
+          root_chain_txhash: @root_chain_txhash2,
+          call_data: %{txhash: txhash, oindex: oindex}
+        }
       ]
 
       send_events_and_wait_until_processed(event_data)
@@ -91,33 +97,72 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
     end
 
     @tag fixtures: [:alice, :initial_blocks]
+    test "receiving IFE output piggybacked event is reflected in balance", %{alice: alice} do
+      %{creating_txhash: txhash, oindex: oindex, amount: exiting_amount} = alice.addr |> get_utxos_for() |> hd()
+      [%{currency: @eth, amount: initial_balance}] = DB.TxOutput.get_balance(alice.addr)
+
+      event_data = [
+        %{
+          log_index: 2,
+          eth_height: 2,
+          root_chain_txhash: @root_chain_txhash2,
+          call_data: %{txhash: txhash, oindex: oindex}
+        }
+      ]
+
+      send_events_and_wait_until_processed(event_data)
+
+      expected_balance = initial_balance - exiting_amount
+      assert [%{currency: @eth, amount: expected_balance}] == DB.TxOutput.get_balance(alice.addr)
+    end
+
+    @tag fixtures: [:alice, :initial_blocks]
     test "spending output more than once does not overwrite first event", %{alice: alice} do
       %{creating_txhash: txhash, oindex: oindex} = output = alice.addr |> get_utxos_for() |> hd()
       txo_pos = get_utxos_pos([output]) |> hd()
 
       expected_log_index = 1
+      expected_eth_height = 1
       expected_root_hash = <<1::256>>
 
       send_events_and_wait_until_processed([
         %{
           log_index: expected_log_index,
+          eth_height: expected_eth_height,
           root_chain_txhash: expected_root_hash,
           call_data: %{txhash: txhash, oindex: oindex}
         }
       ])
 
       assert %DB.TxOutput{
-               ethevents: [%DB.EthEvent{log_index: ^expected_log_index, root_chain_txhash: ^expected_root_hash}]
+               ethevents: [
+                 %DB.EthEvent{
+                   log_index: ^expected_log_index,
+                   eth_height: ^expected_eth_height,
+                   root_chain_txhash: ^expected_root_hash
+                 }
+               ]
              } = DB.TxOutput.get_by_position(txo_pos)
 
       event_data = [
-        %{log_index: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: Position.encode(txo_pos)}}
+        %{
+          log_index: 2,
+          root_chain_txhash: @root_chain_txhash2,
+          eth_height: expected_eth_height,
+          call_data: %{utxo_pos: Position.encode(txo_pos)}
+        }
       ]
 
       send_events_and_wait_until_processed(event_data)
 
       assert %DB.TxOutput{
-               ethevents: [%DB.EthEvent{log_index: ^expected_log_index, root_chain_txhash: ^expected_root_hash}]
+               ethevents: [
+                 %DB.EthEvent{
+                   log_index: ^expected_log_index,
+                   root_chain_txhash: ^expected_root_hash,
+                   eth_height: ^expected_eth_height
+                 }
+               ]
              } = DB.TxOutput.get_by_position(txo_pos)
     end
 

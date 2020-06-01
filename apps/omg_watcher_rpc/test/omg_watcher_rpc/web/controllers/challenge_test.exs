@@ -29,7 +29,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   @tag skip: true
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "challenge data is properly formatted", %{alice: alice} do
-    DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1}])
+    DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1, eth_height: 1}])
 
     DB.Block.insert_with_transactions(%{
       transactions: [

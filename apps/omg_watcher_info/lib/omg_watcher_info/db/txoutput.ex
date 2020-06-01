@@ -16,8 +16,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @moduledoc """
   Ecto schema for transaction's output or input
   """
-  import Ecto.Query, only: [from: 2]
-
   use Ecto.Schema
 
   alias OMG.State.Transaction
@@ -28,7 +26,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   require Utxo
 
-  import Ecto.Query, only: [from: 2, where: 2]
+  import Ecto.Query, only: [from: 2]
 
   @default_get_utxos_limit 200
 
@@ -114,13 +112,20 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         txoutput in __MODULE__,
         left_join: ethevent in assoc(txoutput, :ethevents),
         # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
-        where: txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+        where:
+          txoutput.owner == ^owner and is_nil(txoutput.spending_txhash) and
+            (is_nil(ethevent) or
+               fragment(
+                 "
  NOT EXISTS (SELECT 1
              FROM ethevents_txoutputs AS etfrag
              JOIN ethevents AS efrag ON
                       etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                      AND efrag.event_type IN (?)
-                      AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+                      AND efrag.event_type = ANY(?)
+                      AND etfrag.child_chain_utxohash = ?)",
+                 ["standard_exit", "in_flight_exit"],
+                 txoutput.child_chain_utxohash
+               )),
         group_by: txoutput.currency,
         select: {txoutput.currency, sum(txoutput.amount)}
       )
@@ -133,32 +138,33 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     end)
   end
 
-  @spec spend_utxos([map()]) :: :ok
-  def spend_utxos(db_inputs) do
+  @spec spend_utxos(Ecto.Multi.t(), [map()]) :: Ecto.Multi.t()
+  def spend_utxos(multi, db_inputs) do
     utc_now = DateTime.utc_now()
 
-    db_inputs
-    |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
-      _ =
-        DB.TxOutput
-        |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)
-        |> Repo.update_all(
-          set: [
-            spending_tx_oindex: spending_oindex,
-            spending_txhash: spending_txhash,
-            updated_at: utc_now
-          ]
-        )
-    end)
+    {multi0, _} =
+      Enum.reduce(db_inputs, {multi, 0}, fn data, {multi, index} ->
+        {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} = data
+
+        {Ecto.Multi.update_all(
+           multi,
+           "spend_utxos_#{index}",
+           from(p in DB.TxOutput,
+             where: p.blknum == ^blknum and p.txindex == ^txindex and p.oindex == ^oindex
+           ),
+           set: [
+             spending_tx_oindex: spending_oindex,
+             spending_txhash: spending_txhash,
+             updated_at: utc_now
+           ]
+         ), index + 1}
+      end)
+
+    multi0
   end
 
   @spec create_outputs(pos_integer(), integer(), binary(), Transaction.any_flavor_t()) :: [map()]
-  def create_outputs(
-        blknum,
-        txindex,
-        txhash,
-        tx
-      ) do
+  def create_outputs(blknum, txindex, txhash, tx) do
     # zero-value outputs are not inserted, tx can have no outputs at all
     outputs =
       tx
@@ -173,8 +179,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   defp create_output(_otype, _blknum, _txindex, _txhash, _oindex, _owner, _currency, 0), do: []
 
-  defp create_output(otype, blknum, txindex, oindex, txhash, owner, currency, amount) when amount > 0,
-    do: [
+  defp create_output(otype, blknum, txindex, oindex, txhash, owner, currency, amount) when amount > 0 do
+    [
       %{
         otype: otype,
         blknum: blknum,
@@ -186,6 +192,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         creating_txhash: txhash
       }
     ]
+  end
 
   @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
   def create_inputs(tx, spending_txhash) do
@@ -213,13 +220,20 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
       preload: [:ethevents],
       left_join: ethevent in assoc(txoutput, :ethevents),
       # select txoutputs by owner that have neither been spent nor have a corresponding ethevents exit events
-      where: txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and (is_nil(ethevent) or fragment("
+      where:
+        txoutput.owner == ^address and is_nil(txoutput.spending_txhash) and
+          (is_nil(ethevent) or
+             fragment(
+               "
 NOT EXISTS (SELECT 1
            FROM ethevents_txoutputs AS etfrag
            JOIN ethevents AS efrag ON
                     etfrag.root_chain_txhash_event=efrag.root_chain_txhash_event
-                    AND efrag.event_type IN (?)
-                    AND etfrag.child_chain_utxohash = ?)", "standard_exit", txoutput.child_chain_utxohash)),
+                    AND efrag.event_type = ANY(?)
+                    AND etfrag.child_chain_utxohash = ?)",
+               ["standard_exit", "in_flight_exit"],
+               txoutput.child_chain_utxohash
+             )),
       order_by: [asc: :blknum, asc: :txindex, asc: :oindex]
     )
   end

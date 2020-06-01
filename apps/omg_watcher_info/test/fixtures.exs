@@ -123,6 +123,7 @@ defmodule OMG.WatcherInfo.Fixtures do
         owner: alice.addr,
         currency: @eth,
         amount: 333,
+        eth_height: 1,
         otype: 1,
         blknum: 1
       },
@@ -133,6 +134,7 @@ defmodule OMG.WatcherInfo.Fixtures do
         currency: @eth,
         amount: 100,
         otype: 1,
+        eth_height: 2,
         blknum: 2
       }
     ]

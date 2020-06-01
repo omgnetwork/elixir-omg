@@ -470,8 +470,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
                  |> Transaction.Recovered.recover_from()
       end
 
-      [<<1::288>>, <<1::224>>, <<1::64>>, <<0, 1>>]
-      |> Enum.map(checker)
+      Enum.map([<<1::288>>, <<1::224>>, <<1::64>>, <<0, 1>>], checker)
     end
 
     test "Decoding transaction with not-a-uint256 in output amount fails" do
@@ -534,8 +533,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
     @tag fixtures: [:alice]
     test "Decoding transaction without outputs fails", %{alice: alice} do
       assert {:error, :empty_outputs} =
-               TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, [])
-               |> Transaction.Recovered.recover_from()
+               Transaction.Recovered.recover_from(TestHelper.create_encoded([{1000, 0, 0, alice}], @eth, []))
     end
 
     @tag fixtures: [:alice, :bob]

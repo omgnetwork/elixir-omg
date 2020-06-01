@@ -14,15 +14,15 @@
 
 defmodule OMG.ChildChainRPC.Web.Controller.Block do
   @moduledoc """
-  Provides endpoint action to retrieve block details of published Plasma block.
+  Provides endpoint action to retrieve block details of Plasma blocks.
   """
 
   use OMG.ChildChainRPC.Web, :controller
-  alias OMG.ChildChain
+  alias OMG.ChildChain.API.Block
 
   def get_block(conn, params) do
     with {:ok, hash} <- expect(params, "hash", :hash),
-         {:ok, block} <- ChildChain.get_block(hash) do
+         {:ok, block} <- Block.get_block(hash) do
       api_response(block, conn, :block)
     end
   end

@@ -35,7 +35,7 @@ exexec 0.1.0            -> Apache 2.0
 exth_crypto 0.1.4       -> MIT
 fake_server 1.5.0       -> Apache 2.0
 hackney 1.15.1          -> Apache 2
-httpoison 1.4.0         -> MIT
+httpoison 1.6.0         -> MIT
 idna 5.1.1              -> BSD
 keccakf1600 2.0.0       -> MPL 2.0 (ok'd by legal, compliant with our Apache 2.0)
 libsecp256k1 0.1.9      -> MIT

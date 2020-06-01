@@ -1,0 +1,25 @@
+AllDepositsBodySchema:
+  description: The supported request parameters for /deposit.all. The "limit" and "page" parameters are optional.
+  required: true
+  content:
+    application/json:
+      schema:
+        title: 'AllDepositsBodySchema'
+        type: object
+        properties:
+          address: 
+            type: string
+          page:
+            type: integer
+            format: int32
+            default: 1
+          limit:
+            type: integer
+            format: int32
+            default: 100
+
+
+        example:
+          page: 2
+          limit: 100
+          address: "0xb01cb6f56d798a62d1e0bace406c73a122c39c9d"

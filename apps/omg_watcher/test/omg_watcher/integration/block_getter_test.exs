@@ -41,7 +41,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @timeout 40_000
   @eth OMG.Eth.zero_address()
-  @hex_eth "0x0000000000000000000000000000000000000000"
 
   @moduletag :integration
   @moduletag :watcher

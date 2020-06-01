@@ -38,6 +38,11 @@ defmodule OMG.ChildChain.Configuration do
     Application.fetch_env!(@app, :block_submit_every_nth)
   end
 
+  @spec block_submit_max_gas_price() :: no_return | pos_integer()
+  def block_submit_max_gas_price() do
+    Application.fetch_env!(@app, :block_submit_max_gas_price)
+  end
+
   @doc """
   Prepares options Keyword for the FeeServer process
   """

@@ -32,8 +32,8 @@ defmodule OMG.WatcherInfo.MixProject do
 
   defp deps() do
     [
-      {:postgrex, "~> 0.14"},
-      {:ecto_sql, "~> 3.1"},
+      {:postgrex, "~> 0.15"},
+      {:ecto_sql, "~> 3.4"},
       {:telemetry, "~> 0.4.1"},
       {:spandex_ecto, "~> 0.6.0"},
       # there's no apparent reason why libsecp256k1, spandex need to be included as dependencies

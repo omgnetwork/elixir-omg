@@ -21,9 +21,8 @@ defmodule OMG.ChildChain do
   """
   use OMG.Utils.LoggerExt
 
-  alias OMG.Block
   alias OMG.ChildChain.FeeServer
-  alias OMG.ChildChain.FreshBlocks
+
   alias OMG.Fees
   alias OMG.Fees.FeeFilter
   alias OMG.State
@@ -42,21 +41,6 @@ defmodule OMG.ChildChain do
            fees = Fees.for_transaction(recovered_tx, fees),
            {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
         {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
-      end
-
-    result_with_logging(result)
-  end
-
-  @spec get_block(hash :: binary) ::
-          {:ok, %{hash: binary, transactions: list, blknum: integer}} | {:error, :not_found | :internal_error}
-  def get_block(hash) do
-    result =
-      case FreshBlocks.get(hash) do
-        {:ok, struct_block} ->
-          {:ok, Block.to_api_format(struct_block)}
-
-        error ->
-          error
       end
 
     result_with_logging(result)

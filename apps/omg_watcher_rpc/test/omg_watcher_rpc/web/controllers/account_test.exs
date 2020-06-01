@@ -120,6 +120,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
         %{
           root_chain_txhash: Crypto.hash(<<1000::256>>),
           log_index: 0,
+          eth_height: 1,
           owner: alice.addr,
           currency: @eth,
           amount: 333,

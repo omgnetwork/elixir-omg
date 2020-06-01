@@ -22,7 +22,7 @@ defmodule OMG.ChildChainRPC.Web.Plugs.MethodParamFilterTest do
     conn =
       :post
       |> conn("/some_endpoint?foo=bar", %{"foo_1" => "bar_1"})
-      |> Plug.Parsers.call({[:json], [], nil})
+      |> Plug.Parsers.call({[:json], [], nil, false})
       |> MethodParamFilter.call([])
 
     assert conn.body_params == %{"foo_1" => "bar_1"}
@@ -34,7 +34,7 @@ defmodule OMG.ChildChainRPC.Web.Plugs.MethodParamFilterTest do
     conn =
       :get
       |> conn("/some_endpoint?foo=bar", %{"foo_1" => "bar_1"})
-      |> Plug.Parsers.call({[:json], [], nil})
+      |> Plug.Parsers.call({[:json], [], nil, false})
       |> MethodParamFilter.call([])
 
     assert conn.body_params == %{}
