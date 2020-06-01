@@ -70,6 +70,13 @@ defmodule OMG.Watcher.SyncSupervisor do
     contracts = OMG.Eth.Configuration.contracts()
 
     [
+      {OMG.RootChainCoordinator,
+       CoordinatorSetup.coordinator_setup(
+         metrics_collection_interval,
+         coordinator_eth_height_check_interval_ms,
+         finality_margin,
+         deposit_finality_margin
+       )},
       {ExitProcessor,
        [
          exit_processor_sla_margin: exit_processor_sla_margin,
@@ -86,13 +93,6 @@ defmodule OMG.Watcher.SyncSupervisor do
         restart: :permanent,
         type: :supervisor
       },
-      {OMG.RootChainCoordinator,
-       CoordinatorSetup.coordinator_setup(
-         metrics_collection_interval,
-         coordinator_eth_height_check_interval_ms,
-         finality_margin,
-         deposit_finality_margin
-       )},
       {EthereumEventAggregator,
        contracts: contracts,
        ets_bucket: events_bucket(),

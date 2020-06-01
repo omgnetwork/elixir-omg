@@ -304,11 +304,7 @@ defmodule OMG.Watcher.ExitProcessor do
   - updates the `ExitProcessor`'s state
   - returns `db_updates`
   """
-  def handle_call(
-        {:new_exits, exits},
-        _from,
-        state
-      ) do
+  def handle_call({:new_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
     {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit_structs(get_in(exits, [Access.all(), :exit_id]))
