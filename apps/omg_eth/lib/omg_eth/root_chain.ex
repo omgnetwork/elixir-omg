@@ -56,7 +56,7 @@ defmodule OMG.Eth.RootChain do
   Returns lists of block submissions from Ethereum logs	
   """
   def get_block_submitted_events(from_height, to_height) do
-    contract = Configuration.contracts().plasma_framework
+    contract = from_hex(Configuration.contracts().plasma_framework)
     signature = "BlockSubmitted(uint256)"
     {:ok, logs} = Rpc.get_ethereum_events(from_height, to_height, signature, contract)
 
