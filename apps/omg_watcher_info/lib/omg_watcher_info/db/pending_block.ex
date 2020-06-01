@@ -36,13 +36,11 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
 
   @status_pending "pending"
   @status_done "done"
-  @status_failed "failed"
 
   @primary_key {:blknum, :integer, []}
 
-  def status_pending, do: @status_pending
-  def status_done, do: @status_done
-  def status_failed, do: @status_failed
+  def status_pending(), do: @status_pending
+  def status_done(), do: @status_done
 
   schema "pending_blocks" do
     field(:data, :binary)

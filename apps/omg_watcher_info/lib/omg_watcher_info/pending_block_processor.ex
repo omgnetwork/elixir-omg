@@ -14,6 +14,10 @@
 
 defmodule OMG.WatcherInfo.PendingBlockProcessor do
   @moduledoc """
+  This module is in charge of processing the queue of pending blocks that are waiting to
+  be inserted in the database.
+  It internally relies on a timer that will check the queue state at every iteration and
+  will process pending blocks one by one until the queue is empty.
   """
 
   require Logger
@@ -29,6 +33,7 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
 
   def init(args) do
     interval = Keyword.fetch!(args, :processing_interval)
+
     {:ok, processing_timer} = :timer.send_interval(interval, self(), :check_queue)
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
@@ -48,26 +53,21 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
   end
 
   def handle_continue({:process_block, block}, state) do
-    case Block.insert_pending_block(block) do
-      {:ok, _} ->
-        :ok
+    _ =
+      case try_insert_block(block) do
+        {:ok, _} ->
+          :ok
 
-      {:error, _} ->
-        handle_insert_error(block)
-    end
+        _error ->
+          PendingBlock.update(block, %{retry_count: block.retry_count + 1})
+      end
 
     {:noreply, %{state | status: :idle}}
   end
 
-  defp handle_insert_error(%{retry_count: count} = block) when count < 3 do
-    _ = Logger.info("Retrying insertion of block #{block.blknum}")
-    PendingBlock.update(block, %{retry_count: block.retry_count + 1})
-    :ok
-  end
-
-  defp handle_insert_error(block) do
-    _ = Logger.info("Block insertion failed for block #{block.blknum}")
-    PendingBlock.update(block, %{status: PendingBlock.status_failed()})
-    :ok
+  defp try_insert_block(block) do
+    Block.insert_pending_block(block)
+  catch
+    _, _ -> {:error, :db_error}
   end
 end

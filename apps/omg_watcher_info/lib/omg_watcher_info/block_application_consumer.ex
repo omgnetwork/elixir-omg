@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.BlockApplicationConsumer do
   @moduledoc """
-  Subscribes for new blocks and inserts them into a pending queue.
+  Subscribes for new blocks and inserts them into a pending queue of blocks waiting to be processed.
   """
   require Logger
 
