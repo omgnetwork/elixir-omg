@@ -109,9 +109,7 @@ defmodule OMG.Watcher.SyncSupervisor do
          [name: :in_flight_exit_input_blocked, enrich: false],
          [name: :in_flight_exit_output_blocked, enrich: false],
          [name: :in_flight_exit_input_withdrawn, enrich: false],
-         [name: :in_flight_exit_output_withdrawn, enrich: false],
-         # blockgetter
-         [name: :block_submitted, enrich: false]
+         [name: :in_flight_exit_output_withdrawn, enrich: false]
        ]},
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
