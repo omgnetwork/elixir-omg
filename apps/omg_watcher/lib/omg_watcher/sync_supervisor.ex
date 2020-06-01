@@ -73,7 +73,6 @@ defmodule OMG.Watcher.SyncSupervisor do
          exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
          metrics_collection_interval: metrics_collection_interval,
          min_exit_period_seconds: min_exit_period_seconds,
-         ethereum_block_time_seconds: ethereum_block_time_seconds,
          child_block_interval: child_block_interval
        ]},
       %{

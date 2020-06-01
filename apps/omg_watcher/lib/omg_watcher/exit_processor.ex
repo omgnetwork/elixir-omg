@@ -263,7 +263,6 @@ defmodule OMG.Watcher.ExitProcessor do
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
         metrics_collection_interval: metrics_collection_interval,
         min_exit_period_seconds: min_exit_period_seconds,
-        ethereum_block_time_seconds: _ethereum_block_time_seconds,
         child_block_interval: child_block_interval
       ) do
     {:ok, db_exits} = PaymentExitInfo.all_exit_infos()
