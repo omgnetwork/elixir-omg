@@ -317,7 +317,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: :block_getter)
   defp get_block_submitted_events(block_from, block_to) do
-    RootChain.block_submitted(block_from, block_to)
+    RootChain.get_block_submitted_events(block_from, block_to)
   end
 
   defp run_block_download_task(state) do
