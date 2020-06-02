@@ -46,7 +46,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
 
     # We have 9 children, roughly 7 of them have a dependency to the internetz.
     # The internetz is flaky. We account for that and allow the flakyness to pass
-    # by increasing the restart strategy. But not too much, because if the internetz is 
+    # by increasing the restart strategy. But not too much, because if the internetz is
     # really off, HeightMonitor should catch that in max 8 seconds and raise an alarm.
     max_restarts = 3
     max_seconds = 5
