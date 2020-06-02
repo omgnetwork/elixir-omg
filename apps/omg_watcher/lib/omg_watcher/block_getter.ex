@@ -66,17 +66,10 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @doc """
-  Initializes the GenServer state, most work done in `handle_continue/2`.
-  """
-  def init(args) do
-    {:ok, args, {:continue, :setup}}
-  end
-
-  @doc """
   Reads the status of block getting and application from `OMG.DB`, reads the current state of the contract and root
   chain and starts the pollers that will take care of getting blocks.
   """
-  def handle_continue(:setup, args) do
+  def init(args) do
     child_block_interval = Keyword.fetch!(args, :child_block_interval)
     # how many eth blocks backward can change during an reorg
     block_getter_reorg_margin = Keyword.fetch!(args, :block_getter_reorg_margin)
@@ -130,7 +123,7 @@ defmodule OMG.Watcher.BlockGetter do
         }"
       )
 
-    {:noreply, state}
+    {:ok, state}
   end
 
   # :apply_block pipeline of steps
