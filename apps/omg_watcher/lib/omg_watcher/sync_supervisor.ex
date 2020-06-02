@@ -70,6 +70,13 @@ defmodule OMG.Watcher.SyncSupervisor do
     contracts = OMG.Eth.Configuration.contracts()
 
     [
+      {OMG.RootChainCoordinator,
+       CoordinatorSetup.coordinator_setup(
+         metrics_collection_interval,
+         coordinator_eth_height_check_interval_ms,
+         finality_margin,
+         deposit_finality_margin
+       )},
       {ExitProcessor,
        [
          exit_processor_sla_margin: exit_processor_sla_margin,
@@ -86,13 +93,6 @@ defmodule OMG.Watcher.SyncSupervisor do
         restart: :permanent,
         type: :supervisor
       },
-      {OMG.RootChainCoordinator,
-       CoordinatorSetup.coordinator_setup(
-         metrics_collection_interval,
-         coordinator_eth_height_check_interval_ms,
-         finality_margin,
-         deposit_finality_margin
-       )},
       {EthereumEventAggregator,
        contracts: contracts,
        ets_bucket: events_bucket(),
@@ -109,9 +109,7 @@ defmodule OMG.Watcher.SyncSupervisor do
          [name: :in_flight_exit_input_blocked, enrich: false],
          [name: :in_flight_exit_output_blocked, enrich: false],
          [name: :in_flight_exit_input_withdrawn, enrich: false],
-         [name: :in_flight_exit_output_withdrawn, enrich: false],
-         # blockgetter
-         [name: :block_submitted, enrich: false]
+         [name: :in_flight_exit_output_withdrawn, enrich: false]
        ]},
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,

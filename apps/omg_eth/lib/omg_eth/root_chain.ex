@@ -22,7 +22,7 @@ defmodule OMG.Eth.RootChain do
   """
 
   require Logger
-  import OMG.Eth.Encoding, only: [int_from_hex: 1]
+  import OMG.Eth.Encoding, only: [from_hex: 1, int_from_hex: 1]
 
   alias OMG.Eth
   alias OMG.Eth.Configuration
@@ -51,6 +51,21 @@ defmodule OMG.Eth.RootChain do
 
     {block_hash, block_timestamp}
   end
+
+  @doc """
+  Returns lists of block submissions from Ethereum logs
+  """
+  def get_block_submitted_events(from_height, to_height) do
+    contract = from_hex(Configuration.contracts().plasma_framework)
+    signature = "BlockSubmitted(uint256)"
+    {:ok, logs} = Rpc.get_ethereum_events(from_height, to_height, signature, contract)
+
+    {:ok, Enum.map(logs, &Abi.decode_log(&1))}
+  end
+
+  ##
+  ## these two cannot be parsed with ABI decoder!
+  ##
 
   @doc """
   Returns standard exits data from the contract for a list of `exit_id`s. Calls contract method.
