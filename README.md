@@ -2,7 +2,7 @@
 
 The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
-[![Build Status](https://circleci.com/gh/omisego/elixir-omg.svg?style=svg)](https://circleci.com/gh/omisego/elixir-omg) [![Coverage Status](https://coveralls.io/repos/github/omisego/elixir-omg/badge.svg?branch=master)](https://coveralls.io/github/omisego/elixir-omg?branch=master) [![Gitter chat](https://badges.gitter.im/omisego/elixir-omg.png)](https://gitter.im/omisego/elixir-omg)
+[![Build Status](https://circleci.com/gh/omgnetwork/elixir-omg.svg?style=svg)](https://circleci.com/gh/omgnetwork/elixir-omg) [![Coverage Status](https://coveralls.io/repos/github/omgnetwork/elixir-omg/badge.svg?branch=master)](https://coveralls.io/github/omgnetwork/elixir-omg?branch=master) [![Gitter chat](https://badges.gitter.im/omgnetwork/elixir-omg.png)](https://gitter.im/omgnetwork/elixir-omg)
 
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
 
@@ -22,7 +22,7 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
 <!--te-->
 
 <!-- Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc) -->
-<!-- GH_TOC_TOKEN=75... ./gh-md-toc --insert ../omisego/README.md -->
+<!-- GH_TOC_TOKEN=75... ./gh-md-toc --insert ../omgnetwork/README.md -->
 
 # Getting Started
 
