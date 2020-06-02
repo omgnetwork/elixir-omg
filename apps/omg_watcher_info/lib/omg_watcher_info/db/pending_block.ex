@@ -27,7 +27,7 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
 
   alias OMG.WatcherInfo.DB.Repo
 
-  @type pending_block() :: %{
+  @type t() :: %{
           blknum: pos_integer(),
           data: binary(),
           retry_count: non_neg_integer(),

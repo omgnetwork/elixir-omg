@@ -142,16 +142,16 @@ defmodule OMG.WatcherInfo.DB.Block do
     |> DB.Repo.insert()
   end
 
+  @doc """
+  Takes a pending block, decode its data and inserts its content in the database.
+  """
+  @spec insert_pending_block(PendingBlock.t()) :: {:ok, %__MODULE__{}} | {:error, any()}
   def insert_pending_block(block) do
     block.data
     |> :erlang.binary_to_term()
     |> insert_with_transactions(block)
   end
 
-  @doc """
-  Inserts complete and sorted enumerable of transactions for particular block number
-  """
-  # @spec insert_with_transactions(mined_block()) :: {:ok, %__MODULE__{}}
   defp insert_with_transactions(
          %{
            transactions: transactions,
@@ -192,13 +192,13 @@ defmodule OMG.WatcherInfo.DB.Block do
       {:ok, _} ->
         _ = Logger.info("Block \##{block_number} persisted in WatcherDB, done in #{insert_duration / 1000}ms")
 
-        {:ok, result}
+        result
 
       {:error, name, changeset, explain} ->
         _ = Logger.info("Block \##{block_number} not persisted in WatcherDB, done in #{insert_duration / 1000}ms")
 
         _ = Logger.info("Error in transaction #{name}: #{inspect(changeset.errors)} #{inspect(explain)}")
-        {:error, result}
+        result
     end
   end
 

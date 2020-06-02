@@ -314,7 +314,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     end
   end
 
-  describe "insert_with_transactions/1" do
+  describe "insert_pending_block/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "inserts the block, its transactions and transaction outputs" do
       alice = OMG.TestHelper.generate_entity()
@@ -331,7 +331,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         eth_height: 1
       }
 
-      {:ok, block} = DB.Block.insert_with_transactions(mined_block)
+      pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 1000})
+
+      {:ok, block} = DB.Block.insert_pending_block(pending_block)
 
       assert %DB.Block{} = block["current_block"]
       current_block_hash = block["current_block"].hash
@@ -358,7 +360,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         eth_height: existing.eth_height
       }
 
-      {:error, "current_block", changeset, %{}} = DB.Block.insert_with_transactions(mined_block)
+      pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: existing.blknum})
+
+      {:error, "current_block", changeset, %{}} = DB.Block.insert_pending_block(pending_block)
 
       assert changeset.errors == [
                blknum: {"has already been taken", [constraint: :unique, constraint_name: "blocks_pkey"]}
@@ -391,7 +395,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         eth_height: 1
       }
 
-      {:ok, block} = DB.Block.insert_with_transactions(mined_block)
+      pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 1000})
+
+      {:ok, block} = DB.Block.insert_pending_block(pending_block)
 
       assert %DB.Block{} = block["current_block"]
       current_block_hash = block["current_block"].hash
