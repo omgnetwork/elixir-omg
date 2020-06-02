@@ -44,15 +44,14 @@ defmodule OMG.Watcher.BlockGetter do
   use GenServer
   use OMG.Utils.LoggerExt
   use Spandex.Decorators
-  alias OMG.Eth.RootChain
 
+  alias OMG.Eth.RootChain
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.State
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.BlockGetter.Status
-  alias OMG.Watcher.EthereumEventAggregator
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.HttpRPC.Client
 
@@ -310,8 +309,9 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: :block_getter)
-  defp get_block_submitted_events(block_from, block_to),
-    do: EthereumEventAggregator.block_submitted(block_from, block_to)
+  defp get_block_submitted_events(block_from, block_to) do
+    RootChain.get_block_submitted_events(block_from, block_to)
+  end
 
   defp run_block_download_task(state) do
     next_child = RootChain.next_child_block()

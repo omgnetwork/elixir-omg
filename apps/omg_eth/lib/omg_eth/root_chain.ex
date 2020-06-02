@@ -52,6 +52,17 @@ defmodule OMG.Eth.RootChain do
     {block_hash, block_timestamp}
   end
 
+  @doc """
+  Returns lists of block submissions from Ethereum logs	
+  """
+  def get_block_submitted_events(from_height, to_height) do
+    contract = from_hex(Configuration.contracts().plasma_framework)
+    signature = "BlockSubmitted(uint256)"
+    {:ok, logs} = Rpc.get_ethereum_events(from_height, to_height, signature, contract)
+
+    {:ok, Enum.map(logs, &Abi.decode_log(&1))}
+  end
+
   ##
   ## these two cannot be parsed with ABI decoder!
   ##
