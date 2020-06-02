@@ -59,7 +59,7 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
           :ok
 
         _error ->
-          PendingBlock.update(block, %{retry_count: block.retry_count + 1})
+          PendingBlock.increment_retry_count(block)
       end
 
     {:noreply, %{state | status: :idle}}

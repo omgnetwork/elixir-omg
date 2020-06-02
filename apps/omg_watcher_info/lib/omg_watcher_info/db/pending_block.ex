@@ -57,14 +57,10 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
     |> Repo.insert()
   end
 
-  def update(block, params) do
+  def increment_retry_count(block) do
     block
-    |> update_changeset(params)
+    |> retry_changeset()
     |> Repo.update()
-  end
-
-  def update_changeset(pending_block, params) do
-    cast(pending_block, params, [:status, :retry_count])
   end
 
   @spec get_next_to_process() :: nil | %__MODULE__{}
@@ -79,9 +75,18 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
     |> Enum.at(0)
   end
 
+  def done_changeset(pending_block) do
+    change(pending_block, %{status: @status_done})
+  end
+
   defp insert_changeset(params) do
     %__MODULE__{}
     |> cast(params, [:blknum, :data])
+    |> validate_required([:blknum, :data])
     |> unique_constraint(:blknum, name: :pending_blocks_pkey)
+  end
+
+  defp retry_changeset(pending_block) do
+    change(pending_block, %{retry_count: pending_block.retry_count + 1})
   end
 end

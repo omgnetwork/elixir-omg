@@ -180,11 +180,7 @@ defmodule OMG.WatcherInfo.DB.Block do
       |> prepare_inserts(db_txs_stream, "db_txs_", DB.Transaction)
       |> prepare_inserts(db_outputs_stream, "db_outputs_", DB.TxOutput)
       |> DB.TxOutput.spend_utxos(db_inputs)
-      |> Ecto.Multi.update(
-        "pending_block",
-        PendingBlock.update_changeset(pending_block, %{status: PendingBlock.status_done()}),
-        []
-      )
+      |> Ecto.Multi.update("pending_block", PendingBlock.done_changeset(pending_block), [])
 
     {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
 
