@@ -44,7 +44,7 @@ defmodule OMG.Watcher.MixProject do
       {:omg_bus, in_umbrella: true},
       {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
-      {:omg_db, in_umbrella: true},
+      {:omg_db, in_umbrella: true, runtime: false},
       {:omg_eth, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
 
