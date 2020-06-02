@@ -194,6 +194,7 @@ defmodule OMG.EthereumEventListener.CoreTest do
                @service_name,
                height,
                Configuration.ethereum_events_check_interval_ms(),
+               OMG.DB.Instance.Default,
                request_max_size
              )
 

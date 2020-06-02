@@ -12,40 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
+defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDB do
   @moduledoc """
     Creates an empty instance of OMG DB storage and fills it with the required initial data.
   """
 
+  @app :omg_db
   @start_apps [:logger, :crypto, :ssl]
+
   require Logger
 
-  def run() do
+  def run_multi() do
     _ = on_load()
-    path = Application.get_env(:omg_db, :path)
-    process(path)
-  end
 
-  defp process(path) do
-    _ = Logger.warn("Creating database at #{inspect(path)}")
-    result = init_kv_db(path)
-    Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
+    base_path = Application.fetch_env!(@app, :path)
+    instances = [OMG.DB.Instance.Default, OMG.DB.Instance.ExitProcessor]
+    _ = Logger.info("Creating database at #{inspect(base_path)} with instances #{inspect(instances)}")
+
+    result = OMG.DB.init(base_path, instances)
+
+    _ = on_done()
     result
-  end
-
-  defp init_kv_db(path) do
-    case OMG.DB.init(path) do
-      {:error, term} ->
-        _ = Logger.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
-        {:error, term}
-
-      :ok ->
-        _ = Logger.warn("The database at #{inspect(path)} has been created")
-    end
   end
 
   defp on_load() do
     _ = Enum.each(@start_apps, &Application.ensure_all_started/1)
-    _ = Application.load(:omg_db)
+    _ = Application.load(@app)
+  end
+
+  defp on_done() do
+    _ = Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
   end
 end

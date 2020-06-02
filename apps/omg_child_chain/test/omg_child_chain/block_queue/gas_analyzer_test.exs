@@ -18,6 +18,7 @@ defmodule OMG.ChildChain.BlockQueue.GasAnalyzerTest do
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
 
   setup do
+    _ = Application.ensure_all_started(:logger)
     {:ok, gas_analyzer} = GasAnalyzer.start_link(name: String.to_atom("test-#{:rand.uniform(1000)}"))
     handler_id = {:gas_subbmission_handler, :rand.uniform(100)}
 

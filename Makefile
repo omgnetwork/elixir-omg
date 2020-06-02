@@ -385,7 +385,7 @@ start-child_chain:
 	make build-child_chain-${BAREBUILD_ENV} && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
 	echo "Init Child Chain DB" && \
-	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()"
+	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain eval "OMG.ChildChain.ReleaseTasks.InitKeyValueDB.run()"
 	echo "Run Child Chain" && \
 	. ${OVERRIDING_VARIABLES} && \
 	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
@@ -397,7 +397,7 @@ start-watcher:
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
-	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.Watcher.ReleaseTasks.InitKeyValueDB.run_multi()" && \
 	echo "Run Watcher" && \
 	. ${OVERRIDING_VARIABLES} && \
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
@@ -409,7 +409,7 @@ start-watcher_info:
 	echo "Potential cleanup" && \
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher Info DBs" && \
-	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.Watcher.ReleaseTasks.InitKeyValueDB.run_multi()" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.EthereumTasks.run()" && \
 	echo "Run Watcher Info" && \

@@ -23,6 +23,7 @@ defmodule OMG.DB.RocksDB do
   require Logger
 
   @server_name OMG.DB.RocksDB.Server
+  @instance_name OMG.DB.Instance.Default
 
   @default_genserver_timeout 5000
   @one_minute 60_000
@@ -34,69 +35,58 @@ defmodule OMG.DB.RocksDB do
     @server_name.start_link(args)
   end
 
-  def child_spec() do
-    db_path = Application.fetch_env!(:omg_db, :path)
-    args = [db_path: db_path, name: OMG.DB.RocksDB.Server]
-
+  def child_spec(args) do
     %{
-      id: OMG.DB.RocksDB.Server,
-      start: {OMG.DB.RocksDB.Server, :start_link, [args]},
+      id: args[:name],
+      start: {@server_name, :start_link, [args]},
       type: :worker
     }
   end
 
-  def child_spec([db_path: _db_path, name: server_name] = args) do
-    %{
-      id: server_name,
-      start: {OMG.DB.RocksDB.Server, :start_link, [args]},
-      type: :worker
-    }
-  end
-
-  def multi_update(db_updates, server_name \\ @server_name) do
-    GenServer.call(server_name, {:multi_update, db_updates})
+  def multi_update(db_updates, instance_name \\ @instance_name) do
+    GenServer.call(instance_name, {:multi_update, db_updates})
   end
 
   @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
-  def blocks(blocks_to_fetch, server_name \\ @server_name)
+  def blocks(blocks_to_fetch, instance_name \\ @instance_name)
 
-  def blocks([], _server_name), do: {:ok, []}
+  def blocks([], _instance_name), do: {:ok, []}
 
-  def blocks(blocks_to_fetch, server_name) do
-    GenServer.call(server_name, {:blocks, blocks_to_fetch})
+  def blocks(blocks_to_fetch, instance_name) do
+    GenServer.call(instance_name, {:blocks, blocks_to_fetch})
   end
 
-  def utxos(server_name \\ @server_name) do
+  def utxos(instance_name \\ @instance_name) do
     _ = Logger.info("Reading UTXO set, this might take a while. Allowing #{inspect(@ten_minutes)} ms")
-    GenServer.call(server_name, :utxos, @ten_minutes)
+    GenServer.call(instance_name, :utxos, @ten_minutes)
   end
 
-  def utxo(utxo_pos, server_name \\ @server_name) do
-    GenServer.call(server_name, {:utxo, utxo_pos})
+  def utxo(utxo_pos, instance_name \\ @instance_name) do
+    GenServer.call(instance_name, {:utxo, utxo_pos})
   end
 
-  def competitors_info(server_name \\ @server_name) do
+  def competitors_info(instance_name \\ @instance_name) do
     _ = Logger.info("Reading competitors' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
-    GenServer.call(server_name, :competitors_info, @one_minute)
+    GenServer.call(instance_name, :competitors_info, @one_minute)
   end
 
-  def spent_blknum(utxo_pos, server_name \\ @server_name) do
-    GenServer.call(server_name, {:spent_blknum, utxo_pos})
+  def spent_blknum(utxo_pos, instance_name \\ @instance_name) do
+    GenServer.call(instance_name, {:spent_blknum, utxo_pos})
   end
 
-  def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
-    GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
+  def block_hashes(block_numbers_to_fetch, instance_name \\ @instance_name) do
+    GenServer.call(instance_name, {:block_hashes, block_numbers_to_fetch})
   end
 
-  def child_top_block_number(server_name \\ @server_name) do
-    GenServer.call(server_name, :child_top_block_number)
+  def child_top_block_number(instance_name \\ @instance_name) do
+    GenServer.call(instance_name, :child_top_block_number)
   end
 
   # Note: *_eth_height values below denote actual Ethereum height service has processed.
   # It might differ from "latest" Ethereum block.
 
-  def get_single_value(parameter_name, server_name \\ @server_name) do
-    GenServer.call(server_name, {:get_single_value, parameter_name})
+  def get_single_value(parameter_name, instance_name \\ @instance_name) do
+    GenServer.call(instance_name, {:get_single_value, parameter_name})
   end
 
   @doc """
@@ -104,11 +94,11 @@ defmodule OMG.DB.RocksDB do
 
   optional args includes:
   1. timeout (in ms). Defaults to 5000 which is the same default value of Genserver.
-  2. server (type in Genserver.server()). Defaults to OMG.DB.RocksDB.Server.
+  2. instance (atom specifying db instance). Defaults to OMG.DB.Instance.Default
   """
   def batch_get(type, specific_keys, opts \\ []) do
     timeout = opts[:timeout] || @default_genserver_timeout
-    server = opts[:server] || @server_name
+    instance = opts[:instance] || @instance_name
 
     _ =
       Logger.info(
@@ -116,7 +106,7 @@ defmodule OMG.DB.RocksDB do
           " Allowing #{inspect(timeout)} ms"
       )
 
-    GenServer.call(server, {:get, type, specific_keys}, timeout)
+    GenServer.call(instance, {:get, type, specific_keys}, timeout)
   end
 
   @doc """
@@ -124,54 +114,48 @@ defmodule OMG.DB.RocksDB do
 
   optional args includes:
   1. timeout (in ms). Defaults to 5000 which is the same default value of Genserver.
-  2. server (type in Genserver.server()). Defaults to OMG.DB.RocksDB.Server.
+  2. instance (atom specifying db instance). Defaults to OMG.DB.Instance.Default
   """
   def get_all_by_type(type, opts \\ []) do
     timeout = opts[:timeout] || @default_genserver_timeout
-    server = opts[:server] || @server_name
+    instance = opts[:instance] || @instance_name
 
     _ =
       Logger.info(
         "Reading all data for type #{inspect(type)}, this might take a while. Allowing #{inspect(timeout)} ms"
       )
 
-    GenServer.call(server, {:get_all_by_type, type}, timeout)
+    GenServer.call(instance, {:get_all_by_type, type}, timeout)
   end
 
-  def initiation_multiupdate(server_name \\ @server_name) do
+  def initiation_multiupdate(instance_name \\ @instance_name) do
     # setting a number of markers to zeroes
     DB.single_value_parameter_names()
     |> Enum.map(&{:put, &1, 0})
-    |> multi_update(server_name)
+    |> multi_update(instance_name)
   end
 
   @doc """
   Does all of the initialization of `OMG.DB` based on the configured path
   """
-  def init(), do: do_init(@server_name, Application.fetch_env!(:omg_db, :path))
-
   def init(path) when is_binary(path) do
-    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
-    do_init(@server_name, path)
+    do_init(@instance_name, path)
   end
 
-  def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :path))
-  def init(server_name, path), do: do_init(server_name, path)
+  def init(instance_name, path), do: do_init(instance_name, path)
 
   # File.mkdir_p is called at the application start
   # sobelow_skip ["Traversal"]
-  defp do_init(server_name, path) do
+  defp do_init(instance_name, path) do
     :ok = File.mkdir_p(path)
 
-    with :ok <- server_name.init_storage(path),
-         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
-         :ok <- initiation_multiupdate(server_name) do
-      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
-
-      :ok
+    with :ok <- @server_name.init_storage(path),
+         {:ok, _pid} = @server_name.start_link(name: instance_name, db_path: path),
+         :ok <- initiation_multiupdate(instance_name) do
+      GenServer.stop(instance_name)
     else
       error ->
-        _ = Logger.error("Unable to init: #{inspect(error)}")
+        _ = Logger.error("Could not initialize the DB in #{inspect(path)}. Reason #{inspect(error)}")
         error
     end
   end

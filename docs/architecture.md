@@ -66,6 +66,7 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 - used only in Watcher
 - validates exits
 - spends finalizing exits in `OMG.State`
+- uses separate key-value database instance
 
 ### `OMG.WatcherRPC`
 

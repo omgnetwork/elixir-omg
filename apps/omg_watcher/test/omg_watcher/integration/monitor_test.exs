@@ -24,6 +24,7 @@ defmodule OMG.Watcher.MonitorTest do
   use ExUnit.Case, async: true
 
   setup_all do
+    _ = Application.ensure_all_started(:logger)
     {:ok, apps} = Application.ensure_all_started(:omg_status)
 
     on_exit(fn ->

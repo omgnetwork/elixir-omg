@@ -35,6 +35,7 @@ defmodule OMG.Watcher.Supervisor do
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
 
     children = [
+      OMG.DB.child_spec(db_path: Application.fetch_env!(:omg_db, :path), instance: OMG.DB.Instance.ExitProcessor),
       {Monitor,
        [
          Alarm,

@@ -20,8 +20,7 @@ defmodule OMG.Eth.ApplicationTest do
 
   setup do
     db_path = Briefly.create!(directory: true)
-    Application.put_env(:omg_db, :path, db_path, persistent: true)
-    :ok = DB.init()
+    :ok = DB.init(db_path)
     {:ok, apps} = Application.ensure_all_started(:omg_eth)
 
     on_exit(fn ->

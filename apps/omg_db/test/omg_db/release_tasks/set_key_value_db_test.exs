@@ -30,14 +30,14 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
   end
 
   test "if environment variables get applied in the configuration" do
-    test_path = "/tmp/YOLO/"
+    test_path = "/tmp/YOLO"
     release = :watcher_info
     :ok = System.put_env("DB_PATH", test_path)
 
     capture_log(fn ->
       config = SetKeyValueDB.load([], release: release)
       path = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:path)
-      assert path == test_path <> "#{release}"
+      assert path == "#{test_path}/#{release}"
     end)
   end
 

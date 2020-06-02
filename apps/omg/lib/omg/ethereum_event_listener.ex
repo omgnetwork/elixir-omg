@@ -52,7 +52,8 @@ defmodule OMG.EthereumEventListener do
           # maps a pair denoting eth height range to a list of ethereum events
           get_events_callback: (non_neg_integer, non_neg_integer -> {:ok, [map]}),
           # maps a list of ethereum events to a list of `db_updates` to send to `OMG.DB`
-          process_events_callback: ([any] -> {:ok, [tuple]})
+          process_events_callback: ([any] -> {:ok, [tuple]}),
+          db_instance_name: atom()
         }
 
   ### Client
@@ -97,17 +98,24 @@ defmodule OMG.EthereumEventListener do
           process_events_callback: process_events_callback,
           metrics_collection_interval: metrics_collection_interval,
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms
-        }
+        } = opts
       ) do
     _ = Logger.info("Starting #{inspect(__MODULE__)} for #{service_name}.")
 
-    {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
+    db_instance_name = Map.get(opts, :db_instance_name, OMG.DB.Instance.Default)
+    {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key, db_instance_name)
 
     # we don't need to ever look at earlier than contract deployment
     last_event_block_height = max(last_event_block_height, contract_deployment_height)
 
     {initial_state, height_to_check_in} =
-      Core.init(update_key, service_name, last_event_block_height, ethereum_events_check_interval_ms)
+      Core.init(
+        update_key,
+        service_name,
+        last_event_block_height,
+        ethereum_events_check_interval_ms,
+        db_instance_name
+      )
 
     callbacks = %{
       get_ethereum_events_callback: get_events_callback,
@@ -169,7 +177,7 @@ defmodule OMG.EthereumEventListener do
 
     {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
     :ok = publish_events(events)
-    :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
+    :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback, state.db_instance_name)
     :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
 
     new_state

@@ -26,11 +26,11 @@ defmodule OMG.Watcher.API.AccountTest do
 
   setup do
     db_path = Briefly.create!(directory: true)
-    Application.put_env(:omg_db, :path, db_path, persistent: true)
 
-    :ok = OMG.DB.init(db_path)
+    :ok = OMG.DB.init(db_path, [OMG.DB.Instance.Default, OMG.DB.Instance.ExitProcessor])
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+    {:ok, _} = OMG.DB.start_link(db_path: db_path, instance: OMG.DB.Instance.ExitProcessor)
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
@@ -100,22 +100,29 @@ defmodule OMG.Watcher.API.AccountTest do
                output: %{amount: amount, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
                creating_txhash: nil
              }
-           }},
-          {:put, :exit_info,
-           {
-             Utxo.Position.to_db_key(utxo_position),
-             %{
-               amount: amount,
-               currency: @eth,
-               owner: alice.addr,
-               is_active: true,
-               exit_id: 1,
-               exiting_txbytes: <<0>>,
-               eth_height: 1,
-               root_chain_txhash: nil
-             }
            }}
         ])
+
+      _ =
+        OMG.DB.multi_update(
+          [
+            {:put, :exit_info,
+             {
+               Utxo.Position.to_db_key(utxo_position),
+               %{
+                 amount: amount,
+                 currency: @eth,
+                 owner: alice.addr,
+                 is_active: true,
+                 exit_id: 1,
+                 exiting_txbytes: <<0>>,
+                 eth_height: 1,
+                 root_chain_txhash: nil
+               }
+             }}
+          ],
+          OMG.DB.Instance.ExitProcessor
+        )
 
       assert [] == Account.get_exitable_utxos(alice.addr)
     end

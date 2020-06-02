@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
+defmodule OMG.ChildChain.ReleaseTasks.InitKeyValueDBTest do
   use ExUnit.Case, async: true
 
-  alias OMG.DB.ReleaseTasks.InitKeyValueDB
+  alias OMG.ChildChain.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
 
-  @apps [:logger, :crypto, :ssl]
+  @apps [:crypto, :ssl]
 
   setup_all do
     _ = Enum.each(@apps, &Application.ensure_all_started/1)
@@ -39,7 +39,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
     :ok = InitKeyValueDB.run()
 
     started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
-    [true, true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
+    [true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
     {:ok, _} = Application.ensure_all_started(:omg_db)
     :ok = Application.stop(:omg_db)
     :ok = System.delete_env("DB_PATH")

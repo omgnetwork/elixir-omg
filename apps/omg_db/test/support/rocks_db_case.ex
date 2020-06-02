@@ -20,11 +20,11 @@ defmodule OMG.DB.RocksDBCase do
   """
 
   use ExUnit.CaseTemplate
-  alias OMG.DB.RocksDB.Server
 
   setup %{test: test_name} do
     {:ok, dir} = Briefly.create(directory: true)
-    :ok = Server.init_storage(dir)
+    # Server.init_storage(dir)
+    :ok = OMG.DB.init(dir)
     name = :"TestDB_#{test_name}"
     {:ok, pid} = start_supervised(OMG.DB.child_spec(db_path: dir, name: name), restart: :temporary)
     {:ok, %{db_dir: dir, db_pid: pid, db_pid_name: name}}

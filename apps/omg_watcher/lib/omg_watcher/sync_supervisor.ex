@@ -164,6 +164,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :exit_processor,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_exit_processor_eth_height,
           get_events_callback: &EthereumEventAggregator.exit_started/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.new_exits/1
@@ -173,6 +174,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :exit_finalizer,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_exit_finalizer_eth_height,
           get_events_callback: &EthereumEventAggregator.exit_finalized/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.finalize_exits/1
@@ -182,6 +184,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :exit_challenger,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_exit_challenger_eth_height,
           get_events_callback: &EthereumEventAggregator.exit_challenged/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.challenge_exits/1
@@ -191,6 +194,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :in_flight_exit_processor,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_in_flight_exit_processor_eth_height,
           get_events_callback: &EthereumEventAggregator.in_flight_exit_started/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.new_in_flight_exits/1
@@ -200,6 +204,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :piggyback_processor,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_piggyback_processor_eth_height,
           get_events_callback: &EthereumEventAggregator.in_flight_exit_piggybacked/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.piggyback_exits/1
@@ -209,6 +214,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :competitor_processor,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_competitor_processor_eth_height,
           get_events_callback: &EthereumEventAggregator.in_flight_exit_challenged/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.new_ife_challenges/1
@@ -218,6 +224,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :challenges_responds_processor,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_challenges_responds_processor_eth_height,
           get_events_callback: &EthereumEventAggregator.in_flight_exit_challenge_responded/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.respond_to_in_flight_exits_challenges/1
@@ -227,6 +234,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :piggyback_challenges_processor,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
           get_events_callback: &EthereumEventAggregator.in_flight_exit_blocked/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.challenge_piggybacks/1
@@ -236,6 +244,7 @@ defmodule OMG.Watcher.SyncSupervisor do
           ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
           contract_deployment_height: contract_deployment_height,
           service_name: :ife_exit_finalizer,
+          db_instance_name: OMG.DB.Instance.ExitProcessor,
           synced_height_update_key: :last_ife_exit_finalizer_eth_height,
           get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
           process_events_callback: &Watcher.ExitProcessorDispatcher.finalize_in_flight_exits/1

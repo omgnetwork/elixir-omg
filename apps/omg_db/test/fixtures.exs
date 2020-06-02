@@ -20,7 +20,6 @@ defmodule OMG.DB.Fixtures do
 
   deffixture db_initialized do
     db_path = Briefly.create!(directory: true)
-    Application.put_env(:omg_db, :path, db_path, persistent: true)
 
     :ok = OMG.DB.init(db_path)
 
@@ -33,6 +32,18 @@ defmodule OMG.DB.Fixtures do
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
+
+    :ok
+  end
+
+  deffixture db_initialize_multi(db_initialized) do
+    :ok = db_initialized
+
+    db_path = Application.fetch_env!(:omg_db, :path)
+    instance = OMG.DB.Instance.ExitProcessor
+    :ok = OMG.DB.init(db_path, [instance])
+
+    {:ok, _} = OMG.DB.start_link(db_path: db_path, instance: instance)
 
     :ok
   end

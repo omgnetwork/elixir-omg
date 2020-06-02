@@ -111,12 +111,12 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   end
 
   describe "standard_exitable" do
-    @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :carol]
+    @tag fixtures: [:phoenix_ecto_sandbox, :db_initialize_multi, :carol]
     test "no utxos are returned for non-existing addresses", %{carol: carol} do
       assert [] == WatcherHelper.get_exitable_utxos(carol.addr)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :alice, :bob]
+    @tag fixtures: [:phoenix_ecto_sandbox, :db_initialize_multi, :alice, :bob]
     test "get_utxos and get_exitable_utxos have the same return values", %{alice: alice, bob: bob} do
       DB.EthEvent.insert_deposits!([
         %{

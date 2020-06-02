@@ -156,6 +156,10 @@ defmodule OMG.Watcher.Fixtures do
 
   deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized
+
+    db_path = Application.fetch_env!(:omg_db, :path)
+    :ok = OMG.DB.init(db_path, [OMG.DB.Instance.ExitProcessor])
+
     _ = contract
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
