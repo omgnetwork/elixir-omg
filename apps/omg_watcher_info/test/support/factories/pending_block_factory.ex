@@ -18,21 +18,30 @@ defmodule OMG.WatcherInfo.Factory.PendingBlock do
 
     Generates a pending block that will need to be processed and inserted to the database.
   """
+
   defmacro __using__(_opts) do
     quote do
       alias OMG.WatcherInfo.DB
+      alias OMG.TestHelper
+
+      @eth OMG.Eth.zero_address()
 
       def pending_block_factory() do
-        blknum = sequence(:block_blknum, fn seq -> seq * 1000 end)
+        blknum = sequence(:block_blknum, fn seq -> (seq + 1) * 1000 end)
+        alice = TestHelper.generate_entity()
+        bob = TestHelper.generate_entity()
+
+        tx_1 = TestHelper.create_recovered([{blknum + 1, 0, 0, alice}], @eth, [{bob, 300}])
+        tx_2 = TestHelper.create_recovered([{blknum + 1, 0, 0, alice}], @eth, [{bob, 500}])
 
         block = %DB.PendingBlock{
           data:
             :erlang.term_to_binary(%{
               blknum: blknum,
-              hash: insecure_random_bytes(32),
-              eth_height: sequence(:block_eth_height, fn seq -> seq end),
-              timestamp: sequence(:block_timestamp, fn seq -> seq end),
-              transactions: [],
+              blkhash: insecure_random_bytes(32),
+              eth_height: sequence(:block_eth_height, fn seq -> seq + 1 end),
+              timestamp: sequence(:block_timestamp, fn seq -> seq + 1 end),
+              transactions: [tx_1, tx_2],
               tx_count: 0
             }),
           blknum: blknum,

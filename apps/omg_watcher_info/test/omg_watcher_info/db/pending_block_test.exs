@@ -13,11 +13,17 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.DB.PendingBlockTest do
-  use OMG.WatcherInfo.DBCase, async: true
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
+  use OMG.Fixtures
 
+  import OMG.WatcherInfo.Factory
+
+  alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.PendingBlock
 
   describe "insert/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "casts blknum and data" do
       data = :erlang.term_to_binary(%{something: :nice})
       assert {:ok, block} = PendingBlock.insert(%{data: data, blknum: 1000, bad_key: :value})
@@ -25,15 +31,18 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
       assert %PendingBlock{blknum: 1000, data: data} = block
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "default status to pending and retry count to 0" do
       assert {:ok, %{retry_count: 0, status: "pending"}} = PendingBlock.insert(%{data: <<0>>, blknum: 1000})
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "does not cast retry count and status" do
       assert {:ok, %{retry_count: 0, status: "pending"}} =
                PendingBlock.insert(%{data: <<0>>, blknum: 1000, status: "1337", retry_count: 1337})
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns an error if blknum is already used" do
       blknum = 1000
       insert(:pending_block, %{data: <<0>>, blknum: blknum})
@@ -43,11 +52,13 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
   end
 
   describe "increment_retry_count/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "increment the retry counter" do
       %{retry_count: 0} = pending_block = insert(:pending_block)
       assert {:ok, %{retry_count: 1}} = PendingBlock.increment_retry_count(pending_block)
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "does not modify other keys" do
       pending_block = insert(:pending_block)
       {:ok, updated_block} = PendingBlock.increment_retry_count(pending_block)
@@ -60,6 +71,7 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
   end
 
   describe "get_next_to_process/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns the next pending block" do
       b_1 = insert(:pending_block)
       b_2 = insert(:pending_block)
@@ -70,6 +82,7 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
       assert PendingBlock.get_next_to_process() == b_2
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns nil if no block to process" do
       assert PendingBlock.get_next_to_process() == nil
 
@@ -81,6 +94,7 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
   end
 
   describe "done_changeset/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns changeset with status done" do
       b_1 = insert(:pending_block)
 

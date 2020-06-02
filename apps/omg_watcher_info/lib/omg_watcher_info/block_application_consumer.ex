@@ -22,21 +22,24 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumer do
 
   alias OMG.WatcherInfo.DB
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  @default_bus_module OMG.Bus
+
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(:ok) do
+  def init(args) do
     _ = Logger.info("Started #{inspect(__MODULE__)}")
 
-    :ok = OMG.Bus.subscribe({:child_chain, "block.get"}, link: true)
+    bus_module = Keyword.get(args, :bus_module, @default_bus_module)
+    :ok = bus_module.subscribe({:child_chain, "block.get"}, link: true)
 
     {:ok, %{}}
   end
 
   # Listens for blocks and insert them to the WatcherDB.
   def handle_info({:internal_event_bus, :block_received, block_application}, state) do
-    _ =
+    {:ok, _} =
       block_application
       |> to_pending_block()
       |> DB.PendingBlock.insert()

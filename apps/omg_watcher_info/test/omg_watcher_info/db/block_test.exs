@@ -13,16 +13,21 @@
 # limitations under the License.
 
 defmodule OMG.WatcherInfo.DB.BlockTest do
-  use OMG.WatcherInfo.DBCase, async: true
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
+  use OMG.Fixtures
 
+  import OMG.WatcherInfo.Factory
   import Ecto.Query, only: [from: 2]
 
   alias OMG.Utils.Paginator
+  alias OMG.WatcherInfo.DB
 
   @eth OMG.Eth.zero_address()
   @seconds_in_twenty_four_hours 86_400
 
   describe "base_query" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "can be used to retrieve all blocks" do
       _ = insert(:block, blknum: 1000, hash: <<1000>>, eth_height: 1, timestamp: 100)
       _ = insert(:block, blknum: 2000, hash: <<2000>>, eth_height: 2, timestamp: 200)
@@ -34,6 +39,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert Enum.all?(result, fn block -> %DB.Block{} = block end)
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "can be used with a 'where' query expression to retrieve a specific block" do
       _ = insert(:block, blknum: 1000, hash: <<1000>>, eth_height: 1, timestamp: 100)
       _ = insert(:block, blknum: 2000, hash: <<2000>>, eth_height: 2, timestamp: 200)
@@ -53,6 +59,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert result.blknum == target_blknum
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "includes the transaction count corresponding to a block" do
       block = insert(:block)
       _ = insert(:transaction, block: block, txindex: 0)
@@ -69,6 +76,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "get/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves a block by block number" do
       blknum = 1000
       _ = insert(:block, blknum: blknum, hash: "0x#{blknum}", eth_height: 1, timestamp: 100)
@@ -77,6 +85,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert block.blknum == blknum
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count if block contains transactions" do
       blknum = 1000
 
@@ -89,6 +98,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert result.tx_count == 2
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a tx_count of zero if block has no transactions" do
       blknum = 1000
       _ = insert(:block, blknum: blknum, hash: "0x#{blknum}", eth_height: 1, timestamp: 100)
@@ -100,10 +110,12 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "get_max_blknum/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "last consumed block is not set in empty database" do
       assert nil == DB.Block.get_max_blknum()
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "last consumed block returns correct block number" do
       _ = insert(:block, blknum: 1000, hash: <<1000>>, eth_height: 1, timestamp: 100)
       _ = insert(:block, blknum: 2000, hash: <<2000>>, eth_height: 2, timestamp: 200)
@@ -114,6 +126,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "get_blocks/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a list of blocks" do
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
       _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
@@ -133,6 +146,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert Enum.all?(results.data, fn block -> %DB.Block{} = block end)
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a list of blocks sorted by descending blknum" do
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
       _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
@@ -154,6 +168,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert results.data |> Enum.at(2) |> Map.get(:blknum) == 1000
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns an empty list when given limit: 0" do
       paginator = %Paginator{
         data: [],
@@ -168,6 +183,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert results.data == []
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct transaction count if block contains transactions" do
       block = insert(:block, blknum: 1000)
       _ = insert(:transaction, block: block, txindex: 0)
@@ -190,6 +206,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert tx_count == 2
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a tx_count of zero if block has no transactions" do
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
 
@@ -212,6 +229,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "count_all/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct number of blocks" do
       _ = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
       _ = insert(:block, blknum: 2000, hash: "0x2000", eth_height: 2, timestamp: 200)
@@ -224,6 +242,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "count_all_between_timestamps/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if blocks have been produced between the two given timestamps" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
@@ -237,6 +256,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert block_count == 2
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns correct count if no blocks have been produced between the two given timestamps" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
@@ -252,6 +272,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "get_timestamp_range_all/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves the timestamps of the earliest and latest block of all time correctly" do
       earliest_datetime = 100
 
@@ -272,6 +293,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "get_timestamp_range_between/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "retrieves the timestamps of the earliest and latest block within a given time range correctly" do
       end_datetime = DateTime.to_unix(DateTime.utc_now())
       start_datetime = end_datetime - @seconds_in_twenty_four_hours
@@ -293,6 +315,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   end
 
   describe "insert_pending_block/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "inserts the block, its transactions and transaction outputs" do
       alice = OMG.TestHelper.generate_entity()
       bob = OMG.TestHelper.generate_entity()
@@ -320,6 +343,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
       assert DB.Repo.get(DB.Transaction, tx_2.tx_hash)
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns an error when inserting with an existing blknum" do
       existing = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
       alice = OMG.TestHelper.generate_entity()
@@ -345,6 +369,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
              ]
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     @tag :watcher_info
     @tag timeout: :infinity
     test "full block test" do

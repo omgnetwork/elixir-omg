@@ -33,26 +33,25 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
 
   def init(args) do
     interval = Keyword.fetch!(args, :processing_interval)
-
-    {:ok, processing_timer} = :timer.send_interval(interval, self(), :check_queue)
-
+    t_ref = Process.send_after(self(), :check_queue, interval)
     _ = Logger.info("Started #{inspect(__MODULE__)}")
-    {:ok, %{processing_timer: processing_timer, status: :idle}}
+    {:ok, %{interval: interval, timer: t_ref}}
   end
-
-  def handle_info(:check_queue, %{status: :processing} = state), do: {:noreply, state}
 
   def handle_info(:check_queue, state) do
     case PendingBlock.get_next_to_process() do
       nil ->
-        {:noreply, state}
+        :ok
 
       block ->
-        {:noreply, %{state | status: :processing}, {:continue, {:process_block, block}}}
+        process_block(block)
     end
+
+    t_ref = Process.send_after(self(), :check_queue, state.interval)
+    {:noreply, %{state | timer: t_ref}}
   end
 
-  def handle_continue({:process_block, block}, state) do
+  def process_block(block) do
     _ =
       case try_insert_block(block) do
         {:ok, _} ->
@@ -61,8 +60,6 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
         _error ->
           PendingBlock.increment_retry_count(block)
       end
-
-    {:noreply, %{state | status: :idle}}
   end
 
   defp try_insert_block(block) do

@@ -1,0 +1,97 @@
+# Copyright 2019-2020 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
+
+  alias OMG.TestHelper
+  alias OMG.Watcher.BlockGetter.BlockApplication
+  alias OMG.WatcherInfo.BlockApplicationConsumer
+  alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.DB.PendingBlock
+
+  @eth OMG.Eth.zero_address()
+
+  setup_all do
+    {:ok, _pid} =
+      GenServer.start_link(
+        BlockApplicationConsumer,
+        [bus_module: __MODULE__.FakeBus],
+        name: TestBlockApplicationConsumer
+      )
+
+    _ =
+      on_exit(fn ->
+        with pid when is_pid(pid) <- GenServer.whereis(TestBlockApplicationConsumer) do
+          :ok = GenServer.stop(TestBlockApplicationConsumer)
+        end
+      end)
+  end
+
+  describe "handle_info/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "inserts the given block application into pending block" do
+      alice = TestHelper.generate_entity()
+      bob = TestHelper.generate_entity()
+
+      tx_1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+
+      block_application = %BlockApplication{
+        number: 1_000,
+        eth_height: 1,
+        eth_height_done: true,
+        hash: "0x1000",
+        transactions: [tx_1, tx_2],
+        timestamp: 1_576_500_000
+      }
+
+      send_events_and_wait_until_processed(block_application)
+
+      assert_consumer_alive()
+
+      expected_data =
+        :erlang.term_to_binary(%{
+          eth_height: block_application.eth_height,
+          blknum: block_application.number,
+          blkhash: block_application.hash,
+          timestamp: block_application.timestamp,
+          transactions: block_application.transactions
+        })
+
+      assert [%PendingBlock{blknum: 1000, data: ^expected_data, retry_count: 0, status: "pending"}] =
+               DB.Repo.all(PendingBlock)
+    end
+  end
+
+  defp send_events_and_wait_until_processed(block) do
+    pid = assert_consumer_alive()
+
+    Process.send(pid, {:internal_event_bus, :block_received, block}, [:noconnect])
+
+    # this waits for all messages in process inbox is processed
+    _ = :sys.get_state(pid)
+  end
+
+  defp assert_consumer_alive() do
+    pid = GenServer.whereis(TestBlockApplicationConsumer)
+    assert is_pid(pid) and Process.alive?(pid)
+    pid
+  end
+
+  defmodule FakeBus do
+    def subscribe(_topic, _args), do: :ok
+  end
+end

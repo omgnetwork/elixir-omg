@@ -146,22 +146,15 @@ defmodule OMG.WatcherInfo.DB.Block do
   Takes a pending block, decode its data and inserts its content in the database.
   """
   @spec insert_pending_block(PendingBlock.t()) :: {:ok, %__MODULE__{}} | {:error, any()}
-  def insert_pending_block(block) do
-    block.data
-    |> :erlang.binary_to_term()
-    |> insert_with_transactions(block)
-  end
+  def insert_pending_block(pending_block) do
+    %{
+      transactions: transactions,
+      blknum: block_number,
+      blkhash: blkhash,
+      timestamp: timestamp,
+      eth_height: eth_height
+    } = :erlang.binary_to_term(pending_block.data)
 
-  defp insert_with_transactions(
-         %{
-           transactions: transactions,
-           blknum: block_number,
-           blkhash: blkhash,
-           timestamp: timestamp,
-           eth_height: eth_height
-         },
-         pending_block
-       ) do
     {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, block_number)
 
     current_block = %{
