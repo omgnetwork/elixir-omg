@@ -1,4 +1,4 @@
-<img src="docs/assets/logo.png" width="50" height="50" align="center" />
+<img src="docs/assets/logo.png" width="100" height="100" align="right" />
 
 The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
