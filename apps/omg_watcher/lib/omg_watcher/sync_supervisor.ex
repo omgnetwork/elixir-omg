@@ -47,10 +47,10 @@ defmodule OMG.Watcher.SyncSupervisor do
   end
 
   def init(args) do
-    # Assuming the values max_restarts and max_seconds, 
-    # then, if more than max_restarts restarts occur within max_seconds seconds, 
-    # the supervisor terminates all child processes and then itself. 
-    # The termination reason for the supervisor itself in that case will be shutdown. 
+    # Assuming the values max_restarts and max_seconds,
+    # then, if more than max_restarts restarts occur within max_seconds seconds,
+    # the supervisor terminates all child processes and then itself.
+    # The termination reason for the supervisor itself in that case will be shutdown.
     # max_restarts defaults to 3 and max_seconds defaults to 5.
 
     # We have 16 children, roughly 14 of them have a dependency to the internetz.
