@@ -86,9 +86,10 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
       case reversed_exit_games[event["address"]] do
         nil ->
           exit_games_with_events
-         tx_type ->
-            current_events = exit_games_with_events[event["address"]] || []
-            Map.put(exit_games_with_events, tx_type, [event | current_events])
+
+        tx_type ->
+          current_events = exit_games_with_events[event["address"]] || []
+          Map.put(exit_games_with_events, tx_type, [event | current_events])
       end
     end)
   end

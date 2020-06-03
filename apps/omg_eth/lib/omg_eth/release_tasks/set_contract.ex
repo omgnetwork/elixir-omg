@@ -101,10 +101,9 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     exit_games =
       Enum.into(OMG.WireFormatTypes.exit_game_tx_types(), %{}, fn type ->
         {type,
-          plasma_framework
-          |> exit_game_contract_address(OMG.WireFormatTypes.tx_type_for(type), rpc_api)
-          |> Encoding.to_hex()
-        }
+         plasma_framework
+         |> exit_game_contract_address(OMG.WireFormatTypes.tx_type_for(type), rpc_api)
+         |> Encoding.to_hex()}
       end)
 
     eth_vault = plasma_framework |> get_vault(@ether_vault_id, rpc_api) |> Encoding.to_hex()
