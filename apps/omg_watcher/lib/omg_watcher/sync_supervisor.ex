@@ -47,7 +47,19 @@ defmodule OMG.Watcher.SyncSupervisor do
   end
 
   def init(args) do
-    opts = [strategy: :one_for_one]
+    # Assuming the values max_restarts and max_seconds,
+    # then, if more than max_restarts restarts occur within max_seconds seconds,
+    # the supervisor terminates all child processes and then itself.
+    # The termination reason for the supervisor itself in that case will be shutdown.
+    # max_restarts defaults to 3 and max_seconds defaults to 5.
+
+    # We have 16 children, roughly 14 of them have a dependency to the internetz.
+    # The internetz is flaky. We account for that and allow the flakyness to pass
+    # by increasing the restart strategy. But not too much, because if the internetz is
+    # really off, HeightMonitor should catch that in max 8 seconds and raise an alarm.
+    max_restarts = 3
+    max_seconds = 5
+    opts = [strategy: :one_for_one, max_restarts: max_restarts * 10, max_seconds: max_seconds * 2]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = Storage.ensure_ets_init(status_cache())
