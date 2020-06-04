@@ -55,11 +55,14 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
   end
 
   defp dispatch(event_name, events) do
-    Enum.each(filter_events(events), fn {transaction_type, events} ->
-      # We reverse the events since we're getting them back
-      # in the wrong order from the filter_events() function
-      GenServer.call(transaction_type, {event_name, Enum.reverse(events)})
-    end)
+    db_updates =
+      Enum.flat_map(filter_events(events), fn {transaction_type, events} ->
+        # We reverse the events since we're getting them back
+        # in the wrong order from the filter_events() function
+        GenServer.call(transaction_type, {event_name, Enum.reverse(events)})
+      end)
+
+    {:ok, db_updates}
   end
 
   # This function filters the events into a map of the following format:
