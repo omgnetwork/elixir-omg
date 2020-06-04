@@ -18,16 +18,13 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
 
   import OMG.WatcherInfo.Factory
 
-  alias OMG.TestHelper
-  alias OMG.Watcher.BlockGetter.BlockApplication
-  alias OMG.WatcherInfo.PendingBlockProcessor
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.PendingBlock
+  alias OMG.WatcherInfo.PendingBlockProcessor
 
-  @eth OMG.Eth.zero_address()
   @interval 500
 
-  setup_all do
+  setup_all tags do
     {:ok, pid} =
       GenServer.start_link(
         PendingBlockProcessor,
@@ -35,36 +32,73 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
         name: TestPendingBlockProcessor
       )
 
-    # Cancelling timer so it doesn't interfere with our tests
-    %{timer: t_ref} = :sys.get_state(pid)
-    _ = Process.cancel_timer(t_ref)
-
     _ =
       on_exit(fn ->
         with pid when is_pid(pid) <- GenServer.whereis(TestPendingBlockProcessor) do
           :ok = GenServer.stop(TestPendingBlockProcessor)
         end
       end)
+
+    Map.put(tags, :pid, pid)
+  end
+
+  setup tags do
+    # Cancelling timer so it doesn't interfere with our tests
+    %{timer: t_ref} = :sys.get_state(tags.pid)
+    _ = Process.cancel_timer(t_ref)
+    tags
   end
 
   describe "handle_info/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "process next pending block in queue" do
+    test "processes the next pending block in queue" do
       %{timer: tref} = get_state()
       assert Process.read_timer(tref) == false
 
       %{blknum: blknum} = insert(:pending_block)
 
-      assert [%{status: "pending", blknum: ^blknum}] = DB.Repo.all(DB.PendingBlock)
+      assert [%{status: "pending", blknum: ^blknum}] = DB.Repo.all(PendingBlock)
       assert [] = DB.Repo.all(DB.Block)
 
       perform_timer_action()
 
-      assert [%{status: "done", blknum: ^blknum}] = DB.Repo.all(DB.PendingBlock)
+      assert [%{status: "done", blknum: ^blknum}] = DB.Repo.all(PendingBlock)
       assert [%{blknum: ^blknum}] = DB.Repo.all(DB.Block)
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "schedules a new update after `interval`" do
+      %{timer: tref_1} = get_state()
+      assert Process.read_timer(tref_1) == false
+
+      perform_timer_action()
+
+      %{timer: tref_2} = get_state()
+      assert tref_1 != tref_2
+      assert Process.read_timer(tref_2) in 0..@interval
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "increments retry count when failing" do
+      invalid_block_params = %{
+        data:
+          :erlang.term_to_binary(%{
+            blknum: 0,
+            blkhash: insecure_random_bytes(32),
+            eth_height: 0,
+            timestamp: 0,
+            transactions: [],
+            tx_count: 0
+          }),
+        blknum: 0
+      }
+
+      assert %{blknum: blknum, retry_count: 0} = insert(:pending_block, invalid_block_params)
+
+      perform_timer_action()
+
+      assert [%{status: "pending", blknum: ^blknum, retry_count: 1}] = DB.Repo.all(PendingBlock)
+      assert [] = DB.Repo.all(DB.Block)
     end
   end
 

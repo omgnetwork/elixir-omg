@@ -21,8 +21,8 @@ defmodule OMG.WatcherInfo.Factory.PendingBlock do
 
   defmacro __using__(_opts) do
     quote do
-      alias OMG.WatcherInfo.DB
       alias OMG.TestHelper
+      alias OMG.WatcherInfo.DB
 
       @eth OMG.Eth.zero_address()
 
@@ -42,7 +42,7 @@ defmodule OMG.WatcherInfo.Factory.PendingBlock do
               eth_height: sequence(:block_eth_height, fn seq -> seq + 1 end),
               timestamp: sequence(:block_timestamp, fn seq -> seq + 1 end),
               transactions: [tx_1, tx_2],
-              tx_count: 0
+              tx_count: 2
             }),
           blknum: blknum,
           status: DB.PendingBlock.status_pending(),
