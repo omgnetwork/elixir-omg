@@ -145,6 +145,19 @@ defmodule Support.WatcherHelper do
     success?("/account.get_balance", %{"address" => Encoding.to_hex(address)})
   end
 
+  def get_blocks(page \\ 1, limit \\ 100) do
+    success?("/block.all", %{"page" => page, "limit" => limit})
+  end
+
+  def get_block(blknum) do
+    response_body = rpc_call("block.get", %{blknum: blknum}, 200)
+
+    case response_body do
+      %{"success" => false, "data" => error} -> {:error, error}
+      %{"success" => true, "data" => block} -> {:ok, block}
+    end
+  end
+
   def get_exit_data(blknum, txindex, oindex),
     do: get_exit_data(Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)))
 

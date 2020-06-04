@@ -52,6 +52,21 @@ defmodule OMG.Watcher.Integration.TestHelper do
   end
 
   @doc """
+  The above wait_for_block_fetch/2 function only waits for a block to appear in the
+  state and add some "random" sleep to give the database time to process and write the block.
+  This function will instead poll for block.get until found (or timeout).
+  """
+  def wait_for_block_inserted_in_db(block_nr, timeout) do
+    fn ->
+      case WatcherHelper.get_block(block_nr) do
+        {:error, _} -> :repeat
+        {:ok, %{"blknum" => ^block_nr}} -> {:ok, block_nr}
+      end
+    end
+    |> WaitFor.ok(timeout)
+  end
+
+  @doc """
   We need to wait on both a margin of eth blocks and exit processing
   """
   def wait_for_exit_processing(exit_eth_height, timeout \\ 5_000) do
