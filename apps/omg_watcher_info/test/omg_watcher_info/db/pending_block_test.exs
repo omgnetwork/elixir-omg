@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.DB.PendingBlockTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
   use OMG.Fixtures
 
   import OMG.WatcherInfo.Factory

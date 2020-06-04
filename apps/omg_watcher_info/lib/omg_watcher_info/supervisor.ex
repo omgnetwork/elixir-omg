@@ -19,7 +19,9 @@ defmodule OMG.WatcherInfo.Supervisor do
   """
   use Supervisor
   use OMG.Utils.LoggerExt
+
   alias OMG.WatcherInfo
+  alias OMG.WatcherInfo.Configuration
 
   if Mix.env() == :test do
     defmodule Sandbox do
@@ -62,8 +64,7 @@ defmodule OMG.WatcherInfo.Supervisor do
 
     children = [
       {OMG.WatcherInfo.BlockApplicationConsumer, []},
-      {OMG.WatcherInfo.PendingBlockProcessor,
-       [processing_interval: Application.fetch_env!(:omg_watcher_info, :pending_block_processing_interval)]},
+      {OMG.WatcherInfo.PendingBlockProcessor, [processing_interval: Configuration.pending_block_processing_interval()]},
       {OMG.WatcherInfo.DepositConsumer, []},
       Supervisor.child_spec(
         {OMG.WatcherInfo.ExitConsumer, [topic: {:root_chain, "ExitStarted"}, event_type: :standard_exit]},

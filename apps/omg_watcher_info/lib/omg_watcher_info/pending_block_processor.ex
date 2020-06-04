@@ -24,11 +24,10 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
 
   use GenServer
 
-  alias OMG.WatcherInfo.DB.Block
-  alias OMG.WatcherInfo.DB.PendingBlock
+  alias OMG.WatcherInfo.PendingBlockProcessor.Storage
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    GenServer.start_link(__MODULE__, args, name: Keyword.get(args, :name, __MODULE__))
   end
 
   def init(args) do
@@ -39,32 +38,16 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
   end
 
   def handle_info(:check_queue, state) do
-    case PendingBlock.get_next_to_process() do
-      nil ->
-        :ok
-
-      block ->
-        process_block(block)
-    end
+    Storage.check_queue()
 
     t_ref = Process.send_after(self(), :check_queue, state.interval)
     {:noreply, %{state | timer: t_ref}}
   end
 
-  def process_block(block) do
-    _ =
-      case try_insert_block(block) do
-        {:ok, _} ->
-          :ok
-
-        _error ->
-          PendingBlock.increment_retry_count(block)
-      end
+  def terminate({%DBConnection.ConnectionError{}, _}, _state) do
+    # TODO: raise an alarm?
+    :ok
   end
 
-  defp try_insert_block(block) do
-    Block.insert_pending_block(block)
-  catch
-    _, _ -> {:error, :db_error}
-  end
+  def terminate(_, _), do: :ok
 end

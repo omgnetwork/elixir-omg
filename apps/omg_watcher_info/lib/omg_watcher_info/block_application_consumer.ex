@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumer do
   @default_bus_module OMG.Bus
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    GenServer.start_link(__MODULE__, args, name: Keyword.get(args, :name, __MODULE__))
   end
 
   def init(args) do

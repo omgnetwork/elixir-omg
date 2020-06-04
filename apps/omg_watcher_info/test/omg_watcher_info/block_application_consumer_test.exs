@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias OMG.TestHelper
   alias OMG.Watcher.BlockGetter.BlockApplication
@@ -24,25 +24,24 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
 
   @eth OMG.Eth.zero_address()
 
-  setup_all do
-    {:ok, _pid} =
-      GenServer.start_link(
-        BlockApplicationConsumer,
-        [bus_module: __MODULE__.FakeBus],
-        name: TestBlockApplicationConsumer
+  setup tags do
+    {:ok, pid} =
+      BlockApplicationConsumer.start_link(
+        bus_module: __MODULE__.FakeBus,
+        name: tags.test
       )
 
     _ =
       on_exit(fn ->
-        with pid when is_pid(pid) <- GenServer.whereis(TestBlockApplicationConsumer) do
-          :ok = GenServer.stop(TestBlockApplicationConsumer)
-        end
+        if Process.alive?(pid), do: :ok = GenServer.stop(pid)
       end)
+
+    Map.put(tags, :pid, pid)
   end
 
   describe "handle_info/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "inserts the given block application into pending block" do
+    test "inserts the given block application into pending block", %{pid: pid} do
       alice = TestHelper.generate_entity()
       bob = TestHelper.generate_entity()
 
@@ -58,9 +57,7 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
         timestamp: 1_576_500_000
       }
 
-      send_events_and_wait_until_processed(block_application)
-
-      assert_consumer_alive()
+      send_events_and_wait_until_processed(block_application, pid)
 
       expected_data =
         :erlang.term_to_binary(%{
@@ -76,19 +73,11 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
     end
   end
 
-  defp send_events_and_wait_until_processed(block) do
-    pid = assert_consumer_alive()
-
+  defp send_events_and_wait_until_processed(block, pid) do
     Process.send(pid, {:internal_event_bus, :block_received, block}, [:noconnect])
 
     # this waits for all messages in process inbox is processed
     _ = :sys.get_state(pid)
-  end
-
-  defp assert_consumer_alive() do
-    pid = GenServer.whereis(TestBlockApplicationConsumer)
-    assert is_pid(pid) and Process.alive?(pid)
-    pid
   end
 
   defmodule FakeBus do

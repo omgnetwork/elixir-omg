@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   import OMG.WatcherInfo.Factory
 
@@ -24,35 +24,28 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
 
   @interval 500
 
-  setup_all tags do
+  setup tags do
     {:ok, pid} =
-      GenServer.start_link(
-        PendingBlockProcessor,
-        [processing_interval: @interval],
-        name: TestPendingBlockProcessor
+      PendingBlockProcessor.start_link(
+        processing_interval: @interval,
+        name: tags.test
       )
+
+    %{timer: t_ref} = :sys.get_state(pid)
+    _ = Process.cancel_timer(t_ref)
 
     _ =
       on_exit(fn ->
-        with pid when is_pid(pid) <- GenServer.whereis(TestPendingBlockProcessor) do
-          :ok = GenServer.stop(TestPendingBlockProcessor)
-        end
+        if Process.alive?(pid), do: :ok = GenServer.stop(pid)
       end)
 
     Map.put(tags, :pid, pid)
   end
 
-  setup tags do
-    # Cancelling timer so it doesn't interfere with our tests
-    %{timer: t_ref} = :sys.get_state(tags.pid)
-    _ = Process.cancel_timer(t_ref)
-    tags
-  end
-
   describe "handle_info/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "processes the next pending block in queue" do
-      %{timer: tref} = get_state()
+    test "processes the next pending block in queue", %{pid: pid} do
+      %{timer: tref} = get_state(pid)
       assert Process.read_timer(tref) == false
 
       %{blknum: blknum} = insert(:pending_block)
@@ -60,26 +53,26 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
       assert [%{status: "pending", blknum: ^blknum}] = DB.Repo.all(PendingBlock)
       assert [] = DB.Repo.all(DB.Block)
 
-      perform_timer_action()
+      perform_timer_action(pid)
 
       assert [%{status: "done", blknum: ^blknum}] = DB.Repo.all(PendingBlock)
       assert [%{blknum: ^blknum}] = DB.Repo.all(DB.Block)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "schedules a new update after `interval`" do
-      %{timer: tref_1} = get_state()
+    test "schedules a new update after `interval`", %{pid: pid} do
+      %{timer: tref_1} = get_state(pid)
       assert Process.read_timer(tref_1) == false
 
-      perform_timer_action()
+      perform_timer_action(pid)
 
-      %{timer: tref_2} = get_state()
+      %{timer: tref_2} = get_state(pid)
       assert tref_1 != tref_2
       assert Process.read_timer(tref_2) in 0..@interval
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "increments retry count when failing" do
+    test "increments retry count when failing", %{pid: pid} do
       invalid_block_params = %{
         data:
           :erlang.term_to_binary(%{
@@ -95,28 +88,20 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
 
       assert %{blknum: blknum, retry_count: 0} = insert(:pending_block, invalid_block_params)
 
-      perform_timer_action()
+      perform_timer_action(pid)
 
       assert [%{status: "pending", blknum: ^blknum, retry_count: 1}] = DB.Repo.all(PendingBlock)
       assert [] = DB.Repo.all(DB.Block)
     end
   end
 
-  defp perform_timer_action() do
-    pid = assert_consumer_alive()
-
+  defp perform_timer_action(pid) do
     Process.send(pid, :check_queue, [:noconnect])
     # this waits for all messages in process inbox is processed
+    get_state(pid)
+  end
+
+  defp get_state(pid) do
     :sys.get_state(pid)
-  end
-
-  defp get_state() do
-    :sys.get_state(assert_consumer_alive())
-  end
-
-  defp assert_consumer_alive() do
-    pid = GenServer.whereis(TestPendingBlockProcessor)
-    assert is_pid(pid) and Process.alive?(pid)
-    pid
   end
 end
