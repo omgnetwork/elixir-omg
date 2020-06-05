@@ -18,19 +18,34 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
   """
 
   @start_apps [:logger, :crypto, :ssl]
+  @app :omg_db
   require Logger
 
   def run() do
     _ = on_load()
-    path = Application.get_env(:omg_db, :path)
+    path = Application.get_env(@app, :path)
     process(path)
+    _ = on_done()
+  end
+
+  def run_multi() do
+    _ = on_load()
+
+    root_path =
+      @app
+      |> Application.get_env(:path)
+      |> OMG.DB.root_path()
+
+    ["app", "exit_processor"]
+    |> Enum.map(&Path.join([root_path, &1]))
+    |> Enum.each(&process/1)
+
+    _ = on_done()
   end
 
   defp process(path) do
     _ = Logger.warn("Creating database at #{inspect(path)}")
-    result = init_kv_db(path)
-    Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
-    result
+    init_kv_db(path)
   end
 
   defp init_kv_db(path) do
@@ -46,6 +61,10 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
 
   defp on_load() do
     _ = Enum.each(@start_apps, &Application.ensure_all_started/1)
-    _ = Application.load(:omg_db)
+    _ = Application.load(@app)
+  end
+
+  defp on_done() do
+    _ = Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
   end
 end

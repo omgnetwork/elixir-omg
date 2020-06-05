@@ -151,4 +151,13 @@ defmodule OMG.DB do
       :omg_eth_contracts
     ]
   end
+
+  @doc """
+  Gets parent directory of given `path`. Helper function for multi instance key-value databases.
+  """
+  def root_path(path) do
+    path
+    |> Path.rootname()
+    |> Path.dirname()
+  end
 end

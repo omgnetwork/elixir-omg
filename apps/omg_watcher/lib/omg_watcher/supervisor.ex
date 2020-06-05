@@ -21,7 +21,6 @@ defmodule OMG.Watcher.Supervisor do
   use OMG.Utils.LoggerExt
 
   alias OMG.Eth.RootChain
-  alias OMB.DB
   alias OMG.Status.Alert.Alarm
   alias OMG.Watcher.DatadogEvent.ContractEventConsumer
   alias OMG.Watcher.Monitor
@@ -33,10 +32,15 @@ defmodule OMG.Watcher.Supervisor do
   end
 
   def init(:ok) do
-    db_path = Application.fetch_env!(:omg_db, :path)
+    db_root_path =
+      :omg_db
+      |> Application.fetch_env!(:path)
+      |> OMG.DB.root_path()
+
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
 
     children = [
+      OMG.DB.child_spec(db_path: Path.join([db_root_path, "exit_processor"]), name: OMG.DB.RocksDB.ExitProcessor),
       {Monitor,
        [
          Alarm,
@@ -46,9 +50,7 @@ defmodule OMG.Watcher.Supervisor do
            restart: :permanent,
            type: :supervisor
          }
-       ]},
-      DB.child_spec([db_path: "#{db_path}/app", name: OMG.DB.RocksDB.Server]),
-      DB.child_spec([db_path: "#{db_path}/exit_processor", name: OMG.DB.RocksDB.ExitProcessor]),
+       ]}
     ]
 
     is_datadog_disabled = is_disabled?()
