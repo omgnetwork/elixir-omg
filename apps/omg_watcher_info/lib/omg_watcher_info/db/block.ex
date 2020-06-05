@@ -171,7 +171,9 @@ defmodule OMG.WatcherInfo.DB.Block do
       |> prepare_inserts(db_outputs_stream, "db_outputs_", DB.TxOutput)
       |> DB.TxOutput.spend_utxos(db_inputs)
 
-    {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
+    # {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
+    insert_duration = 0
+    result = IO.inspect(DB.Repo.transaction(multi))
 
     case result do
       {:ok, _} ->
