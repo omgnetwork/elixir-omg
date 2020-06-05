@@ -34,18 +34,30 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
     interval = Keyword.fetch!(args, :processing_interval)
     t_ref = Process.send_after(self(), :check_queue, interval)
     _ = Logger.info("Started #{inspect(__MODULE__)}")
-    {:ok, %{interval: interval, timer: t_ref}}
+    {:ok, %{interval: interval, timer: t_ref, block: nil}}
   end
 
   def handle_info(:check_queue, state) do
-    Storage.check_queue()
+    block = Storage.get_next_pending_block()
+    {:noreply, %{state | block: block}, {:continue, :process_block}}
+  end
 
+  def handle_continue(:process_block, %{block: nil} = state) do
     t_ref = Process.send_after(self(), :check_queue, state.interval)
     {:noreply, %{state | timer: t_ref}}
   end
 
-  def terminate({%DBConnection.ConnectionError{}, _}, _state) do
+  def handle_continue(:process_block, %{block: block} = state) do
+    Storage.process_block(block)
+
+    send(self(), :check_queue)
+    {:noreply, %{state | timer: nil, block: nil}}
+  end
+
+  def terminate({%DBConnection.ConnectionError{}, _}, %{block: block}) when not is_nil(block) do
     # TODO: raise an alarm?
+    Logger.error("insertion of block number #{block.blknum} timed out")
+    {:ok, _} = Storage.increment_retry_count(block)
     :ok
   end
 

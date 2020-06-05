@@ -17,6 +17,7 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
   use ExUnit.Case, async: true
 
   import OMG.WatcherInfo.Factory
+  import Ecto.Query, only: [from: 2]
 
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.PendingBlock
@@ -50,49 +51,66 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
 
       %{blknum: blknum} = insert(:pending_block)
 
-      assert [%{status: "pending", blknum: ^blknum}] = DB.Repo.all(PendingBlock)
+      assert [%{status: "pending", blknum: ^blknum}] = get_all()
       assert [] = DB.Repo.all(DB.Block)
 
       perform_timer_action(pid)
 
-      assert [%{status: "done", blknum: ^blknum}] = DB.Repo.all(PendingBlock)
+      assert [%{status: "done", blknum: ^blknum}] = get_all()
       assert [%{blknum: ^blknum}] = DB.Repo.all(DB.Block)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "schedules a new update after `interval`", %{pid: pid} do
+    test "schedules a new update after `interval` when queue was empty", %{pid: pid} do
       %{timer: tref_1} = get_state(pid)
       assert Process.read_timer(tref_1) == false
+      assert get_all() == []
 
-      perform_timer_action(pid)
+      %{timer: tref_2} = perform_timer_action(pid)
 
-      %{timer: tref_2} = get_state(pid)
       assert tref_1 != tref_2
       assert Process.read_timer(tref_2) in 0..@interval
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
+    test "does not schedules a new update after `interval` when queue not empty", %{pid: pid} do
+      insert(:pending_block)
+      assert [%{}] = get_all()
+
+      %{timer: tref} = perform_timer_action(pid)
+
+      assert tref == nil
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "check the queue again without waiting when queue not empty", %{pid: pid} do
+      insert(:pending_block)
+      insert(:pending_block)
+
+      assert [%{status: "pending"}, %{status: "pending"}] = get_all()
+
+      assert %{timer: nil} = perform_timer_action(pid)
+      Process.sleep(50)
+      assert [%{status: "done"}, %{status: "done"}] = get_all()
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "increments retry count when failing", %{pid: pid} do
-      invalid_block_params = %{
-        data:
-          :erlang.term_to_binary(%{
-            blknum: 0,
-            blkhash: insecure_random_bytes(32),
-            eth_height: 0,
-            timestamp: 0,
-            transactions: [],
-            tx_count: 0
-          }),
-        blknum: 0
-      }
-
-      assert %{blknum: blknum, retry_count: 0} = insert(:pending_block, invalid_block_params)
-
+      %{data: data, blknum: blknum_1} = insert(:pending_block)
       perform_timer_action(pid)
 
-      assert [%{status: "pending", blknum: ^blknum, retry_count: 1}] = DB.Repo.all(PendingBlock)
-      assert [] = DB.Repo.all(DB.Block)
+      # inserting a second block with the same data params
+      %{blknum: blknum_2, retry_count: 0} = insert(:pending_block, %{data: data, blknum: blknum_1 + 1000})
+      perform_timer_action(pid)
+
+      assert [%{blknum: ^blknum_1}, %{blknum: ^blknum_2, retry_count: retry_count}] = get_all()
+      assert retry_count > 0
+      assert [%{blknum: blknum_1}] = DB.Repo.all(DB.Block)
     end
+  end
+
+  defp get_all() do
+    PendingBlock |> from(order_by: :blknum) |> DB.Repo.all()
   end
 
   defp perform_timer_action(pid) do

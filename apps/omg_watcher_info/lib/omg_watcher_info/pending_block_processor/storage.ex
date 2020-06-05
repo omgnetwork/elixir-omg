@@ -20,25 +20,22 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor.Storage do
   alias OMG.WatcherInfo.DB.Block
   alias OMG.WatcherInfo.DB.PendingBlock
 
-  def check_queue() do
-    case PendingBlock.get_next_to_process() do
-      nil ->
-        :ok
-
-      block ->
-        process_block(block)
-        check_queue()
-    end
+  def get_next_pending_block() do
+    PendingBlock.get_next_to_process()
   end
 
-  defp process_block(block) do
+  def process_block(block) do
     case Block.insert_pending_block(block) do
       {:ok, _} ->
         :ok
 
       _error ->
-        PendingBlock.increment_retry_count(block)
+        increment_retry_count(block)
         :error
     end
+  end
+
+  def increment_retry_count(block) do
+    PendingBlock.increment_retry_count(block)
   end
 end
