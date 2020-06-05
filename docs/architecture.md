@@ -18,16 +18,10 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 ### `OMG.State`
 
 - writes blocks and UTXO set to `OMG.DB`
-- pushes freshly formed blocks to `OMG.ChildChain.FreshBlocks`
 
 ### `OMG.ChildChain`
 
 - accepts child chain transactions, decodes, stateless-validates and executes on `OMG.State`
-- forwards `get_block` requests to `OMG.ChildChain.FreshBlocks`
-
-### `OMG.ChildChain.FreshBlocks`
-
-- reverts to reading `OMG.DB` for old blocks
 
 ### `OMG.RootChainCoordinator`
 

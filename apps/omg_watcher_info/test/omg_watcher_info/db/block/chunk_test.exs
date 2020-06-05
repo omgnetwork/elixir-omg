@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.DB.RepoTest do
+defmodule OMG.WatcherInfo.DB.Block.ChunkTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
   import OMG.WatcherInfo.Factory
 
-  alias OMG.WatcherInfo.DB
-
   alias OMG.Utxo
+  alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.DB.Block.Chunk
+
   require Utxo
 
-  describe "DB.Repo.insert_all_chunked/3" do
+  describe "Chunk.chunk/3" do
     # The current number of columns on the transaction table allow up to 8191
     # transactions to be inserted using `DB.Repo.insert_all/3` before chunking must
     # be done to avoid hitting postgres limits. The test `DB.Repo.insert_all for
@@ -41,10 +42,11 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "insert_all_chunked adds inserted_at and updated_at timestamps correctly" do
       txoutput =
-        params_for(:txoutput)
+        :txoutput
+        |> params_for()
         |> Map.drop([:ethevents])
 
-      DB.Repo.insert_all_chunked(OMG.WatcherInfo.DB.TxOutput, [txoutput])
+      Enum.each(Chunk.chunk([txoutput]), &DB.Repo.insert_all(DB.TxOutput, &1))
 
       txoutput_with_dates =
         DB.TxOutput.get_by_position(Utxo.position(txoutput.blknum, txoutput.txindex, txoutput.oindex))
@@ -60,17 +62,7 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
       # Create an array of transactions beyond postgres limits where chunking
       # is required.
       transactions = new_transactions(block.blknum, @max_txns_before_chunking + 1)
-
-      assert DB.Repo.insert_all_chunked(OMG.WatcherInfo.DB.Transaction, transactions) == :ok
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "chunk_size/1 calculates the correct chunk size based on the column's in the transaction table" do
-      block = insert(:block)
-
-      transaction = new_transaction(block.blknum, 1, DateTime.utc_now())
-
-      assert DB.Repo.chunk_size(transaction) == @max_txns_before_chunking
+      assert Enum.map(Chunk.chunk(transactions), &DB.Repo.insert_all(DB.Transaction, &1)) == [{8191, nil}, {1, nil}]
     end
   end
 
@@ -127,7 +119,7 @@ defmodule OMG.WatcherInfo.DB.RepoTest do
   # `ExMachina.params_for/2` could be used here to make use of `OMG.WatcherInfo.Factory.Transaction`.
   # But the transaction factory does a lot of extra stuff unnecessary for this test. This stripped
   # down version is about 15x faster. Also using `ExMachina.params_for/2` here also requires some
-  # tweaking of the map it returns because `OMG.WatcherInfo.DB.Repo.insert_all_chunked` is the code
+  # tweaking of the map it returns because `OMG.WatcherInfo.DB.Block.chunk/1` is the code
   # being tested rather than `Ecto.Repo.insert_all/3`. The 2 functions differ in the inputs they
   # expect.
   defp new_transaction(blknum, index, utc_now) do

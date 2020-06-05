@@ -181,4 +181,49 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
       types: [bytes: 32, uint: 256]
     }
   end
+
+  def standard_exits() do
+    %ABI.FunctionSelector{
+      function: "standardExits",
+      input_names: ["standard_exit_structs"],
+      inputs_indexed: nil,
+      method_id: <<12, 165, 182, 118>>,
+      # returns: [
+      #   array: {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}
+      # ],
+      type: :function,
+      # types: [array: {:uint, 160}]
+      types: [
+        array: {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}
+      ]
+    }
+  end
+
+  def in_flight_exits() do
+    %ABI.FunctionSelector{
+      function: "inFlightExits",
+      input_names: ["in_flight_exit_structs"],
+      inputs_indexed: nil,
+      method_id: <<206, 201, 225, 167>>,
+      # returns: [
+      #   array: {:tuple,
+      #           [
+      #             :bool,
+      #             {:uint, 64},
+      #             {:uint, 256},
+      #             {:uint, 256},
+      #             {:array, :tuple, 4},
+      #             {:array, :tuple, 4},
+      #             :address,
+      #             {:uint, 256},
+      #             {:uint, 256}
+      #           ]}
+      # ],
+      type: :function,
+      # types: [array: {:uint, 160}]
+      types: [
+        {:array, {:tuple, [:bool, {:uint, 64}, {:uint, 256}, {:uint, 256}, :address, {:uint, 256}, {:uint, 256}]}}
+      ]
+    }
+  end
 end

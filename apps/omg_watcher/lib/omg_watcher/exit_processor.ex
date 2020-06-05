@@ -28,6 +28,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   alias OMG.Block
   alias OMG.DB
+  alias OMG.DB.Models.PaymentExitInfo
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
@@ -266,8 +267,8 @@ defmodule OMG.Watcher.ExitProcessor do
         ethereum_block_time_seconds: ethereum_block_time_seconds,
         child_block_interval: child_block_interval
       ) do
-    {:ok, db_exits} = DB.exit_infos()
-    {:ok, db_ifes} = DB.in_flight_exits_info()
+    {:ok, db_exits} = PaymentExitInfo.all_exit_infos()
+    {:ok, db_ifes} = PaymentExitInfo.all_in_flight_exits_infos()
     {:ok, db_competitors} = DB.competitors_info()
 
     :ok =
@@ -303,11 +304,7 @@ defmodule OMG.Watcher.ExitProcessor do
   - updates the `ExitProcessor`'s state
   - returns `db_updates`
   """
-  def handle_call(
-        {:new_exits, exits},
-        _from,
-        state
-      ) do
+  def handle_call({:new_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
     {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit_structs(get_in(exits, [Access.all(), :exit_id]))

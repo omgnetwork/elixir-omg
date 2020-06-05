@@ -90,6 +90,11 @@ defmodule OMG.Eth.EthereumHeightMonitor do
     {:noreply, state}
   end
 
+  def handle_info({:ssl_closed, _}, state) do
+    # eat this bug https://github.com/benoitc/hackney/issues/464
+    {:noreply, state}
+  end
+
   def handle_info(:check_new_height, state) do
     height = fetch_height(state.eth_module)
     stalled? = stalled?(height, state.ethereum_height, state.synced_at, state.stall_threshold_ms)

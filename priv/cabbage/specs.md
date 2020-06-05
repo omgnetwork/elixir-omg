@@ -27,13 +27,6 @@ OMG.BlockTest
 OMG.Status.Metric.DatadogTest
   * test if exiting process/port sends an exit signal to the parent process (excluded)
 
-OMG.ChildChain.FreshBlocks.CoreTest
-  * test getting Block (excluded)
-  * test slicing oldest to max size cache (excluded)
-  * test can push and pop a lot of blocks from queue (excluded)
-  * test combines a fresh block with db result (excluded)
-  * test empty fresh blocks makes sense (excluded)
-
 OMG.FeesTest
   * test Transaction can dedicate one input for a fee entirely, reducing to tx's outputs currencies is incorrect (excluded)
   * test Transaction which does not transfer any fee currency is object to fees (excluded)

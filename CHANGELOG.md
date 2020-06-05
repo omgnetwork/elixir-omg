@@ -1,6 +1,81 @@
 # Changelog
 
-## v0.4.7 (Unreleased)
+## [v1.0.0](https://github.com/omisego/elixir-omg/releases/tag/v1.0.0)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.8...v1.0.0).
+
+#### APIs
+
+- [Changed] Add pagination to account.get_utxo (#1436)
+- [Changed] Input validation enhancements for endpoints (#1469)
+- [Changed] Filtering Input Parameters to Childchain/Watcher API depending on HTTP Method (#1424)
+- [Changed] Prevent split/merge creation in /transaction.create (#1416)
+
+#### Core
+
+- [Fixed] Prevent race condition for status cache (#1558)
+- [Fixed] Reorg block getter (#1554)
+- [Added] Cache blocks into ets (#1547)
+- [Added] Add event type when consumer is spending utxos (#1538)
+- [Added] Make env block_submit_max_gas_price configurable (#1548)
+- [Added] Increase pg connection timeout for Watcher Info transaction inserts (#1525)
+- [Added] Add deposit.all endpoint and fetch eth_height retroactively (#1509)
+- [Added] Cache status.get (#1535)
+- [Added] IFE support in Watcher Info (#1496)
+- [Added] Making Child-chain work with fee feed (#1500)
+- [Added] System memory monitor for buffered and cached memory (#1474)
+- [Added] Break down incoming events to publish separately (#1472)
+- [Added] Configurable fee specs path from env var (#1385)
+- [Added] Add root chain transaction hash to InvalidExit and UnchallengedExit events (#1485)
+- [Added] Who monitors the monitor? (#1488)
+- [Changed] Use branch ex_plasma (#1537)
+- [Changed] Move exit info related DB functions to PaymentExitInfo (#1503)
+- [Changed] Add timestamp and scheduled finalisation time to InvalidExit and UnchallengedExit events (#1495)
+- [Changed] Make invalid piggyback cause unchallenged piggyback event when it's past SLA margin (#1493)
+- [Changed] Introduce spending_txhash in invalid exit events (#1492)
+- [Fixed] Exclude active exiting utxos from calls to /account.get_exitable_utxos (#1505)
+- [Fixed] Allow missing :buffered_memory and :cached_memory (#1486)
+
+#### Miscellaneous
+
+- [Added] Logging for ethereum tasks (#1550)
+- [Changed] Updating httpoison (#1542)
+- [Changed] Consistent log message for new events (#1534)
+- [Changed] Watcher configs (#1536)
+- [Changed] Remove fixture-based start exit test (#1514)
+- [Changed] Cabbage test for Watcher's /status.get (#1508)
+- [Changed] Load test cleanup (#1490)
+- [Changed] Add prerequisites for having localchain_contract_addresses.env file for makefile targets involving docker-compose (#1476)
+- [Changed] Move db storage out of docker containers (#1473)
+- [Changed] Update alpine base image in Dockerfiles to v3.11 (#1450)
+- [Changed] Add child chain metrics for transaction submissions, successes and failures (#1470)
+- [Changed] CircleCI to return the original start-services result after logging the failure (#1463)
+- [Changed] Update README.md (#1468)
+- [Changed] Update installation instructions (#1465)
+- [Fixed] Add Ink's log_encoding_error config (#1512)
+- [Fixed] update ink to v1.1 to fix Mix module not found (#1504)
+- [Fixed] lint_version command compatibility with bash (#1502)
+- [Fixed] MacOS nightly build fix (#1464)
+
+## [v0.4.8](https://github.com/omisego/elixir-omg/releases/tag/v0.4.8)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.7...v0.4.8).
+
+#### APIs
+- None
+
+#### Core
+- None
+
+#### Miscellaneous
+- [Fix] Missing error logging when the error cannot be serialized (#1518)
+
+## [v0.4.7](https://github.com/omisego/elixir-omg/releases/tag/v0.4.7)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.6...v0.4.7).
 
 #### APIs
 - [Fixed] Proper error message when retrieving In-Flight Exit data for a spent deposit (#1397)
