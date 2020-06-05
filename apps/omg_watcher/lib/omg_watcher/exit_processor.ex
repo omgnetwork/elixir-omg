@@ -49,57 +49,6 @@ defmodule OMG.Watcher.ExitProcessor do
     GenServer.start_link(__MODULE__, Keyword.drop(args, [:name]), name: args[:name])
   end
 
-  @doc """
-  Returns all information required to produce a transaction to the root chain contract to present a competitor for
-  a non-canonical in-flight exit
-  """
-  @spec get_competitor_for_ife(binary()) ::
-          {:ok, ExitProcessor.Canonicity.competitor_data_t()}
-          | {:error, :competitor_not_found}
-          | {:error, :no_viable_competitor_found}
-  def get_competitor_for_ife(txbytes) do
-    GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
-  end
-
-  @doc """
-  Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
-  for a challenged in-flight exit
-  """
-  @spec prove_canonical_for_ife(binary()) ::
-          {:ok, ExitProcessor.Canonicity.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
-  def prove_canonical_for_ife(txbytes) do
-    GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
-  end
-
-  @doc """
-  Returns all information required to challenge an invalid input piggyback
-  """
-  @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
-          {:ok, ExitProcessor.Piggyback.input_challenge_data()}
-          | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
-  def get_input_challenge_data(txbytes, input_index) do
-    GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
-  end
-
-  @doc """
-  Returns all information required to challenge an invalid output piggyback
-  """
-  @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
-          {:ok, ExitProcessor.Piggyback.output_challenge_data()}
-          | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
-  def get_output_challenge_data(txbytes, output_index) do
-    GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
-  end
-
-  @doc """
-  Returns challenge for an invalid standard exit
-  """
-  @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, StandardExit.Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
-  def create_challenge(exiting_utxo_pos) do
-    GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
-  end
-
   ### Server
 
   use GenServer
@@ -363,6 +312,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
     new_state = update_with_ife_txs_from_blocks(state)
     canonicity_result = Core.prove_canonical_for_ife(new_state, txbytes)
+
     {:reply, canonicity_result, new_state}
   end
 

@@ -21,6 +21,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   alias OMG.Utxo
   alias OMG.Watcher.API
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessorDispatcher
 
   require Utxo
 
@@ -58,7 +59,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
   """
   def get_competitor(txbytes) do
-    ExitProcessor.get_competitor_for_ife(txbytes)
+    ExitProcessorDispatcher.get_competitor_for_ife(txbytes)
   end
 
   @doc """
@@ -67,7 +68,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
   """
   def prove_canonical(txbytes) do
-    ExitProcessor.prove_canonical_for_ife(txbytes)
+    ExitProcessorDispatcher.prove_canonical_for_ife(txbytes)
   end
 
   @doc """
@@ -76,7 +77,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
   """
   def get_input_challenge_data(txbytes, input_index) do
-    ExitProcessor.get_input_challenge_data(txbytes, input_index)
+    ExitProcessorDispatcher.get_input_challenge_data(txbytes, input_index)
   end
 
   @doc """
@@ -85,7 +86,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
   """
   def get_output_challenge_data(txbytes, output_index) do
-    ExitProcessor.get_output_challenge_data(txbytes, output_index)
+    ExitProcessorDispatcher.get_output_challenge_data(txbytes, output_index)
   end
 
   defp find_input_data(tx) do

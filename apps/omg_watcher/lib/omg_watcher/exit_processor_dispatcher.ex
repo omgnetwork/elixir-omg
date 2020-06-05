@@ -17,6 +17,8 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
   Pretty sure it's doing some cool stuff.
   """
 
+  require Logger
+
   @doc """
   Checks validity of all exit-related events and returns the list of actionable items.
   Works with `OMG.State` to discern validity.
@@ -24,8 +26,65 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
   This function may also update some internal caches to make subsequent calls not redo the work,
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
   """
-  def check_validity(), do: forward(:check_validity)
-  def check_validity(timeout), do: forward(:check_validity, timeout)
+  def check_validity() do
+    do_chack_validity()
+  end
+
+  def check_validity(timeout) do
+    do_chack_validity(timeout)
+  end
+
+  defp do_chack_validity(timeout \\ 5000) do
+    forward(:check_validity, timeout)
+    |> Enum.reduce({:ok, []}, fn {chain_validity, events}, acc ->
+      {acc_chain_validity, acc_events} = acc
+
+      case chain_validity do
+        :ok ->
+          {acc_chain_validity, acc_events ++ events}
+
+        {:error, :unchallenged_exit} ->
+          {{:error, :unchallenged_exit}, acc_events ++ events}
+      end
+    end)
+  end
+
+  @doc """
+  Returns all information required to produce a transaction to the root chain contract to present a competitor for
+  a non-canonical in-flight exit
+  """
+  def get_competitor_for_ife(txbytes) do
+    forward_single_result({:get_competitor_for_ife, txbytes})
+  end
+
+  @doc """
+  Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
+  for a challenged in-flight exit
+  """
+  def prove_canonical_for_ife(txbytes) do
+    forward_single_result({:prove_canonical_for_ife, txbytes})
+  end
+
+  @doc """
+  Returns all information required to challenge an invalid input piggyback
+  """
+  def get_input_challenge_data(txbytes, input_index) do
+    forward_single_result({:get_input_challenge_data, txbytes, input_index})
+  end
+
+  @doc """
+  Returns all information required to challenge an invalid output piggyback
+  """
+  def get_output_challenge_data(txbytes, output_index) do
+    forward_single_result({:get_output_challenge_data, txbytes, output_index})
+  end
+
+  @doc """
+  Returns challenge for an invalid standard exit
+  """
+  def create_challenge(exiting_utxo_pos) do
+    forward_single_result({:create_challenge, exiting_utxo_pos})
+  end
 
   @doc """
   Returns a map of requested in flight exits, keyed by transaction hash
@@ -54,12 +113,31 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
     end)
   end
 
+  defp forward_single_result(func) do
+    # From the results, it will try to find the first result with :ok status
+    # Otherwise, one of the error status would be returned.
+    find_first_ok_result_or_return_last(forward(func), {:error, :empty_forward_result})
+  end
+
+  defp find_first_ok_result_or_return_last([], last_result), do: last_result
+
+  defp find_first_ok_result_or_return_last(forwarded_results, prev_result) do
+    [current_result | tail] = forwarded_results
+    {prev_status, prev_data} = prev_result
+
+    case prev_status do
+      :ok -> prev_result
+      _ -> find_first_ok_result_or_return_last(tail, current_result)
+    end
+  end
+
   defp dispatch(event_name, events) do
     db_updates =
       Enum.flat_map(filter_events(events), fn {transaction_type, events} ->
         # We reverse the events since we're getting them back
         # in the wrong order from the filter_events() function
-        GenServer.call(transaction_type, {event_name, Enum.reverse(events)})
+        {:ok, db_updates} = GenServer.call(transaction_type, {event_name, Enum.reverse(events)})
+        db_updates
       end)
 
     {:ok, db_updates}

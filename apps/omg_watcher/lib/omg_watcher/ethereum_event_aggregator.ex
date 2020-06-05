@@ -14,12 +14,13 @@
 defmodule OMG.Watcher.EthereumEventAggregator do
   @moduledoc """
   This process combines all plasma contract events we're interested in and does eth_getLogs + enriches them if needed
-  for all Ethereum Event Listener processes. 
+  for all Ethereum Event Listener processes.
   """
   use GenServer
   require Logger
   use Spandex.Decorators
 
+  alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Event
   alias OMG.Eth.RootChain.Rpc
@@ -89,6 +90,10 @@ defmodule OMG.Watcher.EthereumEventAggregator do
 
   def init(opts) do
     contracts = opts |> Keyword.fetch!(:contracts) |> Map.values() |> Enum.map(&from_hex(&1))
+    # This is a pure hack....currently exit game would be double configed by
+    # Config.contracts().payment_exit_game and exit_games
+    contracts = Enum.uniq(contracts)
+
     # events = [[signature: "ExitStarted(address,uint160)", name: :exit_started, enrich: true],..]
     events =
       opts
@@ -209,8 +214,16 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   end
 
   defp get_logs(from_height, to_height, state) do
-    {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, state.contracts)
-    Enum.map(logs, &Abi.decode_log(&1))
+    Enum.flat_map(state.contracts, fn contract ->
+      {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, [contract])
+
+      logs =
+        logs
+        |> Enum.map(&Abi.decode_log(&1))
+        # quite a hack, we inject the contract address where this event is from in here.
+        # so the event processing function can filter with the correspondent contract.
+        |> Enum.map(fn log -> Map.put_new(log, "address", Encoding.to_hex(contract)) end)
+    end)
   end
 
   # we get the logs from RPC and we cross check with the event definition if we need to enrich them

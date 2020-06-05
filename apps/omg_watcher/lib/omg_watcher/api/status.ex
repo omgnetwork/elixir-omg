@@ -71,10 +71,7 @@ defmodule OMG.Watcher.API.Status do
 
     {:ok, services_synced_heights} = RootChainCoordinator.get_ethereum_heights()
 
-    events_processor =
-      Enum.reduce(ExitProcessorDispatcher.check_validity(), [], fn {_, events}, acc ->
-        events ++ acc
-      end)
+    {_, events_processor_events} = ExitProcessorDispatcher.check_validity()
 
     {:ok, in_flight_exits} = ExitProcessorDispatcher.get_active_in_flight_exits()
 
@@ -88,7 +85,7 @@ defmodule OMG.Watcher.API.Status do
       last_seen_eth_block_number: eth_block_number,
       last_seen_eth_block_timestamp: eth_block_timestamp,
       eth_syncing: eth_syncing,
-      byzantine_events: events_processor ++ events_block_getter,
+      byzantine_events: events_processor_events ++ events_block_getter,
       in_flight_exits: in_flight_exits,
       contract_addr: contract_addr,
       services_synced_heights: services_synced_heights
