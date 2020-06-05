@@ -72,7 +72,7 @@ defmodule Itest.StandardExitChallengeClient do
     sender_data = address |> Encoding.to_binary() |> :keccakf1600.sha3_256()
 
     data =
-      ABI.encode("challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes32))", [
+      ABI.encode("challengeStandardExit((uint168,bytes,bytes,uint16,bytes,bytes32))", [
         {challenge_data.exit_id, Encoding.to_binary(challenge_data.exiting_tx),
          Encoding.to_binary(challenge_data.txbytes), challenge_data.input_index, Encoding.to_binary(challenge_data.sig),
          sender_data}

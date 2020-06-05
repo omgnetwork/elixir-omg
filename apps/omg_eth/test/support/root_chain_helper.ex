@@ -135,7 +135,7 @@ defmodule Support.RootChainHelper do
     sender_data = BitHelper.kec(from)
 
     contract = from_hex(Configuration.contracts().payment_exit_game)
-    signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes32))"
+    signature = "challengeStandardExit((uint168,bytes,bytes,uint16,bytes,bytes32))"
     args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, sender_data}]
 
     backend = Configuration.eth_node()
@@ -178,7 +178,7 @@ defmodule Support.RootChainHelper do
     opts = @tx_defaults
     token = from_hex(token)
     contract = from_hex(Configuration.contracts().plasma_framework)
-    signature = "processExits(uint256,address,uint160,uint256)"
+    signature = "processExits(uint256,address,uint168,uint256)"
     args = [vault_id, token, top_exit_id, exits_to_process]
     backend = Configuration.eth_node()
 
