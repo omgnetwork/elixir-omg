@@ -214,15 +214,12 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   end
 
   defp get_logs(from_height, to_height, state) do
-    Enum.flat_map(state.contracts, fn contract ->
-      {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, [contract])
+    {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, state.contracts)
 
-      logs =
-        logs
-        |> Enum.map(&Abi.decode_log(&1))
-        # quite a hack, we inject the contract address where this event is from in here.
-        # so the event processing function can filter with the correspondent contract.
-        |> Enum.map(fn log -> Map.put_new(log, "address", Encoding.to_hex(contract)) end)
+    Enum.map(logs, fn log ->
+      log
+      |> Abi.decode_log()
+      |> Map.put("address", log["address"])
     end)
   end
 

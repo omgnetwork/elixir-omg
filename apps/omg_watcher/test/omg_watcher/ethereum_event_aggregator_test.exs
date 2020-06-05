@@ -14,6 +14,8 @@
 defmodule OMG.Watcher.EthereumEventAggregatorTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureLog, only: [capture_log: 1]
+
+  alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain.Abi
   alias OMG.Watcher.EthereumEventAggregator
 
@@ -145,17 +147,41 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
       events = event_fetcher_name |> :sys.get_state() |> Map.get(:events)
 
       # create data that we need
-      deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
-      deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
+      deposit_rpc_log = deposit_created_log(from_block)
+
+      deposit_created =
+        deposit_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", deposit_rpc_log["address"])
+
+      deposit_rpc_log_2 = deposit_created_log(from_block + 1)
+
+      deposit_created_2 =
+        deposit_rpc_log_2
+        |> Abi.decode_log()
+        |> Map.put("address", deposit_rpc_log_2["address"])
+
+      exit_started_rpc_log = exit_started_log(to_block)
 
       exit_started_log =
-        to_block
-        |> exit_started_log()
+        exit_started_rpc_log
         |> Abi.decode_log()
+        |> Map.put("address", exit_started_rpc_log["address"])
         |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
-      in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
-      in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
+      in_flight_exit_output_piggybacked_rpc_log = in_flight_exit_output_piggybacked_log(from_block)
+
+      in_flight_exit_output_piggybacked_log =
+        in_flight_exit_output_piggybacked_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", in_flight_exit_output_piggybacked_rpc_log["address"])
+
+      in_flight_exit_input_piggybacked_rpc_log = in_flight_exit_input_piggybacked_log(to_block)
+
+      in_flight_exit_input_piggybacked_log =
+        in_flight_exit_input_piggybacked_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", in_flight_exit_input_piggybacked_rpc_log["address"])
 
       data = [
         {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
@@ -242,19 +268,45 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
 
       from_block = 1
       to_block = 3
+
       # we need to create events that we later expect when we call the aggregator APIs
       # for example, deposit_created and deposit_created_2 are expected if the range is from 1 to 3
-      deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
-      deposit_created_2 = from_block |> Kernel.+(1) |> deposit_created_log() |> Abi.decode_log()
+      deposit_created_rpc_log = deposit_created_log(from_block)
+
+      deposit_created =
+        deposit_created_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", deposit_created_rpc_log["address"])
+
+      deposit_created_rpc_log_2 = deposit_created_log(from_block + 1)
+
+      deposit_created_2 =
+        deposit_created_rpc_log_2
+        |> Abi.decode_log()
+        |> Map.put("address", deposit_created_rpc_log_2["address"])
+
+      exit_started_rpc_log = exit_started_log(to_block)
 
       exit_started_log =
-        to_block
-        |> exit_started_log()
+        exit_started_rpc_log
         |> Abi.decode_log()
+        |> Map.put("address", exit_started_rpc_log["address"])
         |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
-      in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
-      in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
+      in_flight_exit_output_piggybacked_rpc_log = in_flight_exit_output_piggybacked_log(from_block)
+
+      in_flight_exit_output_piggybacked_log =
+        in_flight_exit_output_piggybacked_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", in_flight_exit_output_piggybacked_rpc_log["address"])
+
+      in_flight_exit_input_piggybacked_rpc_log = in_flight_exit_input_piggybacked_log(to_block)
+
+      in_flight_exit_input_piggybacked_log =
+        in_flight_exit_input_piggybacked_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", in_flight_exit_input_piggybacked_rpc_log["address"])
+
       # now we're asserting that the API returns the correct events based on the range
       assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
 
@@ -314,21 +366,40 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
       :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
       from_block = 1
       to_block = 1
-      deposit_created = from_block |> deposit_created_log() |> Abi.decode_log()
+
+      deposit_created_rpc_log = deposit_created_log(from_block)
+
+      deposit_created =
+        deposit_created_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", deposit_created_rpc_log["address"])
 
       assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block) ==
                {:ok, [deposit_created]}
 
+      exit_started_rpc_log = exit_started_log(to_block)
+
       exit_started_log =
-        to_block
-        |> exit_started_log()
+        exit_started_rpc_log
         |> Abi.decode_log()
+        |> Map.put("address", exit_started_rpc_log["address"])
         |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
       assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
 
-      in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
-      in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
+      in_flight_exit_output_piggybacked_rpc_log = in_flight_exit_output_piggybacked_log(from_block)
+
+      in_flight_exit_output_piggybacked_log =
+        in_flight_exit_output_piggybacked_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", in_flight_exit_output_piggybacked_rpc_log["address"])
+
+      in_flight_exit_input_piggybacked_rpc_log = in_flight_exit_input_piggybacked_log(to_block)
+
+      in_flight_exit_input_piggybacked_log =
+        in_flight_exit_input_piggybacked_rpc_log
+        |> Abi.decode_log()
+        |> Map.put("address", in_flight_exit_input_piggybacked_rpc_log["address"])
 
       assert EthereumEventAggregator.in_flight_exit_piggybacked(event_fetcher_name, from_block, to_block) ==
                {:ok, [in_flight_exit_input_piggybacked_log, in_flight_exit_output_piggybacked_log]}

@@ -71,7 +71,7 @@ defmodule OMG.Eth.Fixtures do
   end
 
   # inject the exit games into :omg_eth
-  # test fixture does not rely on the release task so it would not have this setup
+  # test fixture does not rely on the release task so it would need this setup
   defp setup_exit_games() do
     contracts = SnapshotContracts.parse_contracts()
     plasma_framework = contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
