@@ -28,7 +28,7 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       method_id: <<221, 111, 117, 92>>,
       returns: [],
       type: :event,
-      types: [:address, {:uint, 160}]
+      types: [:address, {:uint, 168}]
     }
   end
 
@@ -119,7 +119,7 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       method_id: <<10, 219, 41, 176>>,
       returns: [],
       type: :event,
-      types: [uint: 160]
+      types: [uint: 168]
     }
   end
 
@@ -186,7 +186,7 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       method_id: <<68, 70, 236, 17>>,
       returns: [],
       type: :event,
-      types: [uint: 160, uint: 16]
+      types: [uint: 168, uint: 16]
     }
   end
 
@@ -199,7 +199,7 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       method_id: <<162, 65, 198, 222>>,
       returns: [],
       type: :event,
-      types: [uint: 160, uint: 16]
+      types: [uint: 168, uint: 16]
     }
   end
 end
