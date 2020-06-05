@@ -17,15 +17,22 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
     Creates an empty instance of OMG DB storage and fills it with the required initial data.
   """
 
-  @start_apps [:logger, :crypto, :ssl]
   @app :omg_db
+  @default_db_folder "app"
+  @start_apps [:logger, :crypto, :ssl]
+
   require Logger
 
   def run() do
     _ = on_load()
-    path = Application.get_env(@app, :path)
-    process(path)
+
+    result =
+      @app
+      |> Application.get_env(:path)
+      |> process()
+
     _ = on_done()
+    result
   end
 
   def run_multi() do
@@ -36,7 +43,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
       |> Application.get_env(:path)
       |> OMG.DB.root_path()
 
-    ["app", "exit_processor"]
+    ["exit_processor", @default_db_folder]
     |> Enum.map(&Path.join([root_path, &1]))
     |> Enum.each(&process/1)
 
