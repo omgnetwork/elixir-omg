@@ -26,7 +26,21 @@ defmodule LoadTest.ChildChain.Deposit do
 
   @eth <<0::160>>
   @poll_interval 5_000
+  @doc """
+  Deposits funds into the childchain.
 
+  If currency is ETH, funds will be deposited into the EthVault.
+  If currency is ERC20, 'approve()' will be called before depositing funds into the Erc20Vault.
+
+  Returns the utxo created by the deposit.
+  """
+  @spec deposit_from(
+          LoadTest.Ethereum.Account.t(),
+          pos_integer(),
+          LoadTest.Ethereum.Account.t(),
+          pos_integer(),
+          pos_integer()
+        ) :: Utxo.t()
   def deposit_from(%Account{} = depositor, amount, currency, deposit_finality_margin, gas_price) do
     deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}
     {:ok, deposit} = Deposit.new(deposit_utxo)
@@ -36,15 +50,29 @@ defmodule LoadTest.ChildChain.Deposit do
   end
 
   defp send_deposit(deposit, account, value, @eth, gas_price) do
-    eth_vault_address = Application.fetch_env!(:load_test, :eth_vault_address)
+    vault_address = Application.fetch_env!(:load_test, :eth_vault_address)
+    do_deposit(vault_address, deposit, account, value, gas_price)
+  end
+
+  defp send_deposit(deposit, account, value, erc20_contract, gas_price) do
+    vault_address = Application.fetch_env!(:load_test, :erc20_vault_address)
+
+    # First have to approve the token
+    {:ok, tx_hash} = approve(erc20_contract, vault_address, account, value, gas_price)
+    {:ok, _} = Ethereum.transact_sync(tx_hash)
+
+    # Note that when depositing erc20 tokens, then tx value must be 0
+    do_deposit(vault_address, deposit, account, 0, gas_price)
+  end
+
+  defp do_deposit(vault_address, deposit, account, value, gas_price) do
     %{data: deposit_data} = LoadTest.Utils.Encoding.encode_deposit(deposit)
 
     tx = %LoadTest.Ethereum.Transaction{
-      to: Encoding.to_binary(eth_vault_address),
+      to: Encoding.to_binary(vault_address),
       value: value,
       gas_price: gas_price,
       gas_limit: 200_000,
-      init: <<>>,
       data: Encoding.to_binary(deposit_data)
     }
 
@@ -53,14 +81,10 @@ defmodule LoadTest.ChildChain.Deposit do
 
     {:ok, %{"logs" => logs}} = Ethereumex.HttpClient.eth_get_transaction_receipt(tx_hash)
 
-    deposit_blknum =
-      logs
-      |> Enum.map(fn %{"topics" => topics} -> topics end)
-      |> Enum.map(fn [_topic, _addr, blknum | _] -> blknum end)
-      |> hd()
-      |> Encoding.to_int()
+    %{"topics" => [_topic, _addr, blknum | _]} =
+      Enum.find(logs, fn %{"address" => address} -> address == vault_address end)
 
-    {:ok, {deposit_blknum, eth_blknum}}
+    {:ok, {Encoding.to_int(blknum), eth_blknum}}
   end
 
   defp wait_deposit_finality(deposit_eth_blknum, finality_margin) do
@@ -74,5 +98,18 @@ defmodule LoadTest.ChildChain.Deposit do
       Process.sleep(@poll_interval)
       wait_deposit_finality(deposit_eth_blknum, finality_margin)
     end
+  end
+
+  defp approve(contract, vault_address, account, value, gas_price) do
+    data = ABI.encode("approve(address,uint256)", [Encoding.to_binary(vault_address), value])
+
+    tx = %LoadTest.Ethereum.Transaction{
+      to: contract,
+      gas_price: gas_price,
+      gas_limit: 200_000,
+      data: data
+    }
+
+    Ethereum.send_raw_transaction(tx, account)
   end
 end

@@ -30,6 +30,7 @@ defmodule LoadTest.Runner.ChildChainTransactions do
   """
   use Chaperon.LoadTest
 
+  alias ExPlasma.Encoding
   alias LoadTest.Ethereum.Account
 
   @default_config %{
@@ -43,7 +44,8 @@ defmodule LoadTest.Runner.ChildChainTransactions do
   end
 
   def scenarios() do
-    fee_wei = Application.fetch_env!(:load_test, :fee_wei)
+    test_currency = Application.fetch_env!(:load_test, :test_currency)
+    fee_amount = Application.fetch_env!(:load_test, :fee_amount)
     config = default_config()
 
     {:ok, sender} = Account.new()
@@ -52,7 +54,7 @@ defmodule LoadTest.Runner.ChildChainTransactions do
     amount = 1
 
     ntx_to_send = config.transactions_per_session
-    initial_funds = (amount + fee_wei) * ntx_to_send
+    initial_funds = (amount + fee_amount) * ntx_to_send
 
     [
       {{config.concurrent_sessions, [LoadTest.Scenario.FundAccount, LoadTest.Scenario.SpendEthUtxo]},
@@ -61,7 +63,8 @@ defmodule LoadTest.Runner.ChildChainTransactions do
          initial_funds: initial_funds,
          sender: sender,
          receiver: receiver,
-         amount: amount
+         amount: amount,
+         test_currency: test_currency
        }}
     ]
   end
