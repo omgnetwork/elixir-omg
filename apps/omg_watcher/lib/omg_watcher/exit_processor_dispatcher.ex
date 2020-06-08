@@ -36,12 +36,17 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
 
   defp do_chack_validity(timeout \\ 5000) do
     forward(:check_validity, timeout)
+    |> (fn x ->
+          _ = Logger.warn(">>>>>>>> forward :check_validity result >>>>>>>>")
+          _ = Logger.warn(inspect(x))
+          x
+        end).()
     |> Enum.reduce({:ok, []}, fn {chain_validity, events}, acc ->
       {acc_chain_validity, acc_events} = acc
 
-      case chain_validity do
+      case acc_chain_validity do
         :ok ->
-          {acc_chain_validity, acc_events ++ events}
+          {chain_validity, acc_events ++ events}
 
         {:error, :unchallenged_exit} ->
           {{:error, :unchallenged_exit}, acc_events ++ events}
@@ -132,11 +137,14 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
   end
 
   defp dispatch(event_name, events) do
+    _ = Logger.warn(">>>>>>> dispatch >>>>>>>")
+    _ = Logger.warn("event_name: #{inspect(event_name)}")
+    _ = Logger.warn("events: #{inspect(events)}")
+
     db_updates =
-      Enum.flat_map(filter_events(events), fn {transaction_type, events} ->
-        # We reverse the events since we're getting them back
-        # in the wrong order from the filter_events() function
-        {:ok, db_updates} = GenServer.call(transaction_type, {event_name, Enum.reverse(events)})
+      Enum.flat_map(group_events(events), fn {transaction_type, events} = data ->
+        _ = Logger.warn("filtered events: #{inspect(data)}")
+        {:ok, db_updates} = GenServer.call(transaction_type, {event_name, events})
         db_updates
       end)
 
@@ -151,27 +159,13 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
   #   ],
   #   tx_payment_v2: []
   # }
-  defp filter_events(events) do
-    # First we get the list of exit game contracts from the configuration
+  defp group_events(events) do
     # tx_type => address
     exit_games = OMG.Eth.Configuration.exit_games()
 
-    # We reverse that list to easily get the type from an address
-    # We need this since the tx_type is used as the identifier
-    # for our exit processor genservers
-    reversed_exit_games = Map.new(exit_games, fn {k, v} -> {v, k} end)
-
-    # Filter events based on which exit games they're coming from
-    events
-    |> Enum.reduce(%{}, fn event, exit_games_with_events ->
-      case reversed_exit_games[event["address"]] do
-        nil ->
-          exit_games_with_events
-
-        tx_type ->
-          current_events = exit_games_with_events[event["address"]] || []
-          Map.put(exit_games_with_events, tx_type, [event | current_events])
-      end
+    Map.new(exit_games, fn {tx_type, address} ->
+      grouped_events = Enum.filter(events, fn e -> e["address"] == address end)
+      {tx_type, grouped_events}
     end)
   end
 
