@@ -44,15 +44,14 @@ defmodule OMG.Watcher.BlockGetter do
   use GenServer
   use OMG.Utils.LoggerExt
   use Spandex.Decorators
-  alias OMG.Eth.RootChain
 
+  alias OMG.Eth.RootChain
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.State
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.BlockGetter.Status
-  alias OMG.Watcher.EthereumEventAggregator
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.HttpRPC.Client
 
@@ -67,17 +66,10 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @doc """
-  Initializes the GenServer state, most work done in `handle_continue/2`.
-  """
-  def init(args) do
-    {:ok, args, {:continue, :setup}}
-  end
-
-  @doc """
   Reads the status of block getting and application from `OMG.DB`, reads the current state of the contract and root
   chain and starts the pollers that will take care of getting blocks.
   """
-  def handle_continue(:setup, args) do
+  def init(args) do
     child_block_interval = Keyword.fetch!(args, :child_block_interval)
     # how many eth blocks backward can change during an reorg
     block_getter_reorg_margin = Keyword.fetch!(args, :block_getter_reorg_margin)
@@ -131,7 +123,7 @@ defmodule OMG.Watcher.BlockGetter do
         }"
       )
 
-    {:noreply, state}
+    {:ok, state}
   end
 
   # :apply_block pipeline of steps
@@ -161,10 +153,10 @@ defmodule OMG.Watcher.BlockGetter do
   @doc """
   Schedules more blocks to download in case some work downloading is finished and we want to progress.
   """
-  def handle_continue({:apply_block_step, :run_block_download_task, block_application}, state),
-    do:
-      {:noreply, run_block_download_task(state),
-       {:continue, {:apply_block_step, :close_and_apply_block, block_application}}}
+  def handle_continue({:apply_block_step, :run_block_download_task, block_application}, state) do
+    {:noreply, run_block_download_task(state),
+     {:continue, {:apply_block_step, :close_and_apply_block, block_application}}}
+  end
 
   @doc """
   Marks a block as applied and updates `OMG.DB` values. Also commits the updates to `OMG.DB` that `OMG.State` handed off
@@ -242,6 +234,11 @@ defmodule OMG.Watcher.BlockGetter do
     {:noreply, state}
   end
 
+  def handle_info({:ssl_closed, _}, state) do
+    # eat this bug https://github.com/benoitc/hackney/issues/464
+    {:noreply, state}
+  end
+
   #
   # Private functions
   #
@@ -312,8 +309,9 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: :block_getter)
-  defp get_block_submitted_events(block_from, block_to),
-    do: EthereumEventAggregator.block_submitted(block_from, block_to)
+  defp get_block_submitted_events(block_from, block_to) do
+    RootChain.get_block_submitted_events(block_from, block_to)
+  end
 
   defp run_block_download_task(state) do
     next_child = RootChain.next_child_block()

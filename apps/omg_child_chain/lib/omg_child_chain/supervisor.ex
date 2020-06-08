@@ -17,12 +17,12 @@ defmodule OMG.ChildChain.Supervisor do
    OMG.ChildChain top level supervisor.
   """
   use Supervisor
-  use OMG.Utils.LoggerExt
 
+  alias OMG.ChildChain.API.BlocksCache
+  alias OMG.ChildChain.API.BlocksCache.Storage
   alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
-  alias OMG.ChildChain.FreshBlocks
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
   alias OMG.ChildChain.Tracer
@@ -30,11 +30,20 @@ defmodule OMG.ChildChain.Supervisor do
   alias OMG.State
   alias OMG.Status.Alert.Alarm
 
+  require Logger
+
+  @blocks_cache :blocks_cache
+
+  def blocks_cache() do
+    @blocks_cache
+  end
+
   def start_link() do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
+    :ok = Storage.ensure_ets_init(blocks_cache())
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
     metrics_collection_interval = Configuration.metrics_collection_interval()
     fee_server_opts = Configuration.fee_server_opts()
@@ -48,7 +57,7 @@ defmodule OMG.ChildChain.Supervisor do
          child_block_interval: child_block_interval,
          metrics_collection_interval: metrics_collection_interval
        ]},
-      {FreshBlocks, []},
+      {BlocksCache, [ets: blocks_cache()]},
       {FeeServer, fee_server_opts},
       {Monitor,
        [

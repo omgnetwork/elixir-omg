@@ -25,6 +25,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
 
   require Utxo
 
+  @eth OMG.Eth.zero_address()
   @root_chain_txhash1 <<11::256>>
   @root_chain_txhash2 <<12::256>>
 
@@ -32,7 +33,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
     {:ok, _} =
       GenServer.start_link(
         ExitConsumer,
-        [topic: :watcher_test_topic, bus_module: __MODULE__.FakeBus],
+        [topic: :watcher_test_topic, bus_module: __MODULE__.FakeBus, event_type: :in_flight_exit],
         name: TestExitConsumer
       )
 
@@ -93,6 +94,26 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
       send_events_and_wait_until_processed(event_data)
 
       assert alice.addr |> get_utxos_pos() |> none_in(spent_utxos_pos)
+    end
+
+    @tag fixtures: [:alice, :initial_blocks]
+    test "receiving IFE output piggybacked event is reflected in balance", %{alice: alice} do
+      %{creating_txhash: txhash, oindex: oindex, amount: exiting_amount} = alice.addr |> get_utxos_for() |> hd()
+      [%{currency: @eth, amount: initial_balance}] = DB.TxOutput.get_balance(alice.addr)
+
+      event_data = [
+        %{
+          log_index: 2,
+          eth_height: 2,
+          root_chain_txhash: @root_chain_txhash2,
+          call_data: %{txhash: txhash, oindex: oindex}
+        }
+      ]
+
+      send_events_and_wait_until_processed(event_data)
+
+      expected_balance = initial_balance - exiting_amount
+      assert [%{currency: @eth, amount: expected_balance}] == DB.TxOutput.get_balance(alice.addr)
     end
 
     @tag fixtures: [:alice, :initial_blocks]

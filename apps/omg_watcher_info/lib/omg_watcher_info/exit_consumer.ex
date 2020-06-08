@@ -30,17 +30,26 @@ defmodule OMG.WatcherInfo.ExitConsumer do
   use GenServer
 
   def init(args) do
-    topic = Keyword.fetch!(args, :topic)
     bus_module = Keyword.get(args, :bus_module, @default_bus_module)
 
-    :ok = bus_module.subscribe(topic, link: true)
+    state = %{
+      topic: Keyword.fetch!(args, :topic),
+      event_type: Keyword.fetch!(args, :event_type)
+    }
 
-    _ = Logger.info("Started #{inspect(__MODULE__)}, listen to #{inspect(topic)}")
-    {:ok, %{}}
+    :ok = bus_module.subscribe(state.topic, link: true)
+
+    _ = Logger.info("Started #{inspect(__MODULE__)}, listen to #{inspect(state.topic)}")
+    {:ok, state}
   end
 
   def handle_info({:internal_event_bus, :data, data}, state) do
-    _ = EthEvent.insert_exits!(data)
+    _ =
+      Logger.debug(
+        "Received event from #{inspect(state.topic)} typeof #{inspect(state.event_type)} Data:\n#{inspect(data)}"
+      )
+
+    _ = EthEvent.insert_exits!(data, state.event_type)
     {:noreply, state}
   end
 end

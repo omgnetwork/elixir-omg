@@ -24,4 +24,15 @@ defmodule OMG.Watcher.API.StatusCache.Storage do
     {:ok, status} = integration_module.get_status(eth_block_number)
     :ets.insert(ets, {key, status})
   end
+
+  def ensure_ets_init(status_cache) do
+    case :ets.info(status_cache) do
+      :undefined ->
+        ^status_cache = :ets.new(status_cache, [:set, :public, :named_table, read_concurrency: true])
+        :ok
+
+      _ ->
+        :ok
+    end
+  end
 end

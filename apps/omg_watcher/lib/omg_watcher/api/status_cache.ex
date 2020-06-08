@@ -62,6 +62,11 @@ defmodule OMG.Watcher.API.StatusCache do
     {:noreply, state}
   end
 
+  def handle_info({:ssl_closed, _}, state) do
+    # eat this bug https://github.com/benoitc/hackney/issues/464
+    {:noreply, state}
+  end
+
   defp key() do
     :status
   end

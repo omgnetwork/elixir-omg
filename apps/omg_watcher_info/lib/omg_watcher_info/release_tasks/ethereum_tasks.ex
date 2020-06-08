@@ -35,7 +35,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks do
 
   def run() do
     _ = Application.ensure_all_started(@app)
-
+    Logger.info("Running Ethereum tasks.")
     # Run Ethereum tasks
     AddEthereumHeightToEthEvents.run()
   end

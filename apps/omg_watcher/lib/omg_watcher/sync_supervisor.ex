@@ -22,6 +22,8 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   alias OMG.EthereumEventListener
   alias OMG.Watcher
+  alias OMG.Watcher.API.StatusCache
+  alias OMG.Watcher.API.StatusCache.Storage
   alias OMG.Watcher.ChildManager
   alias OMG.Watcher.Configuration
   alias OMG.Watcher.CoordinatorSetup
@@ -45,10 +47,23 @@ defmodule OMG.Watcher.SyncSupervisor do
   end
 
   def init(args) do
-    opts = [strategy: :one_for_one]
+    # Assuming the values max_restarts and max_seconds,
+    # then, if more than max_restarts restarts occur within max_seconds seconds,
+    # the supervisor terminates all child processes and then itself.
+    # The termination reason for the supervisor itself in that case will be shutdown.
+    # max_restarts defaults to 3 and max_seconds defaults to 5.
+
+    # We have 16 children, roughly 14 of them have a dependency to the internetz.
+    # The internetz is flaky. We account for that and allow the flakyness to pass
+    # by increasing the restart strategy. But not too much, because if the internetz is
+    # really off, HeightMonitor should catch that in max 8 seconds and raise an alarm.
+    max_restarts = 3
+    max_seconds = 5
+    opts = [strategy: :one_for_one, max_restarts: max_restarts * 10, max_seconds: max_seconds * 2]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    :ok = ensure_ets_init()
+    :ok = Storage.ensure_ets_init(status_cache())
+    :ok = ensure_ets_init(events_bucket())
     Supervisor.init(children(args), opts)
   end
 
@@ -67,6 +82,13 @@ defmodule OMG.Watcher.SyncSupervisor do
     contracts = OMG.Eth.Configuration.contracts()
 
     [
+      {OMG.RootChainCoordinator,
+       CoordinatorSetup.coordinator_setup(
+         metrics_collection_interval,
+         coordinator_eth_height_check_interval_ms,
+         finality_margin,
+         deposit_finality_margin
+       )},
       {ExitProcessor,
        [
          exit_processor_sla_margin: exit_processor_sla_margin,
@@ -83,13 +105,6 @@ defmodule OMG.Watcher.SyncSupervisor do
         restart: :permanent,
         type: :supervisor
       },
-      {OMG.RootChainCoordinator,
-       CoordinatorSetup.coordinator_setup(
-         metrics_collection_interval,
-         coordinator_eth_height_check_interval_ms,
-         finality_margin,
-         deposit_finality_margin
-       )},
       {EthereumEventAggregator,
        contracts: contracts,
        ets_bucket: events_bucket(),
@@ -106,9 +121,7 @@ defmodule OMG.Watcher.SyncSupervisor do
          [name: :in_flight_exit_input_blocked, enrich: false],
          [name: :in_flight_exit_output_blocked, enrich: false],
          [name: :in_flight_exit_input_withdrawn, enrich: false],
-         [name: :in_flight_exit_output_withdrawn, enrich: false],
-         # blockgetter
-         [name: :block_submitted, enrich: false]
+         [name: :in_flight_exit_output_withdrawn, enrich: false]
        ]},
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -200,18 +213,19 @@ defmodule OMG.Watcher.SyncSupervisor do
         get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
       ),
-      {OMG.Watcher.API.StatusCache, [event_bus: OMG.Bus, ets: status_cache()]},
+      {StatusCache, [event_bus: OMG.Bus, ets: status_cache()]},
       {ChildManager, [monitor: Monitor]}
     ]
   end
 
-  defp ensure_ets_init() do
-    _ = if :undefined == :ets.info(events_bucket()), do: :ets.new(events_bucket(), [:bag, :public, :named_table])
+  defp ensure_ets_init(events_bucket) do
+    case :ets.info(events_bucket) do
+      :undefined ->
+        ^events_bucket = :ets.new(events_bucket, [:bag, :public, :named_table])
+        :ok
 
-    _ =
-      if :undefined == :ets.info(status_cache()),
-        do: :ets.new(status_cache(), [:set, :public, :named_table, read_concurrency: true])
-
-    :ok
+      _ ->
+        :ok
+    end
   end
 end

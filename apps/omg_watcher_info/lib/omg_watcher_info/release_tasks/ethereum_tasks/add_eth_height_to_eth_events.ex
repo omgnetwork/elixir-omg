@@ -23,10 +23,14 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
 
   import Ecto.Query, only: [from: 2]
 
+  require Logger
+
   @max_db_rows 100
   @max_eth_requests 25
 
   def run() do
+    Logger.info("Running: Add `eth_height` to `eth_events`")
+
     DB.Repo.transaction(fn ->
       stream_events_from_db()
       |> stream_create_requests()
