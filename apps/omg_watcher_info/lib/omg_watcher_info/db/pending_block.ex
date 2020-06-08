@@ -30,7 +30,6 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
   @type t() :: %{
           blknum: pos_integer(),
           data: binary(),
-          retry_count: non_neg_integer(),
           status: String.t()
         }
 
@@ -45,7 +44,6 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
   schema "pending_blocks" do
     field(:data, :binary)
     field(:status, :string, default: @status_pending)
-    field(:retry_count, :integer, default: 0)
 
     timestamps(type: :utc_datetime_usec)
   end
@@ -55,12 +53,6 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
     params
     |> insert_changeset()
     |> Repo.insert()
-  end
-
-  def increment_retry_count(block) do
-    block
-    |> retry_changeset()
-    |> Repo.update()
   end
 
   @spec get_next_to_process() :: nil | %__MODULE__{}
@@ -84,9 +76,5 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
     |> cast(params, [:blknum, :data])
     |> validate_required([:blknum, :data])
     |> unique_constraint(:blknum, name: :pending_blocks_pkey)
-  end
-
-  defp retry_changeset(pending_block) do
-    change(pending_block, %{retry_count: pending_block.retry_count + 1})
   end
 end

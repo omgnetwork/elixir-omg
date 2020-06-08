@@ -57,13 +57,13 @@ defmodule OMG.Watcher.Integration.TestHelper do
   This function will instead poll for block.get until found (or timeout).
   """
   def wait_for_block_inserted_in_db(block_nr, timeout) do
-    fn ->
+    func = fn ->
       case WatcherHelper.get_block(block_nr) do
         {:error, _} -> :repeat
         {:ok, %{"blknum" => ^block_nr}} -> {:ok, block_nr}
       end
     end
-    |> WaitFor.ok(timeout)
+    WaitFor.ok(func, timeout)
   end
 
   @doc """

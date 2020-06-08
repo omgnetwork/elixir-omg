@@ -42,30 +42,20 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor.StorageTest do
     test "insert the block into the storage and set its status to done" do
       block = insert(:pending_block)
 
-      assert Storage.process_block(block) == :ok
+      assert {:ok, _} = Storage.process_block(block)
 
       assert [%{status: "done"}] = get_all()
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns an error and increase retry count when failing" do
+    test "returns an error when failing" do
       %{data: data, blknum: blknum_1} = block_1 = insert(:pending_block)
-      assert Storage.process_block(block_1) == :ok
+      assert {:ok, _} = Storage.process_block(block_1)
 
       # inserting a second block with the same data params
-      %{blknum: blknum_2, retry_count: 0} = block_2 = insert(:pending_block, %{data: data, blknum: blknum_1 + 1000})
+      block_2 = insert(:pending_block, %{data: data, blknum: blknum_1 + 1000})
 
-      assert Storage.process_block(block_2) == :error
-
-      assert [%{blknum: ^blknum_1}, %{blknum: ^blknum_2, retry_count: 1}] = get_all()
-    end
-  end
-
-  describe "increment_retry_count/1" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "increments the retry count of a pending block" do
-      %{retry_count: 0} = block = insert(:pending_block)
-      {:ok, %{retry_count: 1}} = PendingBlock.increment_retry_count(block)
+      assert {:error, _, _, _} = Storage.process_block(block_2)
     end
   end
 

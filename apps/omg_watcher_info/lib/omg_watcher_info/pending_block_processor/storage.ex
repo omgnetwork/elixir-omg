@@ -25,17 +25,6 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor.Storage do
   end
 
   def process_block(block) do
-    case Block.insert_pending_block(block) do
-      {:ok, _} ->
-        :ok
-
-      _error ->
-        increment_retry_count(block)
-        :error
-    end
-  end
-
-  def increment_retry_count(block) do
-    PendingBlock.increment_retry_count(block)
+    Block.insert_pending_block(block)
   end
 end

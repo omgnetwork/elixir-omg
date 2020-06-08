@@ -47,17 +47,8 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
   end
 
   def handle_continue(:process_block, %{block: block} = state) do
-    state.storage_module.process_block(block)
+    {:ok, _} = state.storage_module.process_block(block)
 
     {:noreply, %{state | block: nil}, 1}
   end
-
-  def terminate({%DBConnection.ConnectionError{}, _}, %{block: block} = state) when not is_nil(block) do
-    # TODO: raise an alarm?
-    Logger.error("insertion of block number #{block.blknum} timed out")
-    {:ok, _} = state.storage_module.increment_retry_count(block)
-    :ok
-  end
-
-  def terminate(_, _), do: :ok
 end

@@ -45,8 +45,7 @@ defmodule OMG.WatcherInfo.Factory.PendingBlock do
               tx_count: 2
             }),
           blknum: blknum,
-          status: DB.PendingBlock.status_pending(),
-          retry_count: 0
+          status: DB.PendingBlock.status_pending()
         }
       end
     end

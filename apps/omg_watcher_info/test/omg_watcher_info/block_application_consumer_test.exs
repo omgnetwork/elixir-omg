@@ -68,8 +68,7 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
           transactions: block_application.transactions
         })
 
-      assert [%PendingBlock{blknum: 1000, data: ^expected_data, retry_count: 0, status: "pending"}] =
-               DB.Repo.all(PendingBlock)
+      assert [%PendingBlock{blknum: 1000, data: ^expected_data, status: "pending"}] = DB.Repo.all(PendingBlock)
     end
   end
 

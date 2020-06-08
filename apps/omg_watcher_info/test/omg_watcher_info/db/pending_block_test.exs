@@ -32,14 +32,13 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "default status to pending and retry count to 0" do
-      assert {:ok, %{retry_count: 0, status: "pending"}} = PendingBlock.insert(%{data: <<0>>, blknum: 1000})
+    test "default status to pending" do
+      assert {:ok, %{status: "pending"}} = PendingBlock.insert(%{data: <<0>>, blknum: 1000})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "does not cast retry count and status" do
-      assert {:ok, %{retry_count: 0, status: "pending"}} =
-               PendingBlock.insert(%{data: <<0>>, blknum: 1000, status: "1337", retry_count: 1337})
+    test "does not cast status" do
+      assert {:ok, %{status: "pending"}} = PendingBlock.insert(%{data: <<0>>, blknum: 1000, status: "1337"})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -48,25 +47,6 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
       insert(:pending_block, %{data: <<0>>, blknum: blknum})
 
       assert {:error, %Ecto.Changeset{}} = PendingBlock.insert(%{data: <<1>>, blknum: blknum})
-    end
-  end
-
-  describe "increment_retry_count/1" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "increment the retry counter" do
-      %{retry_count: 0} = pending_block = insert(:pending_block)
-      assert {:ok, %{retry_count: 1}} = PendingBlock.increment_retry_count(pending_block)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "does not modify other keys" do
-      pending_block = insert(:pending_block)
-      {:ok, updated_block} = PendingBlock.increment_retry_count(pending_block)
-      assert pending_block.data == updated_block.data
-      assert pending_block.blknum == updated_block.blknum
-      assert pending_block.status == updated_block.status
-      assert pending_block.inserted_at == updated_block.inserted_at
-      assert pending_block.updated_at < updated_block.updated_at
     end
   end
 
