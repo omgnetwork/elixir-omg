@@ -75,10 +75,15 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     {exit_games, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval} =
       get_external_data(plasma_framework, rpc_api)
 
+    # Okay, so I am not sure if we want to keep payment_exit_game under contract_addr.
+    # However, this is more backward competible with existing code. If we want to move away
+    # for all the places we should refactor this.
     contract_addresses = %{
       plasma_framework: plasma_framework,
       eth_vault: eth_vault,
-      erc20_vault: erc20_vault
+      erc20_vault: erc20_vault,
+      payment_exit_game: exit_games.tx_payment_v1,
+      payment_v2_exit_game: exit_games.tx_payment_v2
     }
 
     merge_configuration(

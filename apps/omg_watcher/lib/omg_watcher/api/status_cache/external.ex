@@ -27,6 +27,7 @@ defmodule OMG.Watcher.API.StatusCache.External do
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessorDispatcher
 
   @type t() :: %{
           last_validated_child_block_number: non_neg_integer(),
