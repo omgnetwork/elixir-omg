@@ -198,8 +198,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     DevHelper.wait_for_root_chain_block(response_eth_height + exit_finality_margin + 1)
 
     # dissapearing of `invalid_ife_challenge` event
-    assert %{"byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "piggyback_available"}]} =
-             WatcherHelper.success?("/status.get")
+    assert %{
+             "byzantine_events" => [
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "piggyback_available"}
+             ]
+           } = WatcherHelper.success?("/status.get")
   end
 
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :mix_based_child_chain, :token, :alice_deposits]
@@ -215,8 +219,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     _ = exit_in_flight_and_wait_for_ife(ife1, alice)
 
-    assert %{"in_flight_exits" => [%{}]} = WatcherHelper.success?("/status.get")
-
+    assert %{"in_flight_exits" => [ife]} = WatcherHelper.success?("/status.get")
+    assert is_map(ife)
     _ = piggyback_and_process_exits(tx, 1, :output, bob)
 
     assert %{"in_flight_exits" => [], "byzantine_events" => []} = WatcherHelper.success?("/status.get")
@@ -257,7 +261,9 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
            end) =~ "Invalid in-flight exit finalization"
 
     assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = WatcherHelper.success?("/status.get")
-    assert [%{"event" => "invalid_piggyback"}] = Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
+    # invalid piggyback is past sla margin, unchallenged_piggyback event is emitted
+    assert [%{"event" => "unchallenged_piggyback"}, %{"event" => "invalid_piggyback"}] =
+             Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
   end
 
   defp exit_in_flight(%Transaction.Signed{} = tx, exiting_user) do

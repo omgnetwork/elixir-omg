@@ -79,11 +79,6 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     forward_call(server, :in_flight_exit_withdrawn, from_block, to_block, @timeout)
   end
 
-  @spec block_submitted(GenServer.server(), pos_integer(), pos_integer()) :: result()
-  def block_submitted(server \\ __MODULE__, from_block, to_block) do
-    forward_call(server, :block_submitted, from_block, to_block, @timeout)
-  end
-
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: Keyword.get(opts, :name, __MODULE__))
   end

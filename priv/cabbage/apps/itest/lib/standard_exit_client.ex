@@ -17,7 +17,6 @@ defmodule Itest.StandardExitClient do
     An interface to Watcher API.
   """
   alias Itest.ApiModel.Utxo
-  alias Itest.Transactions.Currency
   alias Itest.Transactions.Encoding
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
@@ -33,6 +32,7 @@ defmodule Itest.StandardExitClient do
     :address,
     :utxo,
     :exit_data,
+    :currency,
     :exit_game_contract_address,
     :standard_exit_bond_size,
     :standard_exit_id,
@@ -55,6 +55,7 @@ defmodule Itest.StandardExitClient do
 
     se
     |> get_exit_data()
+    |> get_currency()
     |> get_exit_game_contract_address()
     |> add_exit_queue()
     |> get_bond_size_for_standard_exit()
@@ -84,8 +85,8 @@ defmodule Itest.StandardExitClient do
   Options:
     - :n_exits - provide how many exits should `processExits` attempt to process in the contract, defaults to 1
   """
-  def wait_and_process_standard_exit(%__MODULE__{address: address} = se, opts \\ []) do
-    _ = Logger.info("Waiting and processing a standard exit by #{address}")
+  def wait_and_process_standard_exit(se, opts \\ []) do
+    _ = Logger.info("Waiting and processing a standard exit by #{se.address}")
 
     se
     |> get_exit_game_contract_address()
@@ -95,8 +96,8 @@ defmodule Itest.StandardExitClient do
   end
 
   # taking the first UTXO from the json array
-  defp get_utxo(%__MODULE__{address: address} = se) do
-    payload = %AddressBodySchema1{address: address}
+  defp get_utxo(se) do
+    payload = %AddressBodySchema1{address: se.address}
 
     response =
       pull_api_until_successful(
@@ -109,8 +110,8 @@ defmodule Itest.StandardExitClient do
     %{se | utxo: response |> hd |> Utxo.to_struct()}
   end
 
-  defp get_exit_data(%__MODULE__{utxo: %Utxo{utxo_pos: utxo_pos}} = se) do
-    payload = %UtxoPositionBodySchema1{utxo_pos: utxo_pos}
+  defp get_exit_data(se) do
+    payload = %UtxoPositionBodySchema1{utxo_pos: se.utxo.utxo_pos}
 
     response =
       pull_api_until_successful(WatcherSecurityCriticalAPI.Api.UTXO, :utxo_get_exit_data, Watcher.new(), payload)
@@ -118,15 +119,17 @@ defmodule Itest.StandardExitClient do
     %{se | exit_data: Itest.ApiModel.ExitData.to_struct(response)}
   end
 
-  defp get_exit_game_contract_address(se) do
-    %{
-      se
-      | exit_game_contract_address: Itest.PlasmaFramework.exit_game_contract_address(ExPlasma.payment_v1())
-    }
+  defp get_currency(se) do
+    %{se | currency: Encoding.to_binary(se.utxo.currency)}
   end
 
-  defp add_exit_queue(%__MODULE__{} = se) do
-    if has_exit_queue?() do
+  defp get_exit_game_contract_address(se) do
+    exit_game_contract_address = Itest.PlasmaFramework.exit_game_contract_address(ExPlasma.payment_v1())
+    %{se | exit_game_contract_address: exit_game_contract_address}
+  end
+
+  defp add_exit_queue(se) do
+    if has_exit_queue?(se.currency) do
       _ = Logger.info("Exit queue was already added.")
       se
     else
@@ -135,7 +138,7 @@ defmodule Itest.StandardExitClient do
       data =
         ABI.encode(
           "addExitQueue(uint256,address)",
-          [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()]
+          [Itest.PlasmaFramework.vault_id(se.currency), se.currency]
         )
 
       txmap = %{
@@ -153,10 +156,10 @@ defmodule Itest.StandardExitClient do
     end
   end
 
-  defp get_bond_size_for_standard_exit(%__MODULE__{exit_game_contract_address: exit_game_contract_address} = se) do
+  defp get_bond_size_for_standard_exit(se) do
     _ = Logger.info("Trying to get bond size for standard exit.")
     data = ABI.encode("startStandardExitBondSize()", [])
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: se.exit_game_contract_address, data: Encoding.to_hex(data)})
 
     standard_exit_bond_size =
       result
@@ -167,25 +170,18 @@ defmodule Itest.StandardExitClient do
     %{se | standard_exit_bond_size: standard_exit_bond_size}
   end
 
-  defp do_start_standard_exit(
-         %__MODULE__{
-           standard_exit_bond_size: standard_exit_bond_size,
-           address: address,
-           exit_game_contract_address: exit_game_contract_address,
-           exit_data: exit_data
-         } = se
-       ) do
+  defp do_start_standard_exit(se) do
     _ = Logger.info("Starting standard exit.")
 
     data =
       ABI.encode("startStandardExit((uint256,bytes,bytes))", [
-        {exit_data.utxo_pos, Encoding.to_binary(exit_data.txbytes), Encoding.to_binary(exit_data.proof)}
+        {se.exit_data.utxo_pos, Encoding.to_binary(se.exit_data.txbytes), Encoding.to_binary(se.exit_data.proof)}
       ])
 
     txmap = %{
-      from: address,
-      to: exit_game_contract_address,
-      value: Encoding.to_hex(standard_exit_bond_size),
+      from: se.address,
+      to: se.exit_game_contract_address,
+      value: Encoding.to_hex(se.standard_exit_bond_size),
       data: Encoding.to_hex(data),
       gas: Encoding.to_hex(@gas)
     }
@@ -195,12 +191,12 @@ defmodule Itest.StandardExitClient do
     %{se | start_standard_exit_hash: receipt_hash}
   end
 
-  defp wait_for_exit_period(%__MODULE__{exit_data: exit_data} = se) do
+  defp wait_for_exit_period(se) do
     _ = Logger.info("Wait for exit period to pass.")
     data = ABI.encode("minExitPeriod()", [])
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
-    not_from_deposit_multiplier = if exit_data && from_deposit?(exit_data.utxo_pos), do: 1, else: 2
+    not_from_deposit_multiplier = if se.exit_data && from_deposit?(se.exit_data.utxo_pos), do: 1, else: 2
 
     # result is in seconds
     result
@@ -218,17 +214,15 @@ defmodule Itest.StandardExitClient do
     se
   end
 
-  defp get_standard_exit_id(
-         %__MODULE__{exit_game_contract_address: exit_game_contract_address, exit_data: exit_data} = se
-       ) do
+  defp get_standard_exit_id(se) do
     data =
       ABI.encode("getStandardExitId(bool,bytes,uint256)", [
-        from_deposit?(exit_data.utxo_pos),
-        Encoding.to_binary(exit_data.txbytes),
-        exit_data.utxo_pos
+        from_deposit?(se.exit_data.utxo_pos),
+        Encoding.to_binary(se.exit_data.txbytes),
+        se.exit_data.utxo_pos
       ])
 
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: exit_game_contract_address, data: Encoding.to_hex(data)})
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: se.exit_game_contract_address, data: Encoding.to_hex(data)})
 
     standard_exit_id =
       result
@@ -236,8 +230,7 @@ defmodule Itest.StandardExitClient do
       |> ABI.TypeDecoder.decode([{:uint, 160}])
       |> hd()
 
-    data =
-      ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()])
+    data = ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(se.currency), se.currency])
 
     {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
@@ -253,17 +246,17 @@ defmodule Itest.StandardExitClient do
     %{se | standard_exit_id: standard_exit_id}
   end
 
-  defp process_exit(%__MODULE__{address: address, standard_exit_id: standard_exit_id} = se, n_exits) do
+  defp process_exit(se, n_exits) do
     _ = Logger.info("Process exit #{__MODULE__}")
 
     data =
       ABI.encode(
         "processExits(uint256,address,uint160,uint256)",
-        [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether(), standard_exit_id, n_exits]
+        [Itest.PlasmaFramework.vault_id(se.currency), se.currency, se.standard_exit_id, n_exits]
       )
 
     txmap = %{
-      from: address,
+      from: se.address,
       to: Itest.PlasmaFramework.address(),
       value: Encoding.to_hex(0),
       data: Encoding.to_hex(data),
@@ -277,15 +270,9 @@ defmodule Itest.StandardExitClient do
     %{se | process_exit_receipt_hash: receipt_hash}
   end
 
-  defp calculate_total_gas_used(
-         %__MODULE__{
-           add_exit_queue_hash: add_exit_queue_hash,
-           process_exit_receipt_hash: process_exit_receipt_hash,
-           start_standard_exit_hash: start_standard_exit_hash
-         } = se
-       ) do
+  defp calculate_total_gas_used(se) do
     _ = Logger.info("Calculating total gas used.")
-    receipt_hashes = [add_exit_queue_hash, process_exit_receipt_hash, start_standard_exit_hash]
+    receipt_hashes = [se.add_exit_queue_hash, se.process_exit_receipt_hash, se.start_standard_exit_hash]
 
     total_gas_used =
       Enum.reduce(receipt_hashes, 0, fn receipt_hash, acc ->
@@ -297,10 +284,10 @@ defmodule Itest.StandardExitClient do
     %{se | total_gas_used: total_gas_used}
   end
 
-  defp wait_for_exit_queue(%__MODULE__{} = _se, 0), do: exit(1)
+  defp wait_for_exit_queue(_se, 0), do: exit(1)
 
-  defp wait_for_exit_queue(%__MODULE__{} = se, counter) do
-    if has_exit_queue?() do
+  defp wait_for_exit_queue(se, counter) do
+    if has_exit_queue?(se.currency) do
       se
     else
       Process.sleep(@sleep_retry_sec)
@@ -308,11 +295,11 @@ defmodule Itest.StandardExitClient do
     end
   end
 
-  defp has_exit_queue?() do
+  defp has_exit_queue?(currency) do
     data =
       ABI.encode(
         "hasExitQueue(uint256,address)",
-        [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()]
+        [Itest.PlasmaFramework.vault_id(currency), currency]
       )
 
     {:ok, receipt_enc} =

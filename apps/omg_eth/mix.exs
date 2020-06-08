@@ -35,7 +35,7 @@ defmodule OMG.Eth.MixProject do
 
   defp deps() do
     [
-      {:ex_abi, "~> 0.2.1"},
+      {:ex_abi, "~> 0.4"},
       {:ethereumex, "~> 0.6.0"},
       # Umbrella
       {:omg_bus, in_umbrella: true},
@@ -44,8 +44,7 @@ defmodule OMG.Eth.MixProject do
       {:omg_db, in_umbrella: true},
       # TEST ONLY
       {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test]},
-      {:briefly, "~> 0.3.0", only: [:dev, :test]},
-      {:exvcr, "~> 0.10", only: :test}
+      {:briefly, "~> 0.3.0", only: [:dev, :test]}
     ]
   end
 end

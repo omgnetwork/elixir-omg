@@ -82,6 +82,7 @@ defmodule OMG.WatcherInfo.Fixtures do
       )
 
     :ok = SQL.Sandbox.checkout(DB.Repo)
+    SQL.Sandbox.mode(DB.Repo, {:shared, self()})
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       wait_for_process(pid)
@@ -122,6 +123,7 @@ defmodule OMG.WatcherInfo.Fixtures do
         owner: alice.addr,
         currency: @eth,
         amount: 333,
+        eth_height: 1,
         otype: 1,
         blknum: 1
       },
@@ -132,6 +134,7 @@ defmodule OMG.WatcherInfo.Fixtures do
         currency: @eth,
         amount: 100,
         otype: 1,
+        eth_height: 2,
         blknum: 2
       }
     ]

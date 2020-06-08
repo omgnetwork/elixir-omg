@@ -38,7 +38,19 @@ defmodule OMG.ChildChain.SyncSupervisor do
   end
 
   def init(args) do
-    opts = [strategy: :one_for_one]
+    # Assuming the values max_restarts and max_seconds,
+    # then, if more than max_restarts restarts occur within max_seconds seconds,
+    # the supervisor terminates all child processes and then itself.
+    # The termination reason for the supervisor itself in that case will be shutdown.
+    # max_restarts defaults to 3 and max_seconds defaults to 5.
+
+    # We have 9 children, roughly 7 of them have a dependency to the internetz.
+    # The internetz is flaky. We account for that and allow the flakyness to pass
+    # by increasing the restart strategy. But not too much, because if the internetz is
+    # really off, HeightMonitor should catch that in max 8 seconds and raise an alarm.
+    max_restarts = 3
+    max_seconds = 5
+    opts = [strategy: :one_for_one, max_restarts: max_restarts * 5, max_seconds: max_seconds]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = ensure_ets_init()
@@ -51,6 +63,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
     block_queue_eth_height_check_interval_ms = Configuration.block_queue_eth_height_check_interval_ms()
     submission_finality_margin = Configuration.submission_finality_margin()
     block_submit_every_nth = Configuration.block_submit_every_nth()
+    block_submit_max_gas_price = Configuration.block_submit_max_gas_price()
     ethereum_events_check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
     coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
     deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
@@ -68,6 +81,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
          block_queue_eth_height_check_interval_ms: block_queue_eth_height_check_interval_ms,
          submission_finality_margin: submission_finality_margin,
          block_submit_every_nth: block_submit_every_nth,
+         block_submit_max_gas_price: block_submit_max_gas_price,
          child_block_interval: child_block_interval
        ]},
       {RootChainCoordinator,

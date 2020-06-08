@@ -34,7 +34,8 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
          {:ok, metadata} <- expect(params, "metadata", [:hash, :optional]),
          {:ok, fee} <- expect(params, "fee", map: &parse_fee/1),
          {:ok, payments} <- expect(params, "payments", list: &parse_payment/1),
-         {:ok, payments} <- fills_in_outputs?(payments) do
+         {:ok, payments} <- fills_in_outputs?(payments),
+         :ok <- ensure_not_self_transaction(owner, payments) do
       {:ok,
        %{
          owner: owner,
@@ -44,6 +45,19 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
        }}
     end
   end
+
+  defp ensure_not_self_transaction(owner, payments) when length(payments) > 0 do
+    payments
+    |> Enum.any?(fn payment ->
+      owner != payment[:owner]
+    end)
+    |> handle_self_tx_result()
+  end
+
+  defp ensure_not_self_transaction(_, _), do: :ok
+
+  defp handle_self_tx_result(true), do: :ok
+  defp handle_self_tx_result(false), do: {:error, :self_transaction_not_supported}
 
   defp fills_in_outputs?(payments) do
     if length(payments) <= Transaction.Payment.max_outputs(),

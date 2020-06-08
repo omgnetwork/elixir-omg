@@ -94,16 +94,8 @@ defmodule OMG.DB.RocksDB.Server do
     do_utxo(utxo_pos, state)
   end
 
-  def handle_call(:exit_infos, _from, state) do
-    do_exit_infos(state)
-  end
-
   def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state) do
     do_block_hashes(block_numbers_to_fetch, state)
-  end
-
-  def handle_call(:in_flight_exits_info, _from, state) do
-    do_in_flight_exits_info(state)
   end
 
   def handle_call(:competitors_info, _from, state) do
@@ -115,12 +107,23 @@ defmodule OMG.DB.RocksDB.Server do
     do_get_single_value(parameter, state)
   end
 
-  def handle_call({:exit_info, utxo_pos}, _from, state) do
-    do_exit_info(utxo_pos, state)
-  end
-
   def handle_call({:spent_blknum, utxo_pos}, _from, state) do
     do_spent_blknum(utxo_pos, state)
+  end
+
+  def handle_call({:get, type, specific_keys}, _from, state) do
+    result =
+      Enum.map(
+        specific_keys,
+        fn key -> get_decoded_data_with_type_and_specific_key(type, key, state) end
+      )
+
+    {:reply, {:ok, result}, state}
+  end
+
+  def handle_call({:get_all_by_type, type}, _from, state) do
+    result = get_all_by_type(type, state)
+    {:reply, result, state}
   end
 
   # WARNING, terminate below will be called only if :trap_exit is set to true
@@ -144,7 +147,7 @@ defmodule OMG.DB.RocksDB.Server do
       blocks_to_fetch
       |> Enum.map(fn block -> Core.key(:block, block) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> Core.decode_values(:block)
+      |> Core.decode_values()
 
     {:reply, result, state}
   end
@@ -155,12 +158,7 @@ defmodule OMG.DB.RocksDB.Server do
   end
 
   defp do_utxo(utxo_pos, state) do
-    result = Core.key(:utxo, utxo_pos) |> get(state) |> Core.decode_value(:utxo)
-    {:reply, result, state}
-  end
-
-  defp do_exit_infos(state) do
-    result = get_all_by_type(:exit_info, state)
+    result = Core.key(:utxo, utxo_pos) |> get(state) |> Core.decode_value()
     {:reply, result, state}
   end
 
@@ -169,13 +167,8 @@ defmodule OMG.DB.RocksDB.Server do
       block_numbers_to_fetch
       |> Enum.map(fn block_number -> Core.key(:block_hash, block_number) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> Core.decode_values(:block_hash)
+      |> Core.decode_values()
 
-    {:reply, result, state}
-  end
-
-  defp do_in_flight_exits_info(state) do
-    result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
@@ -189,17 +182,7 @@ defmodule OMG.DB.RocksDB.Server do
       parameter
       |> Core.key(nil)
       |> get(state)
-      |> Core.decode_value(parameter)
-
-    {:reply, result, state}
-  end
-
-  defp do_exit_info(utxo_pos, state) do
-    result =
-      :exit_info
-      |> Core.key(utxo_pos)
-      |> get(state)
-      |> Core.decode_value(:exit_info)
+      |> Core.decode_value()
 
     {:reply, result, state}
   end
@@ -209,7 +192,7 @@ defmodule OMG.DB.RocksDB.Server do
       :spend
       |> Core.key(utxo_pos)
       |> get(state)
-      |> Core.decode_value(:spend)
+      |> Core.decode_value()
 
     {:reply, result, state}
   end
@@ -218,7 +201,7 @@ defmodule OMG.DB.RocksDB.Server do
   # same as read options
   # this might be a use case for seek() https://github.com/facebook/rocksdb/wiki/Prefix-Seek-API-Changes
   defp do_get_all_by_type(type, db_ref) do
-    Core.decode_values(Core.filter_keys(db_ref, type), type)
+    Core.decode_values(Core.filter_keys(db_ref, type))
   end
 
   defp create_stats_table(name) do
@@ -245,6 +228,16 @@ defmodule OMG.DB.RocksDB.Server do
   defp write(operations, %__MODULE__{db_ref: db_ref} = state) do
     :ok = :telemetry.execute([:update_write, __MODULE__], %{}, state)
     :rocksdb.write(db_ref, operations, [])
+  end
+
+  defp get_decoded_data_with_type_and_specific_key(type, specific_key, state) do
+    {:ok, result} =
+      type
+      |> Core.key(specific_key)
+      |> get(state)
+      |> Core.decode_value()
+
+    result
   end
 
   # get read options

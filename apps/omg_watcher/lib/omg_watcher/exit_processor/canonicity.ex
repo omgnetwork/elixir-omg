@@ -65,22 +65,45 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
           in_flight_proof: binary()
         }
 
-  # Gets the list of open IFEs that have the competitors _somewhere_
-  @spec get_ife_txs_with_competitors(Core.t(), KnownTx.known_txs_by_input_t()) :: list(Event.NonCanonicalIFE.t())
-  def get_ife_txs_with_competitors(%Core{in_flight_exits: ifes}, known_txs_by_input) do
-    ifes
-    |> Map.values()
-    |> Stream.map(fn ife -> {ife, DoubleSpend.find_competitor(known_txs_by_input, ife.tx)} end)
-    |> Stream.filter(fn {_ife, maybe_competitor} -> !is_nil(maybe_competitor) end)
-    |> Stream.filter(fn {ife, %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}}} ->
-      InFlightExitInfo.is_viable_competitor?(ife, utxo_pos)
-    end)
-    |> Stream.map(fn {ife, _double_spend} -> Transaction.raw_txbytes(ife.tx) end)
-    |> Enum.uniq()
-    |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
+  @doc """
+  Returns a tuple with byzantine events: first element is a list of events for ifes with competitor
+  and the second is the same list filtered for late ifes past sla margin
+  """
+  @spec get_ife_txs_with_competitors(Core.t(), KnownTx.known_txs_by_input_t(), pos_integer()) ::
+          {list(Event.NonCanonicalIFE.t()), list(Event.UnchallengedNonCanonicalIFE.t())}
+  def get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now) do
+    non_canonical_ifes =
+      state.in_flight_exits
+      |> Map.values()
+      |> Stream.map(fn ife -> {ife, DoubleSpend.find_competitor(known_txs_by_input, ife.tx)} end)
+      |> Stream.filter(fn {_ife, maybe_competitor} -> !is_nil(maybe_competitor) end)
+      |> Stream.filter(fn {ife, %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}}} ->
+        InFlightExitInfo.is_viable_competitor?(ife, utxo_pos)
+      end)
+
+    non_canonical_ife_events =
+      non_canonical_ifes
+      |> Stream.map(fn {ife, _double_spend} -> Transaction.raw_txbytes(ife.tx) end)
+      |> Enum.uniq()
+      |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
+
+    past_sla_margin = fn {ife, _double_spend} ->
+      ife.eth_height + state.sla_margin <= eth_height_now
+    end
+
+    late_non_canonical_ife_events =
+      non_canonical_ifes
+      |> Stream.filter(past_sla_margin)
+      |> Stream.map(fn {ife, _double_spend} -> Transaction.raw_txbytes(ife.tx) end)
+      |> Enum.uniq()
+      |> Enum.map(fn txbytes -> %Event.UnchallengedNonCanonicalIFE{txbytes: txbytes} end)
+
+    {non_canonical_ife_events, late_non_canonical_ife_events}
   end
 
-  # Gets the list of open IFEs that have the competitors _somewhere_
+  @doc """
+  Returns byzantine events for open IFEs that were challenged with an invalid challenge
+  """
   @spec get_invalid_ife_challenges(Core.t()) :: list(Event.InvalidIFEChallenge.t())
   def get_invalid_ife_challenges(%Core{in_flight_exits: ifes}) do
     ifes

@@ -186,7 +186,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 359 ]; then
+            if [ $_counter -gt 343 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -200,10 +200,11 @@ jobs:
           command: |
             if [ -n "$CIRCLE_TAG" ]; then
               _tagged_version="${CIRCLE_TAG#*v}"
+              _tagged_version_ignoring_pre="${_tagged_version%%-pre.*}"
               _filed_version="$(head -n 1 ./VERSION | sed 's/^[ \t]*//;s/[ \t]*$//')"
 
-              if [ "$_tagged_version" != "$_filed_version" ]; then
-                echo "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_tagged_version}\". Got \"${_filed_version}\"."
+              if [ "$_tagged_version_ignoring_pre" != "$_filed_version" ]; then
+                echo "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_tagged_version_ignoring_pre}\". Got \"${_filed_version}\"."
                 exit 1
               fi
             else
@@ -277,6 +278,31 @@ jobs:
               mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace
             else
               mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace ||
+                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
+                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
+            fi
+  
+  watcher_info_coveralls_and_integration_tests:
+    executor: builder_pg_geth
+    environment:
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Integration Tests & Coveralls Part Watcher
+          command: |
+            # Don't submit coverage report for forks, but let the build succeed
+            export SHELL=/bin/bash
+            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
+              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
+            else
+              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche --exclude child_chain --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -744,13 +770,16 @@ workflows:
           requires:
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
-
+            - watcher_info_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
             - test
       - child_chain_coveralls_and_integration_tests:
           requires: [build]
           filters: *all_branches_and_tags
       - watcher_coveralls_and_integration_tests:
+          requires: [build]
+          filters: *all_branches_and_tags
+      - watcher_info_coveralls_and_integration_tests:
           requires: [build]
           filters: *all_branches_and_tags
       - common_coveralls_and_integration_tests:
@@ -786,6 +815,7 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
+              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,
@@ -808,6 +838,7 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
+              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,
@@ -822,6 +853,7 @@ workflows:
             [
               child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
+              watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
               property_tests,

@@ -1,0 +1,54 @@
+DepositSchema:
+  type: object
+  properties:
+    event_type:
+      type: string
+    root_chain_txhash:
+      type: string 
+    log_index: 
+      type: integer
+    eth_height:
+      type: integer
+      format: int64
+    inserted_at:
+      type: string
+    updated_at:
+      type: string
+    txoutputs: 
+      type: array
+      items:
+        $ref: '#/TransactionOutputSchema'
+
+TransactionOutputSchema:
+  type: object
+  properties:
+    blknum:
+      type: integer
+      format: int64
+    txindex:
+      type: integer
+      format: int16
+    oindex:
+      type: integer
+      format: int8
+    otype:
+      type: integer
+      format: int8
+    utxo_pos:
+      type: integer
+      format: int256
+    owner:
+      type: string 
+    currency:
+      type: string    
+    amount:
+      type: integer
+      format: int256
+    creating_txhash:
+      type: string
+    spending_txhash:
+      type: string
+    inserted_at:
+      type: string
+    updated_at:
+      type: string

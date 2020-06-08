@@ -42,7 +42,7 @@ defmodule TransactionsTests do
       |> Enum.with_index()
       |> Task.async_stream(
         fn {{alice_account, _alice_pkey}, index} ->
-          initial_balance = Itest.Poller.eth_get_balance(alice_account)
+          initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
           key = String.to_atom("alice_initial_balance_#{index}")
           data = [{key, initial_balance}]
@@ -56,7 +56,7 @@ defmodule TransactionsTests do
           key = String.to_atom("alice_gas_used_#{index}")
           data = [{key, gas_used} | data]
 
-          balance_after_deposit = Itest.Poller.eth_get_balance(alice_account)
+          balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
 
           key = String.to_atom("alice_ethereum_balance_#{index}")
 
@@ -99,7 +99,7 @@ defmodule TransactionsTests do
 
         expected_amount = Currency.to_wei(amount)
 
-        balance = Client.get_balance(alice_account, expected_amount)
+        balance = Client.get_exact_balance(alice_account, expected_amount)
 
         balance = balance["amount"]
         assert_equal(expected_amount, balance, "For #{alice_account}")
@@ -149,7 +149,7 @@ defmodule TransactionsTests do
       fn {{alice_account, _}, index} ->
         expecting_amount = Currency.to_wei(amount)
 
-        balance = Client.get_balance(alice_account, expecting_amount)
+        balance = Client.get_exact_balance(alice_account, expecting_amount)
         balance = balance["amount"]
 
         assert_equal(Currency.to_wei(amount), balance, "For #{alice_account} #{index}.")

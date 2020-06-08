@@ -63,7 +63,22 @@ defmodule OMG.WatcherInfo.Supervisor do
     children = [
       {OMG.WatcherInfo.BlockApplicationConsumer, []},
       {OMG.WatcherInfo.DepositConsumer, []},
-      {OMG.WatcherInfo.ExitConsumer, []}
+      Supervisor.child_spec(
+        {OMG.WatcherInfo.ExitConsumer, [topic: {:root_chain, "ExitStarted"}, event_type: :standard_exit]},
+        id: :std_exit_consumer
+      ),
+      Supervisor.child_spec(
+        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightExitStarted"}, event_type: :in_flight_exit]},
+        id: :ife_exit_consumer
+      ),
+      Supervisor.child_spec(
+        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightTxOutputPiggybacked"}, event_type: :in_flight_exit]},
+        id: :ife_exit_output_piggybacked_consumer
+      ),
+      Supervisor.child_spec(
+        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightExitOutputWithdrawn"}, event_type: :in_flight_exit]},
+        id: :ife_exit_processed_consumer
+      )
     ]
 
     opts = [strategy: :one_for_one]

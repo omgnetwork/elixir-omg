@@ -100,6 +100,15 @@ defmodule OMG.Performance.SimplePerftest do
   # we don't want to start services related to root chain tracking (the root chain contract doesn't exist).
   # Instead, we start the artificial `BlockCreator`
   defp start_simple_perftest_chain(opts) do
+    _ =
+      case :ets.info(OMG.ChildChain.Supervisor.blocks_cache()) do
+        :undefined ->
+          :ets.new(OMG.ChildChain.Supervisor.blocks_cache(), [:set, :public, :named_table, read_concurrency: true])
+
+        _ ->
+          :ok
+      end
+
     children = [
       {OMG.ChildChainRPC.Web.Endpoint, []},
       {OMG.State,
@@ -108,7 +117,7 @@ defmodule OMG.Performance.SimplePerftest do
          child_block_interval: Configuration.child_block_interval(),
          metrics_collection_interval: 60_000
        ]},
-      {OMG.ChildChain.FreshBlocks, []},
+      {OMG.ChildChain.API.BlocksCache, [ets: OMG.ChildChain.Supervisor.blocks_cache()]},
       {OMG.ChildChain.FeeServer, OMG.ChildChain.Configuration.fee_server_opts()},
       {OMG.Performance.BlockCreator, opts[:block_every_ms]}
     ]
@@ -152,6 +161,7 @@ defmodule OMG.Performance.SimplePerftest do
         %{
           # these two are irrelevant
           root_chain_txhash: <<0::256>>,
+          eth_height: 1,
           log_index: 0,
           owner: spender.addr,
           currency: @eth,

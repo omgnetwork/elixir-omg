@@ -16,10 +16,11 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @moduledoc """
   Test talking to OMG.State.Core
   """
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias OMG.Eth.Configuration
   alias OMG.State
+  alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.Event
@@ -29,6 +30,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   import OMG.Watcher.ExitProcessor.TestHelper,
     only: [start_se_from: 3, start_se_from: 4, start_ife_from: 2, start_ife_from: 3, piggyback_ife_from: 4]
+
+  @default_min_exit_period_seconds 120
+  @default_child_block_interval 1000
 
   @eth OMG.Eth.zero_address()
   @fee_claimer_address "NO FEE CLAIMER ADDR!"
@@ -44,9 +48,20 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @exit_id 9876
 
   setup do
-    {:ok, processor_empty} = Core.init([], [], [])
+    db_path = Briefly.create!(directory: true)
+    Application.put_env(:omg_db, :path, db_path, persistent: true)
+    :ok = OMG.DB.init()
+    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+
+    {:ok, processor_empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)
     child_block_interval = Configuration.child_block_interval()
     {:ok, state_empty} = State.Core.extract_initial_state(0, child_block_interval, @fee_claimer_address)
+
+    on_exit(fn ->
+      Application.put_env(:omg_db, :path, nil)
+
+      Enum.map(started_apps, fn app -> :ok = Application.stop(app) end)
+    end)
 
     {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}
   end
@@ -199,9 +214,14 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     ife_id1 = <<ife_id1::192>>
     ife_id2 = <<ife_id2::192>>
+    ife_tx1_output_pos = Utxo.position(1000, 0, 0)
+    ife_tx2_input_pos = Utxo.position(2, 0, 0)
 
-    {:ok, %{^ife_id1 => exiting_positions1, ^ife_id2 => exiting_positions2}} =
-      Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
+    {:ok, %{^ife_id1 => exiting_positions1, ^ife_id2 => exiting_positions2},
+     [
+       {%{in_flight_exit_id: ^ife_id1}, [^ife_tx1_output_pos]},
+       {%{in_flight_exit_id: ^ife_id2}, [^ife_tx2_input_pos]}
+     ]} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
     assert {:ok,
             {[{:delete, :utxo, _}, {:delete, :utxo, _}], {[Utxo.position(1000, 0, 0), Utxo.position(2, 0, 0)], []}},
@@ -226,7 +246,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     finalizations = [%{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :output}}]
     ife_id = <<ife_id::192>>
 
-    {:ok, %{^ife_id => exiting_positions}} =
+    {:ok, %{^ife_id => exiting_positions}, []} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
     {:ok, {_, {[], [] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state)
@@ -258,8 +278,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
     finalizations = [%{in_flight_exit_id: ife_id, output_index: 0, omg_data: %{piggyback_type: :output}}]
     ife_id = <<ife_id::192>>
+    [exiting_utxo] = Transaction.get_inputs(spending_tx)
 
-    {:ok, %{^ife_id => exiting_positions}} =
+    {:ok, %{^ife_id => exiting_positions}, [{%{in_flight_exit_id: ^ife_id}, [^exiting_utxo]}]} =
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
 
     {:ok, {_, {[], [_] = invalidities}}, _} = State.Core.exit_utxos(exiting_positions, state)

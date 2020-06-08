@@ -333,8 +333,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
       {:ok, block} = DB.Block.insert_with_transactions(mined_block)
 
-      assert %DB.Block{} = block
-      assert block.hash == mined_block.blkhash
+      assert %DB.Block{} = block["current_block"]
+      current_block_hash = block["current_block"].hash
+      assert mined_block.blkhash == current_block_hash
 
       assert DB.Repo.get(DB.Transaction, tx_1.tx_hash)
       assert DB.Repo.get(DB.Transaction, tx_2.tx_hash)
@@ -343,20 +344,61 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns an error when inserting with an existing blknum" do
       existing = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
       mined_block = %{
-        transactions: [],
+        transactions: [tx_1, tx_2],
         blknum: existing.blknum,
         blkhash: existing.hash,
         timestamp: 1_576_500_000,
         eth_height: existing.eth_height
       }
 
-      {:error, changeset} = DB.Block.insert_with_transactions(mined_block)
+      {:error, "current_block", changeset, %{}} = DB.Block.insert_with_transactions(mined_block)
 
       assert changeset.errors == [
                blknum: {"has already been taken", [constraint: :unique, constraint_name: "blocks_pkey"]}
              ]
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    @tag :watcher_info
+    @tag timeout: :infinity
+    test "full block test" do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+
+      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 1}])
+      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}])
+
+      transactions =
+        Enum.map(3..64_000, fn _index ->
+          a = OMG.TestHelper.generate_entity()
+          b = OMG.TestHelper.generate_entity()
+          amount = 5
+          OMG.TestHelper.create_recovered([{1, 0, 0, a}], @eth, [{b, amount}])
+        end)
+
+      mined_block = %{
+        transactions: [tx_1, tx_2] ++ transactions,
+        blknum: 1000,
+        blkhash: "0x1000",
+        timestamp: 1_576_500_000,
+        eth_height: 1
+      }
+
+      {:ok, block} = DB.Block.insert_with_transactions(mined_block)
+
+      assert %DB.Block{} = block["current_block"]
+      current_block_hash = block["current_block"].hash
+      assert mined_block.blkhash == current_block_hash
+
+      assert DB.Repo.get(DB.Transaction, tx_1.tx_hash)
+      assert DB.Repo.get(DB.Transaction, tx_2.tx_hash)
     end
   end
 end

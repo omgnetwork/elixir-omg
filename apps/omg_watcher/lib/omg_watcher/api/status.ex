@@ -17,101 +17,13 @@ defmodule OMG.Watcher.API.Status do
   Watcher status API
   """
 
-  alias OMG.Eth
-  alias OMG.Eth.Client
-  alias OMG.Eth.Configuration
-  alias OMG.Eth.EthereumHeight
-  alias OMG.Eth.RootChain
-
-  alias OMG.RootChainCoordinator
-  alias OMG.State
-  alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.BlockGetter
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessorDispatcher
-  alias OMG.Watcher.ExitProcessor
-
-  @opaque t() :: %{
-            last_validated_child_block_number: non_neg_integer(),
-            last_validated_child_block_timestamp: non_neg_integer(),
-            last_mined_child_block_number: non_neg_integer(),
-            last_mined_child_block_timestamp: non_neg_integer(),
-            last_seen_eth_block_number: non_neg_integer(),
-            last_seen_eth_block_timestamp: non_neg_integer(),
-            eth_syncing: boolean(),
-            byzantine_events: list(Event.t()),
-            in_flight_exits: ExitProcessor.Core.in_flight_exits_response_t(),
-            contract_addr: binary,
-            services_synced_heights: RootChainCoordinator.Core.ethereum_heights_result_t()
-          }
+  alias OMG.Watcher.API.StatusCache
 
   @doc """
-  Returns status of the watcher. Status consists of last validated child block number,
-  last mined child block number and it's timestamp, and a flag indicating if watcher is syncing with Ethereum.
-
-  This function calls into a number of services (internal and external), collects the results. If any of the underlying
-  services are unavailable, it will crash
+  Returns status of the watcher from the ETS cache.
   """
-  @spec get_status() :: {:ok, t()}
+  @spec get_status() :: {:ok, StatusCache.status()}
   def get_status() do
-    {:ok, eth_block_number} = EthereumHeight.get()
-    {:ok, eth_block_timestamp} = Eth.get_block_timestamp_by_number(eth_block_number)
-    eth_syncing = syncing?()
-
-    validated_child_block_number = get_validated_child_block_number()
-    # wtf is eth diagnostics?
-    contracts = Configuration.contracts()
-    contract_addr = contract_map_from_hex(contracts)
-
-    mined_child_block_number = RootChain.get_mined_child_block()
-
-    {_, mined_child_block_timestamp} = RootChain.blocks(mined_child_block_number)
-
-    {_, validated_child_block_timestamp} = RootChain.blocks(validated_child_block_number)
-
-    {:ok, services_synced_heights} = RootChainCoordinator.get_ethereum_heights()
-
-    {_, events_processor_events} = ExitProcessorDispatcher.check_validity()
-
-    {:ok, in_flight_exits} = ExitProcessorDispatcher.get_active_in_flight_exits()
-
-    {:ok, {_, events_block_getter}} = BlockGetter.get_events()
-
-    status = %{
-      last_validated_child_block_number: validated_child_block_number,
-      last_validated_child_block_timestamp: validated_child_block_timestamp,
-      last_mined_child_block_number: mined_child_block_number,
-      last_mined_child_block_timestamp: mined_child_block_timestamp,
-      last_seen_eth_block_number: eth_block_number,
-      last_seen_eth_block_timestamp: eth_block_timestamp,
-      eth_syncing: eth_syncing,
-      byzantine_events: events_processor_events ++ events_block_getter,
-      in_flight_exits: in_flight_exits,
-      contract_addr: contract_addr,
-      services_synced_heights: services_synced_heights
-    }
-
-    {:ok, status}
-  end
-
-  '''
-  Checks geth syncing status, errors are treated as not synced.
-  Returns:
-  * false - geth is synced
-  * true  - geth is still syncing.
-  '''
-
-  defp syncing?() do
-    Client.node_ready() != :ok
-  end
-
-  defp get_validated_child_block_number() do
-    child_block_interval = Configuration.child_block_interval()
-    {state_current_block, _} = State.get_status()
-    state_current_block - child_block_interval
-  end
-
-  defp contract_map_from_hex(contract_map) do
-    Enum.into(contract_map, %{}, fn {name, addr} -> {name, Encoding.from_hex!(addr)} end)
+    {:ok, StatusCache.get()}
   end
 end

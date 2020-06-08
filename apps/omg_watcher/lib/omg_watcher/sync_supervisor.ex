@@ -22,6 +22,8 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   alias OMG.EthereumEventListener
   alias OMG.Watcher
+  alias OMG.Watcher.API.StatusCache
+  alias OMG.Watcher.API.StatusCache.Storage
   alias OMG.Watcher.ChildManager
   alias OMG.Watcher.Configuration
   alias OMG.Watcher.CoordinatorSetup
@@ -30,16 +32,38 @@ defmodule OMG.Watcher.SyncSupervisor do
   alias OMG.Watcher.Monitor
 
   @events_bucket :events_bucket
+  @status_cache :status_cache
+
+  def status_cache() do
+    @status_cache
+  end
+
+  def events_bucket() do
+    @events_bucket
+  end
 
   def start_link(args) do
     Supervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def init(args) do
-    opts = [strategy: :one_for_one]
+    # Assuming the values max_restarts and max_seconds,
+    # then, if more than max_restarts restarts occur within max_seconds seconds,
+    # the supervisor terminates all child processes and then itself.
+    # The termination reason for the supervisor itself in that case will be shutdown.
+    # max_restarts defaults to 3 and max_seconds defaults to 5.
+
+    # We have 16 children, roughly 14 of them have a dependency to the internetz.
+    # The internetz is flaky. We account for that and allow the flakyness to pass
+    # by increasing the restart strategy. But not too much, because if the internetz is
+    # really off, HeightMonitor should catch that in max 8 seconds and raise an alarm.
+    max_restarts = 3
+    max_seconds = 5
+    opts = [strategy: :one_for_one, max_restarts: max_restarts * 10, max_seconds: max_seconds * 2]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    :ok = ensure_ets_init()
+    :ok = Storage.ensure_ets_init(status_cache())
+    :ok = ensure_ets_init(events_bucket())
     Supervisor.init(children(args), opts)
   end
 
@@ -54,11 +78,24 @@ defmodule OMG.Watcher.SyncSupervisor do
     coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
     min_exit_period_seconds = OMG.Eth.Configuration.min_exit_period_seconds()
     ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
+    child_block_interval = OMG.Eth.Configuration.child_block_interval()
     exit_games = OMG.Eth.Configuration.exit_games()
     # To avoid changing the logic of the aggregator just yet,
     # we just merge the exit games map into the contracts map
     # Keys will be discarded in the init() func of the aggregator
     contracts = Map.merge(OMG.Eth.Configuration.contracts(), exit_games)
+
+    # Moving root chain coordinator to top as the siblings require access to this
+    # see: https://github.com/omgnetwork/elixir-omg/pull/1558#pullrequestreview-422373165
+    root_chain_coordinator = [
+      {OMG.RootChainCoordinator,
+       CoordinatorSetup.coordinator_setup(
+         metrics_collection_interval,
+         coordinator_eth_height_check_interval_ms,
+         finality_margin,
+         deposit_finality_margin
+       )}
+    ]
 
     exit_processors =
       Enum.map(exit_games, fn {transaction_type, exit_game_contract_addr} ->
@@ -75,7 +112,8 @@ defmodule OMG.Watcher.SyncSupervisor do
                  exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
                  metrics_collection_interval: metrics_collection_interval,
                  min_exit_period_seconds: min_exit_period_seconds,
-                 ethereum_block_time_seconds: ethereum_block_time_seconds
+                 ethereum_block_time_seconds: ethereum_block_time_seconds,
+                 child_block_interval: child_block_interval
                ]
              ]},
           restart: :permanent,
@@ -83,7 +121,8 @@ defmodule OMG.Watcher.SyncSupervisor do
         }
       end)
 
-    exit_processors ++
+    root_chain_coordinator ++
+      exit_processors ++
       [
         %{
           id: OMG.Watcher.BlockGetter.Supervisor,
@@ -93,13 +132,6 @@ defmodule OMG.Watcher.SyncSupervisor do
           restart: :permanent,
           type: :supervisor
         },
-        {OMG.RootChainCoordinator,
-         CoordinatorSetup.coordinator_setup(
-           metrics_collection_interval,
-           coordinator_eth_height_check_interval_ms,
-           finality_margin,
-           deposit_finality_margin
-         )},
         {EthereumEventAggregator,
          contracts: contracts,
          ets_bucket: @events_bucket,
@@ -214,8 +246,14 @@ defmodule OMG.Watcher.SyncSupervisor do
       ]
   end
 
-  defp ensure_ets_init() do
-    _ = if :undefined == :ets.info(@events_bucket), do: :ets.new(@events_bucket, [:bag, :public, :named_table])
-    :ok
+  defp ensure_ets_init(events_bucket) do
+    case :ets.info(events_bucket) do
+      :undefined ->
+        ^events_bucket = :ets.new(events_bucket, [:bag, :public, :named_table])
+        :ok
+
+      _ ->
+        :ok
+    end
   end
 end
