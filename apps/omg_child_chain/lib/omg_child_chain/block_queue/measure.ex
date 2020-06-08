@@ -31,7 +31,8 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
 
   @supported_events [
     [:process, BlockQueue],
-    [:gas, GasAnalyzer]
+    [:gas, GasAnalyzer],
+    [:authority_balance, Balance]
   ]
   def supported_events(), do: @supported_events
 

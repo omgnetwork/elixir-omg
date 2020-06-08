@@ -47,7 +47,19 @@ defmodule OMG.Watcher.SyncSupervisor do
   end
 
   def init(args) do
-    opts = [strategy: :one_for_one]
+    # Assuming the values max_restarts and max_seconds,
+    # then, if more than max_restarts restarts occur within max_seconds seconds,
+    # the supervisor terminates all child processes and then itself.
+    # The termination reason for the supervisor itself in that case will be shutdown.
+    # max_restarts defaults to 3 and max_seconds defaults to 5.
+
+    # We have 16 children, roughly 14 of them have a dependency to the internetz.
+    # The internetz is flaky. We account for that and allow the flakyness to pass
+    # by increasing the restart strategy. But not too much, because if the internetz is
+    # really off, HeightMonitor should catch that in max 8 seconds and raise an alarm.
+    max_restarts = 3
+    max_seconds = 5
+    opts = [strategy: :one_for_one, max_restarts: max_restarts * 10, max_seconds: max_seconds * 2]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = Storage.ensure_ets_init(status_cache())
@@ -69,6 +81,13 @@ defmodule OMG.Watcher.SyncSupervisor do
     contracts = OMG.Eth.Configuration.contracts()
 
     [
+      {OMG.RootChainCoordinator,
+       CoordinatorSetup.coordinator_setup(
+         metrics_collection_interval,
+         coordinator_eth_height_check_interval_ms,
+         finality_margin,
+         deposit_finality_margin
+       )},
       {ExitProcessor,
        [
          exit_processor_sla_seconds: exit_processor_sla_seconds,
@@ -84,13 +103,6 @@ defmodule OMG.Watcher.SyncSupervisor do
         restart: :permanent,
         type: :supervisor
       },
-      {OMG.RootChainCoordinator,
-       CoordinatorSetup.coordinator_setup(
-         metrics_collection_interval,
-         coordinator_eth_height_check_interval_ms,
-         finality_margin,
-         deposit_finality_margin
-       )},
       {EthereumEventAggregator,
        contracts: contracts,
        ets_bucket: events_bucket(),
@@ -107,9 +119,7 @@ defmodule OMG.Watcher.SyncSupervisor do
          [name: :in_flight_exit_input_blocked, enrich: false],
          [name: :in_flight_exit_output_blocked, enrich: false],
          [name: :in_flight_exit_input_withdrawn, enrich: false],
-         [name: :in_flight_exit_output_withdrawn, enrich: false],
-         # blockgetter
-         [name: :block_submitted, enrich: false]
+         [name: :in_flight_exit_output_withdrawn, enrich: false]
        ]},
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,

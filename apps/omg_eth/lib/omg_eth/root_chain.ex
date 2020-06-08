@@ -22,7 +22,7 @@ defmodule OMG.Eth.RootChain do
   """
 
   require Logger
-  import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
+  import OMG.Eth.Encoding, only: [from_hex: 1, int_from_hex: 1]
 
   alias OMG.Eth
   alias OMG.Eth.Configuration
@@ -52,29 +52,31 @@ defmodule OMG.Eth.RootChain do
     {block_hash, block_timestamp}
   end
 
+  @doc """
+  Returns lists of block submissions from Ethereum logs
+  """
+  def get_block_submitted_events(from_height, to_height) do
+    contract = from_hex(Configuration.contracts().plasma_framework)
+    signature = "BlockSubmitted(uint256)"
+    {:ok, logs} = Rpc.get_ethereum_events(from_height, to_height, signature, contract)
+
+    {:ok, Enum.map(logs, &Abi.decode_log(&1))}
+  end
+
   ##
   ## these two cannot be parsed with ABI decoder!
   ##
+
   @doc """
   Returns standard exits data from the contract for a list of `exit_id`s. Calls contract method.
   """
   def get_standard_exit_structs(exit_ids) do
     contract = Configuration.contracts().payment_exit_game
 
-    return_types = [
-      {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
-    ]
+    %{"standard_exit_structs" => standard_exit_structs} =
+      get_external_data(contract, "standardExits(uint160[])", [exit_ids])
 
-    # TODO: hack around an issue with `ex_abi` https://github.com/poanetwork/ex_abi/issues/22
-    #       We procure a hacky version of `OMG.Eth.Client.call_contract` which strips the offending offsets from
-    #       the ABI-encoded binary and proceeds to decode the array without the offset
-    #       Revert to `call_contract` when that issue is resolved
-    call_contract_manual_exits(
-      contract,
-      "standardExits(uint160[])",
-      [exit_ids],
-      return_types
-    )
+    {:ok, standard_exit_structs}
   end
 
   @doc """
@@ -82,19 +84,11 @@ defmodule OMG.Eth.RootChain do
   """
   def get_in_flight_exit_structs(in_flight_exit_ids) do
     contract = Configuration.contracts().payment_exit_game
-    {:array, {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}}
 
-    # solidity does not return arrays of structs
-    return_types = [
-      {:array, {:tuple, [:bool, {:uint, 64}, {:uint, 256}, {:uint, 256}, :address, {:uint, 256}, {:uint, 256}]}}
-    ]
+    %{"in_flight_exit_structs" => in_flight_exit_structs} =
+      get_external_data(contract, "inFlightExits(uint160[])", [in_flight_exit_ids])
 
-    call_contract_manual_exits(
-      contract,
-      "inFlightExits(uint160[])",
-      [in_flight_exit_ids],
-      return_types
-    )
+    {:ok, in_flight_exit_structs}
   end
 
   ########################
@@ -117,21 +111,6 @@ defmodule OMG.Eth.RootChain do
       other ->
         other
     end
-  end
-
-  # TODO: see above in where it is called - temporary function
-  defp call_contract_manual_exits(contract, signature, args, return_types) do
-    data = ABI.encode(signature, args)
-
-    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: contract, data: to_hex(data)})
-    decode_answer_manual_exits(return, return_types)
-  end
-
-  # TODO: see above in where it is called - temporary function
-  defp decode_answer_manual_exits(enc_return, return_types) do
-    <<32::size(32)-unit(8), raw_array_data::binary>> = from_hex(enc_return)
-    [single_return] = ABI.TypeDecoder.decode(raw_array_data, return_types)
-    {:ok, single_return}
   end
 
   defp get_external_data(contract_address, signature, args) do
