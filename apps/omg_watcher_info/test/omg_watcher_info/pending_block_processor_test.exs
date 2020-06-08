@@ -17,104 +17,150 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
   use ExUnit.Case, async: true
 
   import OMG.WatcherInfo.Factory
-  import Ecto.Query, only: [from: 2]
 
-  alias OMG.WatcherInfo.DB
-  alias OMG.WatcherInfo.DB.PendingBlock
   alias OMG.WatcherInfo.PendingBlockProcessor
 
-  @interval 500
+  @interval 100
+
+  defmodule DumbStorage do
+    use GenServer
+
+    def start_link(args) do
+      GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    end
+
+    def init(args) do
+      # note: each mock will set the state of the corresponding
+      # function name to {count, metadata} where count represents the amount of time
+      # the function was called and metadata is a map of additional info.
+      default_state = %{
+        get_next_pending_block: {0, nil},
+        process_block: {0, nil},
+        increment_retry_count: {0, nil},
+        next_pending_block: nil
+      }
+
+      given_state = Enum.into(args, %{})
+      state = Map.merge(default_state, given_state)
+      {:ok, state}
+    end
+
+    def get_next_pending_block() do
+      GenServer.call(__MODULE__, :get_next_pending_block)
+    end
+
+    def process_block(block) do
+      GenServer.call(__MODULE__, {:process_block, block})
+    end
+
+    def increment_retry_count(block) do
+      GenServer.call(__MODULE__, {:increment_retry_count, block})
+    end
+
+    def handle_call(:get_next_pending_block, _from, %{get_next_pending_block: {count, _}} = state) do
+      {:reply, state.next_pending_block, %{state | get_next_pending_block: {count + 1, state.next_pending_block}}}
+    end
+
+    def handle_call({:process_block, block}, _from, %{process_block: {count, _}} = state) do
+      {:reply, nil, %{state | process_block: {count + 1, block}}}
+    end
+
+    def handle_call({:increment_retry_count, block}, _from, %{increment_retry_count: {count, _}} = state) do
+      {:reply, nil, %{state | increment_retry_count: {count + 1, block}}}
+    end
+  end
 
   setup tags do
     {:ok, pid} =
       PendingBlockProcessor.start_link(
         processing_interval: @interval,
+        storage_module: DumbStorage,
         name: tags.test
       )
-
-    %{timer: t_ref} = :sys.get_state(pid)
-    _ = Process.cancel_timer(t_ref)
 
     _ =
       on_exit(fn ->
         if Process.alive?(pid), do: :ok = GenServer.stop(pid)
+        storage_pid = GenServer.whereis(DumbStorage)
+        if storage_pid != nil and Process.alive?(storage_pid), do: :ok = GenServer.stop(storage_pid)
       end)
 
     Map.put(tags, :pid, pid)
   end
 
   describe "handle_info/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "processes the next pending block in queue", %{pid: pid} do
-      %{timer: tref} = get_state(pid)
-      assert Process.read_timer(tref) == false
+    test "calls get_next_pending_block/0 when triggered", %{pid: pid} do
+      storage_pid = start_storage_mock()
 
-      %{blknum: blknum} = insert(:pending_block)
+      perform_timout_action(pid)
 
-      assert [%{status: "pending", blknum: ^blknum}] = get_all()
-      assert [] = DB.Repo.all(DB.Block)
-
-      perform_timer_action(pid)
-
-      assert [%{status: "done", blknum: ^blknum}] = get_all()
-      assert [%{blknum: ^blknum}] = DB.Repo.all(DB.Block)
+      assert %{get_next_pending_block: {1, nil}} = get_state(storage_pid)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "schedules a new update after `interval` when queue was empty", %{pid: pid} do
-      %{timer: tref_1} = get_state(pid)
-      assert Process.read_timer(tref_1) == false
-      assert get_all() == []
+    test "is triggered on startup after `interval` ms" do
+      storage_pid = start_storage_mock()
 
-      %{timer: tref_2} = perform_timer_action(pid)
+      assert %{get_next_pending_block: {0, nil}} = get_state(storage_pid)
 
-      assert tref_1 != tref_2
-      assert Process.read_timer(tref_2) in 0..@interval
+      Process.sleep(@interval + 1)
+
+      assert %{get_next_pending_block: {1, nil}} = get_state(storage_pid)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "does not schedules a new update after `interval` when queue not empty", %{pid: pid} do
-      insert(:pending_block)
-      assert [%{}] = get_all()
+    test "does not call storage.process_block/1 when no pending block", %{pid: pid} do
+      storage_pid = start_storage_mock()
 
-      %{timer: tref} = perform_timer_action(pid)
+      perform_timout_action(pid)
 
-      assert tref == nil
+      assert %{get_next_pending_block: {1, nil}, process_block: {0, nil}} = get_state(storage_pid)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "check the queue again without waiting when queue not empty", %{pid: pid} do
-      insert(:pending_block)
-      insert(:pending_block)
+    test "schedule an update after `interval` when no pending block", %{pid: pid} do
+      storage_pid = start_storage_mock()
 
-      assert [%{status: "pending"}, %{status: "pending"}] = get_all()
+      perform_timout_action(pid)
 
-      assert %{timer: nil} = perform_timer_action(pid)
-      Process.sleep(50)
-      assert [%{status: "done"}, %{status: "done"}] = get_all()
+      assert %{get_next_pending_block: {1, nil}} = get_state(storage_pid)
+
+      Process.sleep(@interval + 1)
+
+      assert %{get_next_pending_block: {2, nil}} = get_state(storage_pid)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "increments retry count when failing", %{pid: pid} do
-      %{data: data, blknum: blknum_1} = insert(:pending_block)
-      perform_timer_action(pid)
+    test "calls process_block with the pending block when present", %{pid: pid} do
+      block = build(:pending_block)
 
-      # inserting a second block with the same data params
-      %{blknum: blknum_2, retry_count: 0} = insert(:pending_block, %{data: data, blknum: blknum_1 + 1000})
-      perform_timer_action(pid)
+      {:ok, storage_pid} = DumbStorage.start_link(next_pending_block: block)
 
-      assert [%{blknum: ^blknum_1}, %{blknum: ^blknum_2, retry_count: retry_count}] = get_all()
-      assert retry_count > 0
-      assert [%{blknum: blknum_1}] = DB.Repo.all(DB.Block)
+      perform_timout_action(pid)
+
+      assert %{get_next_pending_block: {1, ^block}, process_block: {1, ^block}} = get_state(storage_pid)
+    end
+
+    test "schedule a check after 1 ms when there was a pending block to process", %{pid: pid} do
+      block = build(:pending_block)
+
+      {:ok, storage_pid} = DumbStorage.start_link(next_pending_block: block)
+
+      perform_timout_action(pid)
+
+      assert %{get_next_pending_block: {1, ^block}, process_block: {1, ^block}} = get_state(storage_pid)
+
+      Process.sleep(2)
+
+      assert %{get_next_pending_block: {count, _}} = get_state(storage_pid)
+
+      assert count >= 2
     end
   end
 
-  defp get_all() do
-    PendingBlock |> from(order_by: :blknum) |> DB.Repo.all()
+  defp start_storage_mock() do
+    {:ok, storage_pid} = DumbStorage.start_link([])
+    storage_pid
   end
 
-  defp perform_timer_action(pid) do
-    Process.send(pid, :check_queue, [:noconnect])
+  defp perform_timout_action(pid) do
+    Process.send(pid, :timeout, [:noconnect])
     # this waits for all messages in process inbox is processed
     get_state(pid)
   end

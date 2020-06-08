@@ -32,32 +32,30 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
 
   def init(args) do
     interval = Keyword.fetch!(args, :processing_interval)
-    t_ref = Process.send_after(self(), :check_queue, interval)
+    storage_module = Keyword.get(args, :storage_module, Storage)
     _ = Logger.info("Started #{inspect(__MODULE__)}")
-    {:ok, %{interval: interval, timer: t_ref, block: nil}}
+    {:ok, %{interval: interval, block: nil, storage_module: storage_module}, interval}
   end
 
-  def handle_info(:check_queue, state) do
-    block = Storage.get_next_pending_block()
+  def handle_info(:timeout, state) do
+    block = state.storage_module.get_next_pending_block()
     {:noreply, %{state | block: block}, {:continue, :process_block}}
   end
 
   def handle_continue(:process_block, %{block: nil} = state) do
-    t_ref = Process.send_after(self(), :check_queue, state.interval)
-    {:noreply, %{state | timer: t_ref}}
+    {:noreply, state, state.interval}
   end
 
   def handle_continue(:process_block, %{block: block} = state) do
-    Storage.process_block(block)
+    state.storage_module.process_block(block)
 
-    send(self(), :check_queue)
-    {:noreply, %{state | timer: nil, block: nil}}
+    {:noreply, %{state | block: nil}, 1}
   end
 
-  def terminate({%DBConnection.ConnectionError{}, _}, %{block: block}) when not is_nil(block) do
+  def terminate({%DBConnection.ConnectionError{}, _}, %{block: block} = state) when not is_nil(block) do
     # TODO: raise an alarm?
     Logger.error("insertion of block number #{block.blknum} timed out")
-    {:ok, _} = Storage.increment_retry_count(block)
+    {:ok, _} = state.storage_module.increment_retry_count(block)
     :ok
   end
 
