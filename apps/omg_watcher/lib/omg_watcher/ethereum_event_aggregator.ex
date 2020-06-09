@@ -20,7 +20,6 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   require Logger
   use Spandex.Decorators
 
-  alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Event
   alias OMG.Eth.RootChain.Rpc
@@ -211,6 +210,9 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   defp get_logs(from_height, to_height, state) do
     {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, state.contracts)
 
+    # Injecting the event source contract address to the log for the downstream dependency
+    # to filter which exit game it is from. So even 2 events with same event signature it would
+    # still be distinguishable.
     Enum.map(logs, fn log ->
       log
       |> Abi.decode_log()

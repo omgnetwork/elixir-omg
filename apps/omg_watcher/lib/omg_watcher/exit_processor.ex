@@ -33,12 +33,10 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
   alias OMG.State
-  alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
-  alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.ExitProcessor.Tools
 
   use OMG.Utils.LoggerExt
@@ -72,8 +70,6 @@ defmodule OMG.Watcher.ExitProcessor do
     - `metrics_collection_interval`: how often are the metrics sent to `telemetry` (in milliseconds)
   """
   def init(
-        transaction_type: transaction_type,
-        exit_game_contract_addr: exit_game_contract_addr,
         exit_processor_sla_margin: exit_processor_sla_margin,
         exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
         metrics_collection_interval: metrics_collection_interval,

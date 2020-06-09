@@ -20,7 +20,6 @@ defmodule OMG.Watcher.API.InFlightExit do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.API
-  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessorDispatcher
 
   require Utxo

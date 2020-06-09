@@ -35,13 +35,9 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
   end
 
   defp do_chack_validity(timeout \\ 5000) do
-    forward(:check_validity, timeout)
-    |> (fn x ->
-          _ = Logger.warn(">>>>>>>> forward :check_validity result >>>>>>>>")
-          _ = Logger.warn(inspect(x))
-          x
-        end).()
-    |> Enum.reduce({:ok, []}, fn {chain_validity, events}, acc ->
+    forwarded_result = forward(:check_validity, timeout)
+
+    Enum.reduce(forwarded_result, {:ok, []}, fn {chain_validity, events}, acc ->
       {acc_chain_validity, acc_events} = acc
 
       case acc_chain_validity do
@@ -128,7 +124,7 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
 
   defp find_first_ok_result_or_return_last(forwarded_results, prev_result) do
     [current_result | tail] = forwarded_results
-    {prev_status, prev_data} = prev_result
+    {prev_status, _prev_data} = prev_result
 
     case prev_status do
       :ok -> prev_result
@@ -137,13 +133,8 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
   end
 
   defp dispatch(event_name, events) do
-    _ = Logger.warn(">>>>>>> dispatch >>>>>>>")
-    _ = Logger.warn("event_name: #{inspect(event_name)}")
-    _ = Logger.warn("events: #{inspect(events)}")
-
     db_updates =
-      Enum.flat_map(group_events(events), fn {transaction_type, events} = data ->
-        _ = Logger.warn("filtered events: #{inspect(data)}")
+      Enum.flat_map(group_events(events), fn {transaction_type, events} ->
         {:ok, db_updates} = GenServer.call(transaction_type, {event_name, events})
         db_updates
       end)

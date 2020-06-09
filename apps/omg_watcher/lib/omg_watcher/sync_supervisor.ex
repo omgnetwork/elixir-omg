@@ -98,7 +98,7 @@ defmodule OMG.Watcher.SyncSupervisor do
     ]
 
     exit_processors =
-      Enum.map(exit_games, fn {transaction_type, exit_game_contract_addr} ->
+      Enum.map(exit_games, fn {transaction_type, _exit_game_contract_addr} ->
         %{
           id: transaction_type,
           start:
@@ -106,8 +106,6 @@ defmodule OMG.Watcher.SyncSupervisor do
              [
                [
                  name: transaction_type,
-                 transaction_type: transaction_type,
-                 exit_game_contract_addr: exit_game_contract_addr,
                  exit_processor_sla_margin: exit_processor_sla_margin,
                  exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
                  metrics_collection_interval: metrics_collection_interval,

@@ -86,17 +86,19 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
       payment_v2_exit_game: exit_games.tx_payment_v2
     }
 
-    merge_configuration(
-      config,
-      txhash_contract,
-      authority_address,
-      contract_addresses,
-      exit_games,
-      min_exit_period_seconds,
-      contract_semver,
-      network,
-      child_block_interval
-    )
+    extra_config = %{
+      txhash_contract: txhash_contract,
+      authority_address: authority_address,
+      contract_addresses: contract_addresses,
+      exit_games: exit_games,
+      min_exit_period_seconds: min_exit_period_seconds,
+      contract_semver: contract_semver,
+      network: network,
+      child_block_interval: child_block_interval
+    }
+
+    {:ok, []} = valid_extra_config?(extra_config)
+    merge_configuration(config, extra_config)
   end
 
   defp get_external_data(plasma_framework, rpc_api) do
@@ -118,37 +120,27 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     {exit_games, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval}
   end
 
-  defp merge_configuration(
-         config,
-         txhash_contract,
-         authority_address,
-         contract_addresses,
-         exit_games,
-         min_exit_period_seconds,
-         contract_semver,
-         network,
-         child_block_interval
-       )
-       when is_binary(txhash_contract) and
-              is_binary(authority_address) and is_map(contract_addresses) and is_integer(min_exit_period_seconds) and
-              is_binary(contract_semver) and is_binary(network) do
-    contract_addresses = Enum.into(contract_addresses, %{}, fn {name, addr} -> {name, String.downcase(addr)} end)
+  defp merge_configuration(config, extra_config) do
+    contract_addresses =
+      Enum.into(
+        extra_config.contract_addresses,
+        %{},
+        fn {name, addr} -> {name, String.downcase(addr)} end
+      )
 
     Config.Reader.merge(config,
       omg_eth: [
-        txhash_contract: String.downcase(txhash_contract),
-        authority_address: String.downcase(authority_address),
+        txhash_contract: String.downcase(extra_config.txhash_contract),
+        authority_address: String.downcase(extra_config.authority_address),
         contract_addr: contract_addresses,
-        exit_games: exit_games,
-        min_exit_period_seconds: min_exit_period_seconds,
-        contract_semver: contract_semver,
-        network: network,
-        child_block_interval: child_block_interval
+        exit_games: extra_config.exit_games,
+        min_exit_period_seconds: extra_config.min_exit_period_seconds,
+        contract_semver: extra_config.contract_semver,
+        network: extra_config.network,
+        child_block_interval: extra_config.child_block_interval
       ]
     )
   end
-
-  defp merge_configuration(_, _, _, _, _, _, _, _, _), do: exit(@error)
 
   defp get_min_exit_period(plasma_framework_contract, rpc_api) do
     signature = "minExitPeriod()"
@@ -222,5 +214,30 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   defp on_load() do
     {:ok, _} = Application.ensure_all_started(:logger)
     {:ok, _} = Application.ensure_all_started(:ethereumex)
+  end
+
+  defp valid_extra_config?(extra_config) do
+    {_, validation_result} =
+      {extra_config, {:ok, []}}
+      |> valid_field?(:txhash_contract, &is_binary/1)
+      |> valid_field?(:authority_address, &is_binary/1)
+      |> valid_field?(:contract_addresses, &is_map/1)
+      |> valid_field?(:exit_games, &is_map/1)
+      |> valid_field?(:min_exit_period_seconds, &is_integer/1)
+      |> valid_field?(:contract_semver, &is_binary/1)
+      |> valid_field?(:network, &is_binary/1)
+      |> valid_field?(:child_block_interval, &is_integer/1)
+
+    validation_result
+  end
+
+  defp valid_field?(validation_state, field, validation_function) do
+    {extra_config, {status, invalid_fields}} = validation_state
+    field_data = extra_config[field]
+
+    case field_data != nil && validation_function.(field_data) do
+      true -> {extra_config, {status, invalid_fields}}
+      false -> {extra_config, {:invalid_extra_config, [field | invalid_fields]}}
+    end
   end
 end

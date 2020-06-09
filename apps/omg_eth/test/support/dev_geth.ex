@@ -62,7 +62,7 @@ defmodule OMG.Eth.DevGeth do
   defp stop(pid) do
     # NOTE: monitor is required to stop_and_wait, don't know why? `monitor: true` on run doesn't work
     _ = Process.monitor(pid)
-    {:exit_status, _} = Exexec.stop_and_wait(pid)
+    {:exit_status, 35_072} = Exexec.stop_and_wait(pid)
     :ok
   end
 

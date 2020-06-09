@@ -18,8 +18,6 @@ defmodule OMG.Eth.Fixtures do
   """
   use ExUnitFixtures.FixtureModule
 
-  require Logger
-
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain.Abi, as: RootChainABI
