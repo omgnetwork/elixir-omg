@@ -73,13 +73,6 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
         name: PendingBlockProcessorTest
       )
 
-    _ =
-      on_exit(fn ->
-        if Process.alive?(pid), do: :ok = GenServer.stop(pid)
-        storage_pid = GenServer.whereis(storage)
-        if storage_pid != nil and Process.alive?(storage_pid), do: :ok = GenServer.stop(storage_pid)
-      end)
-
     Map.put(tags, :pid, pid)
   end
 

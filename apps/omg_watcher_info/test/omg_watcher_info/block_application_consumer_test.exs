@@ -28,13 +28,8 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
     {:ok, pid} =
       BlockApplicationConsumer.start_link(
         bus_module: __MODULE__.FakeBus,
-        name: tags.test
+        name: BlockApplicationConsumerTest
       )
-
-    _ =
-      on_exit(fn ->
-        if Process.alive?(pid), do: :ok = GenServer.stop(pid)
-      end)
 
     Map.put(tags, :pid, pid)
   end

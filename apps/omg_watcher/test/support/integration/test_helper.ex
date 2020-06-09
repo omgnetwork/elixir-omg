@@ -63,6 +63,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
         {:ok, %{"blknum" => ^block_nr}} -> {:ok, block_nr}
       end
     end
+
     WaitFor.ok(func, timeout)
   end
 
