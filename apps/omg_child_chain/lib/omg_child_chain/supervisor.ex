@@ -23,8 +23,8 @@ defmodule OMG.ChildChain.Supervisor do
   alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
-  alias OMG.ChildChain.GasPrice.EthGasStationStrategy
-  alias OMG.ChildChain.GasPrice.LegacyStrategy
+  alias OMG.ChildChain.GasPrice.PoissonGasStrategy
+  alias OMG.ChildChain.GasPrice.LegacyGasStrategy
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
   alias OMG.ChildChain.Tracer
@@ -72,7 +72,7 @@ defmodule OMG.ChildChain.Supervisor do
            type: :supervisor
          }
        ]},
-      {EthGasStationStrategy, [max_gas_price: block_submit_max_gas_price]},
+      {PoissonGasStrategy, [max_gas_price: block_submit_max_gas_price]},
       {LegacyGasStrategy, [max_gas_price: block_submit_max_gas_price]}
     ]
 

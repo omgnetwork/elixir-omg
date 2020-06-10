@@ -43,8 +43,8 @@ defmodule OMG.ChildChain.BlockQueue do
 
   alias OMG.Block
   alias OMG.ChildChain.BlockQueue.Balance
+  alias OMG.ChildChain.BlockQueue.BlockSubmission
   alias OMG.ChildChain.BlockQueue.Core
-  alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.Eth
   alias OMG.Eth.Client

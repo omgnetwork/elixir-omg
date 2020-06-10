@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.GasPrice.EthGasStationStrategy do
+defmodule OMG.ChildChain.GasPrice.PoissonGasStrategy do
   @moduledoc """
-  Suggests gas prices based on EthGasStation's algorithm.
+  Suggests gas prices based on Poisson regression model (also used by EthGasStation).
 
   Ported from https://github.com/ethgasstation/gasstation-express-oracle/blob/master/gasExpress.py
   """

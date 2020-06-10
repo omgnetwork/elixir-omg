@@ -42,7 +42,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   alias OMG.ChildChain.BlockQueue
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.BlockSubmission
-  alias OMG.Eth.GasPrice
+  alias OMG.ChildChain.GasPrice
 
   use OMG.Utils.LoggerExt
 

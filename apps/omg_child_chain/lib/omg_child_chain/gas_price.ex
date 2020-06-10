@@ -17,7 +17,7 @@ defmodule OMG.ChildChain.GasPrice do
   Suggests gas prices based on different strategies.
   """
   alias OMG.ChildChain.Configuration
-  alias OMG.ChildChain.GasPrice.EthGasStationStrategy
+  alias OMG.ChildChain.GasPrice.PoissonGasStrategy
   alias OMG.ChildChain.GasPrice.LegacyGasStrategy
 
   @type price() :: pos_integer()
@@ -27,7 +27,7 @@ defmodule OMG.ChildChain.GasPrice do
   """
   @spec recalculate_all(map(), pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: :ok
   def recalculate_all(blocks, parent_height, mined_child_block_num, formed_child_block_num, child_block_interval) do
-    _ = EthGasStationStrategy.recalculate()
+    _ = PoissonGasStrategy.recalculate()
 
     _ =
       LegacyGasStrategy.recalculate(
