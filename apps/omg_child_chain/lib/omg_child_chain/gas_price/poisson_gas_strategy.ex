@@ -73,6 +73,8 @@ defmodule OMG.ChildChain.GasPrice.PoissonGasStrategy do
   """
   @spec recalculate() :: :ok
   def recalculate() do
+    # Poisson regression strategy recalculates based on its interval, not a recalculation trigger
+    # by the BlockQueue. So it immediately returns :ok
     :ok
   end
 
