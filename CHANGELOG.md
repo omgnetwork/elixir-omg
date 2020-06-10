@@ -14,6 +14,7 @@ See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.8...v1.0
 
 #### Core
 
+- [Fixed] Better restart strategy (#1565)
 - [Fixed] Prevent race condition for status cache (#1558)
 - [Fixed] Reorg block getter (#1554)
 - [Added] Cache blocks into ets (#1547)
