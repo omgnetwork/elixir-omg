@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.Configuration do
+defmodule OMG.WatcherInfo.PendingBlockQueueLengthChecker.Storage do
   @moduledoc """
-  Provides access to applications configuration
+  Contains storage related functions of the PendingBlockQueueLengthChecker
   """
-  @app :omg_watcher_info
 
-  def pending_block_processing_interval() do
-    Application.fetch_env!(@app, :pending_block_processing_interval)
-  end
+  alias OMG.WatcherInfo.DB.PendingBlock
 
-  def pending_block_queue_length_check_interval() do
-    Application.fetch_env!(@app, :pending_block_queue_length_check_interval)
+  def get_queue_length() do
+    PendingBlock.get_pending_count()
   end
 end

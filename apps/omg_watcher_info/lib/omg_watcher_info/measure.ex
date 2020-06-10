@@ -12,17 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.Configuration do
+defmodule OMG.WatcherInfo.Measure do
   @moduledoc """
-  Provides access to applications configuration
+  Counting business metrics sent to Datadog.
   """
-  @app :omg_watcher_info
+  import OMG.Status.Metric.Event, only: [name: 1]
 
-  def pending_block_processing_interval() do
-    Application.fetch_env!(@app, :pending_block_processing_interval)
-  end
+  alias OMG.Status.Metric.Datadog
+  alias OMG.WatcherInfo.PendingBlockQueueLengthChecker
 
-  def pending_block_queue_length_check_interval() do
-    Application.fetch_env!(@app, :pending_block_queue_length_check_interval)
+  @supported_events [
+    [:pending_block_queue_length, PendingBlockQueueLengthChecker]
+  ]
+
+  def supported_events(), do: @supported_events
+
+  def handle_event([:pending_block_queue_length, PendingBlockQueueLengthChecker], %{length: length}, _state, _config) do
+    _ = Datadog.gauge(name(:pending_block_queue_length), length)
   end
 end

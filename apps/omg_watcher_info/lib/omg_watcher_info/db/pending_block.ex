@@ -67,6 +67,12 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
     |> Enum.at(0)
   end
 
+  def get_pending_count() do
+    (pending_block in __MODULE__)
+    |> from(where: [status: @status_pending])
+    |> Repo.aggregate(:count)
+  end
+
   def done_changeset(pending_block) do
     change(pending_block, %{status: @status_done})
   end

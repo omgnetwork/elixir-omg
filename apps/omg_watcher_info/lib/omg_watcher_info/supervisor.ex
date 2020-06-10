@@ -65,6 +65,8 @@ defmodule OMG.WatcherInfo.Supervisor do
     children = [
       {OMG.WatcherInfo.BlockApplicationConsumer, []},
       {OMG.WatcherInfo.PendingBlockProcessor, [processing_interval: Configuration.pending_block_processing_interval()]},
+      {OMG.WatcherInfo.PendingBlockQueueLengthChecker,
+       [check_interval: Configuration.pending_block_queue_length_check_interval()]},
       {OMG.WatcherInfo.DepositConsumer, []},
       Supervisor.child_spec(
         {OMG.WatcherInfo.ExitConsumer, [topic: {:root_chain, "ExitStarted"}, event_type: :standard_exit]},

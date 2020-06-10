@@ -43,4 +43,17 @@ defmodule OMG.WatcherInfo.Application do
 
     Supervisor.start_link(children, opts)
   end
+
+  def start_phase(:attach_telemetry, :normal, _phase_args) do
+    handlers = [
+      ["measure-global", OMG.WatcherInfo.Measure.supported_events(), &OMG.WatcherInfo.Measure.handle_event/4, nil]
+    ]
+
+    Enum.each(handlers, fn handler ->
+      case apply(:telemetry, :attach_many, handler) do
+        :ok -> :ok
+        {:error, :already_exists} -> :ok
+      end
+    end)
+  end
 end
