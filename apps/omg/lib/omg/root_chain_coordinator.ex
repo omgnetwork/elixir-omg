@@ -72,10 +72,6 @@ defmodule OMG.RootChainCoordinator do
   end
 
   def init({args, configs_services}) do
-    {:ok, {args, configs_services}, {:continue, :setup}}
-  end
-
-  def handle_continue(:setup, {args, configs_services}) do
     _ = Logger.info("Starting #{__MODULE__} service. #{inspect({args, configs_services})}")
     metrics_collection_interval = Keyword.fetch!(args, :metrics_collection_interval)
     coordinator_eth_height_check_interval_ms = Keyword.fetch!(args, :coordinator_eth_height_check_interval_ms)
@@ -91,7 +87,7 @@ defmodule OMG.RootChainCoordinator do
 
     _ = Logger.info("Started #{inspect(__MODULE__)}")
 
-    {:noreply, state}
+    {:ok, state}
   end
 
   def handle_info(:send_metrics, state) do
