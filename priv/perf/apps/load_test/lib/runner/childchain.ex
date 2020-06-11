@@ -30,7 +30,6 @@ defmodule LoadTest.Runner.ChildChainTransactions do
   """
   use Chaperon.LoadTest
 
-  alias ExPlasma.Encoding
   alias LoadTest.Ethereum.Account
 
   @default_config %{

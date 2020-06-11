@@ -44,8 +44,6 @@ defmodule LoadTest.Service.Faucet do
   # allow the faucet to retry to avoid failing the test prematurely.
   @fund_child_chain_account_retries 100
 
-  @eth <<0::160>>
-
   @type state :: %__MODULE__{
           faucet_account: Account.t(),
           fee: pos_integer(),
