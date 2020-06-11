@@ -22,6 +22,9 @@ defmodule OMG.ChildChain.GasPrice.PoissonGasStrategy do
   require Logger
 
   alias OMG.ChildChain.GasPrice
+  alias OMG.ChildChain.GasPrice.Strategy
+
+  @behaviour Strategy
 
   @recalculate_interval_ms 60_000
 
@@ -41,6 +44,7 @@ defmodule OMG.ChildChain.GasPrice.PoissonGasStrategy do
   end
 
   @doc false
+  @impl GenServer
   def init(args) do
     state = %__MODULE__{
       max_gas_price: Keyword.fetch!(args, :max_gas_price)
@@ -50,6 +54,7 @@ defmodule OMG.ChildChain.GasPrice.PoissonGasStrategy do
   end
 
   @doc false
+  @impl GenServer
   def handle_continue(:start_recalculate, state) do
     _ = send(self(), :recalculate)
     {:ok, _} = :timer.send_interval(@recalculate_interval_ms, self(), :recalculate)
@@ -61,29 +66,34 @@ defmodule OMG.ChildChain.GasPrice.PoissonGasStrategy do
   @doc """
   Suggests the optimal gas price.
   """
-  @spec get_price() :: GasPrice.price()
+  @impl Strategy
+  @spec get_price() :: GasPrice.t()
   def get_price() do
     GenServer.call(__MODULE__, :get_price)
   end
 
   @doc """
-  Triggers gas price recalculation.
+  A stub that handles the recalculation trigger.
 
-  This function does not return the price. To get the price, use `get_price/0` instead.
+  Since Poisson regression strategy recalculates based on its interval, not a recalculation trigger
+  # by the BlockQueue. This function simply returns `:ok` without any computation.
+
+  To get the price, use `get_price/0` instead.
   """
-  @spec recalculate() :: :ok
-  def recalculate() do
-    # Poisson regression strategy recalculates based on its interval, not a recalculation trigger
-    # by the BlockQueue. So it immediately returns :ok
+  @impl Strategy
+  @spec recalculate(Keyword.t()) :: :ok
+  def recalculate(_params) do
     :ok
   end
 
   @doc false
-  def handle_call(:get_price, state) do
+  @impl GenServer
+  def handle_call(:get_price, _, state) do
     {:reply, {:ok, state.gas_price_to_use}, state}
   end
 
   @doc false
+  @impl GenServer
   def handle_info(:recalculate, state) do
     # Port over https://github.com/ethgasstation/gasstation-express-oracle/blob/master/gasExpress.py
     #

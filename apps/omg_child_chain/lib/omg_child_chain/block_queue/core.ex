@@ -130,16 +130,16 @@ defmodule OMG.ChildChain.BlockQueue.Core do
       |> Map.put(:parent_height, parent_height)
       |> set_mined(mined_child_block_num)
 
-    :ok =
-      GasPrice.recalculate_all(
-        state.blocks,
-        state.parent_height,
-        state.mined_child_block_num,
-        state.formed_child_block_num,
-        state.child_block_interval
-      )
+    recalculate_params = [
+      blocks: state.blocks,
+      parent_height: state.parent_height,
+      mined_child_block_num: state.mined_child_block_num,
+      formed_child_block_num: state.formed_child_block_num,
+      child_block_interval: state.child_block_interval
+    ]
 
-    {:ok, gas_price_to_use} = GasPrice.suggest()
+    :ok = GasPrice.recalculate_all(recalculate_params)
+    {:ok, gas_price_to_use} = GasPrice.get_price()
     state = Map.update!(state, :gas_price_to_use, gas_price_to_use)
 
     case should_form_block?(state, is_empty_block) do

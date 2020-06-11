@@ -17,35 +17,26 @@ defmodule OMG.ChildChain.GasPrice do
   Suggests gas prices based on different strategies.
   """
   alias OMG.ChildChain.Configuration
-  alias OMG.ChildChain.GasPrice.PoissonGasStrategy
   alias OMG.ChildChain.GasPrice.LegacyGasStrategy
+  alias OMG.ChildChain.GasPrice.PoissonGasStrategy
 
-  @type price() :: pos_integer()
+  @type t() :: pos_integer()
+
+  @strategies [LegacyGasStrategy, PoissonGasStrategy]
 
   @doc """
   Trigger gas price recalculations for all strategies.
   """
-  @spec recalculate_all(map(), pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: :ok
-  def recalculate_all(blocks, parent_height, mined_child_block_num, formed_child_block_num, child_block_interval) do
-    _ = PoissonGasStrategy.recalculate()
-
-    _ =
-      LegacyGasStrategy.recalculate(
-        blocks,
-        parent_height,
-        mined_child_block_num,
-        formed_child_block_num,
-        child_block_interval
-      )
-
-    :ok
+  @spec recalculate_all(Keyword.t()) :: :ok
+  def recalculate_all(params) do
+    Enum.each(@strategies, fn strategy -> :ok = strategy.recalculate(params) end)
   end
 
   @doc """
   Suggests the optimal gas price using the configured strategy.
   """
-  @spec suggest() :: {:ok, price()}
-  def suggest() do
+  @spec get_price() :: {:ok, t()}
+  def get_price() do
     Configuration.block_submit_gas_price_strategy().get_price()
   end
 end

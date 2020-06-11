@@ -44,6 +44,10 @@ defmodule OMG.ChildChain.GasPrice.LegacyGasStrategy do
   use GenServer
   require Logger
 
+  alias OMG.ChildChain.GasPrice.Strategy
+
+  @behaviour Strategy
+
   @type t() :: %__MODULE__{
           # minimum blocks count where child blocks are not mined therefore gas price needs to be increased
           eth_gap_without_child_blocks: pos_integer(),
@@ -78,6 +82,7 @@ defmodule OMG.ChildChain.GasPrice.LegacyGasStrategy do
   end
 
   @doc false
+  @impl GenServer
   def init(args) do
     state = %__MODULE__{
       max_gas_price: Keyword.fetch!(args, :max_gas_price)
@@ -89,6 +94,8 @@ defmodule OMG.ChildChain.GasPrice.LegacyGasStrategy do
   @doc """
   Suggests the optimal gas price.
   """
+  @impl Strategy
+  @spec get_price() :: {:ok, GasPrice.t()}
   def get_price() do
     GenServer.call(__MODULE__, :get_price)
   end
@@ -96,35 +103,35 @@ defmodule OMG.ChildChain.GasPrice.LegacyGasStrategy do
   @doc """
   Triggers gas price recalculation.
 
+  Returns `:ok` on success. Raises an error if a required param is missing.
+
   This function does not return the price. To get the price, use `get_price/0` instead.
   """
-  @spec recalculate(map(), pos_integer(), pos_integer(), pos_integer(), pos_integer()) :: :ok
-  def recalculate(blocks, parent_height, mined_child_block_num, formed_child_block_num, child_block_interval) do
-    # Unfortunately the legacy algorithm requires a blocking operation as its result needs to be applied to the upcoming block immediately.
-    GenServer.call(
-      __MODULE__,
-      {:recalculate, blocks, parent_height, mined_child_block_num, formed_child_block_num, child_block_interval}
-    )
+  @impl Strategy
+  @spec recalculate(Keyword.t()) :: :ok | no_return()
+  def recalculate(params) do
+    latest = %{
+      blocks: Keyword.fetch!(params, :blocks),
+      parent_height: Keyword.fetch!(params, :parent_height),
+      mined_child_block_num: Keyword.fetch!(params, :mined_child_block_num),
+      formed_child_block_num: Keyword.fetch!(params, :formed_child_block_num),
+      child_block_interval: Keyword.fetch!(params, :child_block_interval)
+    }
+
+    # Using `call()` here as the legacy algorithm requires a blocking operation.
+    # Its result needs to be applied to the upcoming block immediately.
+    GenServer.call(__MODULE__, {:recalculate, latest})
   end
 
   @doc false
-  def handle_call(:get_price, state) do
+  @impl GenServer
+  def handle_call(:get_price, _, state) do
     {:reply, {:ok, state.gas_price_to_use}, state}
   end
 
   @doc false
-  def handle_call(
-        {:recalculate, blocks, parent_height, mined_child_block_num, formed_child_block_num, child_block_interval},
-        state
-      ) do
-    latest = %{
-      blocks: blocks,
-      parent_height: parent_height,
-      mined_child_block_num: mined_child_block_num,
-      formed_child_block_num: formed_child_block_num,
-      child_block_interval: child_block_interval
-    }
-
+  @impl GenServer
+  def handle_call({:recalculate, latest}, _, state) do
     {:reply, :ok, do_recalculate(latest, state)}
   end
 
