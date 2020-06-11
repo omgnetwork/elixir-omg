@@ -123,6 +123,10 @@ defmodule OMG.ChildChain.GasPrice.LegacyGasStrategy do
     GenServer.call(__MODULE__, {:recalculate, latest})
   end
 
+  #
+  # GenServer callbacks
+  #
+
   @doc false
   @impl GenServer
   def handle_call(:get_price, _, state) do
@@ -134,6 +138,10 @@ defmodule OMG.ChildChain.GasPrice.LegacyGasStrategy do
   def handle_call({:recalculate, latest}, _, state) do
     {:reply, :ok, do_recalculate(latest, state)}
   end
+
+  #
+  # Internal implementations
+  #
 
   defp do_recalculate(latest, state) do
     cond do
