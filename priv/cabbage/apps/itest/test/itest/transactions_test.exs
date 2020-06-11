@@ -24,7 +24,7 @@ defmodule TransactionsTests do
 
   # needs to be an even number, because we split the accounts in half, the first half sends ETH
   # to the other half
-  @num_accounts 4
+  @num_accounts 2
   setup do
     {alices, bobs} =
       @num_accounts
@@ -88,6 +88,9 @@ defmodule TransactionsTests do
             bob_account
           )
 
+        _ = Logger.warn("WHYYYYYY")
+        _ = Logger.warn(inspect(typed_data))
+        _ = Logger.warn(inspect(sign_hash))
         # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
         _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
       end,

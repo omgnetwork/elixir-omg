@@ -99,7 +99,9 @@ defmodule OMG.WatcherInfo.API.Transaction do
       [
         create_inputs(inputs),
         create_outputs(outputs),
-        [metadata: metadata || @empty_metadata]
+        [metadata: metadata || @empty_metadata],
+        # TODO: hack for inject tx type 2 forcely
+        [tx_type: 2]
       ]
       |> Enum.concat()
       |> Map.new()

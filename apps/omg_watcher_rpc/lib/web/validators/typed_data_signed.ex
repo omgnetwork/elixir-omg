@@ -41,7 +41,14 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
          inputs when is_list(inputs) <- parse_inputs(msg),
          outputs when is_list(outputs) <- parse_outputs(msg),
          {:ok, metadata} <- expect(msg, "metadata", :hash) do
-      {:ok, Transaction.Payment.new(inputs, outputs, metadata)}
+      {:ok, tx_type} = expect(msg, "tx_type", [:integer, :optional])
+
+      case tx_type do
+        nil -> {:ok, Transaction.Payment.Builder.new_payment(inputs, outputs, metadata)}
+        # TODO: remove magic number
+        1 -> {:ok, Transaction.Payment.Builder.new_payment(inputs, outputs, metadata)}
+        2 -> {:ok, Transaction.Payment.Builder.new_payment_v2(inputs, outputs, metadata)}
+      end
     end
   end
 

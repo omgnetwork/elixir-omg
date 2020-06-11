@@ -22,6 +22,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   alias OMG.TypedDataHash
   alias OMG.WatcherInfo.DB
 
+  require Logger
   require Transaction
   require Transaction.Payment
 
@@ -205,7 +206,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     if Enum.any?(outputs, &(&1.owner == nil)),
       do: nil,
       else:
-        Transaction.Payment.new(
+        Transaction.Payment.Builder.new_payment_v2(
           inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
           outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
           metadata || @empty_metadata

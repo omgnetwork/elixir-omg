@@ -31,10 +31,11 @@ defmodule OMG.WireFormatTypes do
     3 => OMG.State.Transaction.Fee
   }
 
-  @module_tx_types %{
-    OMG.State.Transaction.Payment => 1,
-    OMG.State.Transaction.Fee => 3
-  }
+  # @module_tx_types %{
+  #   OMG.State.Transaction.Payment => 1,
+  #   OMG.State.Transaction.PaymentV2 => 2,
+  #   OMG.State.Transaction.Fee => 3
+  # }
 
   @input_pointer_type_values %{
     input_pointer_utxo_position: 1
@@ -42,12 +43,14 @@ defmodule OMG.WireFormatTypes do
 
   @output_type_values %{
     output_payment_v1: 1,
-    output_fee_token_claim: 2
+    output_fee_token_claim: 2,
+    output_payment_v2: 3
   }
 
   @output_type_modules %{
     1 => OMG.Output,
-    2 => OMG.Output
+    2 => OMG.Output,
+    3 => OMG.Output
   }
 
   @exit_game_tx_types [
@@ -71,11 +74,11 @@ defmodule OMG.WireFormatTypes do
   @spec tx_type_modules() :: tx_type_to_module_map()
   def tx_type_modules(), do: @tx_type_modules
 
-  @doc """
-  Returns the tx type that is associated with the given module
-  """
-  @spec module_tx_types() :: %{atom() => non_neg_integer()}
-  def module_tx_types(), do: @module_tx_types
+  # @doc """
+  # Returns the tx type that is associated with the given module
+  # """
+  # @spec module_tx_types() :: %{atom() => non_neg_integer()}
+  # def module_tx_types(), do: @module_tx_types
 
   @doc """
   Returns wire format type value of known input pointer type
