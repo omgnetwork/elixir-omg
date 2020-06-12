@@ -37,12 +37,12 @@ defmodule OMG.Watcher.Integration.TestHelper do
     |> WaitFor.ok(timeout)
   end
 
-  def wait_for_block_fetch(block_nr, timeout) do
+  def wait_for_block_fetch(block_number, timeout) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
-      if State.get_status() |> elem(0) <= block_nr,
+      if State.get_status() |> elem(0) <= block_number,
         do: :repeat,
-        else: {:ok, block_nr}
+        else: {:ok, block_number}
     end
     |> WaitFor.ok(timeout)
 
@@ -56,11 +56,11 @@ defmodule OMG.Watcher.Integration.TestHelper do
   state and add some "random" sleep to give the database time to process and write the block.
   This function will instead poll for block.get until found (or timeout).
   """
-  def wait_for_block_inserted_in_db(block_nr, timeout) do
+  def wait_for_block_inserted_in_db(block_number, timeout) do
     func = fn ->
-      case WatcherHelper.get_block(block_nr) do
+      case WatcherHelper.get_block(block_number) do
         {:error, _} -> :repeat
-        {:ok, %{"blknum" => ^block_nr}} -> {:ok, block_nr}
+        {:ok, %{"blknum" => ^block_number}} -> {:ok, block_number}
       end
     end
 
