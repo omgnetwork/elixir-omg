@@ -20,16 +20,21 @@ defmodule TransactionsTests do
   alias Itest.Account
 
   alias Itest.Client
+  alias Itest.Reorg
   alias Itest.Transactions.Currency
 
   # needs to be an even number, because we split the accounts in half, the first half sends ETH
   # to the other half
   @num_accounts 4
   setup do
+    Reorg.finish_reorg()
+
     {alices, bobs} =
       @num_accounts
       |> Account.take_accounts()
       |> Enum.split(div(@num_accounts, 2))
+
+    Reorg.start_reorg()
 
     %{alices: alices, bobs: bobs}
   end
@@ -63,7 +68,7 @@ defmodule TransactionsTests do
           data = [{key, balance_after_deposit} | data]
           Map.put(state, String.to_atom("alice_data_#{index}"), data)
         end,
-        timeout: 60_000,
+        timeout: 240_000,
         on_timeout: :kill_task,
         max_concurrency: @num_accounts
       )
@@ -91,7 +96,7 @@ defmodule TransactionsTests do
         # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
         _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
       end,
-      timeout: 60_000,
+      timeout: 240_000,
       on_timeout: :kill_task,
       max_concurrency: @num_accounts
     )
@@ -114,7 +119,7 @@ defmodule TransactionsTests do
 
         assert_equal(Currency.to_wei(amount), balance, "For #{alice_account} #{index}.")
       end,
-      timeout: 60_000,
+      timeout: 240_000,
       on_timeout: :kill_task,
       max_concurrency: @num_accounts
     )
@@ -134,7 +139,7 @@ defmodule TransactionsTests do
 
         assert_equal(Currency.to_wei(amount), balance, "For #{bob_account} #{index}.")
       end,
-      timeout: 60_000,
+      timeout: 240_000,
       on_timeout: :kill_task,
       max_concurrency: @num_accounts
     )

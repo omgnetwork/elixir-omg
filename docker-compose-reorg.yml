@@ -1,0 +1,236 @@
+version: "2.3"
+services:
+  geth-1:
+    image: ethereum/client-go:v1.9.15
+    container_name: geth-1
+    environment:
+      - ACCOUNT=0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d
+      - BOOTNODES=enode://b655cc3e5b72ab9beb8a8536a3c3ae92fbeb79feb1ebd7f95d72be72554ca586428bd48a54eb9c2bcaae455cc674299b6dd3df3c6556a493dfd50070f1a448aa@172.25.0.103:30303
+      - INIT=false
+    entrypoint: /bin/sh -c ". data/geth/command"
+    expose:
+      - 8545
+      - 8546
+      - 30303
+    ports:
+      - 9000:8545
+    volumes:
+      - ./data1:/data
+      - ./data/ethash:/root/.ethash
+
+    healthcheck:
+      test: curl geth-1:8545
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      chain:
+        ipv4_address: 172.25.0.102
+
+  geth-2:
+    image: ethereum/client-go:v1.9.15
+    container_name: geth-2
+    depends_on:
+      - geth-1
+    environment:
+      - ACCOUNT=0xc0f780dfc35075979b0def588d999225b7ecc56f
+      - BOOTNODES=enode://4574f825d67bf570b9216e704a5b761d05d5015c458e2c9dd4b30abb2fe8c881400c2074a126df94690c4c9fb72ee046e6e3ac2bb73dede42fce66cb0a963b36@172.25.0.102:30303
+      - INIT=false
+    entrypoint: /bin/sh -c ". data/geth/command"
+    expose:
+      - 8546
+      - 8545
+      - 30303
+    ports:
+      - 9001:8545
+    volumes:
+      - ./data2:/data
+      - ./data/ethash:/root/.ethash
+    healthcheck:
+      test: curl geth-2:8545
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      chain:
+        ipv4_address: 172.25.0.103
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    depends_on:
+      geth-1:
+        condition: service_healthy
+      geth-2:
+        condition: service_healthy
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 8545:80
+      - 8546:81
+      - 443:443
+    networks:
+      chain:
+        ipv4_address: 172.25.0.104
+    healthcheck:
+      test: curl nginx:80
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:9.6.13-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: omisego_dev
+      POSTGRES_PASSWORD: omisego_dev
+      POSTGRES_DB: omisego_dev
+    healthcheck:
+      test: pg_isready -U omisego_dev
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      chain:
+        ipv4_address: 172.25.0.110
+
+  childchain:
+    image: omisego/child_chain:latest
+    command: "full_local"
+    container_name: childchain
+    env_file:
+      - ./localchain_contract_addresses.env
+    environment:
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - ETHEREUM_RPC_URL=http://172.25.0.104:80
+      - APP_ENV=local_docker_development
+      - DD_HOSTNAME=datadog
+      - DD_DISABLED=true
+      - DB_PATH=/data
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+      - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
+      - FEE_ADAPTER=file
+      - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
+      - FEE_BUFFER_DURATION_MS=30000
+      - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
+    restart: always
+    ports:
+      - "9656:9656"
+    expose:
+      - "9656"
+    volumes:
+      - ./data:/data
+      - ./priv/dev-artifacts:/dev-artifacts
+    healthcheck:
+      test: curl childchain:9656
+      interval: 30s
+      timeout: 1s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      nginx:
+        condition: service_healthy
+    networks:
+      chain:
+        ipv4_address: 172.25.0.105
+
+  watcher:
+    image: omisego/watcher:latest
+    command: "full_local"
+    container_name: watcher
+    env_file:
+      - ./localchain_contract_addresses.env
+    environment:
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - ETHEREUM_RPC_URL=http://172.25.0.104:80
+      - CHILD_CHAIN_URL=http://172.25.0.105:9656
+      - PORT=7434
+      - APP_ENV=local_docker_development
+      - DD_HOSTNAME=datadog
+      - DD_DISABLED=true
+      - DB_PATH=/data
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+      - ETHEREUM_BLOCK_TIME_SECONDS=1
+      - EXIT_PROCESSOR_SLA_MARGIN=5520
+      - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
+    restart: always
+    ports:
+      - "7434:7434"
+    expose:
+      - "7434"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: curl watcher:7434
+      interval: 30s
+      timeout: 1s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      childchain:
+        condition: service_healthy
+    networks:
+      chain:
+        ipv4_address: 172.25.0.106
+
+  watcher_info:
+    image: omisego/watcher_info:latest
+    command: "full_local"
+    container_name: watcher_info
+    env_file:
+      - ./localchain_contract_addresses.env
+    environment:
+      - ETHEREUM_NETWORK=LOCALCHAIN
+      - ETHEREUM_RPC_URL=http://172.25.0.104:80
+      - CHILD_CHAIN_URL=http://172.25.0.105:9656
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.25.0.110:5432/omisego_dev
+      - PORT=7534
+      - APP_ENV=local_docker_development
+      - DD_HOSTNAME=datadog
+      - DD_DISABLED=true
+      - DB_PATH=/data
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      - ETHEREUM_BLOCK_TIME_SECONDS=1
+      - EXIT_PROCESSOR_SLA_MARGIN=5520
+      - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
+      - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
+    restart: always
+    ports:
+      - "7534:7534"
+    expose:
+      - "7534"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: curl watcher_info:7534
+      interval: 30s
+      timeout: 1s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      childchain:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      chain:
+        ipv4_address: 172.25.0.107
+
+
+networks:
+  chain:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.25.0.0/24

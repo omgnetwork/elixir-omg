@@ -24,7 +24,7 @@ defmodule Itest.Account do
   def take_accounts(number_of_accounts) do
     1..number_of_accounts
     |> Task.async_stream(fn _ -> account() end,
-      timeout: 60_000,
+      timeout: 240_000,
       on_timeout: :kill_task,
       max_concurrency: System.schedulers_online() * 2
     )
@@ -38,15 +38,30 @@ defmodule Itest.Account do
 
     {:ok, addr} = create_account_from_secret(account_priv_enc, passphrase)
 
-    {:ok, [faucet | _]} = Ethereumex.HttpClient.eth_accounts()
+    {:ok, [faucet | _]} = with_retries(fn -> Ethereumex.HttpClient.eth_accounts() end)
 
     data = %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
 
-    {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(data)
+    {:ok, receipt_hash} = with_retries(fn -> Ethereumex.HttpClient.eth_send_transaction(data) end)
 
     wait_on_receipt_confirmed(receipt_hash)
 
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], [])
+    if Application.get_env(:cabbage, :reorg) do
+      {:ok, true} =
+        with_retries(fn ->
+          Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], url: "http://localhost:9000")
+        end)
+
+      {:ok, true} =
+        with_retries(fn ->
+          Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], url: "http://localhost:9001")
+        end)
+    else
+      {:ok, true} =
+        with_retries(fn ->
+          Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], [])
+        end)
+    end
 
     {addr, account_priv_enc}
   end
@@ -79,9 +94,36 @@ defmodule Itest.Account do
     {:ok, address}
   end
 
+  defp hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
+
   defp create_account_from_secret(secret, passphrase) do
-    Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
+    if Application.get_env(:cabbage, :reorg) do
+      with_retries(fn ->
+        Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: "http://localhost:9000")
+      end)
+
+      with_retries(fn ->
+        Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: "http://localhost:9001")
+      end)
+    else
+      with_retries(fn ->
+        Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
+      end)
+    end
   end
 
-  defp hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
+  def with_retries(func, total_time \\ 510, current_time \\ 0) do
+    case func.() do
+      {:ok, _} = result ->
+        result
+
+      result ->
+        if current_time < total_time do
+          Process.sleep(1_000)
+          with_retries(func, total_time, current_time + 1)
+        else
+          result
+        end
+    end
+  end
 end

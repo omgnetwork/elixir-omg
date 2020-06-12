@@ -20,15 +20,21 @@ defmodule WatcherInfoApiTest do
   alias Itest.Account
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
+  alias Itest.Reorg
   alias Itest.Transactions.Currency
 
   @geth_block_every 1
   @to_milliseconds 1000
 
   setup do
+    Reorg.finish_reorg()
+
     accounts = Account.take_accounts(2)
     alice_account = Enum.at(accounts, 0)
     bob_account = Enum.at(accounts, 1)
+
+    Reorg.start_reorg()
+
     %{alice_account: alice_account, bob_account: bob_account}
   end
 

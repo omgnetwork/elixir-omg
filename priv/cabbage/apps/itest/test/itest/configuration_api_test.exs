@@ -13,10 +13,14 @@
 # limitations under the License.
 defmodule ConfigurationRetrievalTests do
   use Cabbage.Feature, async: true, file: "configuration_api.feature"
+  alias Itest.Reorg
   alias Itest.Transactions.Encoding
   require Logger
 
   setup_all do
+    Reorg.finish_reorg()
+    Reorg.start_reorg()
+
     data = ABI.encode("getVersion()", [])
 
     {:ok, response} =

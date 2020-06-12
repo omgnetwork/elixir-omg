@@ -19,10 +19,15 @@ defmodule DepositsTests do
   alias Itest.Account
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
+  alias Itest.Reorg
   alias Itest.Transactions.Currency
 
   setup do
+    Reorg.finish_reorg()
+
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
+
+    Reorg.start_reorg()
 
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end

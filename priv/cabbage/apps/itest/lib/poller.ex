@@ -28,7 +28,7 @@ defmodule Itest.Poller do
   alias WatcherSecurityCriticalAPI.Api.Status
 
   @sleep_retry_sec 1_000
-  @retry_count 30
+  @retry_count 240
 
   def pull_for_utxo_until_recognized_deposit(account, amount, currency, blknum) do
     payload = %AddressBodySchema1{address: account}
@@ -138,11 +138,7 @@ defmodule Itest.Poller do
         Process.sleep(@sleep_retry_sec)
         do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
 
-      {:error, :closed} ->
-        Process.sleep(@sleep_retry_sec)
-        do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
-
-      {:error, :socket_closed_remotely} ->
+      {:error, _} ->
         Process.sleep(@sleep_retry_sec)
         do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
 

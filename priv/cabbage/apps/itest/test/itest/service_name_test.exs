@@ -16,6 +16,13 @@ defmodule ServiceNameTests do
 
   require Logger
 
+  alias Itest.Reorg
+
+  setup do
+    Reorg.finish_reorg()
+    Reorg.start_reorg()
+  end
+
   defwhen ~r/^Operator deploys "(?<service>[^"]+)"$/, %{service: service}, state do
     {:ok, response} =
       case service do
