@@ -47,18 +47,15 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
       b_2 = insert(:pending_block)
       _b_3 = insert(:pending_block)
 
-      {:ok, _} = b_1 |> PendingBlock.done_changeset() |> DB.Repo.update()
+      assert PendingBlock.get_next_to_process() == b_1
+
+      {:ok, _} = DB.Repo.delete(b_1)
 
       assert PendingBlock.get_next_to_process() == b_2
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns nil if no block to process" do
-      assert PendingBlock.get_next_to_process() == nil
-
-      b_1 = insert(:pending_block)
-      {:ok, _} = b_1 |> PendingBlock.done_changeset() |> DB.Repo.update()
-
       assert PendingBlock.get_next_to_process() == nil
     end
   end

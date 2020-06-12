@@ -71,21 +71,21 @@ defmodule OMG.WatcherInfo.PendingBlockQueueLengthCheckerTest do
         @interval * 2
       )
 
-      block_1 |> PendingBlock.done_changeset() |> DB.Repo.update!()
+      DB.Repo.delete!(block_1)
 
       assert_receive(
         {:telemetry_event, [:pending_block_queue_length, PendingBlockQueueLengthChecker], %{length: 2}, %{}},
         @interval * 2
       )
 
-      block_2 |> PendingBlock.done_changeset() |> DB.Repo.update!()
+      DB.Repo.delete!(block_2)
 
       assert_receive(
         {:telemetry_event, [:pending_block_queue_length, PendingBlockQueueLengthChecker], %{length: 1}, %{}},
         @interval * 2
       )
 
-      block_3 |> PendingBlock.done_changeset() |> DB.Repo.update!()
+      DB.Repo.delete!(block_3)
 
       assert_receive(
         {:telemetry_event, [:pending_block_queue_length, PendingBlockQueueLengthChecker], %{length: 0}, %{}},

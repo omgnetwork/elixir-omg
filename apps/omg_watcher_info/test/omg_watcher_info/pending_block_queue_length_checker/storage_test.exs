@@ -33,9 +33,9 @@ defmodule OMG.WatcherInfo.PendingBlockQueueLengthChecker.StorageTest do
 
       assert Storage.get_queue_length() == 3
 
-      block_1 |> PendingBlock.done_changeset() |> DB.Repo.update!()
-      block_2 |> PendingBlock.done_changeset() |> DB.Repo.update!()
-      block_3 |> PendingBlock.done_changeset() |> DB.Repo.update!()
+      DB.Repo.delete!(block_1)
+      DB.Repo.delete!(block_2)
+      DB.Repo.delete!(block_3)
 
       assert Storage.get_queue_length() == 0
     end
