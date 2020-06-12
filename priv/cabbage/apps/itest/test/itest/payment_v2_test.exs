@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule TransactionsTests do
-  use Cabbage.Feature, async: true, file: "transactions.feature"
+defmodule PaymentV2Test do
+  use Cabbage.Feature, async: true, file: "payment_v2.feature"
 
   alias Itest.Account
 
   alias Itest.Client
   alias Itest.Transactions.Currency
 
+  @payment_v2_tx_type 2
+
   # needs to be an even number, because we split the accounts in half, the first half sends ETH
   # to the other half
-  @num_accounts 4
+  @num_accounts 2
   setup do
     {alices, bobs} =
       @num_accounts
@@ -71,33 +73,6 @@ defmodule TransactionsTests do
     {:ok, state}
   end
 
-  defwhen ~r/^they send others "(?<amount>[^"]+)" ETH on the child chain$/,
-          %{amount: amount},
-          %{alices: alices, bobs: bobs} = state do
-    alices
-    |> Enum.zip(bobs)
-    |> Enum.with_index()
-    |> Task.async_stream(
-      fn {{{alice_account, alice_pkey}, {bob_account, _bob_pkey}}, _index} ->
-        {:ok, [sign_hash, typed_data, _txbytes]} =
-          Client.create_transaction(
-            Currency.to_wei(amount),
-            alice_account,
-            bob_account
-          )
-
-        # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
-        _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
-      end,
-      timeout: 60_000,
-      on_timeout: :kill_task,
-      max_concurrency: @num_accounts
-    )
-    |> Enum.map(fn {:ok, result} -> result end)
-
-    {:ok, state}
-  end
-
   defthen ~r/^they should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alices: alices} = state do
@@ -121,6 +96,60 @@ defmodule TransactionsTests do
     {:ok, state}
   end
 
+  defwhen ~r/^they send others "(?<amount>[^"]+)" ETH on the child chain with payment v1$/,
+          %{amount: amount},
+          %{alices: alices, bobs: bobs} = state do
+    alices
+    |> Enum.zip(bobs)
+    |> Enum.with_index()
+    |> Task.async_stream(
+      fn {{{alice_account, alice_pkey}, {bob_account, _bob_pkey}}, _index} ->
+        {:ok, [sign_hash, typed_data, _txbytes]} =
+          Client.create_transaction(
+            Currency.to_wei(amount),
+            alice_account,
+            bob_account
+          )
+
+        _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey])
+      end,
+      timeout: 60_000,
+      on_timeout: :kill_task,
+      max_concurrency: @num_accounts
+    )
+    |> Enum.map(fn {:ok, result} -> result end)
+
+    {:ok, state}
+  end
+
+  defwhen ~r/^they send others "(?<amount>[^"]+)" ETH on the child chain with payment v2$/,
+          %{amount: amount},
+          %{alices: alices, bobs: bobs} = state do
+    alices
+    |> Enum.zip(bobs)
+    |> Enum.with_index()
+    |> Task.async_stream(
+      fn {{{alice_account, alice_pkey}, {bob_account, _bob_pkey}}, _index} ->
+        {:ok, [sign_hash, typed_data, _txbytes]} =
+          Client.create_transaction(
+            Currency.to_wei(amount),
+            alice_account,
+            bob_account,
+            Currency.ether(),
+            @payment_v2_tx_type
+          )
+
+        _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey])
+      end,
+      timeout: 60_000,
+      on_timeout: :kill_task,
+      max_concurrency: @num_accounts
+    )
+    |> Enum.map(fn {:ok, result} -> result end)
+
+    {:ok, state}
+  end
+
   defthen ~r/^others should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{bobs: bobs} = state do
@@ -128,9 +157,10 @@ defmodule TransactionsTests do
     |> Enum.with_index()
     |> Task.async_stream(
       fn {{bob_account, _}, index} ->
-        balance = Client.get_balance(bob_account)["amount"]
+        expecting_amount = Currency.to_wei(amount)
+        balance = Client.get_exact_balance(bob_account, expecting_amount)["amount"]
 
-        assert_equal(Currency.to_wei(amount), balance, "For #{bob_account} #{index}.")
+        assert_equal(expecting_amount, balance, "For others: #{bob_account} #{index}.")
       end,
       timeout: 60_000,
       on_timeout: :kill_task,
