@@ -1772,6 +1772,9 @@ paths:
               title: CreateTransactionsBodySchema
               type: object
               properties:
+                tx_type:
+                  type: integer
+                  format: int256
                 owner:
                   type: string
                 payments:

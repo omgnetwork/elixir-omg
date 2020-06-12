@@ -62,6 +62,9 @@ defmodule OMG.WireFormatTypes do
   @known_input_pointer_types Map.keys(@input_pointer_type_values)
   @known_output_types Map.keys(@output_type_values)
 
+  @spec tx_type_values() :: map()
+  def tx_type_values(), do: @tx_type_values
+
   @doc """
   Returns wire format type value of known transaction type
   """

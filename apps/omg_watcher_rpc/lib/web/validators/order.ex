@@ -25,6 +25,8 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   alias OMG.Utils.HttpRPC.Validator.Base
   alias OMG.WatcherInfo.UtxoSelection
 
+  @default_tx_type 1
+
   @doc """
   Parses and validates request body
   """
@@ -35,9 +37,14 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
          {:ok, fee} <- expect(params, "fee", map: &parse_fee/1),
          {:ok, payments} <- expect(params, "payments", list: &parse_payment/1),
          {:ok, payments} <- fills_in_outputs?(payments),
+         {:ok, tx_type} = expect(params, "tx_type", [:integer, :optional]),
          :ok <- ensure_not_self_transaction(owner, payments) do
+      # keep this optional args for backward competibility
+      tx_type = tx_type || @default_tx_type
+
       {:ok,
        %{
+         tx_type: tx_type,
          owner: owner,
          payments: payments,
          fee: fee,
