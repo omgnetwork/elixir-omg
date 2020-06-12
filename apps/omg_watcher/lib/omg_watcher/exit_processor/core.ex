@@ -465,8 +465,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           blocks_result: blocks
         },
         %__MODULE__{} = state
-      )
-      when not is_nil(eth_timestamp_now) do
+      ) do
     utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
 
     {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_timestamp_now)
@@ -626,6 +625,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     address != @zero_address
   end
 
-  defp sla_seconds_safe?(exit_processor_sla_seconds, min_exit_period_seconds),
-    do: exit_processor_sla_seconds < min_exit_period_seconds
+  defp sla_seconds_safe?(exit_processor_sla_seconds, min_exit_period_seconds) do
+    exit_processor_sla_seconds < min_exit_period_seconds
+  end
 end

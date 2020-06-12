@@ -41,10 +41,6 @@ defmodule OMG.Watcher.Configuration do
     Application.fetch_env!(@app, :maximum_number_of_unapplied_blocks)
   end
 
-  def block_getter_loops_interval_ms() do
-    Application.fetch_env!(@app, :block_getter_loops_interval_ms)
-  end
-
   def child_chain_url() do
     Application.get_env(@app, :child_chain_url)
   end
