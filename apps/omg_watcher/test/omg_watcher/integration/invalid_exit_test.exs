@@ -21,6 +21,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
   alias OMG.Utxo
   alias OMG.Watcher.Event
+  alias OMG.Watcher.Configuration
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
@@ -115,7 +116,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
 
-    exit_processor_sla_seconds = OMG.Watcher.Configuraion.exit_processor_sla_seconds()
+    exit_processor_sla_seconds = OMG.Watcher.Configuration.exit_processor_sla_seconds()
     exit_processor_sla_ms = exit_processor_sla_seconds * 1000
     # after exit, the event fetch time + waiting for sla_seconds goes beyond the required time
     Process.sleep(exit_processor_sla_ms)
