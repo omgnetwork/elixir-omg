@@ -20,10 +20,12 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor.Storage do
   alias OMG.WatcherInfo.DB.Block
   alias OMG.WatcherInfo.DB.PendingBlock
 
+  @spec get_next_pending_block() :: nil | %PendingBlock{}
   def get_next_pending_block() do
     PendingBlock.get_next_to_process()
   end
 
+  @spec process_block(PendingBlock.t()) :: {:ok, %Block{}} | {:error, any()}
   def process_block(block) do
     Block.insert_pending_block(block)
   end

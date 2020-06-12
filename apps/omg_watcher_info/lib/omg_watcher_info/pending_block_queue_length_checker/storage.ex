@@ -19,7 +19,8 @@ defmodule OMG.WatcherInfo.PendingBlockQueueLengthChecker.Storage do
 
   alias OMG.WatcherInfo.DB.PendingBlock
 
+  @spec get_queue_length() :: non_neg_integer()
   def get_queue_length() do
-    PendingBlock.get_pending_count()
+    PendingBlock.get_count()
   end
 end

@@ -32,13 +32,12 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
 
   def init(args) do
     interval = Keyword.fetch!(args, :processing_interval)
-    storage_module = Keyword.get(args, :storage_module, Storage)
     _ = Logger.info("Started #{inspect(__MODULE__)}")
-    {:ok, %{interval: interval, block: nil, storage_module: storage_module}, interval}
+    {:ok, %{interval: interval, block: nil}, interval}
   end
 
   def handle_info(:timeout, state) do
-    block = state.storage_module.get_next_pending_block()
+    block = Storage.get_next_pending_block()
     {:noreply, %{state | block: block}, {:continue, :process_block}}
   end
 
@@ -47,7 +46,7 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor do
   end
 
   def handle_continue(:process_block, %{block: block} = state) do
-    {:ok, _} = state.storage_module.process_block(block)
+    {:ok, _} = Storage.process_block(block)
 
     {:noreply, %{state | block: nil}, 1}
   end

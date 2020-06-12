@@ -29,21 +29,13 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
 
   @type t() :: %{
           blknum: pos_integer(),
-          data: binary(),
-          status: String.t()
+          data: binary()
         }
-
-  @status_pending "pending"
-  @status_done "done"
 
   @primary_key {:blknum, :integer, []}
 
-  def status_pending(), do: @status_pending
-  def status_done(), do: @status_done
-
   schema "pending_blocks" do
     field(:data, :binary)
-    field(:status, :string, default: @status_pending)
 
     timestamps(type: :utc_datetime_usec)
   end
@@ -57,25 +49,14 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
 
   @spec get_next_to_process() :: nil | %__MODULE__{}
   def get_next_to_process() do
-    from(
-      pending_block in __MODULE__,
-      where: [status: @status_pending],
-      order_by: :blknum,
-      limit: 1
-    )
+    (pending_block in __MODULE__)
+    |> from(order_by: :blknum, limit: 1)
     |> Repo.all()
     |> Enum.at(0)
   end
 
-  def get_pending_count() do
-    (pending_block in __MODULE__)
-    |> from(where: [status: @status_pending])
-    |> Repo.aggregate(:count)
-  end
-
-  def done_changeset(pending_block) do
-    change(pending_block, %{status: @status_done})
-  end
+  @spec get_count() :: non_neg_integer()
+  def get_count(), do: Repo.aggregate(__MODULE__, :count)
 
   defp insert_changeset(params) do
     %__MODULE__{}

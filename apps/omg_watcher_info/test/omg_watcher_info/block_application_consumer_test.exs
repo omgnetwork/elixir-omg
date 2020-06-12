@@ -16,13 +16,10 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.TestHelper
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.WatcherInfo.BlockApplicationConsumer
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.PendingBlock
-
-  @eth OMG.Eth.zero_address()
 
   setup tags do
     {:ok, pid} =
@@ -37,18 +34,12 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
   describe "handle_info/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "inserts the given block application into pending block", %{pid: pid} do
-      alice = TestHelper.generate_entity()
-      bob = TestHelper.generate_entity()
-
-      tx_1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
-
       block_application = %BlockApplication{
         number: 1_000,
         eth_height: 1,
         eth_height_done: true,
         hash: "0x1000",
-        transactions: [tx_1, tx_2],
+        transactions: [],
         timestamp: 1_576_500_000
       }
 
@@ -63,7 +54,7 @@ defmodule OMG.WatcherInfo.BlockApplicationConsumerTest do
           transactions: block_application.transactions
         })
 
-      assert [%PendingBlock{blknum: 1000, data: ^expected_data, status: "pending"}] = DB.Repo.all(PendingBlock)
+      assert [%PendingBlock{blknum: 1000, data: ^expected_data}] = DB.Repo.all(PendingBlock)
     end
   end
 

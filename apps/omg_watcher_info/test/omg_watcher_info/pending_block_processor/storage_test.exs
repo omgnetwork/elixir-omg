@@ -39,12 +39,12 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor.StorageTest do
 
   describe "process_block/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "insert the block into the storage and set its status to done" do
+    test "insert the block into the storage and deletes it" do
       block = insert(:pending_block)
 
       assert {:ok, _} = Storage.process_block(block)
 
-      assert [%{status: "done"}] = get_all()
+      assert get_all() == []
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

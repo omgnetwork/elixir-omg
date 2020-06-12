@@ -44,8 +44,7 @@ defmodule OMG.WatcherInfo.Factory.PendingBlock do
               transactions: [tx_1, tx_2],
               tx_count: 2
             }),
-          blknum: blknum,
-          status: DB.PendingBlock.status_pending()
+          blknum: blknum
         }
       end
     end

@@ -145,10 +145,6 @@ defmodule Support.WatcherHelper do
     success?("/account.get_balance", %{"address" => Encoding.to_hex(address)})
   end
 
-  def get_blocks(page \\ 1, limit \\ 100) do
-    success?("/block.all", %{"page" => page, "limit" => limit})
-  end
-
   def get_block(blknum) do
     response_body = rpc_call("block.get", %{blknum: blknum}, 200)
 

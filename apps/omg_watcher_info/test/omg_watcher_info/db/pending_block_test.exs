@@ -32,16 +32,6 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "default status to pending" do
-      assert {:ok, %{status: "pending"}} = PendingBlock.insert(%{data: <<0>>, blknum: 1000})
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "does not cast status" do
-      assert {:ok, %{status: "pending"}} = PendingBlock.insert(%{data: <<0>>, blknum: 1000, status: "1337"})
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns an error if blknum is already used" do
       blknum = 1000
       insert(:pending_block, %{data: <<0>>, blknum: blknum})
@@ -73,12 +63,15 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
     end
   end
 
-  describe "done_changeset/1" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns changeset with status done" do
-      b_1 = insert(:pending_block)
+  describe "get_count/0" do
+    test "returns the count of pending blocks" do
+      assert PendingBlock.get_count() == 0
 
-      assert %{changes: %{status: "done"}} = PendingBlock.done_changeset(b_1)
+      insert(:pending_block)
+      insert(:pending_block)
+      insert(:pending_block)
+
+      assert PendingBlock.get_count() == 3
     end
   end
 end
