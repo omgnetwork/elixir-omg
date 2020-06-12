@@ -20,8 +20,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   use Plug.Test
 
   alias OMG.Utxo
-  alias OMG.Watcher.Event
   alias OMG.Watcher.Configuration
+  alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
