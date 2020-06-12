@@ -19,7 +19,6 @@ defmodule OMG.WatcherInfo.PendingBlockQueueLengthChecker.StorageTest do
   import OMG.WatcherInfo.Factory
 
   alias OMG.WatcherInfo.DB
-  alias OMG.WatcherInfo.DB.PendingBlock
   alias OMG.WatcherInfo.PendingBlockQueueLengthChecker.Storage
 
   describe "get_queue_length/0" do

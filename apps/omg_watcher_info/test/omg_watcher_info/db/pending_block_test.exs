@@ -61,6 +61,7 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
   end
 
   describe "get_count/0" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns the count of pending blocks" do
       assert PendingBlock.get_count() == 0
 
