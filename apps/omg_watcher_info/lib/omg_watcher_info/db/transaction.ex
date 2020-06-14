@@ -68,15 +68,15 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   """
   @spec get_by_filters(Keyword.t(), Paginator.t(%__MODULE__{})) :: Paginator.t(%__MODULE__{})
   def get_by_filters(constraints, paginator) do
-    allowed_constraints = [:address, :blknum, :txindex, :txtypes, :metadata]
+    allowed_constraints = [:address, :blknum, :txindex, :txtypes, :metadata, :query_end_datetime]
 
     constraints = filter_constraints(constraints, allowed_constraints)
 
     # we need to handle complex constraints with dedicated modifier function
     {address, constraints} = Keyword.pop(constraints, :address)
     {txtypes, constraints} = Keyword.pop(constraints, :txtypes)
-
-    query_get_last(paginator.data_paging)
+    base_query = if query_end_datetime, do: query_end_datetime, else: query_get_last
+    base_query(paginator.data_paging)
     |> query_get_by_address(address)
     |> query_get_by_txtypes(txtypes)
     |> query_get_by(constraints)
