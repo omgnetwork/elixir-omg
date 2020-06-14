@@ -100,6 +100,21 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     )
   end
 
+  defp query_end_datetime(%{limit: limit, end_datetime: end_datetime}) do
+
+    from(
+      __MODULE__,
+      order_by: [desc: :blknum, desc: :txindex],
+      limit: ^limit,
+      where: block.timestamp <= ^end_datetime,
+      preload: [
+        :block,
+        inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
+        outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
+      ]
+    )
+  end
+
   @spec query_count() :: Ecto.Query.t()
   defp query_count() do
     from(transaction in __MODULE__, select: count())
