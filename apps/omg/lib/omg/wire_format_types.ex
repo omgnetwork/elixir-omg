@@ -31,12 +31,6 @@ defmodule OMG.WireFormatTypes do
     3 => OMG.State.Transaction.Fee
   }
 
-  # @module_tx_types %{
-  #   OMG.State.Transaction.Payment => 1,
-  #   OMG.State.Transaction.PaymentV2 => 2,
-  #   OMG.State.Transaction.Fee => 3
-  # }
-
   @input_pointer_type_values %{
     input_pointer_utxo_position: 1
   }
@@ -62,9 +56,6 @@ defmodule OMG.WireFormatTypes do
   @known_input_pointer_types Map.keys(@input_pointer_type_values)
   @known_output_types Map.keys(@output_type_values)
 
-  @spec tx_type_values() :: map()
-  def tx_type_values(), do: @tx_type_values
-
   @doc """
   Returns wire format type value of known transaction type
   """
@@ -76,12 +67,6 @@ defmodule OMG.WireFormatTypes do
   """
   @spec tx_type_modules() :: tx_type_to_module_map()
   def tx_type_modules(), do: @tx_type_modules
-
-  # @doc """
-  # Returns the tx type that is associated with the given module
-  # """
-  # @spec module_tx_types() :: %{atom() => non_neg_integer()}
-  # def module_tx_types(), do: @module_tx_types
 
   @doc """
   Returns wire format type value of known input pointer type

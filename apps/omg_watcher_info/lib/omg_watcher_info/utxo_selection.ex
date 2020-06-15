@@ -209,28 +209,20 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   end
 
   defp create_raw_transaction(tx_type, inputs, outputs, metadata) do
-    tx_type_values = OMG.WireFormatTypes.tx_type_values()
-
+    # Somehow the API is designed to return nil txbytes instead of claiming that as bad request :(
+    # So we need to return nil here
+    # See the test: "test /transaction.create does not return txbytes when spend owner is not provided"
     case Enum.any?(outputs, &(&1.owner == nil)) do
       true ->
         nil
 
       false ->
-        cond do
-          tx_type == tx_type_values.tx_payment_v1 ->
-            Transaction.Payment.Builder.new_payment(
-              inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
-              outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
-              metadata || @empty_metadata
-            )
-
-          tx_type == tx_type_values.tx_payment_v2 ->
-            Transaction.Payment.Builder.new_payment_v2(
-              inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
-              outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
-              metadata || @empty_metadata
-            )
-        end
+        Transaction.Payment.Builder.new_payment(
+          tx_type,
+          inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
+          outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
+          metadata || @empty_metadata
+        )
     end
   end
 

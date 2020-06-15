@@ -18,9 +18,9 @@ defmodule OMG.State.Transaction.Payment.Builder do
   """
 
   alias OMG.Crypto
+  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.State.Transaction.Payment
-  alias OMG.Output
   alias OMG.Utxo
 
   require Transaction
@@ -36,6 +36,11 @@ defmodule OMG.State.Transaction.Payment.Builder do
   @payment_v2_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v2)
   @payment_v2_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v2)
 
+  @output_types %{
+    @payment_tx_type => @payment_output_type,
+    @payment_v2_tx_type => @payment_v2_output_type
+  }
+
   @doc """
   Creates a new raw transaction structure from a list of inputs and a list of outputs, given in a succinct tuple form.
 
@@ -46,31 +51,16 @@ defmodule OMG.State.Transaction.Payment.Builder do
   ```
   """
   @spec new_payment(
+          pos_integer,
           list({pos_integer, pos_integer, 0..unquote(@max_outputs - 1)}),
           list({Crypto.address_t(), Payment.currency(), pos_integer}),
           Transaction.metadata()
         ) :: Payment.t()
-  def new_payment(inputs, outputs, metadata \\ @zero_metadata)
-
-  def new_payment(inputs, outputs, metadata)
+  def new_payment(tx_type, inputs, outputs, metadata \\ @zero_metadata)
       when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
     inputs = Enum.map(inputs, &new_input/1)
-    outputs = Enum.map(outputs, fn output -> new_output(output, @payment_output_type) end)
-    %Transaction.Payment{tx_type: @payment_tx_type, inputs: inputs, outputs: outputs, metadata: metadata}
-  end
-
-  @spec new_payment(
-          list({pos_integer, pos_integer, 0..unquote(@max_outputs - 1)}),
-          list({Crypto.address_t(), Payment.currency(), pos_integer}),
-          Transaction.metadata()
-        ) :: Payment.t()
-  def new_payment_v2(inputs, outputs, metadata \\ @zero_metadata)
-
-  def new_payment_v2(inputs, outputs, metadata)
-      when Transaction.is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
-    inputs = Enum.map(inputs, &new_input/1)
-    outputs = Enum.map(outputs, fn output -> new_output(output, @payment_v2_output_type) end)
-    %Transaction.Payment{tx_type: @payment_v2_tx_type, inputs: inputs, outputs: outputs, metadata: metadata}
+    outputs = Enum.map(outputs, fn output -> new_output(output, @output_types[tx_type]) end)
+    %Transaction.Payment{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
   # `new_input/1` and `new_output/1` are here to just help interpret the short-hand form of inputs outputs when doing

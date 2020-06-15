@@ -24,8 +24,9 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Validator.Base
   alias OMG.WatcherInfo.UtxoSelection
+  alias OMG.WireFormatTypes
 
-  @default_tx_type 1
+  @default_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   @doc """
   Parses and validates request body
