@@ -22,7 +22,7 @@ defmodule OMG.WatcherInfo.Configuration do
     Application.fetch_env!(@app, :pending_block_processing_interval)
   end
 
-  def pending_block_queue_length_check_interval() do
-    Application.fetch_env!(@app, :pending_block_queue_length_check_interval)
+  def block_queue_check_interval() do
+    Application.fetch_env!(@app, :block_queue_check_interval)
   end
 end

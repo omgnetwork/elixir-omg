@@ -176,7 +176,7 @@ config :omg_watcher_info,
   ecto_repos: [OMG.WatcherInfo.DB.Repo],
   metrics_collection_interval: 60_000,
   pending_block_processing_interval: 1000,
-  pending_block_queue_length_check_interval: 10_000
+  block_queue_check_interval: 10_000
 
 # Configures the endpoint
 
