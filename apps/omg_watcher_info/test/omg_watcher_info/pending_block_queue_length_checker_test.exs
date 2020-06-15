@@ -19,7 +19,6 @@ defmodule OMG.WatcherInfo.PendingBlockQueueLengthCheckerTest do
   import OMG.WatcherInfo.Factory
 
   alias OMG.WatcherInfo.DB
-  alias OMG.WatcherInfo.DB.PendingBlock
   alias OMG.WatcherInfo.PendingBlockQueueLengthChecker
 
   @interval 100
