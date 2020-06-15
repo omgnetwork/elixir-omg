@@ -21,7 +21,6 @@ export LOAD_TEST_FAUCET_PRIVATE_KEY=<faucet private key>
  ```
 make init
 ```
-(You need to run this any time you change the env vars above)
 
 ### 3. Configure the tests
 Edit the config file (e.g. `config/dev.exs`) set the test parameters e.g.
@@ -42,8 +41,18 @@ config :load_test,
   fee_amount: 6_000_000_000_000_000,
 ```
 
-### 4. Run the test
-`MIX_ENV=dev mix test apps/load_test/test/load_tests/runner/childchain_test.exs`
+### 4. Run the tests
+```
+MIX_ENV=<your_env> mix test
+```
+
+Or just `mix test` if you want to run against local services.
+
+You can specify a particular test on the command line e.g.
+ 
+```
+MIX_ENV=dev mix test apps/load_test/test/load_tests/runner/childchain_test.exs
+```
 
 **Important** After each test run, you need to wait ~15 seconds before running it again. 
 This is necessary to wait for the faucet account's utxos to be spendable. 
@@ -62,3 +71,20 @@ Kill it, wait some more, try again.
 One can override the setup in config to increase the `pool_size` and `max_connection`. 
 If you found the latency on the api calls are high but the data dog latency shows way smaller, 
 it might be latency from setting up the connection instead of real api latency.
+
+### Retrying on errors
+The Tesla HTTP middleware can be configured to retry on error.
+By default this is disabled, but it can be enabled by modifying the `retry?` function in `connection_defaults.ex`.
+
+For example, to retry any 500 response:
+```
+  defp retry?() do
+    fn
+      {:ok, %{status: status}} when status in 500..599 -> true
+      {:ok, _} -> false
+      {:error, _} -> false
+    end
+  end
+```
+
+See [Tesla.Middleware.Retry](https://hexdocs.pm/tesla/Tesla.Middleware.Retry.html) for more details.

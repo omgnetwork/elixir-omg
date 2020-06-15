@@ -36,11 +36,10 @@ defmodule LoadTest.Connection.ConnectionDefaults do
 
   # Don't automatically retry on error
   # It _can_ sometimes be useful to retry though, so if you need it return true here
+  # See README.md for more info
   defp retry?() do
     fn
-      {:ok, %{status: status}} when status in 500..599 -> false
-      {:ok, _} -> false
-      {:error, _} -> false
+      _ -> false
     end
   end
 end
