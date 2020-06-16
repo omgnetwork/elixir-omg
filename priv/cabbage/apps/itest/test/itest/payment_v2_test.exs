@@ -22,151 +22,76 @@ defmodule PaymentV2Test do
 
   @payment_v2_tx_type 2
 
-  # needs to be an even number, because we split the accounts in half, the first half sends ETH
-  # to the other half
-  @num_accounts 2
   setup do
-    {alices, bobs} =
-      @num_accounts
-      |> Account.take_accounts()
-      |> Enum.split(div(@num_accounts, 2))
+    [alice, bob] =
+      Account.take_accounts(2)
+      |> Enum.map(fn {account, pkey} -> %{account: account, pkey: pkey} end)
 
-    %{alices: alices, bobs: bobs}
+    %{alice: alice, bob: bob}
   end
 
-  defwhen ~r/^they deposit "(?<amount>[^"]+)" ETH to the root chain$/,
+  defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
-          %{alices: alices} = state do
-    state =
-      alices
-      |> Enum.with_index()
-      |> Task.async_stream(
-        fn {{alice_account, _alice_pkey}, index} ->
-          initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
+          %{alice: alice} = state do
+    {:ok, _receipt_hash} =
+      amount
+      |> Currency.to_wei()
+      |> Client.deposit(alice.account, Itest.PlasmaFramework.vault(Currency.ether()))
 
-          key = String.to_atom("alice_initial_balance_#{index}")
-          data = [{key, initial_balance}]
+    {:ok, state}
+  end
 
-          {:ok, receipt_hash} =
-            amount
-            |> Currency.to_wei()
-            |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
+  defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
+          %{amount: amount},
+          %{alice: alice} = state do
+    expecting_amount = Currency.to_wei(amount)
+    balance = Client.get_exact_balance(alice.account, expecting_amount)
+    balance = balance["amount"]
 
-          gas_used = Client.get_gas_used(receipt_hash)
-          key = String.to_atom("alice_gas_used_#{index}")
-          data = [{key, gas_used} | data]
+    assert_equal(expecting_amount, balance, "For #{alice.account}")
 
-          balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
+    {:ok, state}
+  end
 
-          key = String.to_atom("alice_ethereum_balance_#{index}")
-
-          data = [{key, balance_after_deposit} | data]
-          Map.put(state, String.to_atom("alice_data_#{index}"), data)
-        end,
-        timeout: 60_000,
-        on_timeout: :kill_task,
-        max_concurrency: @num_accounts
+  defwhen ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the child chain with payment v1$/,
+          %{amount: amount},
+          %{alice: alice, bob: bob} = state do
+    {:ok, [sign_hash, typed_data, _txbytes]} =
+      Client.create_transaction(
+        Currency.to_wei(amount),
+        alice.account,
+        bob.account
       )
-      |> Enum.map(fn {:ok, result} -> result end)
-      |> Enum.reduce(%{}, fn state, acc -> Map.merge(state, acc) end)
+
+    _ = Client.submit_transaction(typed_data, sign_hash, [alice.pkey])
 
     {:ok, state}
   end
 
-  defthen ~r/^they should have "(?<amount>[^"]+)" ETH on the child chain$/,
+  defwhen ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the child chain with payment v2$/,
           %{amount: amount},
-          %{alices: alices} = state do
-    alices
-    |> Enum.with_index()
-    |> Task.async_stream(
-      fn {{alice_account, _}, index} ->
-        expecting_amount = Currency.to_wei(amount)
+          %{alice: alice, bob: bob} = state do
+    {:ok, [sign_hash, typed_data, _txbytes]} =
+      Client.create_transaction(
+        Currency.to_wei(amount),
+        alice.account,
+        bob.account,
+        Currency.ether(),
+        @payment_v2_tx_type
+      )
 
-        balance = Client.get_exact_balance(alice_account, expecting_amount)
-        balance = balance["amount"]
-
-        assert_equal(Currency.to_wei(amount), balance, "For #{alice_account} #{index}.")
-      end,
-      timeout: 60_000,
-      on_timeout: :kill_task,
-      max_concurrency: @num_accounts
-    )
-    |> Enum.map(fn {:ok, result} -> result end)
+    _ = Client.submit_transaction(typed_data, sign_hash, [alice.pkey])
 
     {:ok, state}
   end
 
-  defwhen ~r/^they send others "(?<amount>[^"]+)" ETH on the child chain with payment v1$/,
+  defthen ~r/^Bob should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
-          %{alices: alices, bobs: bobs} = state do
-    alices
-    |> Enum.zip(bobs)
-    |> Enum.with_index()
-    |> Task.async_stream(
-      fn {{{alice_account, alice_pkey}, {bob_account, _bob_pkey}}, _index} ->
-        {:ok, [sign_hash, typed_data, _txbytes]} =
-          Client.create_transaction(
-            Currency.to_wei(amount),
-            alice_account,
-            bob_account
-          )
+          %{bob: bob} = state do
+    expecting_amount = Currency.to_wei(amount)
+    balance = Client.get_exact_balance(bob.account, expecting_amount)["amount"]
 
-        _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey])
-      end,
-      timeout: 60_000,
-      on_timeout: :kill_task,
-      max_concurrency: @num_accounts
-    )
-    |> Enum.map(fn {:ok, result} -> result end)
-
-    {:ok, state}
-  end
-
-  defwhen ~r/^they send others "(?<amount>[^"]+)" ETH on the child chain with payment v2$/,
-          %{amount: amount},
-          %{alices: alices, bobs: bobs} = state do
-    alices
-    |> Enum.zip(bobs)
-    |> Enum.with_index()
-    |> Task.async_stream(
-      fn {{{alice_account, alice_pkey}, {bob_account, _bob_pkey}}, _index} ->
-        {:ok, [sign_hash, typed_data, _txbytes]} =
-          Client.create_transaction(
-            Currency.to_wei(amount),
-            alice_account,
-            bob_account,
-            Currency.ether(),
-            @payment_v2_tx_type
-          )
-
-        _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey])
-      end,
-      timeout: 60_000,
-      on_timeout: :kill_task,
-      max_concurrency: @num_accounts
-    )
-    |> Enum.map(fn {:ok, result} -> result end)
-
-    {:ok, state}
-  end
-
-  defthen ~r/^others should have "(?<amount>[^"]+)" ETH on the child chain$/,
-          %{amount: amount},
-          %{bobs: bobs} = state do
-    bobs
-    |> Enum.with_index()
-    |> Task.async_stream(
-      fn {{bob_account, _}, index} ->
-        expecting_amount = Currency.to_wei(amount)
-        balance = Client.get_exact_balance(bob_account, expecting_amount)["amount"]
-
-        assert_equal(expecting_amount, balance, "For others: #{bob_account} #{index}.")
-      end,
-      timeout: 60_000,
-      on_timeout: :kill_task,
-      max_concurrency: @num_accounts
-    )
-    |> Enum.map(fn {:ok, result} -> result end)
+    assert_equal(expecting_amount, balance, "For Bob: #{bob.account}")
 
     {:ok, state}
   end
