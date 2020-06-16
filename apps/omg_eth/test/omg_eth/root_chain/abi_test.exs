@@ -162,7 +162,7 @@ defmodule OMG.Eth.RootChain.AbiTest do
       "logIndex" => "0x2",
       "removed" => false,
       "topics" => [
-        "0x0adb29b0831e081044cefe31155c1f2b2b85ad3613a480a5f901ee287addef55",
+        "0x70e52502e7b0d293b1482362622a6c356bb815e59c3f258858a7abb444193f0d",
         "0x000000000000000000000037a26a7116a84365892bb31bea5819301a2ba85b34"
       ],
       "transactionHash" => "0xbe310ade41278c5607620311b79363aa520ac46c7ba754bf3027d501c5a95f40",
@@ -513,7 +513,7 @@ defmodule OMG.Eth.RootChain.AbiTest do
       "logIndex" => "0x1",
       "removed" => false,
       "topics" => [
-        "0xa241c6deaf193e53a1b002d779e4f247bf5d57ba0be5a753e628dfcee645a4f7",
+        "0x3dcc2251cfab3eb0f6c76eec13346767d46ed18e7277f4826d3ef0c033fe6959",
         "0x0000000000000000000000c61730bb3657b79c60055b84b2dfce5d269d555278"
       ],
       "transactionHash" => "0x50f80a28c7b45e5700d6e756a49d4c6ceebd5c4a5285b28abeb97058c941b966",
@@ -543,7 +543,7 @@ defmodule OMG.Eth.RootChain.AbiTest do
       "logIndex" => "0x1",
       "removed" => false,
       "topics" => [
-        "0xdd6f755cba05d0a420007aef6afc05e4889ab424505e2e440ecd1c434ba7082e",
+        "0x570921d6b65091f346909e31e89c2dfb6e742cc37e36d747be92c170d29e383e",
         "0x00000000000000000000000008858124b3b880c68b360fd319cc61da27545e9a"
       ],
       "transactionHash" => "0x4a8248b88a17b2be4c6086a1984622de1a60dda3c9dd9ece1ef97ed18efa028c",
