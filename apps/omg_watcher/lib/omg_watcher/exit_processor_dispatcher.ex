@@ -229,6 +229,7 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
         {:ok, db_updates} = GenServer.call(transaction_type, {event_name, events})
         db_updates
       end)
+      |> Enum.map(fn {:ok, result} -> result end)
       |> List.flatten()
 
     {:ok, db_updates}
