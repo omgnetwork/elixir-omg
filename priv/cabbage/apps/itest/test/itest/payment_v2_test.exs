@@ -24,8 +24,10 @@ defmodule PaymentV2Test do
 
   setup do
     [alice, bob] =
-      Account.take_accounts(2)
-      |> Enum.map(fn {account, pkey} -> %{account: account, pkey: pkey} end)
+      Enum.map(
+        Account.take_accounts(2),
+        fn {account, pkey} -> %{account: account, pkey: pkey} end
+      )
 
     %{alice: alice, bob: bob}
   end
