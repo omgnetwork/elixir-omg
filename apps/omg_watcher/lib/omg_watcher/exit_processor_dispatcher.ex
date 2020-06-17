@@ -34,32 +34,6 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
     do_check_validity(timeout)
   end
 
-  defp do_check_validity(timeout \\ 5000) do
-    {validity, events} =
-      :check_validity
-      |> forward(timeout)
-      |> reduce_check_validity_result({:ok, []})
-
-    {validity, events |> Enum.reverse() |> List.flatten()}
-  end
-
-  defp reduce_check_validity_result([], acc), do: acc
-
-  defp reduce_check_validity_result(forwarded_results, acc) do
-    [{chain_validity, events} | remainings] = forwarded_results
-    {acc_chain_validity, acc_events} = acc
-
-    case acc_chain_validity do
-      :ok ->
-        acc = {chain_validity, [events | acc_events]}
-        reduce_check_validity_result(remainings, acc)
-
-      {:error, :unchallenged_exit} ->
-        acc = {{:error, :unchallenged_exit}, [events | acc_events]}
-        reduce_check_validity_result(remainings, acc)
-    end
-  end
-
   @doc """
   Returns all information required to produce a transaction to the root chain contract to present a competitor for
   a non-canonical in-flight exit
@@ -109,67 +83,6 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
       |> List.flatten()
 
     {:ok, in_flight_exits}
-  end
-
-  defp forward(func, timeout \\ 5000) do
-    OMG.WireFormatTypes.exit_game_tx_types()
-    |> Task.async_stream(fn tx_type -> GenServer.call(tx_type, func, timeout) end)
-    |> Enum.map(fn {:ok, result} -> result end)
-  end
-
-  defp forward_single_result(func) do
-    # From the results, it will try to find the first result with :ok status
-    # Otherwise, one of the error status would be returned.
-    find_first_ok_result_or_return_last(forward(func), {:error, :empty_forward_result})
-  end
-
-  defp find_first_ok_result_or_return_last([], last_result), do: last_result
-
-  defp find_first_ok_result_or_return_last(forwarded_results, prev_result) do
-    [current_result | tail] = forwarded_results
-    {prev_status, _prev_data} = prev_result
-
-    case prev_status do
-      :ok -> prev_result
-      _ -> find_first_ok_result_or_return_last(tail, current_result)
-    end
-  end
-
-  defp dispatch(event_name, events) do
-    db_updates =
-      events
-      |> group_events()
-      |> Task.async_stream(fn {transaction_type, events} ->
-        {:ok, db_updates} = GenServer.call(transaction_type, {event_name, events})
-        db_updates
-      end)
-      |> List.flatten()
-
-    # db_updates =
-    #   Enum.flat_map(group_events(events), fn {transaction_type, events} ->
-    #     {:ok, db_updates} = GenServer.call(transaction_type, {event_name, events})
-    #     db_updates
-    #   end)
-
-    {:ok, db_updates}
-  end
-
-  # This function filters the events into a map of the following format:
-  # %{
-  #   tx_payment_v1: [
-  #     %{address: tx_payment_v1 contract, rest of event details...},
-  #     %{address: tx_payment_v1 contract, rest of event details...},
-  #   ],
-  #   tx_payment_v2: []
-  # }
-  defp group_events(events) do
-    # tx_type => address
-    exit_games = OMG.Eth.Configuration.exit_games()
-
-    Map.new(exit_games, fn {tx_type, address} ->
-      grouped_events = Enum.filter(events, fn e -> e["address"] == address end)
-      {tx_type, grouped_events}
-    end)
   end
 
   @doc """
@@ -282,5 +195,86 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
 
   def finalize_in_flight_exits(finalizations) do
     dispatch(:finalize_in_flight_exits, finalizations)
+  end
+
+  defp forward(func, timeout \\ 5000) do
+    OMG.WireFormatTypes.exit_game_tx_types()
+    |> Task.async_stream(fn tx_type -> GenServer.call(tx_type, func, timeout) end)
+    |> Enum.map(fn {:ok, result} -> result end)
+  end
+
+  defp forward_single_result(func) do
+    # From the results, it will try to find the first result with :ok status
+    # Otherwise, one of the error status would be returned.
+    find_first_ok_result_or_return_last(forward(func), {:error, :empty_forward_result})
+  end
+
+  defp find_first_ok_result_or_return_last([], last_result), do: last_result
+
+  defp find_first_ok_result_or_return_last(forwarded_results, prev_result) do
+    [current_result | tail] = forwarded_results
+    {prev_status, _prev_data} = prev_result
+
+    case prev_status do
+      :ok -> prev_result
+      _ -> find_first_ok_result_or_return_last(tail, current_result)
+    end
+  end
+
+  defp dispatch(event_name, events) do
+    db_updates =
+      events
+      |> group_events()
+      |> Task.async_stream(fn {transaction_type, events} ->
+        {:ok, db_updates} = GenServer.call(transaction_type, {event_name, events})
+        db_updates
+      end)
+      |> List.flatten()
+
+    {:ok, db_updates}
+  end
+
+  # This function filters the events into a map of the following format:
+  # %{
+  #   tx_payment_v1: [
+  #     %{address: tx_payment_v1 contract, rest of event details...},
+  #     %{address: tx_payment_v1 contract, rest of event details...},
+  #   ],
+  #   tx_payment_v2: []
+  # }
+  defp group_events(events) do
+    # tx_type => address
+    exit_games = OMG.Eth.Configuration.exit_games()
+
+    Map.new(exit_games, fn {tx_type, address} ->
+      grouped_events = Enum.filter(events, fn e -> e["address"] == address end)
+      {tx_type, grouped_events}
+    end)
+  end
+
+  defp do_check_validity(timeout \\ 5000) do
+    {validity, events} =
+      :check_validity
+      |> forward(timeout)
+      |> reduce_check_validity_result({:ok, []})
+
+    {validity, events |> Enum.reverse() |> List.flatten()}
+  end
+
+  defp reduce_check_validity_result([], acc), do: acc
+
+  defp reduce_check_validity_result(forwarded_results, acc) do
+    [{chain_validity, events} | remainings] = forwarded_results
+    {acc_chain_validity, acc_events} = acc
+
+    case acc_chain_validity do
+      :ok ->
+        acc = {chain_validity, [events | acc_events]}
+        reduce_check_validity_result(remainings, acc)
+
+      {:error, :unchallenged_exit} ->
+        acc = {{:error, :unchallenged_exit}, [events | acc_events]}
+        reduce_check_validity_result(remainings, acc)
+    end
   end
 end
