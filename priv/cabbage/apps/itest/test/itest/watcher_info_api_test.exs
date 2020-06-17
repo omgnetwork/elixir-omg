@@ -89,9 +89,7 @@ defmodule WatcherInfoApiTest do
       )
 
     # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
-    _ =
-      Client.submit_transaction(typed_data, sign_hash, [alice_priv, alice_priv])
-      |> Enum.map(fn {:ok, result} -> result end)
+    _ = Client.submit_transaction(typed_data, sign_hash, [alice_priv])
 
     {:ok, state}
   end
@@ -100,7 +98,7 @@ defmodule WatcherInfoApiTest do
           _,
           %{bob_account: bob_account} = state do
     transactions = Client.get_transactions(%{page: 1, per_page: 1})
-    assert_equal(transactions, %{}, "as transactions")
+    assert(transactions, %{}, "as transactions")
 
     {:ok, state}
   end
