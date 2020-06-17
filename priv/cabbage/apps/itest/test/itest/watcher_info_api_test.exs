@@ -79,13 +79,13 @@ defmodule WatcherInfoApiTest do
   defwhen ~r/^Alice send "(?<amount>[^"]+)" ETH to bob on the child chain$/,
           %{amount: amount},
           %{alice_account: alice_account, bob_account: bob_account} = state do
-    {_alice_addr, alice_priv} = alice_account
-
+    {alice_addr, alice_priv} = alice_account
+    {bob_addr, bob_priv} = bob_account
     {:ok, [sign_hash, typed_data, _txbytes]} =
       Client.create_transaction(
         Currency.to_wei(amount),
-        alice_account,
-        bob_account
+        alice_addr,
+        bob_addr
       )
 
     # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
