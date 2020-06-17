@@ -27,27 +27,37 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
   """
   def check_validity() do
-    do_chack_validity()
+    do_check_validity()
   end
 
   def check_validity(timeout) do
-    do_chack_validity(timeout)
+    do_check_validity(timeout)
   end
 
-  defp do_chack_validity(timeout \\ 5000) do
-    forwarded_result = forward(:check_validity, timeout)
+  defp do_check_validity(timeout \\ 5000) do
+    {validity, events} =
+      :check_validity
+      |> forward(timeout)
+      |> reduce_check_validity_result({:ok, []})
 
-    Enum.reduce(forwarded_result, {:ok, []}, fn {chain_validity, events}, acc ->
-      {acc_chain_validity, acc_events} = acc
+    {validity, events |> Enum.reverse() |> List.flatten()}
+  end
 
-      case acc_chain_validity do
-        :ok ->
-          {chain_validity, acc_events ++ events}
+  defp reduce_check_validity_result([], acc), do: acc
 
-        {:error, :unchallenged_exit} ->
-          {{:error, :unchallenged_exit}, acc_events ++ events}
-      end
-    end)
+  defp reduce_check_validity_result(forwarded_results, acc) do
+    [{chain_validity, events} | remainings] = forwarded_results
+    {acc_chain_validity, acc_events} = acc
+
+    case acc_chain_validity do
+      :ok ->
+        acc = {chain_validity, [events | acc_events]}
+        reduce_check_validity_result(remainings, acc)
+
+      {:error, :unchallenged_exit} ->
+        acc = {{:error, :unchallenged_exit}, [events | acc_events]}
+        reduce_check_validity_result(remainings, acc)
+    end
   end
 
   @doc """
@@ -94,9 +104,9 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
     in_flight_exits =
       :get_active_in_flight_exits
       |> forward()
-      |> Enum.reduce([], fn {:ok, in_flight_exits}, acc ->
-        acc ++ in_flight_exits
-      end)
+      |> Enum.reduce([], fn {:ok, exits}, acc -> [exits | acc] end)
+      |> Enum.reverse()
+      |> List.flatten()
 
     {:ok, in_flight_exits}
   end
