@@ -12,7 +12,7 @@ make clean
 make start_daemon_services
 
 # Run all the tests
-mix test
+make test
 
 # To run a specific test, see the <test_file_name> in apps/itest/test/
 mix test test/itest/<test_file_name>.exs
