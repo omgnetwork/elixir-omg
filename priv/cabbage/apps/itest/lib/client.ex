@@ -26,6 +26,7 @@ defmodule Itest.Client do
   alias WatcherInfoAPI.Model.CreateTransactionsBodySchema
   alias WatcherInfoAPI.Model.TransactionCreateFee
   alias WatcherInfoAPI.Model.TransactionCreatePayments
+  alias WatcherInfoAPI.Model.GetAllTransactionsBodySchema
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 1, submit_typed: 1]
 
@@ -101,6 +102,17 @@ defmodule Itest.Client do
 
     {:ok, response} =
       Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address, page: page, limit: limit})
+
+    data = Jason.decode!(response.body)
+    {:ok, data}
+  end
+
+  def get_transactions(params) do
+    default_paging = %{page: 1, limit: 200}
+    %{page: page, limit: limit} = Map.merge(default_paging, params)
+
+    {:ok, response} =
+      Transaction.transactions_all(WatcherInfo.new(), %GetAllTransactionsBodySchema{page: page, limit: limit})
 
     data = Jason.decode!(response.body)
     {:ok, data}

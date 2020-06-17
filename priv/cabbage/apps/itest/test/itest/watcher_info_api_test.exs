@@ -26,9 +26,10 @@ defmodule WatcherInfoApiTest do
   @to_milliseconds 1000
 
   setup do
-    accounts = Account.take_accounts(1)
+    accounts = Account.take_accounts(2)
     alice_account = Enum.at(accounts, 0)
-    %{alice_account: alice_account}
+    bob_account = Enum.at(accounts, 1)
+    %{alice_account: alice_account, bob_account: bob_account}
   end
 
   defgiven ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain creating 1 UTXO$/,
@@ -73,6 +74,35 @@ defmodule WatcherInfoApiTest do
     assert_equal(Currency.to_wei(1), Enum.at(utxos, 0)["amount"], "for first utxo")
     assert_equal(Currency.to_wei(2), Enum.at(utxos, 1)["amount"], "for second utxo")
     assert_equal(true, Map.equal?(data_paging, %{"page" => 1, "limit" => 2}), "as data_paging")
+  end
+
+  defwhen ~r/^Alice send "(?<amount>[^"]+)" ETH to bob on the child chain$/,
+          %{amount: amount},
+          %{alice_account: alice_account, bob_account: bob_account} = state do
+    {_alice_addr, alice_priv} = alice_account
+
+    {:ok, [sign_hash, typed_data, _txbytes]} =
+      Client.create_transaction(
+        Currency.to_wei(amount),
+        alice_account,
+        bob_account
+      )
+
+    # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
+    _ =
+      Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
+      |> Enum.map(fn {:ok, result} -> result end)
+
+    {:ok, state}
+  end
+
+  defthen ~r/^able to paginate transaction correctly wuth end_datetime$/,
+          %{amount: amount},
+          %{bob_account: bob_account} = state do
+    transactions = Client.get_transactions(%{page: 1, per_page: 1})
+    assert_equal(transactions, %{})
+
+    {:ok, state}
   end
 
   defp assert_equal(left, right, message) do
