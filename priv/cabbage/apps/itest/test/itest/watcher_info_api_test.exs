@@ -97,8 +97,8 @@ defmodule WatcherInfoApiTest do
   defthen ~r/^Api able to paginate transaction correctly wuth end_datetime$/,
           _,
           %{bob_account: bob_account} = state do
-    transactions = Client.get_transactions(%{page: 1, per_page: 1})
-    assert(transactions, %{}, "as transactions")
+    %{"data" => transactions, "data_paging" => data_paging} = data = Client.get_transactions(%{limit: 1, page: 1})
+    assert(transactions == %{})
 
     {:ok, state}
   end
