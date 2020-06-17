@@ -75,12 +75,8 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     # we need to handle complex constraints with dedicated modifier function
     {address, constraints} = Keyword.pop(constraints, :address)
     {txtypes, constraints} = Keyword.pop(constraints, :txtypes)
-    {end_datetime, constraints} = Keyword.pop(constraints, :end_datetime)
-    limit = paginator.data_paging.limit
-
-    base_query =
-      if end_datetime, do: query_end_datetime(limit, end_datetime), else: query_get_last(paginator.data_paging)
-
+    {end_datetime, constraints} = Keyword.pop(constraints, :end_datetime, :os.system_time(:milli_seconds))
+    base_query = query_get_last(paginator.data_paging, end_datetime)
     base_query
     |> query_get_by_address(address)
     |> query_get_by_txtypes(txtypes)
@@ -89,27 +85,14 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     |> Paginator.set_data(paginator)
   end
 
-  defp query_get_last(%{limit: limit, page: page}) do
+  defp query_get_last(%{limit: limit, page: page}, end_datetime) do
     offset = (page - 1) * limit
 
-    from(
-      __MODULE__,
-      order_by: [desc: :blknum, desc: :txindex],
-      limit: ^limit,
-      offset: ^offset,
-      preload: [
-        :block,
-        inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
-        outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
-      ]
-    )
-  end
-
-  defp query_end_datetime(limit, end_datetime) do
     from(transaction in __MODULE__,
       join: block in assoc(transaction, :block),
       order_by: [desc: :blknum, desc: :txindex],
       limit: ^limit,
+      offset: ^offset,
       where: block.timestamp <= ^end_datetime,
       preload: [
         :block,
