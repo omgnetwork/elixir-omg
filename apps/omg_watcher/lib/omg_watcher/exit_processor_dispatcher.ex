@@ -111,17 +111,10 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
     {:ok, in_flight_exits}
   end
 
-  # TODO: move private funcs at the bottom of the file
-  defp forward(func) do
-    Enum.map(OMG.WireFormatTypes.exit_game_tx_types(), fn tx_type ->
-      GenServer.call(tx_type, func)
-    end)
-  end
-
-  defp forward(func, timeout) do
-    Enum.map(OMG.WireFormatTypes.exit_game_tx_types(), fn tx_type ->
-      GenServer.call(tx_type, func, timeout)
-    end)
+  defp forward(func, timeout \\ 5000) do
+    OMG.WireFormatTypes.exit_game_tx_types()
+    |> Task.async_stream(fn tx_type -> GenServer.call(tx_type, func, timeout) end)
+    |> Enum.map(fn {:ok, result} -> result end)
   end
 
   defp forward_single_result(func) do
@@ -144,10 +137,19 @@ defmodule OMG.Watcher.ExitProcessorDispatcher do
 
   defp dispatch(event_name, events) do
     db_updates =
-      Enum.flat_map(group_events(events), fn {transaction_type, events} ->
+      events
+      |> group_events()
+      |> Task.async_stream(fn {transaction_type, events} ->
         {:ok, db_updates} = GenServer.call(transaction_type, {event_name, events})
         db_updates
       end)
+      |> List.flatten()
+
+    # db_updates =
+    #   Enum.flat_map(group_events(events), fn {transaction_type, events} ->
+    #     {:ok, db_updates} = GenServer.call(transaction_type, {event_name, events})
+    #     db_updates
+    #   end)
 
     {:ok, db_updates}
   end
