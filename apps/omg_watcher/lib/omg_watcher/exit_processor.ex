@@ -62,7 +62,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def new_exits([]), do: {:ok, []}
 
   def new_exits(exits) do
-    GenServer.call(__MODULE__, {:new_exits, exits})
+    GenServer.call(__MODULE__, {:new_exits, exits}, 60_000)
   end
 
   @doc """
@@ -74,7 +74,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def new_in_flight_exits([]), do: {:ok, []}
 
   def new_in_flight_exits(in_flight_exit_started_events) do
-    GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events})
+    GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events}, 60_000)
   end
 
   @doc """
@@ -86,7 +86,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def finalize_exits([]), do: {:ok, []}
 
   def finalize_exits(finalizations) do
-    GenServer.call(__MODULE__, {:finalize_exits, finalizations})
+    GenServer.call(__MODULE__, {:finalize_exits, finalizations}, 60_000)
   end
 
   @doc """
@@ -98,7 +98,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def piggyback_exits([]), do: {:ok, []}
 
   def piggyback_exits(piggybacks) do
-    GenServer.call(__MODULE__, {:piggyback_exits, piggybacks})
+    GenServer.call(__MODULE__, {:piggyback_exits, piggybacks}, 60_000)
   end
 
   @doc """
@@ -110,7 +110,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def challenge_exits([]), do: {:ok, []}
 
   def challenge_exits(challenges) do
-    GenServer.call(__MODULE__, {:challenge_exits, challenges})
+    GenServer.call(__MODULE__, {:challenge_exits, challenges}, 60_000)
   end
 
   @doc """
@@ -126,7 +126,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def new_ife_challenges([]), do: {:ok, []}
 
   def new_ife_challenges(challenges) do
-    GenServer.call(__MODULE__, {:new_ife_challenges, challenges})
+    GenServer.call(__MODULE__, {:new_ife_challenges, challenges}, 60_000)
   end
 
   @doc """
@@ -140,7 +140,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def respond_to_in_flight_exits_challenges([]), do: {:ok, []}
 
   def respond_to_in_flight_exits_challenges(responds) do
-    GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds})
+    GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds}, 60_000)
   end
 
   @doc """
@@ -152,7 +152,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def challenge_piggybacks([]), do: {:ok, []}
 
   def challenge_piggybacks(challenges) do
-    GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
+    GenServer.call(__MODULE__, {:challenge_piggybacks, challenges}, 60_000)
   end
 
   @doc """
@@ -164,7 +164,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def finalize_in_flight_exits([]), do: {:ok, []}
 
   def finalize_in_flight_exits(finalizations) do
-    GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations})
+    GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations}, 60_000)
   end
 
   @doc """
@@ -175,7 +175,7 @@ defmodule OMG.Watcher.ExitProcessor do
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
   """
   def check_validity() do
-    GenServer.call(__MODULE__, :check_validity)
+    GenServer.call(__MODULE__, :check_validity, 60_000)
   end
 
   def check_validity(timeout) do
@@ -187,7 +187,7 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @spec get_active_in_flight_exits() :: {:ok, Core.in_flight_exits_response_t()}
   def get_active_in_flight_exits() do
-    GenServer.call(__MODULE__, :get_active_in_flight_exits)
+    GenServer.call(__MODULE__, :get_active_in_flight_exits, 60_000)
   end
 
   @doc """
@@ -199,7 +199,7 @@ defmodule OMG.Watcher.ExitProcessor do
           | {:error, :competitor_not_found}
           | {:error, :no_viable_competitor_found}
   def get_competitor_for_ife(txbytes) do
-    GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
+    GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes}, 60_000)
   end
 
   @doc """
@@ -209,7 +209,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @spec prove_canonical_for_ife(binary()) ::
           {:ok, ExitProcessor.Canonicity.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(txbytes) do
-    GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
+    GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes}, 60_000)
   end
 
   @doc """
@@ -219,7 +219,7 @@ defmodule OMG.Watcher.ExitProcessor do
           {:ok, ExitProcessor.Piggyback.input_challenge_data()}
           | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
   def get_input_challenge_data(txbytes, input_index) do
-    GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
+    GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index}, 60_000)
   end
 
   @doc """
@@ -229,7 +229,7 @@ defmodule OMG.Watcher.ExitProcessor do
           {:ok, ExitProcessor.Piggyback.output_challenge_data()}
           | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
   def get_output_challenge_data(txbytes, output_index) do
-    GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
+    GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index}, 60_000)
   end
 
   @doc """
@@ -238,7 +238,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, StandardExit.Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do
-    GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
+    GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos}, 60_000)
   end
 
   ### Server
@@ -310,9 +310,16 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, exit_contract_statuses} = Eth.RootChain.get_standard_exit_structs(get_in(exits, [Access.all(), :exit_id]))
 
     exit_maps =
-      Enum.map(exits, fn exit_event ->
-        put_timestamp_and_sft(exit_event, state.min_exit_period_seconds, state.child_block_interval)
-      end)
+      exits
+      |> Task.async_stream(
+        fn exit_event ->
+          put_timestamp_and_sft(exit_event, state.min_exit_period_seconds, state.child_block_interval)
+        end,
+        timeout: 50_000,
+        on_timeout: :kill_task,
+        max_concurrency: System.schedulers_online() * 2
+      )
+      |> Enum.map(fn {:ok, result} -> result end)
 
     {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
@@ -331,12 +338,16 @@ defmodule OMG.Watcher.ExitProcessor do
     _ = if not Enum.empty?(events), do: Logger.info("Recognized in-flight exits: #{inspect(events)}")
 
     contract_ife_ids =
-      Enum.map(
-        events,
+      events
+      |> Task.async_stream(
         fn %{call_data: %{in_flight_tx: txbytes}} ->
           ExPlasma.InFlightExit.txbytes_to_id(txbytes)
-        end
+        end,
+        timeout: 50_000,
+        on_timeout: :kill_task,
+        max_concurrency: System.schedulers_online() * 2
       )
+      |> Enum.map(fn {:ok, result} -> result end)
 
     # Prepare events data for internal bus
     :ok =
