@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.0.1](https://github.com/omisego/elixir-omg/releases/tag/v1.0.1)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v1.0.0...v1.0.1).
+
+#### Core
+
+- [Fixed] Increase ExitProcessor timeouts (#1592)
+
 ## [v1.0.0](https://github.com/omisego/elixir-omg/releases/tag/v1.0.0)
 
 Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
