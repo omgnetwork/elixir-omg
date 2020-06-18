@@ -13,6 +13,11 @@
 # limitations under the License.
 
 defmodule OMG.ChildChain.GasPrice.Strategy do
+  @moduledoc """
+  The behaviour shared by all gas price strategies.
+
+  To see what strategies are available, look into `OMG.ChildChain.GasPrice.Strategy.*` modules.
+  """
   alias OMG.ChildChain.GasPrice
 
   @callback recalculate(params :: Keyword.t()) :: :ok | no_return()

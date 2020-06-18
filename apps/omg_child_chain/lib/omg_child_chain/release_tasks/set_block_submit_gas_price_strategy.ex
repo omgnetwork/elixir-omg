@@ -14,8 +14,8 @@
 
 defmodule OMG.ChildChain.ReleaseTasks.SetBlockSubmitGasPriceStrategy do
   @moduledoc false
-  alias OMG.ChildChain.GasPrice.LegacyGasStrategy
-  alias OMG.ChildChain.GasPrice.PoissonGasStrategy
+  alias OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy
+  alias OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy
   require Logger
 
   @behaviour Config.Provider

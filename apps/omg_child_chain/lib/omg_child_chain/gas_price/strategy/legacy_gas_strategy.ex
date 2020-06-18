@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.GasPrice.LegacyGasStrategy do
+defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
   @moduledoc """
   Determines the optimal gas price based on the childchain's legacy strategy.
 
@@ -148,7 +148,12 @@ defmodule OMG.ChildChain.GasPrice.LegacyGasStrategy do
       latest.parent_height - state.last_parent_height < state.eth_gap_without_child_blocks ->
         state
 
-      !blocks_to_mine(latest.blocks, latest.mined_child_block_num, latest.formed_child_block_num, latest.child_block_interval) ->
+      !blocks_to_mine(
+        latest.blocks,
+        latest.mined_child_block_num,
+        latest.formed_child_block_num,
+        latest.child_block_interval
+      ) ->
         state
 
       true ->
