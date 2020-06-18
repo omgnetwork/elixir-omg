@@ -98,12 +98,11 @@ defmodule WatcherInfoApiTest do
   defthen ~r/^Api able to paginate transaction correctly wuth end_datetime$/,
           _,
           %{bob_account: bob_account, transaction: transaction} = state do
-    {:ok, data} = Client.get_transactions(%{limit: 1, page: 1})
     {:ok, tx_data} = Client.get_transaction(transaction.txhash)
-
+    %{"data" => tx} = tx_data
+    {:ok, data} = Client.get_transactions(%{end_datetime: tx.timestamp, limit: 10, page: 1})
     %{"data" => transactions, "data_paging" => data_paging} = data
-    IO.inspect(tx_data)
-    assert(transactions == %{})
+    assert(length(transactions) == 1)
     {:ok, state}
   end
 
