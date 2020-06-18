@@ -14,6 +14,7 @@
 
 defmodule OMG.ChildChain.ReleaseTasks.SetBlockSubmitGasPriceStrategy do
   @moduledoc false
+  alias OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy
   alias OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy
   alias OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy
   require Logger
@@ -48,9 +49,13 @@ defmodule OMG.ChildChain.ReleaseTasks.SetBlockSubmitGasPriceStrategy do
   end
 
   defp get_strategy("LEGACY", _), do: LegacyGasStrategy
+  defp get_strategy("BLOCK_PERCENTILE", _), do: BlockPercentileGasStrategy
   defp get_strategy("POISSON", _), do: PoissonGasStrategy
   defp get_strategy(nil, default), do: default
-  defp get_strategy(input, _), do: exit("#{@env_var_name} must be either LEGACY or POISSON. Got #{inspect(input)}.")
+
+  defp get_strategy(input, _) do
+    exit("#{@env_var_name} must be either LEGACY, BLOCK_PERCENTILE or POISSON. Got #{inspect(input)}.")
+  end
 
   defp on_load() do
     _ = Application.ensure_all_started(:logger)
