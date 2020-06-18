@@ -26,11 +26,16 @@ defmodule OMG.Watcher.API.AccountTest do
 
   setup do
     db_path = Briefly.create!(directory: true)
-    Application.put_env(:omg_db, :path, db_path, persistent: true)
+    default_app_path = "#{db_path}/app"
+    exit_processor_path = "#{db_path}/exit_processor"
 
-    :ok = OMG.DB.init(db_path)
+    # Note: Order of initialization is important here, because it sets Application's env
+    :ok = OMG.DB.init(exit_processor_path)
+    :ok = OMG.DB.init(default_app_path)
+    Application.put_env(:omg_db, :path, default_app_path, persistent: true)
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+    {:ok, _} = OMG.DB.RocksDB.Server.start_link(db_path: exit_processor_path, name: OMG.DB.RocksDB.ExitProcessor)
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
@@ -100,22 +105,29 @@ defmodule OMG.Watcher.API.AccountTest do
                output: %{amount: amount, currency: @eth, owner: alice.addr, output_type: @payment_output_type},
                creating_txhash: nil
              }
-           }},
-          {:put, :exit_info,
-           {
-             Utxo.Position.to_db_key(utxo_position),
-             %{
-               amount: amount,
-               currency: @eth,
-               owner: alice.addr,
-               is_active: true,
-               exit_id: 1,
-               exiting_txbytes: <<0>>,
-               eth_height: 1,
-               root_chain_txhash: nil
-             }
            }}
         ])
+
+      _ =
+        OMG.DB.multi_update(
+          [
+            {:put, :exit_info,
+             {
+               Utxo.Position.to_db_key(utxo_position),
+               %{
+                 amount: amount,
+                 currency: @eth,
+                 owner: alice.addr,
+                 is_active: true,
+                 exit_id: 1,
+                 exiting_txbytes: <<0>>,
+                 eth_height: 1,
+                 root_chain_txhash: nil
+               }
+             }}
+          ],
+          OMG.DB.RocksDB.ExitProcessor
+        )
 
       assert [] == Account.get_exitable_utxos(alice.addr)
     end
