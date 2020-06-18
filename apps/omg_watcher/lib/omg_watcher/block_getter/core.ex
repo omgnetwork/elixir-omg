@@ -424,6 +424,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
   Takes results from `ExitProcessor.check_validity` into account, to potentially stop getting blocks
   """
   @spec consider_exits(t(), ExitProcessor.Core.check_validity_result_t()) :: t()
+  def consider_exits(%__MODULE__{} = state, exit_processor_results) when is_list(exit_processor_results) do
+    Enum.reduce(exit_processor_results, state, fn results, state ->
+      consider_exits(state, results)
+    end)
+  end
+
   def consider_exits(%__MODULE__{} = state, {:ok, _}), do: state
 
   def consider_exits(%__MODULE__{} = state, {{:error, :unchallenged_exit} = error, _}) do

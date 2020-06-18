@@ -56,6 +56,8 @@ defmodule OMG.Eth.Application do
       |> Map.put(:authority_addr, Configuration.authority_address())
       |> :erlang.phash2()
 
+    # TODO: Make this smarter. Adding new exit game contracts
+    # should be allowed, changing them, not so much
     case DB.get_single_value(:omg_eth_contracts) do
       result when result == :not_found or result == {:ok, 0} ->
         multi_update = [{:put, :omg_eth_contracts, contracts_hash}]

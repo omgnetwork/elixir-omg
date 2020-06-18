@@ -21,11 +21,13 @@ defmodule OMG.WireFormatTypes do
 
   @tx_type_values %{
     tx_payment_v1: 1,
+    tx_payment_v2: 2,
     tx_fee_token_claim: 3
   }
 
   @tx_type_modules %{
     1 => OMG.State.Transaction.Payment,
+    2 => OMG.State.Transaction.Payment,
     3 => OMG.State.Transaction.Fee
   }
 
@@ -47,6 +49,11 @@ defmodule OMG.WireFormatTypes do
     1 => OMG.Output,
     2 => OMG.Output
   }
+
+  @exit_game_tx_types [
+    :tx_payment_v1,
+    :tx_payment_v2
+  ]
 
   @known_tx_types Map.keys(@tx_type_values)
   @known_input_pointer_types Map.keys(@input_pointer_type_values)
@@ -88,4 +95,6 @@ defmodule OMG.WireFormatTypes do
   """
   @spec output_type_modules() :: tx_type_to_module_map()
   def output_type_modules(), do: @output_type_modules
+
+  def exit_game_tx_types(), do: @exit_game_tx_types
 end
