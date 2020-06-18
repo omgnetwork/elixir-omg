@@ -20,6 +20,8 @@ defmodule OMG.Eth.Fixtures do
 
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
+  alias OMG.Eth.RootChain.Abi, as: RootChainABI
+  alias OMG.WireFormatTypes
   alias Support.DevHelper
   alias Support.DevNode
   alias Support.RootChainHelper
@@ -40,6 +42,8 @@ defmodule OMG.Eth.Fixtures do
 
   deffixture contract(eth_node) do
     :ok = eth_node
+
+    :ok = setup_exit_games()
 
     {:ok, true} =
       Ethereumex.HttpClient.request("personal_unlockAccount", ["0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d", "", 0], [])
@@ -64,16 +68,33 @@ defmodule OMG.Eth.Fixtures do
     token_addr
   end
 
+  # inject the exit games into :omg_eth
+  # test fixture does not rely on the release task so it would need this setup
+  defp setup_exit_games() do
+    contracts = SnapshotContracts.parse_contracts()
+    plasma_framework = contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
+
+    exit_games =
+      Enum.into(WireFormatTypes.exit_game_tx_types(), %{}, fn type ->
+        {type,
+         plasma_framework
+         |> exit_game_contract_address(WireFormatTypes.tx_type_for(type))
+         |> Encoding.to_hex()}
+      end)
+
+    Application.put_env(:omg_eth, :exit_games, exit_games)
+  end
+
   defp has_exit_queue(vault_id, token) do
     plasma_framework = Configuration.contracts().plasma_framework
     token = Encoding.from_hex(token)
-    call_contract(plasma_framework, "hasExitQueue(uint256,address)", [vault_id, token], [:bool])
+    {:ok, return} = call_contract(plasma_framework, "hasExitQueue(uint256,address)", [vault_id, token])
+    decode_answer(return, [:bool])
   end
 
-  defp call_contract(contract, signature, args, return_types) do
+  defp call_contract(contract, signature, args) do
     data = ABI.encode(signature, args)
     {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: contract, data: Encoding.to_hex(data)})
-    decode_answer(return, return_types)
   end
 
   defp decode_answer(enc_return, return_types) do
@@ -84,5 +105,12 @@ defmodule OMG.Eth.Fixtures do
       |> hd()
 
     {:ok, single_return}
+  end
+
+  defp exit_game_contract_address(plasma_framework_contract, tx_type) do
+    signature = "exitGames(uint256)"
+    {:ok, data} = call_contract(plasma_framework_contract, signature, [tx_type])
+    %{"exit_game_address" => exit_game_address} = RootChainABI.decode_function(data, signature)
+    exit_game_address
   end
 end

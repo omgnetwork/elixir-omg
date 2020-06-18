@@ -52,7 +52,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.BlockGetter.Status
-  alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessorDispatcher
   alias OMG.Watcher.HttpRPC.Client
 
   @doc """
@@ -81,7 +81,7 @@ defmodule OMG.Watcher.BlockGetter do
     # TODO rethink posible solutions see issue #724
     # if we do not wait here, `ExitProcessor.check_validity()` may timeouts,
     # which causes State and BlockGetter to reboot, fetches entire UTXO set again, and then timeout...
-    exit_processor_initial_results = ExitProcessor.check_validity(10 * 60_000)
+    exit_processor_initial_results = ExitProcessorDispatcher.check_validity(10 * 60_000)
     # State treats current as the next block to be executed or a block that is being executed
     # while top block number is a block that has been formed (they differ by the interval)
     {current_block_height, state_at_block_beginning} = State.get_status()
@@ -187,9 +187,11 @@ defmodule OMG.Watcher.BlockGetter do
   Updates its view of validity of the chain.
   """
   def handle_continue({:apply_block_step, :check_validity}, state) do
-    exit_processor_results = ExitProcessor.check_validity()
-    state = Core.consider_exits(state, exit_processor_results)
-    :ok = update_status(state)
+    :ok =
+      state
+      |> Core.consider_exits(ExitProcessorDispatcher.check_validity())
+      |> update_status()
+
     {:noreply, state}
   end
 

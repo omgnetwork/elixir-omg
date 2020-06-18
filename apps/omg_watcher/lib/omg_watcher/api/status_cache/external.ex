@@ -27,6 +27,7 @@ defmodule OMG.Watcher.API.StatusCache.External do
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessorDispatcher
 
   @type t() :: %{
           last_validated_child_block_number: non_neg_integer(),
@@ -63,8 +64,8 @@ defmodule OMG.Watcher.API.StatusCache.External do
     {_, mined_child_block_timestamp} = RootChain.blocks(mined_child_block_number)
     {_, validated_child_block_timestamp} = RootChain.blocks(validated_child_block_number)
     {:ok, services_synced_heights} = RootChainCoordinator.get_ethereum_heights()
-    {_, events_processor} = ExitProcessor.check_validity()
-    {:ok, in_flight_exits} = ExitProcessor.get_active_in_flight_exits()
+    {_, events_processor} = ExitProcessorDispatcher.check_validity()
+    {:ok, in_flight_exits} = ExitProcessorDispatcher.get_active_in_flight_exits()
     {:ok, {_, events_block_getter}} = BlockGetter.get_events()
 
     status = %{
