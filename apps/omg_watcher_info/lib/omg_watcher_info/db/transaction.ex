@@ -68,7 +68,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   """
   @spec get_by_filters(Keyword.t(), Paginator.t(%__MODULE__{})) :: Paginator.t(%__MODULE__{})
   def get_by_filters(constraints, paginator) do
-    allowed_constraints = [:address, :blknum, :txindex, :txtypes, :metadata, :query_end_datetime]
+    allowed_constraints = [:address, :blknum, :txindex, :txtypes, :metadata, :end_datetime]
 
     constraints = filter_constraints(constraints, allowed_constraints)
 
