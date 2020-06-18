@@ -150,7 +150,7 @@ defmodule Itest.Client do
   end
 
   def wait_until_tx_sync_to_watcher(tx_id) do
-    {:ok, _} = do_wait_until_tx_sync_to_watcher(tx_id, @default_retry_attempts)
+    do_wait_until_tx_sync_to_watcher(tx_id, @default_retry_attempts)
   end
 
   defp do_wait_until_tx_sync_to_watcher(_tx_id, 0), do: :wait_until_tx_sync_failed
@@ -159,15 +159,13 @@ defmodule Itest.Client do
     {:ok, response} =
       Transaction.transaction_get(
         WatcherInfo.new(),
-        GetTransactionBodySchema{
+        %GetTransactionBodySchema{
           id: tx_id
         }
       )
 
     case Jason.decode!(response.body) do
-      %{"success" => true} ->
-        {:ok, _}
-
+      %{"success" => true} -> :ok
       _ ->
         Process.sleep(@poll_interval)
         Logger.info("wating for for watcher info to sync the submitted tx_id: #{tx_id}")

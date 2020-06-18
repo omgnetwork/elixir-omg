@@ -100,7 +100,7 @@ defmodule WatcherInfoApiTest do
           %{bob_account: bob_account, transaction: transaction} = state do
     {:ok, data} = Client.get_transactions(%{limit: 1, page: 1})
 
-    {:ok, _} = Client.wait_until_tx_sync_to_watcher(transaction.txhash)
+    :ok = Client.wait_until_tx_sync_to_watcher(transaction.txhash)
 
     {:ok, tx_data} = Client.get_transaction(transaction.txhash)
 
