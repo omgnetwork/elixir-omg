@@ -89,16 +89,19 @@ defmodule WatcherInfoApiTest do
       )
 
     # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
-    _ = Client.submit_transaction(typed_data, sign_hash, [alice_priv])
+    transaction = Client.submit_transaction(typed_data, sign_hash, [alice_priv])
 
-    {:ok, state}
+    {:ok, Map.put_new(state, :transaction, transaction)}
   end
 
   defthen ~r/^Api able to paginate transaction correctly wuth end_datetime$/,
           _,
-          %{bob_account: bob_account} = state do
+          %{bob_account: bob_account, transaction: transaction} = state do
     {:ok, data} = Client.get_transactions(%{limit: 1, page: 1})
+    {:ok, tx_data} = Client.get_transaction(%{id: transaction.txhash})
+
     %{"data" => transactions, "data_paging" => data_paging} = data
+    IO.inspect(tx_data)
     assert(transactions == %{})
     {:ok, state}
   end

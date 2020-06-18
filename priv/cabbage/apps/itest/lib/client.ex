@@ -27,6 +27,7 @@ defmodule Itest.Client do
   alias WatcherInfoAPI.Model.TransactionCreateFee
   alias WatcherInfoAPI.Model.TransactionCreatePayments
   alias WatcherInfoAPI.Model.GetAllTransactionsBodySchema
+  alias WatcherInfoAPI.Model.GetTransactionBodySchema
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 1, submit_typed: 1]
 
@@ -114,6 +115,13 @@ defmodule Itest.Client do
     {:ok, response} =
       Transaction.transactions_all(WatcherInfo.new(), %GetAllTransactionsBodySchema{page: page, limit: limit})
 
+    data = Jason.decode!(response.body)
+    {:ok, data}
+  end
+
+  def get_transaction(id) do
+    {:ok, response} =
+      Transaction.transactions_all(WatcherInfo.new(), %GetTransactionBodySchema{id: id})
     data = Jason.decode!(response.body)
     {:ok, data}
   end
