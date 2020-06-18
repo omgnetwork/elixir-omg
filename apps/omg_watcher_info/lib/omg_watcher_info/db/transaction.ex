@@ -75,7 +75,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     # we need to handle complex constraints with dedicated modifier function
     {address, constraints} = Keyword.pop(constraints, :address)
     {txtypes, constraints} = Keyword.pop(constraints, :txtypes)
-    {end_datetime, constraints} = Keyword.pop(constraints, :end_datetime, :os.system_time(:milli_seconds))
+    {end_datetime, constraints} = Keyword.pop(constraints, :end_datetime, :os.system_time(:second))
     base_query = query_get_last(paginator.data_paging, end_datetime)
     base_query
     |> query_get_by_address(address)

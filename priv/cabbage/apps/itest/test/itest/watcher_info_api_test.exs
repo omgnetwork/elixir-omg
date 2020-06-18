@@ -100,7 +100,7 @@ defmodule WatcherInfoApiTest do
           %{bob_account: bob_account, transaction: transaction} = state do
     {:ok, tx_data} = Client.get_transaction(transaction.txhash)
     %{"data" => tx} = tx_data
-    {:ok, data} = Client.get_transactions(%{end_datetime: tx["block"]["timestamp"], limit: 10, page: 1})
+    {:ok, data} = Client.get_transactions(%{end_datetime: 1, limit: 10, page: 1})
     %{"data" => transactions, "data_paging" => data_paging} = data
     assert(length(transactions) == 1)
     {:ok, state}
