@@ -160,7 +160,6 @@ config :omg_watcher,
   # this means we don't want the `sla_margin` above be larger than the `min_exit_period`
   exit_processor_sla_margin_forced: false,
   maximum_block_withholding_time_ms: 15 * 60 * 60 * 1000,
-  block_getter_loops_interval_ms: 500,
   maximum_number_of_unapplied_blocks: 50,
   exit_finality_margin: 12,
   block_getter_reorg_margin: 200,
