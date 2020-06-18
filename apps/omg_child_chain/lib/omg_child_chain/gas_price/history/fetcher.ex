@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.GasPrice.PoissonGasStrategy.Fetcher do
+defmodule OMG.ChildChain.GasPrice.History.Fetcher do
   require Logger
 
   alias Ethereumex.HttpClient
@@ -51,7 +51,8 @@ defmodule OMG.ChildChain.GasPrice.PoissonGasStrategy.Fetcher do
   defp batch_request(requests, retries) do
     case HttpClient.batch_request(requests) do
       {:error, _} = response ->
-        _ = Logger.warn("""
+        _ =
+          Logger.warn("""
           Batch request failed. Retrying in #{inspect(@retry_ms)}ms with #{inspect(retries - 1)} retries left.
 
           Request: #{inspect(requests)}
