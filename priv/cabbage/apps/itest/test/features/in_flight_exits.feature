@@ -51,3 +51,12 @@ Feature: In Flight Exits
     Given Alice piggybacks output from her most recent in flight exit
     And "Alice" in flight transaction most recently piggybacked output is not spendable any more
     Then "Alice" can processes its own most recent in flight exit
+
+  Scenario: When in-flight exit is finalized without any funds withdrawn it is no longer reported in watcher's status
+    Given "Alice" deposits "10" ETH to the root chain
+    Then "Alice" should have "10" ETH on the child chain after finality margin
+    Given Alice creates a transaction for "10" ETH
+    And Alice starts an in flight exit from the most recently created transaction
+    And "Alice" piggybacks inputs from the most recent in flight exit
+    And "Alice" can processes its own most recent in flight exit
+    Then the in-flight exit is removed from watcher's status

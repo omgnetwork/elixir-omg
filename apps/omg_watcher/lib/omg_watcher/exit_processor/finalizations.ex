@@ -258,4 +258,15 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
     {new_ifes_by_id, MapSet.union(ids_to_activate, updated_ifes)}
   end
+
+  @doc """
+  Deactivates exits based on Ethereum events.
+  """
+  @spec finalize_exits(Core.t(), validities :: {list(Utxo.Position.t()), list(Utxo.Position.t())}) ::
+          {Core.t(), list(), list()}
+  def deactive_in_flight_exits(%Core{exits: exits} = state, {valid_finalizations, invalid}) do
+    finalizations = Enum.map(finalizations, &ife_id_to_binary/1)
+
+    {:ok, ifes_by_id} = get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes)
+  end
 end

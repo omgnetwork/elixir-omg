@@ -168,6 +168,18 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   @doc """
+  Marks in flight exits as inactive
+
+  Returns `db_updates` to be sent to `OMG.DB` by the caller
+  """
+  # empty list clause to not block the server for no-ops
+  def deactivate_in_flight_exits([]), do: {:ok, []}
+
+  def deactivate_in_flight_exits(finalizations) do
+    GenServer.call(__MODULE__, {:deactivate_in_flight_exits, finalizations})
+  end
+
+  @doc """
   Checks validity of all exit-related events and returns the list of actionable items.
   Works with `OMG.State` to discern validity.
 
@@ -457,7 +469,7 @@ defmodule OMG.Watcher.ExitProcessor do
   - returns `db_updates`, concatenated with those related to the call to `OMG.State`
   """
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
-    _ = if not Enum.empty?(finalizations), do: Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
+    _ = Logger.info("Recognized ife withdrawals: #{inspect(finalizations)}")
 
     # necessary, so that the processor knows the current state of inclusion of exiting IFE txs
     state2 = update_with_ife_txs_from_blocks(state)
@@ -478,6 +490,17 @@ defmodule OMG.Watcher.ExitProcessor do
       |> publish_internal_bus_events("InFlightExitOutputWithdrawn")
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
+  end
+
+  @doc """
+  Marks in-glith exits as inactive
+  """
+  def handle_call({:deactivate_in_flight_exits, finalizations}, _from, state) do
+    _ = Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
+
+    {:ok, state1, db_updates} = Core.deactive_in_flight_exits(state, finalizations, invalidities)
+
+    {:reply, {:ok, db_updates}, state1}
   end
 
   @doc """

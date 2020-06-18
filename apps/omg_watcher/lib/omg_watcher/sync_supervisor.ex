@@ -121,7 +121,8 @@ defmodule OMG.Watcher.SyncSupervisor do
          [name: :in_flight_exit_input_blocked, enrich: false],
          [name: :in_flight_exit_output_blocked, enrich: false],
          [name: :in_flight_exit_input_withdrawn, enrich: false],
-         [name: :in_flight_exit_output_withdrawn, enrich: false]
+         [name: :in_flight_exit_output_withdrawn, enrich: false],
+         [name: :in_flight_exit_finalized, enrich: false]
        ]},
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
@@ -208,10 +209,19 @@ defmodule OMG.Watcher.SyncSupervisor do
         metrics_collection_interval: metrics_collection_interval,
         ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
         contract_deployment_height: contract_deployment_height,
-        service_name: :ife_exit_finalizer,
+        service_name: :ife_exit_withdrawer,
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
         get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
+      ),
+      EthereumEventListener.prepare_child(
+        metrics_collection_interval: metrics_collection_interval,
+        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
+        contract_deployment_height: contract_deployment_height,
+        service_name: :ife_exit_finalizer,
+        synced_height_update_key: :last_ife_exit_finalizer_eth_height,
+        get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
+        process_events_callback: &Watcher.ExitProcessor.deactivate_in_flight_exits/1
       ),
       {StatusCache, [event_bus: OMG.Bus, ets: status_cache()]},
       {ChildManager, [monitor: Monitor]}

@@ -940,6 +940,36 @@ defmodule InFlightExitsTests do
              )
   end
 
+  defand ~r/"(?<entity>[^"]+)" piggybacks inputs from the most recent in flight exit$/, %{entity: entity}, state do
+    exit_game_contract_address = state["exit_game_contract_address"]
+
+    %{address: address, exit_data: exit_data, in_flight_exit_id: in_flight_exit_id} = state[entity]
+    input_index = 0
+    receipt_hash = piggyback_input(exit_game_contract_address, address, input_index, exit_data)
+
+    entity_state =
+      Map.put(
+        state[entity],
+        :receipt_hashes,
+        [receipt_hash | state[entity].receipt_hashes]
+      )
+
+    {:ok, Map.put(state, entity, entity_state)}
+  end
+
+  defthen ~r/^the in-flight exit is removed from watcher's status$/, _, state do
+    status =
+      pull_api_until_successful(
+        WatcherSecurityCriticalAPI.Api.Status,
+        :status_get,
+        WatcherSecurityCriticalAPI.Connection.new(),
+        nil
+      )
+
+    in_flight_exits = Map.fetch!(status, "in_flight_exits")
+    assert in_flight_exits == []
+  end
+
   ###############################################################################################
   ####
   #### PRIVATE

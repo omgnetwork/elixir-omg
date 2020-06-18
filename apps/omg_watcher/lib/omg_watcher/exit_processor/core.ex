@@ -200,6 +200,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defdelegate finalize_exits(state, validities), to: ExitProcessor.Finalizations
   defdelegate prepare_utxo_exits_for_in_flight_exit_finalizations(state, finalizations), to: ExitProcessor.Finalizations
   defdelegate finalize_in_flight_exits(state, finalizations, validities), to: ExitProcessor.Finalizations
+  defdelegate deactivate_in_flight_exits(state, finalizations), to: ExitProcessor.Finalizations
 
   @spec challenge_exits(t(), list(map)) :: {t(), list}
   def challenge_exits(%__MODULE__{exits: exits} = state, challenges) do

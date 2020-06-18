@@ -14,7 +14,7 @@
 defmodule OMG.Watcher.EthereumEventAggregator do
   @moduledoc """
   This process combines all plasma contract events we're interested in and does eth_getLogs + enriches them if needed
-  for all Ethereum Event Listener processes. 
+  for all Ethereum Event Listener processes.
   """
   use GenServer
   require Logger
@@ -78,6 +78,11 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     forward_call(server, :in_flight_exit_withdrawn, from_block, to_block, @timeout)
   end
 
+  @spec in_flight_exit_finalized(GenServer.server(), pos_integer(), pos_integer()) :: result()
+  def in_flight_exit_finalized(server \\ __MODULE__, from_block, to_block) do
+    forward_call(server, :in_flight_exit_finalized, from_block, to_block, @timeout)
+  end
+
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: Keyword.get(opts, :name, __MODULE__))
   end
@@ -116,6 +121,24 @@ defmodule OMG.Watcher.EthereumEventAggregator do
 
   @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
   def handle_call({:in_flight_exit_withdrawn, from_block, to_block}, _, state) do
+    names = [:in_flight_exit_input_withdrawn, :in_flight_exit_output_withdrawn]
+
+    logs =
+      Enum.reduce(names, [], fn name, acc ->
+        signature =
+          state.events
+          |> Enum.find(fn event -> Keyword.fetch!(event, :name) == name end)
+          |> Keyword.fetch!(:signature)
+
+        logs = retrieve_log(signature, from_block, to_block, state)
+        logs ++ acc
+      end)
+
+    {:reply, {:ok, logs}, state, {:continue, from_block}}
+  end
+
+  @decorate trace(tracer: OMG.Watcher.Tracer, type: :backend, service: __MODULE__, name: "handle_call/3")
+  def handle_call({:in_flight_exit_finalized, from_block, to_block}, _, state) do
     names = [:in_flight_exit_input_withdrawn, :in_flight_exit_output_withdrawn]
 
     logs =

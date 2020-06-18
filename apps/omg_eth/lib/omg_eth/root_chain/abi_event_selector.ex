@@ -202,4 +202,17 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       types: [uint: 160, uint: 16]
     }
   end
+
+  @spec in_flight_exit_finalized() :: ABI.FunctionSelector.t()
+  def in_flight_exit_finalized() do
+    %ABI.FunctionSelector{
+      function: "InFlightExitFinalized",
+      input_names: ["exitId"],
+      inputs_indexed: [true],
+      method_id: <<239, 232, 112, 183>>,
+      returns: [],
+      type: :event,
+      types: [uint: 168]
+    }
+  end
 end
