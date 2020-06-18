@@ -33,12 +33,10 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
   alias OMG.State
-  alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
-  alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.ExitProcessor.Tools
 
   use OMG.Utils.LoggerExt
@@ -50,195 +48,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Starts the `GenServer` process with options. For documentation of the options see `init/1`
   """
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
-  end
-
-  @doc """
-  Accepts events and processes them in the state - new exits are tracked.
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def new_exits([]), do: {:ok, []}
-
-  def new_exits(exits) do
-    GenServer.call(__MODULE__, {:new_exits, exits})
-  end
-
-  @doc """
-  Accepts events and processes them in the state - new in flight exits are tracked.
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def new_in_flight_exits([]), do: {:ok, []}
-
-  def new_in_flight_exits(in_flight_exit_started_events) do
-    GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events})
-  end
-
-  @doc """
-  Accepts events and processes them in the state - finalized exits are untracked _if valid_ otherwise raises alert
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def finalize_exits([]), do: {:ok, []}
-
-  def finalize_exits(finalizations) do
-    GenServer.call(__MODULE__, {:finalize_exits, finalizations})
-  end
-
-  @doc """
-  Accepts events and processes them in the state - new piggybacks are tracked, if invalid raises an alert
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def piggyback_exits([]), do: {:ok, []}
-
-  def piggyback_exits(piggybacks) do
-    GenServer.call(__MODULE__, {:piggyback_exits, piggybacks})
-  end
-
-  @doc """
-  Accepts events and processes them in the state - challenged exits are untracked
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def challenge_exits([]), do: {:ok, []}
-
-  def challenge_exits(challenges) do
-    GenServer.call(__MODULE__, {:challenge_exits, challenges})
-  end
-
-  @doc """
-  Accepts events and processes them in the state.
-
-  Marks the challenged IFE as non-canonical and persists information about the competitor and its age.
-
-  Competitors are stored for future use (i.e. to challenge an in flight exit).
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def new_ife_challenges([]), do: {:ok, []}
-
-  def new_ife_challenges(challenges) do
-    GenServer.call(__MODULE__, {:new_ife_challenges, challenges})
-  end
-
-  @doc """
-  Accepts events and processes them in state.
-
-  Marks the IFE as canonical and perists information about the inclusion age as responded with in the contract.
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def respond_to_in_flight_exits_challenges([]), do: {:ok, []}
-
-  def respond_to_in_flight_exits_challenges(responds) do
-    GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds})
-  end
-
-  @doc """
-  Accepts events and processes them in state.
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def challenge_piggybacks([]), do: {:ok, []}
-
-  def challenge_piggybacks(challenges) do
-    GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
-  end
-
-  @doc """
-  Accepts events and processes them in state - finalized outputs are applied to the state.
-
-  Returns `db_updates` to be sent to `OMG.DB` by the caller
-  """
-  # empty list clause to not block the server for no-ops
-  def finalize_in_flight_exits([]), do: {:ok, []}
-
-  def finalize_in_flight_exits(finalizations) do
-    GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations})
-  end
-
-  @doc """
-  Checks validity of all exit-related events and returns the list of actionable items.
-  Works with `OMG.State` to discern validity.
-
-  This function may also update some internal caches to make subsequent calls not redo the work,
-  but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
-  """
-  def check_validity() do
-    GenServer.call(__MODULE__, :check_validity)
-  end
-
-  def check_validity(timeout) do
-    GenServer.call(__MODULE__, :check_validity, timeout)
-  end
-
-  @doc """
-  Returns a map of requested in flight exits, keyed by transaction hash
-  """
-  @spec get_active_in_flight_exits() :: {:ok, Core.in_flight_exits_response_t()}
-  def get_active_in_flight_exits() do
-    GenServer.call(__MODULE__, :get_active_in_flight_exits)
-  end
-
-  @doc """
-  Returns all information required to produce a transaction to the root chain contract to present a competitor for
-  a non-canonical in-flight exit
-  """
-  @spec get_competitor_for_ife(binary()) ::
-          {:ok, ExitProcessor.Canonicity.competitor_data_t()}
-          | {:error, :competitor_not_found}
-          | {:error, :no_viable_competitor_found}
-  def get_competitor_for_ife(txbytes) do
-    GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
-  end
-
-  @doc """
-  Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
-  for a challenged in-flight exit
-  """
-  @spec prove_canonical_for_ife(binary()) ::
-          {:ok, ExitProcessor.Canonicity.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
-  def prove_canonical_for_ife(txbytes) do
-    GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
-  end
-
-  @doc """
-  Returns all information required to challenge an invalid input piggyback
-  """
-  @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
-          {:ok, ExitProcessor.Piggyback.input_challenge_data()}
-          | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
-  def get_input_challenge_data(txbytes, input_index) do
-    GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
-  end
-
-  @doc """
-  Returns all information required to challenge an invalid output piggyback
-  """
-  @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
-          {:ok, ExitProcessor.Piggyback.output_challenge_data()}
-          | {:error, ExitProcessor.Piggyback.piggyback_challenge_data_error()}
-  def get_output_challenge_data(txbytes, output_index) do
-    GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
-  end
-
-  @doc """
-  Returns challenge for an invalid standard exit
-  """
-  @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, StandardExit.Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
-  def create_challenge(exiting_utxo_pos) do
-    GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
+    GenServer.start_link(__MODULE__, Keyword.drop(args, [:name]), name: args[:name])
   end
 
   ### Server
@@ -267,6 +77,9 @@ defmodule OMG.Watcher.ExitProcessor do
         ethereum_block_time_seconds: ethereum_block_time_seconds,
         child_block_interval: child_block_interval
       ) do
+    # TODO: only load relevant exits based on type
+    # payment v1 should load records that don't have
+    # the namespace as well (old records)
     {:ok, db_exits} = PaymentExitInfo.all_exit_infos()
     {:ok, db_ifes} = PaymentExitInfo.all_in_flight_exits_infos()
     {:ok, db_competitors} = DB.competitors_info()
@@ -535,6 +348,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
     new_state = update_with_ife_txs_from_blocks(state)
     canonicity_result = Core.prove_canonical_for_ife(new_state, txbytes)
+
     {:reply, canonicity_result, new_state}
   end
 

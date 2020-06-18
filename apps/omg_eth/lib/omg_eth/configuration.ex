@@ -41,6 +41,11 @@ defmodule OMG.Eth.Configuration do
     Application.fetch_env!(@app, :contract_addr)
   end
 
+  @spec exit_games() :: no_return | map()
+  def exit_games() do
+    Application.fetch_env!(@app, :exit_games)
+  end
+
   @spec txhash_contract() :: no_return | binary()
   def txhash_contract() do
     Application.fetch_env!(@app, :txhash_contract)

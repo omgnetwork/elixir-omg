@@ -20,6 +20,7 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Eth.Configuration
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessorDispatcher
   alias OMG.Watcher.UtxoExit.Core
 
   require Utxo
@@ -42,7 +43,7 @@ defmodule OMG.Watcher.API.Utxo do
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, ExitProcessor.StandardExit.Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
   def create_challenge(utxo) do
-    ExitProcessor.create_challenge(utxo)
+    ExitProcessorDispatcher.create_challenge(utxo)
   end
 
   @spec compose_utxo_exit(Utxo.Position.t()) ::
