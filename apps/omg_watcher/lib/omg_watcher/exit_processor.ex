@@ -316,7 +316,7 @@ defmodule OMG.Watcher.ExitProcessor do
           put_timestamp_and_sft(exit_event, state.min_exit_period_seconds, state.child_block_interval)
         end,
         timeout: 50_000,
-        on_timeout: :kill_task,
+        on_timeout: :exit,
         max_concurrency: System.schedulers_online() * 2
       )
       |> Enum.map(fn {:ok, result} -> result end)
@@ -344,7 +344,7 @@ defmodule OMG.Watcher.ExitProcessor do
           ExPlasma.InFlightExit.txbytes_to_id(txbytes)
         end,
         timeout: 50_000,
-        on_timeout: :kill_task,
+        on_timeout: :exit,
         max_concurrency: System.schedulers_online() * 2
       )
       |> Enum.map(fn {:ok, result} -> result end)
