@@ -72,12 +72,6 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
     :prices = :ets.new(@history_table, [:ordered_set, :protected, :named_table])
     :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
 
-    {:noreply, state, {:continue, :populate_prices}}
-  end
-
-  @doc false
-  @impl GenServer
-  def handle_continue(:populate_prices, state) do
     {:ok, to_height} = EthereumHeight.get()
     from_height = to_height - state.num_blocks
     :ok = do_populate_prices(from_height, to_height, state)

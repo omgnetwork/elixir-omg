@@ -43,9 +43,14 @@ defmodule OMG.ChildChain.Configuration do
     Application.fetch_env!(@app, :block_submit_max_gas_price)
   end
 
-  @spec block_submit_gas_price_strategy() :: module() | no_return()
+  @spec block_submit_gas_price_strategy() :: no_return | module()
   def block_submit_gas_price_strategy() do
     Application.fetch_env!(@app, :block_submit_gas_price_strategy)
+  end
+
+  @spec block_submit_gas_price_history_blocks() :: no_return | pos_integer()
+  def block_submit_gas_price_history_blocks() do
+    Application.fetch_env!(@app, :block_submit_gas_price_history_blocks)
   end
 
   @doc """

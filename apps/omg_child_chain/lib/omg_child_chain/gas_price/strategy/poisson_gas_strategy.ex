@@ -27,10 +27,20 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
   alias OMG.ChildChain.GasPrice.Strategy
 
   @type t() :: %__MODULE__{
-          recommendations: pos_integer()
+          recommendations: %{
+            safe_low: float(),
+            standard: float(),
+            fast: float(),
+            fastest: float()
+          }
         }
 
-  defstruct recommendations: 20_000_000_000
+  defstruct recommendations: %{
+              safe_low: 20_000_000_000,
+              standard: 20_000_000_000,
+              fast: 20_000_000_000,
+              fastest: 20_000_000_000
+            }
 
   @thresholds %{
     safe_low: 35,
@@ -45,8 +55,8 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
   Starts the Poisson regression strategy.
   """
   @spec start_link(Keyword.t()) :: GenServer.on_start()
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  def start_link(init_arg) do
+    GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
   @doc """
@@ -61,7 +71,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
   @doc """
   A stub that handles the recalculation trigger.
 
-  Since Poisson regression strategy recalculates based on its interval and not a recalculation
+  Since this strategy recalculates based on its interval and not a recalculation
   triggered by the `recalculate/1`'s caller, this function simply returns `:ok` without any computation.
 
   To get the price, use `get_price/0` instead.
@@ -82,7 +92,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
     _ = History.subscribe(self())
     state = %__MODULE__{}
 
-    _ = Logger.info("Started #{inspect(__MODULE__)}: #{inspect(state)}")
+    _ = Logger.info("Started #{__MODULE__}: #{inspect(state)}")
     {:ok, state}
   end
 

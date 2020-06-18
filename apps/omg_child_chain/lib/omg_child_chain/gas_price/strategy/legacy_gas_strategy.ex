@@ -77,15 +77,15 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
   @doc """
   Starts the legacy gas price strategy.
   """
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  def start_link(init_arg) do
+    GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
   @doc false
   @impl GenServer
-  def init(args) do
+  def init(init_arg) do
     state = %__MODULE__{
-      max_gas_price: Keyword.fetch!(args, :max_gas_price)
+      max_gas_price: Keyword.fetch!(init_arg, :max_gas_price)
     }
 
     {:ok, state}

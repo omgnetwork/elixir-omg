@@ -53,8 +53,8 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   Starts the Poisson regression strategy.
   """
   @spec start_link(Keyword.t()) :: GenServer.on_start()
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  def start_link(init_arg) do
+    GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
   @doc """
@@ -69,7 +69,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   @doc """
   A stub that handles the recalculation trigger.
 
-  Since Poisson regression strategy recalculates based on its interval and not a recalculation
+  Since this strategy recalculates based on its interval and not a recalculation
   triggered by the `recalculate/1`'s caller, this function simply returns `:ok` without any computation.
 
   To get the price, use `get_price/0` instead.
@@ -90,7 +90,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
     _ = History.subscribe(self())
     state = %__MODULE__{}
 
-    _ = Logger.info("Started #{inspect(__MODULE__)}: #{inspect(state)}")
+    _ = Logger.info("Started #{__MODULE__}: #{inspect(state)}")
     {:ok, state}
   end
 

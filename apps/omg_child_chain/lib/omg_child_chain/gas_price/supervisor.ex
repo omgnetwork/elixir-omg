@@ -19,6 +19,8 @@ defmodule OMG.ChildChain.GasPrice.Supervisor do
   use Supervisor
   require Logger
 
+  alias OMG.Bus
+  alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.GasPrice.History
   alias OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy
   alias OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy
@@ -29,21 +31,20 @@ defmodule OMG.ChildChain.GasPrice.Supervisor do
   end
 
   def init(init_arg) do
-    args = children(init_arg)
-    opts = [strategy: :one_for_one]
+    children = children(init_arg)
 
     _ = Logger.info("Starting #{__MODULE__}")
-    Supervisor.init(args, opts)
+    Supervisor.init(children, [strategy: :one_for_one])
   end
 
   defp children(args) do
-    event_bus = Keyword.fetch!(args, :event_bus)
-    num_blocks = Keyword.fetch!(args, :num_blocks)
+    num_blocks = Configuration.get(:block_submit_gas_price_history_blocks)
+    max_gas_price = Configuration.get(:block_submit_max_gas_price)
 
     [
-      {History, [event_bus: event_bus, num_blocks: num_blocks]},
+      {History, [event_bus: OMG.Bus, num_blocks: num_blocks]},
+      {LegacyGasStrategy, [max_gas_price: max_gas_price]},
       {BlockPercentileGasStrategy, []},
-      {LegacyGasStrategy, []},
       {PoissonGasStrategy, []}
     ]
   end

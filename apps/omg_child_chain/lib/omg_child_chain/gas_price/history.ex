@@ -32,7 +32,7 @@ defmodule OMG.ChildChain.GasPrice.History do
   @doc """
   Subscribes a process to gas price history changes.
 
-  On each history change, the subscriber can detect the change by handling `{History, :updated}`:
+  On each history change, the subscriber can detect the change by handling `{History, :updated}` messages.
 
   ## Examples
 
