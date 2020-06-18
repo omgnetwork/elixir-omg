@@ -99,6 +99,12 @@ defmodule Itest.Client do
     submit_typed(typed_data_signed)
   end
 
+  def submit_transaction_and_wait(typed_data, sign_hash, private_keys) do
+    tx = submit_transaction(typed_data, sign_hash, private_keys)
+    :ok = wait_until_tx_sync_to_watcher(tx.txhash)
+    tx
+  end
+
   def get_utxos(params) do
     default_paging = %{page: 1, limit: 200}
     %{address: address, page: page, limit: limit} = Map.merge(default_paging, params)
@@ -165,7 +171,9 @@ defmodule Itest.Client do
       )
 
     case Jason.decode!(response.body) do
-      %{"success" => true} -> :ok
+      %{"success" => true} ->
+        :ok
+
       _ ->
         Process.sleep(@poll_interval)
         Logger.info("wating for for watcher info to sync the submitted tx_id: #{tx_id}")

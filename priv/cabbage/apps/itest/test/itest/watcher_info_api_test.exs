@@ -90,7 +90,7 @@ defmodule WatcherInfoApiTest do
       )
 
     # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
-    transaction = Client.submit_transaction(typed_data, sign_hash, [alice_priv])
+    transaction = Client.submit_transaction_and_wait(typed_data, sign_hash, [alice_priv])
 
     {:ok, Map.put_new(state, :transaction, transaction)}
   end
@@ -99,9 +99,6 @@ defmodule WatcherInfoApiTest do
           _,
           %{bob_account: bob_account, transaction: transaction} = state do
     {:ok, data} = Client.get_transactions(%{limit: 1, page: 1})
-
-    :ok = Client.wait_until_tx_sync_to_watcher(transaction.txhash)
-
     {:ok, tx_data} = Client.get_transaction(transaction.txhash)
 
     %{"data" => transactions, "data_paging" => data_paging} = data
