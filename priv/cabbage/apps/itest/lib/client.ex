@@ -34,6 +34,8 @@ defmodule Itest.Client do
   require Logger
 
   @gas 180_000
+  @default_retry_attempts 15
+  @poll_interval 2000
 
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
@@ -120,8 +122,7 @@ defmodule Itest.Client do
   end
 
   def get_transaction(id) do
-    {:ok, response} =
-      Transaction.transactions_all(WatcherInfo.new(), %GetTransactionBodySchema{id: id})
+    {:ok, response} = Transaction.transaction_get(WatcherInfo.new(), %GetTransactionBodySchema{id: id})
     data = Jason.decode!(response.body)
     {:ok, data}
   end
@@ -146,5 +147,31 @@ defmodule Itest.Client do
     |> Deposit.new(currency, amount_in_wei)
     |> Encoding.get_data_for_rlp()
     |> ExRLP.encode()
+  end
+
+  def wait_until_tx_sync_to_watcher(tx_id) do
+    {:ok, _} = do_wait_until_tx_sync_to_watcher(tx_id, @default_retry_attempts)
+  end
+
+  defp do_wait_until_tx_sync_to_watcher(_tx_id, 0), do: :wait_until_tx_sync_failed
+
+  defp do_wait_until_tx_sync_to_watcher(tx_id, retry) do
+    {:ok, response} =
+      Transaction.transaction_get(
+        WatcherInfo.new(),
+        GetTransactionBodySchema{
+          id: tx_id
+        }
+      )
+
+    case Jason.decode!(response.body) do
+      %{"success" => true} ->
+        {:ok, _}
+
+      _ ->
+        Process.sleep(@poll_interval)
+        Logger.info("wating for for watcher info to sync the submitted tx_id: #{tx_id}")
+        do_wait_until_tx_sync_to_watcher(tx_id, retry - 1)
+    end
   end
 end

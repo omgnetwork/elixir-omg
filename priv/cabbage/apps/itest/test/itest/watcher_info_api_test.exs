@@ -81,6 +81,7 @@ defmodule WatcherInfoApiTest do
           %{alice_account: alice_account, bob_account: bob_account} = state do
     {alice_addr, alice_priv} = alice_account
     {bob_addr, bob_priv} = bob_account
+
     {:ok, [sign_hash, typed_data, _txbytes]} =
       Client.create_transaction(
         Currency.to_wei(amount),
@@ -98,7 +99,10 @@ defmodule WatcherInfoApiTest do
           _,
           %{bob_account: bob_account, transaction: transaction} = state do
     {:ok, data} = Client.get_transactions(%{limit: 1, page: 1})
-    {:ok, tx_data} = Client.get_transaction(%{id: transaction.txhash})
+
+    {:ok, _} = Client.wait_until_tx_sync_to_watcher(transaction.txhash)
+
+    {:ok, tx_data} = Client.get_transaction(transaction.txhash)
 
     %{"data" => transactions, "data_paging" => data_paging} = data
     IO.inspect(tx_data)
