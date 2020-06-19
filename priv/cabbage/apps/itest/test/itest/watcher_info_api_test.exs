@@ -103,15 +103,17 @@ defmodule WatcherInfoApiTest do
     {:ok, data} = Client.get_transactions(%{end_datetime: tx["block"]["timestamp"], limit: 10})
     %{"data" => transactions, "data_paging" => data_paging} = data
 
-    all_newer_tx =
+    is_all_newer_tx =
       Enum.reduce(
         transactions,
-        fn tx, curr_state ->
-          curr_state["block"]["timestamp"] > tx["block"]["timestamp"]
+        true,
+        fn t, curr ->
+          is_newer = t["block"]["timestamp"] <= tx["block"]["timestamp"]
+          curr && is_newer
         end
       )
 
-    assert(length(all_newer_tx) == 0)
+    assert(is_all_newer_tx == true)
     {:ok, state}
   end
 
