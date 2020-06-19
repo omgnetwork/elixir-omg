@@ -76,8 +76,9 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     {address, constraints} = Keyword.pop(constraints, :address)
     {txtypes, constraints} = Keyword.pop(constraints, :txtypes)
     {end_datetime, constraints} = Keyword.pop(constraints, :end_datetime, :os.system_time(:second))
-    base_query = query_get_last(paginator.data_paging, end_datetime)
-    base_query
+    params = Map.merge(paginator.data_paging, %{end_datetime: end_datetime})
+
+    query_get_last(params)
     |> query_get_by_address(address)
     |> query_get_by_txtypes(txtypes)
     |> query_get_by(constraints)
@@ -85,8 +86,9 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     |> Paginator.set_data(paginator)
   end
 
-  defp query_get_last(%{limit: limit, page: page}, end_datetime) do
+  defp query_get_last(%{limit: limit, page: page, end_datetime: end_datetime}) do
     offset = (page - 1) * limit
+
     from(transaction in __MODULE__,
       join: block in assoc(transaction, :block),
       order_by: [desc: :blknum, desc: :txindex],

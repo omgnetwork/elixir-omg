@@ -119,6 +119,7 @@ defmodule Itest.Client do
   def get_transactions(params) do
     default_paging = %{page: 1, limit: 200}
     %{page: page, limit: limit, end_datetime: end_datetime} = Map.merge(default_paging, params)
+
     {:ok, response} =
       Transaction.transactions_all(WatcherInfo.new(), %GetAllTransactionsBodySchema1{
         page: page,
