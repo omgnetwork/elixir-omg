@@ -95,23 +95,16 @@ defmodule WatcherInfoApiTest do
     {:ok, Map.put_new(state, :transaction, transaction)}
   end
 
-  defthen ~r/^Api able to list transaction correctly wuth end_datetime$/,
+  defthen ~r/^Api able to list transaction correctly with end_datetime$/,
           _,
-          %{transaction: transaction} = state do
+          %{transaction: transaction, alice_account: alice_account} = state do
+    {alice_addr, _alice_priv} = alice_account
     {:ok, tx_data} = Client.get_transaction(transaction.txhash)
     %{"data" => tx} = tx_data
     {:ok, data} = Client.get_transactions(%{end_datetime: tx["block"]["timestamp"], limit: 10})
     %{"data" => transactions} = data
 
-    is_all_newer_tx =
-      Enum.reduce(
-        transactions,
-        true,
-        fn t, curr ->
-          is_newer = t["block"]["timestamp"] <= tx["block"]["timestamp"]
-          curr && is_newer
-        end
-      )
+    is_all_newer_tx = is_all_tx_behind_timestamp(transactions, tx["block"]["timestamp"])
 
     assert(is_all_newer_tx == true)
 
@@ -119,6 +112,12 @@ defmodule WatcherInfoApiTest do
     %{"data" => transactions_empty} = data
 
     assert(length(transactions_empty) == 0)
+
+    {:ok, alice_tx_data} =
+      Client.get_transactions(%{end_datetime: tx["block"]["timestamp"], limit: 10, account: alice_addr})
+
+    %{"data" => transactions_alice} = alice_tx_data
+    assert(is_all_tx_behind_timestamp(transactions_alice, tx["block"]["timestamp"]) == true)
     {:ok, state}
   end
 
@@ -136,6 +135,17 @@ defmodule WatcherInfoApiTest do
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
     wait_finality_margin_blocks(finality_margin_blocks)
     Itest.Poller.pull_balance_until_amount(address, amount)
+  end
+
+  defp is_all_tx_behind_timestamp(transactions, timestamp) do
+    Enum.reduce(
+      transactions,
+      true,
+      fn t, curr ->
+        is_newer = t["block"]["timestamp"] <= timestamp
+        curr && is_newer
+      end
+    )
   end
 
   defp wait_finality_margin_blocks(finality_margin_blocks) do
