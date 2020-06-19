@@ -18,6 +18,15 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
   including fetching, transforming, inserting and pruning the gas price records.
 
   Also provides subscription that triggers on history changes.
+
+  This module utilizes [`ets`](https://elixir-lang.org/getting-started/mix-otp/ets.html)
+  instead of GenServer for history storage for the following reasons:
+
+    1. Multiple pricing strategies will be accessing the history. ets allows those strategies to
+       access the records concurrently.
+
+    2. Fetching the history is RPC-intensive and unnecessary between GenServer crashes.
+       Using ets allows the records to persist across crashes.
   """
   use GenServer
   require Logger
@@ -69,6 +78,8 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
   @doc false
   @impl GenServer
   def handle_continue({:initialize, event_bus}, state) do
+    # The ets table is not initialized with `:read_concurrency` because we are expecting interleaving
+    # reads and writes. See http://erlang.org/doc/man/ets.html
     :prices = :ets.new(@history_table, [:ordered_set, :protected, :named_table])
     :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
 
