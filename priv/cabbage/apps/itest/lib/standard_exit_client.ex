@@ -234,15 +234,15 @@ defmodule Itest.StandardExitClient do
       |> ABI.TypeDecoder.decode([{:uint, 160}])
       |> hd()
 
-    data = ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(se.currency), se.currency])
+    # data = ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(se.currency), se.currency])
 
-    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
+    # {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
-    next_exit_id =
-      result
-      |> Encoding.to_binary()
-      |> ABI.TypeDecoder.decode([{:uint, 256}])
-      |> hd()
+    # next_exit_id =
+    #   result
+    #   |> Encoding.to_binary()
+    #   |> ABI.TypeDecoder.decode([{:uint, 256}])
+    #   |> hd()
 
     # double check correctness, our exit ID must be the first one in the priority queue
     # ^standard_exit_id = next_exit_id &&& (1 <<< 160) - 1
