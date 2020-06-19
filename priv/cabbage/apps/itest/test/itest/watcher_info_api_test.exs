@@ -95,7 +95,7 @@ defmodule WatcherInfoApiTest do
     {:ok, Map.put_new(state, :transaction, transaction)}
   end
 
-  defthen ~r/^Api able to paginate transaction correctly wuth end_datetime$/,
+  defthen ~r/^Api able to list transaction correctly wuth end_datetime$/,
           _,
           %{bob_account: bob_account, transaction: transaction} = state do
     {:ok, tx_data} = Client.get_transaction(transaction.txhash)
