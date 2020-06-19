@@ -75,26 +75,26 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     # we need to handle complex constraints with dedicated modifier function
     {address, constraints} = Keyword.pop(constraints, :address)
     {txtypes, constraints} = Keyword.pop(constraints, :txtypes)
-    {end_datetime, constraints} = Keyword.pop(constraints, :end_datetime, :os.system_time(:second))
+    {end_datetime, constraints} = Keyword.pop(constraints, :end_datetime)
     params = Map.merge(paginator.data_paging, %{end_datetime: end_datetime})
 
     query_get_last(params)
     |> query_get_by_address(address)
     |> query_get_by_txtypes(txtypes)
     |> query_get_by(constraints)
+    |> query_get_by_end_datetime(end_datetime)
     |> DB.Repo.all()
     |> Paginator.set_data(paginator)
   end
 
-  defp query_get_last(%{limit: limit, page: page, end_datetime: end_datetime}) do
+  defp query_get_last(%{limit: limit, page: page}) do
     offset = (page - 1) * limit
 
-    from(transaction in __MODULE__,
-      join: block in assoc(transaction, :block),
+    from(
+      __MODULE__,
       order_by: [desc: :blknum, desc: :txindex],
       limit: ^limit,
       offset: ^offset,
-      where: block.timestamp <= ^end_datetime,
       preload: [
         :block,
         inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
@@ -161,6 +161,15 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     |> query_get_by(blknum: blknum)
     |> from(order_by: [asc: :txindex])
     |> DB.Repo.all()
+  end
+
+  defp query_get_by_end_datetime(query, nil), do: query
+
+  defp query_get_by_end_datetime(query, end_datetime) do
+    from(transaction in query,
+      join: block in assoc(transaction, :block),
+      where: block.timestamp <= ^end_datetime
+    )
   end
 
   def get_by_position(blknum, txindex) do
