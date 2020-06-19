@@ -230,8 +230,6 @@ Defaults to `false`, override using the `EXIT_PROCESSOR_SLA_MARGIN_FORCED` syste
 
 * **`maximum_block_withholding_time_ms`** - for how long the Watcher will tolerate failures to get a submitted child chain block, before reporting a block withholding attack and stopping
 
-* **`block_getter_loops_interval_ms`** - polling interval for checking new child chain blocks submissions being mined on the root chain
-
 * **`maximum_number_of_unapplied_blocks`** - the maximum number of downloaded and statelessly validated child chain blocks to hold in queue for applying
 
 * **`exit_finality_margin`** - the margin waited before an exit-related event is considered final enough to pull and process

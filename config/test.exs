@@ -133,7 +133,6 @@ config :os_mon,
 config :omg_watcher, child_chain_url: "http://localhost:9657"
 
 config :omg_watcher,
-  block_getter_loops_interval_ms: 50,
   # NOTE `exit_processor_sla_margin` can't be made shorter. At 8 it sometimes
   # causes unchallenged exits events because `geth --dev` is too fast
   exit_processor_sla_margin: 10,
@@ -151,7 +150,7 @@ config :omg_watcher, OMG.Watcher.Tracer,
 config :omg_watcher_info, child_chain_url: "http://localhost:9657"
 
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
-  ownership_timeout: 180_000,
+  ownership_timeout: 980_000,
   pool: Ecto.Adapters.SQL.Sandbox,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
   url: "postgres://omisego_dev:omisego_dev@localhost:5432/omisego_test"
