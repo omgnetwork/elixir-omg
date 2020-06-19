@@ -87,7 +87,6 @@ defmodule OMG.WatcherInfo.DB.Transaction do
 
   defp query_get_last(%{limit: limit, page: page}, end_datetime) do
     offset = (page - 1) * limit
-
     from(transaction in __MODULE__,
       join: block in assoc(transaction, :block),
       order_by: [desc: :blknum, desc: :txindex],

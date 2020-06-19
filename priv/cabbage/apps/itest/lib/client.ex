@@ -26,7 +26,7 @@ defmodule Itest.Client do
   alias WatcherInfoAPI.Model.CreateTransactionsBodySchema
   alias WatcherInfoAPI.Model.TransactionCreateFee
   alias WatcherInfoAPI.Model.TransactionCreatePayments
-  alias WatcherInfoAPI.Model.GetAllTransactionsBodySchema
+  alias WatcherInfoAPI.Model.GetAllTransactionsBodySchema1
   alias WatcherInfoAPI.Model.GetTransactionBodySchema
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 1, submit_typed: 1]
@@ -118,10 +118,13 @@ defmodule Itest.Client do
 
   def get_transactions(params) do
     default_paging = %{page: 1, limit: 200}
-    %{page: page, limit: limit} = Map.merge(default_paging, params)
-
+    %{page: page, limit: limit, end_datetime: end_datetime} = Map.merge(default_paging, params)
     {:ok, response} =
-      Transaction.transactions_all(WatcherInfo.new(), %GetAllTransactionsBodySchema{page: page, limit: limit})
+      Transaction.transactions_all(WatcherInfo.new(), %GetAllTransactionsBodySchema1{
+        page: page,
+        limit: limit,
+        end_datetime: end_datetime
+      })
 
     data = Jason.decode!(response.body)
     {:ok, data}
