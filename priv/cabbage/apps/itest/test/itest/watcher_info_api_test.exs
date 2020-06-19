@@ -80,7 +80,7 @@ defmodule WatcherInfoApiTest do
           %{amount: amount},
           %{alice_account: alice_account, bob_account: bob_account} = state do
     {alice_addr, alice_priv} = alice_account
-    {bob_addr, bob_priv} = bob_account
+    {bob_addr, _bob_priv} = bob_account
 
     {:ok, [sign_hash, typed_data, _txbytes]} =
       Client.create_transaction(
@@ -97,11 +97,11 @@ defmodule WatcherInfoApiTest do
 
   defthen ~r/^Api able to list transaction correctly wuth end_datetime$/,
           _,
-          %{bob_account: bob_account, transaction: transaction} = state do
+          %{transaction: transaction} = state do
     {:ok, tx_data} = Client.get_transaction(transaction.txhash)
     %{"data" => tx} = tx_data
     {:ok, data} = Client.get_transactions(%{end_datetime: tx["block"]["timestamp"], limit: 10})
-    %{"data" => transactions, "data_paging" => data_paging} = data
+    %{"data" => transactions} = data
 
     is_all_newer_tx =
       Enum.reduce(
