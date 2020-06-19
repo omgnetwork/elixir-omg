@@ -47,6 +47,8 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
     fastest: 100
   }
 
+  @target_threshold :fast
+
   @behaviour Strategy
 
   @doc """
@@ -101,7 +103,8 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   @doc false
   @impl GenServer
   def handle_call(:get_price, _, state) do
-    {:reply, {:ok, state.recommended_gas_price}, state}
+    price = state.recommendations[@target_threshold]
+    {:reply, {:ok, price}, state}
   end
 
   @doc false
