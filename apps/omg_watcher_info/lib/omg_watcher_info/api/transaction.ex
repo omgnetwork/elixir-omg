@@ -92,14 +92,15 @@ defmodule OMG.WatcherInfo.API.Transaction do
       %{advice | transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
 
-  defp add_type_specs(%{inputs: inputs, outputs: outputs, metadata: metadata}) do
+  defp add_type_specs(tx) do
     alias OMG.TypedDataHash
 
     message =
       [
-        create_inputs(inputs),
-        create_outputs(outputs),
-        [metadata: metadata || @empty_metadata]
+        create_inputs(tx.inputs),
+        create_outputs(tx.outputs),
+        [metadata: tx.metadata || @empty_metadata],
+        [tx_type: tx.tx_type]
       ]
       |> Enum.concat()
       |> Map.new()
