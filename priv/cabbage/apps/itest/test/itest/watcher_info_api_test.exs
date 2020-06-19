@@ -114,6 +114,11 @@ defmodule WatcherInfoApiTest do
       )
 
     assert(is_all_newer_tx == true)
+
+    {:ok, data} = Client.get_transactions(%{end_datetime: 1, limit: 10})
+    %{"data" => transactions_empty} = data
+
+    assert(length(transactions_empty) == 0)
     {:ok, state}
   end
 
