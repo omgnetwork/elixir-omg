@@ -22,6 +22,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   alias OMG.TypedDataHash
   alias OMG.WatcherInfo.DB
 
+  require Logger
   require Transaction
   require Transaction.Payment
 
@@ -37,6 +38,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         }
 
   @type order_t() :: %{
+          tx_type: non_neg_integer(),
           owner: Crypto.address_t(),
           payments: nonempty_list(payment_t()),
           fee: fee_t(),
@@ -71,7 +73,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   TODO: seems unocovered by any tests
   """
   @spec create_advice(%{Transaction.Payment.currency() => list(%DB.TxOutput{})}, order_t()) :: advice_t()
-  def create_advice(utxos, %{owner: owner, payments: payments, fee: fee} = order) do
+  def create_advice(utxos, order) do
+    %{tx_type: tx_type, owner: owner, payments: payments, fee: fee} = order
     needed_funds = needed_funds(payments, fee)
     token_utxo_selection = select_utxo(utxos, needed_funds)
 
@@ -83,7 +86,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
       if utxo_count <= Transaction.Payment.max_inputs(),
         do: create_transaction(funds, order) |> respond(:complete),
-        else: create_merge(owner, funds) |> respond(:intermediate)
+        else: create_merge(tx_type, owner, funds) |> respond(:intermediate)
     end
   end
 
@@ -139,7 +142,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       else: {:error, {:insufficient_funds, missing_funds}}
   end
 
-  defp create_transaction(utxos_per_token, %{owner: owner, payments: payments, metadata: metadata, fee: fee}) do
+  defp create_transaction(utxos_per_token, order) do
+    %{tx_type: tx_type, owner: owner, payments: payments, metadata: metadata, fee: fee} = order
+
     rests =
       utxos_per_token
       |> Stream.map(fn {token, utxos} ->
@@ -165,10 +170,11 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         {:error, :empty_transaction}
 
       true ->
-        raw_tx = create_raw_transaction(inputs, outputs, metadata)
+        raw_tx = create_raw_transaction(tx_type, inputs, outputs, metadata)
 
         {:ok,
          %{
+           tx_type: tx_type,
            inputs: inputs,
            outputs: outputs,
            fee: fee,
@@ -179,7 +185,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end
   end
 
-  defp create_merge(owner, utxos_per_token) do
+  defp create_merge(tx_type, owner, utxos_per_token) do
     utxos_per_token
     |> Enum.map(fn {token, utxos} ->
       Stream.chunk_every(utxos, Transaction.Payment.max_outputs())
@@ -190,6 +196,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
         inputs ->
           create_transaction([{token, inputs}], %{
+            tx_type: tx_type,
             fee: %{amount: 0, currency: token},
             metadata: @empty_metadata,
             owner: owner,
@@ -201,15 +208,22 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     |> Enum.map(fn {:ok, tx} -> tx end)
   end
 
-  defp create_raw_transaction(inputs, outputs, metadata) do
-    if Enum.any?(outputs, &(&1.owner == nil)),
-      do: nil,
-      else:
-        Transaction.Payment.new(
+  defp create_raw_transaction(tx_type, inputs, outputs, metadata) do
+    # Somehow the API is designed to return nil txbytes instead of claiming that as bad request :(
+    # So we need to return nil here
+    # See the test: "test /transaction.create does not return txbytes when spend owner is not provided"
+    case Enum.any?(outputs, &(&1.owner == nil)) do
+      true ->
+        nil
+
+      false ->
+        Transaction.Payment.Builder.new_payment(
+          tx_type,
           inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
           outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
           metadata || @empty_metadata
         )
+    end
   end
 
   defp create_txbytes(tx) do

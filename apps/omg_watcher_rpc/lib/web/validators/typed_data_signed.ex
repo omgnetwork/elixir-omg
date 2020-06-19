@@ -20,7 +20,11 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   alias OMG.State.Transaction
   alias OMG.TypedDataHash.Tools
   alias OMG.Utils.HttpRPC.Validator.Base
+  alias OMG.WireFormatTypes
+
   import OMG.Utils.HttpRPC.Validator.Base
+
+  @default_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   @doc """
   Parses and validates request body for /transaction.submit_typed`
@@ -38,10 +42,13 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   @spec parse_transaction(map()) :: {:ok, Transaction.Payment.t()} | {:error, any}
   def parse_transaction(params) do
     with {:ok, msg} <- expect(params, "message", :map),
+         {:ok, tx_type} <- expect(msg, "tx_type", [:integer, :optional]),
          inputs when is_list(inputs) <- parse_inputs(msg),
          outputs when is_list(outputs) <- parse_outputs(msg),
          {:ok, metadata} <- expect(msg, "metadata", :hash) do
-      {:ok, Transaction.Payment.new(inputs, outputs, metadata)}
+      # keep this optional args for backward competibility
+      tx_type = tx_type || @default_tx_type
+      {:ok, Transaction.Payment.Builder.new_payment(tx_type, inputs, outputs, metadata)}
     end
   end
 

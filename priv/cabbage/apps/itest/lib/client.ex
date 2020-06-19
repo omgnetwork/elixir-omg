@@ -37,6 +37,8 @@ defmodule Itest.Client do
   @default_retry_attempts 15
   @poll_interval 2000
   @default_paging %{page: 1, limit: 200}
+  @payment_v1_tx_type 1
+
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
     value = if currency == Currency.ether(), do: amount_in_wei, else: 0
@@ -56,8 +58,15 @@ defmodule Itest.Client do
     {:ok, receipt_hash}
   end
 
-  def create_transaction(amount_in_wei, input_address, output_address, currency \\ Currency.ether()) do
+  def create_transaction(
+        amount_in_wei,
+        input_address,
+        output_address,
+        currency \\ Currency.ether(),
+        tx_type \\ @payment_v1_tx_type
+      ) do
     transaction = %CreateTransactionsBodySchema{
+      tx_type: tx_type,
       owner: input_address,
       payments: [
         %TransactionCreatePayments{

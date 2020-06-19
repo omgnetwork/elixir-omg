@@ -15,8 +15,6 @@
 defmodule TransactionsTests do
   use Cabbage.Feature, async: true, file: "transactions.feature"
 
-  require Logger
-
   alias Itest.Account
 
   alias Itest.Client
