@@ -653,6 +653,9 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
+      - store_artifacts:
+          path: _build_docker/prod/watcher-*.tar.gz
+          destination: $WATCHER_IMAGE_NAME
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher_info:
@@ -833,21 +836,21 @@ workflows:
             tags:
               only:
                 - /.+/
-      - publish_watcher:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-              lint_version,
-              audit_deps
-            ]
-          filters: *master_and_version_branches_and_all_tags
+      # - publish_watcher:
+      #     requires:
+      #       [
+      #         child_chain_coveralls_and_integration_tests,
+      #         watcher_coveralls_and_integration_tests,
+      #         watcher_info_coveralls_and_integration_tests,
+      #         common_coveralls_and_integration_tests,
+      #         test,
+      #         property_tests,
+      #         dialyzer,
+      #         lint,
+      #         lint_version,
+      #         audit_deps
+      #       ]
+      #     filters: *master_and_version_branches_and_all_tags
       - publish_watcher_info:
           requires:
             [
