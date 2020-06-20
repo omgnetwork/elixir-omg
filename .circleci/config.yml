@@ -865,21 +865,20 @@ workflows:
             ]
           filters: *master_and_version_branches_and_all_tags
       - publish_watcher_info:
-          requires: [build]
-          # requires:
-          #   [
-          #     child_chain_coveralls_and_integration_tests,
-          #     watcher_coveralls_and_integration_tests,
-          #     watcher_info_coveralls_and_integration_tests,
-          #     common_coveralls_and_integration_tests,
-          #     test,
-          #     property_tests,
-          #     dialyzer,
-          #     lint,
-          #     lint_version,
-          #     audit_deps
-          #   ]
-          # filters: *master_and_version_branches_and_all_tags
+          requires:
+            [
+              child_chain_coveralls_and_integration_tests,
+              watcher_coveralls_and_integration_tests,
+              watcher_info_coveralls_and_integration_tests,
+              common_coveralls_and_integration_tests,
+              test,
+              property_tests,
+              dialyzer,
+              lint,
+              lint_version,
+              audit_deps
+            ]
+          filters: *master_and_version_branches_and_all_tags
       # Release deploy to development in case of master branch.
       - deploy_child_chain:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
