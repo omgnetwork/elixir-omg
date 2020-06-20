@@ -337,8 +337,7 @@ defmodule OMG.Watcher.ExitProcessor do
   - returns `db_updates`
   """
   def handle_call({:new_in_flight_exits, exits}, _from, state) do
-    _ =
-      if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} in-flight exits: #{inspect(exits)}")
+    _ = if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} in-flight exits: #{inspect(exits)}")
 
     contract_ife_ids =
       Enum.map(exits, fn %{call_data: %{in_flight_tx: txbytes}} ->
