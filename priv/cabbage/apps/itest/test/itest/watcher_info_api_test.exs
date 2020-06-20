@@ -111,7 +111,7 @@ defmodule WatcherInfoApiTest do
     {:ok, data} = Client.get_transactions(%{end_datetime: 1, limit: 10})
     %{"data" => transactions_empty} = data
 
-    assert(length(transactions_empty) == 0)
+    assert(transactions_empty == [])
 
     {:ok, alice_tx_data} =
       Client.get_transactions(%{end_datetime: tx["block"]["timestamp"], limit: 10, account: alice_addr})
