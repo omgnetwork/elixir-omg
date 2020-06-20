@@ -836,21 +836,22 @@ workflows:
             tags:
               only:
                 - /.+/
-      # - publish_watcher:
-      #     requires:
-      #       [
-      #         child_chain_coveralls_and_integration_tests,
-      #         watcher_coveralls_and_integration_tests,
-      #         watcher_info_coveralls_and_integration_tests,
-      #         common_coveralls_and_integration_tests,
-      #         test,
-      #         property_tests,
-      #         dialyzer,
-      #         lint,
-      #         lint_version,
-      #         audit_deps
-      #       ]
-      #     filters: *master_and_version_branches_and_all_tags
+      - publish_watcher:
+          requires: [build]
+          # requires:
+          #   [
+          #     child_chain_coveralls_and_integration_tests,
+          #     watcher_coveralls_and_integration_tests,
+          #     watcher_info_coveralls_and_integration_tests,
+          #     common_coveralls_and_integration_tests,
+          #     test,
+          #     property_tests,
+          #     dialyzer,
+          #     lint,
+          #     lint_version,
+          #     audit_deps
+          #   ]
+          # filters: *master_and_version_branches_and_all_tags
       - publish_watcher_info:
           requires:
             [
