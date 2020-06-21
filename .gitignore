@@ -47,7 +47,7 @@ env/
 .elixir_ls
 
 #test files
-/apps/omg_child_chain/priv/omisego_operator_test_fees_file*
+/apps/omg_child_chain/priv/test_fees_file*
 
 # VS Code config file
 .vscode/
@@ -79,4 +79,7 @@ localchain_contract_addresses.env
 
 #vs code
 .tool_versions
+
+# asdf version
+.tool-versions
 
