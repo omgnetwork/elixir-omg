@@ -19,11 +19,11 @@ defmodule OMG.WatcherInfo.Application do
 
   def start(_type, _args) do
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-
+    _ = attach_telemetry()
     start_root_supervisor()
   end
 
-  def start_root_supervisor() do
+  defp start_root_supervisor() do
     # root supervisor must stop whenever any of its children supervisors goes down (children carry the load of restarts)
     children = [
       %{
@@ -42,5 +42,10 @@ defmodule OMG.WatcherInfo.Application do
     ]
 
     Supervisor.start_link(children, opts)
+  end
+
+  defp attach_telemetry() do
+    event = [:omg_watcher_info, OMG.WatcherInfo.DB.Repo, :query]
+    :telemetry.attach("spandex-query-tracer", event, &SpandexEcto.TelemetryAdapter.handle_event/4, nil)
   end
 end
