@@ -29,7 +29,6 @@ defmodule Itest.Client do
   alias WatcherInfoAPI.Model.TransactionCreateFee
   alias WatcherInfoAPI.Model.TransactionCreatePayments
 
-
   import Itest.Poller, only: [wait_on_receipt_confirmed: 1, submit_typed: 1]
 
   require Logger
