@@ -138,14 +138,9 @@ defmodule WatcherInfoApiTest do
   end
 
   defp is_all_tx_behind_timestamp(transactions, timestamp) do
-    Enum.reduce(
-      transactions,
-      true,
-      fn t, curr ->
-        is_newer = t["block"]["timestamp"] <= timestamp
-        curr && is_newer
-      end
-    )
+    !Enum.any(transactions, fn t ->
+      t["block"]["timestamp"] > timestamp
+    end)
   end
 
   defp wait_finality_margin_blocks(finality_margin_blocks) do
