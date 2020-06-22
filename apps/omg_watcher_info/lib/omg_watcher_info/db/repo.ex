@@ -16,4 +16,6 @@ defmodule OMG.WatcherInfo.DB.Repo do
   use Ecto.Repo,
     otp_app: :omg_watcher_info,
     adapter: Ecto.Adapters.Postgres
+
+  use Ecto.Explain
 end
