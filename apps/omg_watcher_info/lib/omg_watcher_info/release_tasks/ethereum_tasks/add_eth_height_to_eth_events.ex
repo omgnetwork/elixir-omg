@@ -31,7 +31,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
   def run() do
     Logger.info("Running: Add `eth_height` to `eth_events`")
 
-    DB.Repo.transaction(fn ->
+    DB.TraceableRepo.transaction(fn ->
       stream_events_from_db()
       |> stream_create_requests()
       |> stream_batch_requests()
@@ -49,7 +49,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
         select: e.root_chain_txhash
       )
 
-    DB.Repo.stream(query, max_rows: @max_db_rows)
+    DB.TraceableRepo.stream(query, max_rows: @max_db_rows)
   end
 
   def make_batched_request([]), do: []
@@ -78,11 +78,11 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
       where: e.root_chain_txhash == ^root_chain_txhash,
       select: e
     )
-    |> DB.Repo.all()
+    |> DB.TraceableRepo.all()
     |> Enum.each(fn event ->
       event
       |> Ecto.Changeset.change(%{eth_height: eth_height})
-      |> DB.Repo.update()
+      |> DB.TraceableRepo.update()
     end)
   end
 

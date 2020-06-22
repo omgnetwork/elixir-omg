@@ -97,7 +97,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
             }
           ]
         }
-        |> DB.Repo.insert()
+        |> DB.TraceableRepo.insert()
 
         # an ethevents row just got inserted, now return the ethevent with all populated fields including
         # those populated by the DB (eg: inserted_at, updated_at, ...)
@@ -144,7 +144,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   """
   @spec get(binary()) :: %__MODULE__{}
   def get(root_chain_txhash_event) do
-    DB.Repo.one(
+    DB.TraceableRepo.one(
       from(ethevent in base_query(),
         where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event
       )
@@ -163,7 +163,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     |> query_deposits()
     |> query_by_address(address)
     |> query_paginated(paginator.data_paging)
-    |> DB.Repo.all()
+    |> DB.TraceableRepo.all()
     |> Paginator.set_data(paginator)
   end
 
@@ -263,7 +263,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
     tx_output
     |> txoutput_changeset(%{child_chain_utxohash: generate_child_chain_utxohash(decoded_utxo_position)}, ethevent)
-    |> DB.Repo.update()
+    |> DB.TraceableRepo.update()
 
     # a txoutput row just got updated, but we need to return the associated ethevent with all populated
     # fields including those populated by the DB (eg: inserted_at, updated_at, ...)

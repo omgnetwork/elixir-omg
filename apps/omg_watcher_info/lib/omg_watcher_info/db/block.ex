@@ -50,7 +50,7 @@ defmodule OMG.WatcherInfo.DB.Block do
 
   @spec get_max_blknum() :: non_neg_integer()
   def get_max_blknum() do
-    DB.Repo.aggregate(__MODULE__, :max, :blknum)
+    DB.TraceableRepo.aggregate(__MODULE__, :max, :blknum)
   end
 
   @doc """
@@ -63,7 +63,7 @@ defmodule OMG.WatcherInfo.DB.Block do
         where: [blknum: ^blknum]
       )
 
-    DB.Repo.one(query)
+    DB.TraceableRepo.one(query)
   end
 
   def base_query() do
@@ -81,7 +81,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   @spec get_blocks(Paginator.t(%DB.Block{})) :: Paginator.t(%DB.Block{})
   def get_blocks(paginator) do
     query_get_last(paginator.data_paging)
-    |> DB.Repo.all()
+    |> DB.TraceableRepo.all()
     |> Paginator.set_data(paginator)
   end
 
@@ -102,7 +102,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   def count_all_between_timestamps(start_datetime, end_datetime) do
     query_count()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.Repo.one!()
+    |> DB.TraceableRepo.one!()
   end
 
   @doc """
@@ -110,7 +110,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   """
   @spec count_all() :: non_neg_integer()
   def count_all() do
-    DB.Repo.one!(query_count())
+    DB.TraceableRepo.one!(query_count())
   end
 
   @doc """
@@ -118,7 +118,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   """
   @spec get_timestamp_range_all :: %{min: non_neg_integer(), max: non_neg_integer()}
   def get_timestamp_range_all() do
-    DB.Repo.one!(query_timestamp_range())
+    DB.TraceableRepo.one!(query_timestamp_range())
   end
 
   @doc """
@@ -131,14 +131,14 @@ defmodule OMG.WatcherInfo.DB.Block do
   def get_timestamp_range_between(start_datetime, end_datetime) do
     query_timestamp_range()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.Repo.one!()
+    |> DB.TraceableRepo.one!()
   end
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   def insert(params) do
     %__MODULE__{}
     |> changeset(params)
-    |> DB.Repo.insert()
+    |> DB.TraceableRepo.insert()
   end
 
   @doc """
@@ -171,7 +171,7 @@ defmodule OMG.WatcherInfo.DB.Block do
       |> prepare_inserts(db_outputs_stream, "db_outputs_", DB.TxOutput)
       |> DB.TxOutput.spend_utxos(db_inputs)
 
-    {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
+    {insert_duration, result} = :timer.tc(DB.TraceableRepo, :transaction, [multi])
 
     case result do
       {:ok, _} ->
