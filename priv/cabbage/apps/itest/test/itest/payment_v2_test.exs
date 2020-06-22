@@ -120,12 +120,7 @@ defmodule PaymentV2Test do
   end
 
   defwhen ~r/^Alice processes the standard exit on the child chain$/, _, state do
-    se = StandardExitClient.wait_and_process_standard_exit(state.standard_exit)
-
-    # state =
-    #   state
-    #   |> Map.put_new(:standard_exit_total_gas_used, se.total_gas_used)
-    #   |> Map.update!(:gas_used, fn gas_used -> gas_used + se.total_gas_used end)
+    StandardExitClient.wait_and_process_standard_exit(state.standard_exit)
     {:ok, state}
   end
 
