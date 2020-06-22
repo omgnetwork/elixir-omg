@@ -42,8 +42,6 @@ defmodule OMG.Watcher.ExitProcessor do
   use OMG.Utils.LoggerExt
   require Utxo
 
-  @timeout 60_000
-
   ### Client
 
   @doc """
