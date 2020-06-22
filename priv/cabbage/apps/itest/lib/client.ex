@@ -26,8 +26,8 @@ defmodule Itest.Client do
   alias WatcherInfoAPI.Model.CreateTransactionsBodySchema
   alias WatcherInfoAPI.Model.TransactionCreateFee
   alias WatcherInfoAPI.Model.TransactionCreatePayments
-  alias WatcherInfoAPI.Model.GetAllTransactionsBodySchema1
   alias WatcherInfoAPI.Model.GetTransactionBodySchema
+  alias WatcherInfoAPI.Model.GetAllTransactionsBodySchema1
 
   import Itest.Poller, only: [wait_on_receipt_confirmed: 1, submit_typed: 1]
 
