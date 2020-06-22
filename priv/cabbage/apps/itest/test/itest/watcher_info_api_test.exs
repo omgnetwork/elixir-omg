@@ -138,7 +138,7 @@ defmodule WatcherInfoApiTest do
   end
 
   defp is_all_tx_behind_timestamp(transactions, timestamp) do
-    !Enum.any(transactions, fn t ->
+    !Enum.any?(transactions, fn t ->
       t["block"]["timestamp"] > timestamp
     end)
   end
