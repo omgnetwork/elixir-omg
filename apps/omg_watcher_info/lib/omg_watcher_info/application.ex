@@ -17,8 +17,12 @@ defmodule OMG.WatcherInfo.Application do
   use Application
   use OMG.Utils.LoggerExt
 
+  alias OMG.WatcherInfo.Tracer
+
   def start(_type, _args) do
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
+
+    _ = attach_telemetry()
 
     start_root_supervisor()
   end
@@ -42,5 +46,23 @@ defmodule OMG.WatcherInfo.Application do
     ]
 
     Supervisor.start_link(children, opts)
+  end
+
+  defp attach_telemetry() do
+    event = [:omg, :watcher_info, :db, :repo, :query]
+
+    :telemetry.attach("spandex-query-tracer", event, &submit_trace/4, nil)
+  end
+
+  defp submit_trace(arg1, arg2, arg3, arg4) do
+    if Tracer.current_trace_id() do
+      SpandexEcto.TelemetryAdapter.handle_event(arg1, arg2, arg3, arg4)
+    else
+      _ = Tracer.start_trace("query")
+
+      SpandexEcto.TelemetryAdapter.handle_event(arg1, arg2, arg3, arg4)
+
+      _ = Tracer.finish_trace()
+    end
   end
 end
