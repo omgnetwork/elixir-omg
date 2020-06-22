@@ -76,9 +76,8 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     {address, constraints} = Keyword.pop(constraints, :address)
     {txtypes, constraints} = Keyword.pop(constraints, :txtypes)
     {end_datetime, constraints} = Keyword.pop(constraints, :end_datetime)
-    params = Map.merge(paginator.data_paging, %{end_datetime: end_datetime})
 
-    query_get_last(params)
+    query_get_last(paginator.data_paging)
     |> query_get_by_address(address)
     |> query_get_by_txtypes(txtypes)
     |> query_get_by(constraints)
