@@ -41,11 +41,11 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraintsTest do
       {:ok, constraints} = TransactionConstraints.parse(request_data)
 
       assert constraints == [
-               end_datetime: 12_345_678
+               end_datetime: 12_345_678,
                txtypes: [1, 3],
                metadata: @zero_metadata,
                blknum: 1000,
-               address: @eth,
+               address: @eth
              ]
     end
 
