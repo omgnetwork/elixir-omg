@@ -190,7 +190,8 @@ config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
 config :omg_watcher_info, OMG.WatcherInfo.Tracer,
   service: :ecto,
   adapter: SpandexDatadog.Adapter,
-  disabled?: true
+  disabled?: true,
+  type: :db
 
 # In mix environment, all modules are loaded, therefore it behaves like a watcher_info
 config :omg_watcher_rpc,
