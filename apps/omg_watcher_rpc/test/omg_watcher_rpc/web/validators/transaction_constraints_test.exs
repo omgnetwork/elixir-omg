@@ -34,11 +34,12 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraintsTest do
         "address" => Encoding.to_hex(@eth),
         "blknum" => 1000,
         "metadata" => Encoding.to_hex(@zero_metadata),
-        "txtypes" => [1, 3]
+        "txtypes" => [1, 3],
+        "end_datetime" => 12345678
       }
 
       {:ok, constraints} = TransactionConstraints.parse(request_data)
-      assert constraints == [txtypes: [1, 3], metadata: @zero_metadata, blknum: 1000, address: @eth]
+      assert constraints == [txtypes: [1, 3], metadata: @zero_metadata, blknum: 1000, address: @eth, end_datetime: 12345678]
     end
 
     test "filters unsupported constraints" do
@@ -91,6 +92,11 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraintsTest do
     test "returns a :validation_error when the given limit is not an integer" do
       assert TransactionConstraints.parse(%{"page" => 3.14}) == {:error, {:validation_error, "page", :integer}}
       assert TransactionConstraints.parse(%{"page" => "abcd"}) == {:error, {:validation_error, "page", :integer}}
+    end
+
+    test "returns a :validation_error when the given end_datetime is not an integer" do
+      assert TransactionConstraints.parse(%{"end_datetime" => 3.14}) == {:error, {:validation_error, "end_datetime", :integer}}
+      assert TransactionConstraints.parse(%{"end_datetime" => "abcd"}) == {:error, {:validation_error, "end_datetime", :integer}}
     end
   end
 end
