@@ -73,46 +73,6 @@ defmodule TransactionsTests do
     {:ok, state}
   end
 
-  defthen ~r/^they should have "(?<amount>[^"]+)" ETH on the child chain$/,
-          %{amount: amount},
-          %{alices: alices} = state do
-    {:ok, response} =
-      WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
-
-    watcher_security_critical_config =
-      WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
-
-    finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
-
-    alices
-    |> Enum.with_index()
-    |> Task.async_stream(
-      fn {{alice_account, alice_pkey}, index} ->
-        to_milliseconds = 1000
-        geth_block_every = 1
-
-        finality_margin_blocks
-        |> Kernel.*(geth_block_every)
-        |> Kernel.*(to_milliseconds)
-        |> Kernel.round()
-        |> Process.sleep()
-
-        expected_amount = Currency.to_wei(amount)
-
-        balance = Client.get_exact_balance(alice_account, expected_amount)
-
-        balance = balance["amount"]
-        assert_equal(expected_amount, balance, "For #{alice_account}")
-      end,
-      timeout: 60_000,
-      on_timeout: :kill_task,
-      max_concurrency: @num_accounts
-    )
-    |> Enum.map(fn {:ok, result} -> result end)
-
-    {:ok, state}
-  end
-
   defwhen ~r/^they send others "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alices: alices, bobs: bobs} = state do

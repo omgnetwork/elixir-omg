@@ -32,11 +32,11 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     block_getter_reorg_margin = Configuration.block_getter_reorg_margin()
     maximum_block_withholding_time_ms = Configuration.maximum_block_withholding_time_ms()
     maximum_number_of_unapplied_blocks = Configuration.maximum_number_of_unapplied_blocks()
-    block_getter_loops_interval_ms = Configuration.block_getter_loops_interval_ms()
     metrics_collection_interval = Configuration.metrics_collection_interval()
     child_chain_url = Configuration.child_chain_url()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
+    block_getter_loops_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
 
     fee_claimer_address = Base.decode16!("DEAD000000000000000000000000000000000000")
 
