@@ -2,8 +2,10 @@ defmodule OMG.WatcherInfo.DB.TraceableRepo do
   alias OMG.WatcherInfo.DB.Repo
   alias OMG.WatcherInfo.Tracer
 
-  def aggregate(queryable, aggregate, field, opts \\ []),
-    do: trace(fn -> Repo.aggregate(queryable, aggregate, field, opts) end, opts)
+  def aggregate(queryable, aggregate, opts \\ []), do: trace(fn -> Repo.aggregate(queryable, aggregate, opts) end, opts)
+
+  def aggregate_field(queryable, aggregate, field, opts \\ []),
+    do: trace(fn -> Repo.aggregate(queryable, aggregate, field) end, opts)
 
   def all(queryable, opts \\ []), do: trace(fn -> Repo.aggregate(queryable, opts) end, opts)
 

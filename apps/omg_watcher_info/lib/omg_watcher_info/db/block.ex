@@ -50,7 +50,7 @@ defmodule OMG.WatcherInfo.DB.Block do
 
   @spec get_max_blknum() :: non_neg_integer()
   def get_max_blknum() do
-    DB.TraceableRepo.aggregate(__MODULE__, :max, :blknum, location: "#{__MODULE__}.get_max_blknum/0")
+    DB.TraceableRepo.aggregate_field(__MODULE__, :max, :blknum, location: "#{__MODULE__}.get_max_blknum/0")
   end
 
   @doc """
