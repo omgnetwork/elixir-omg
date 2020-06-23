@@ -188,10 +188,9 @@ config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   telemetry_prefix: [:omg, :watcher_info, :db, :repo]
 
 config :omg_watcher_info, OMG.WatcherInfo.Tracer,
-  service: :db,
+  service: :ecto,
   adapter: SpandexDatadog.Adapter,
-  disabled?: true,
-  type: :db
+  disabled?: true
 
 # In mix environment, all modules are loaded, therefore it behaves like a watcher_info
 config :omg_watcher_rpc,
