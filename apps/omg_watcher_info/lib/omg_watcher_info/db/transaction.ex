@@ -59,7 +59,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
         ]
       )
 
-    DB.TraceableRepo.one(query)
+    DB.TraceableRepo.one(query, location: "#{__MODULE__}.get/1")
   end
 
   @doc """
@@ -80,7 +80,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     |> query_get_by_address(address)
     |> query_get_by_txtypes(txtypes)
     |> query_get_by(constraints)
-    |> DB.TraceableRepo.all()
+    |> DB.TraceableRepo.all(location: "#{__MODULE__}.get_by_filters/0")
     |> Paginator.set_data(paginator)
   end
 
@@ -122,7 +122,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   def count_all_between_timestamps(start_datetime, end_datetime) do
     query_count()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.TraceableRepo.one!()
+    |> DB.TraceableRepo.one!(location: "#{__MODULE__}.count_all_between_timestamps/2")
   end
 
   @doc """
@@ -130,7 +130,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   """
   @spec count_all() :: non_neg_integer()
   def count_all() do
-    DB.TraceableRepo.one!(query_count())
+    DB.TraceableRepo.one!(query_count(), location: "#{__MODULE__}.count_all/0")
   end
 
   defp query_get_by_address(query, nil), do: query
@@ -157,11 +157,13 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     __MODULE__
     |> query_get_by(blknum: blknum)
     |> from(order_by: [asc: :txindex])
-    |> DB.TraceableRepo.all()
+    |> DB.TraceableRepo.all(location: "#{__MODULE__}.get_by_blknum/1")
   end
 
   def get_by_position(blknum, txindex) do
-    DB.TraceableRepo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
+    DB.TraceableRepo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]),
+      location: "#{__MODULE__}.get_by_position/2"
+    )
   end
 
   defp filter_constraints(constraints, allowed_constraints) do

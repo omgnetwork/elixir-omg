@@ -18,6 +18,8 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
   for `eth_events`. This module will add `eth_height` to all persisted `eth_events` where this value is non-existent.
   """
   use Ecto.Migration
+  use Spandex.Decorators
+
   alias OMG.Eth.Encoding
   alias OMG.WatcherInfo.DB
 
@@ -31,15 +33,18 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
   def run() do
     Logger.info("Running: Add `eth_height` to `eth_events`")
 
-    DB.TraceableRepo.transaction(fn ->
-      stream_events_from_db()
-      |> stream_create_requests()
-      |> stream_batch_requests()
-      |> stream_make_requests()
-      |> stream_concatenate_responses()
-      |> stream_format_responses()
-      |> Enum.map(&update_record/1)
-    end)
+    DB.TraceableRepo.transaction(
+      fn ->
+        stream_events_from_db()
+        |> stream_create_requests()
+        |> stream_batch_requests()
+        |> stream_make_requests()
+        |> stream_concatenate_responses()
+        |> stream_format_responses()
+        |> Enum.map(&update_record/1)
+      end,
+      location: "#{__MODULE__}.run/0"
+    )
   end
 
   def stream_events_from_db() do
@@ -49,7 +54,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
         select: e.root_chain_txhash
       )
 
-    DB.TraceableRepo.stream(query, max_rows: @max_db_rows)
+    DB.TraceableRepo.stream(query, max_rows: @max_db_rows, location: "#{__MODULE__}.stream_events_from_db/0")
   end
 
   def make_batched_request([]), do: []
@@ -78,11 +83,11 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
       where: e.root_chain_txhash == ^root_chain_txhash,
       select: e
     )
-    |> DB.TraceableRepo.all()
+    |> DB.TraceableRepo.all(location: "#{__MODULE__}.update_record/1")
     |> Enum.each(fn event ->
       event
       |> Ecto.Changeset.change(%{eth_height: eth_height})
-      |> DB.TraceableRepo.update()
+      |> DB.TraceableRepo.update(location: "#{__MODULE__}.updated_record/1")
     end)
   end
 

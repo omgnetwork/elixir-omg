@@ -50,7 +50,7 @@ defmodule OMG.WatcherInfo.DB.Block do
 
   @spec get_max_blknum() :: non_neg_integer()
   def get_max_blknum() do
-    DB.TraceableRepo.aggregate(__MODULE__, :max, :blknum)
+    DB.TraceableRepo.aggregate(__MODULE__, :max, :blknum, location: "#{__MODULE__}.get_max_blknum/0")
   end
 
   @doc """
@@ -63,7 +63,7 @@ defmodule OMG.WatcherInfo.DB.Block do
         where: [blknum: ^blknum]
       )
 
-    DB.TraceableRepo.one(query)
+    DB.TraceableRepo.one(query, location: "#{__MODULE__}.get/1")
   end
 
   def base_query() do
@@ -81,7 +81,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   @spec get_blocks(Paginator.t(%DB.Block{})) :: Paginator.t(%DB.Block{})
   def get_blocks(paginator) do
     query_get_last(paginator.data_paging)
-    |> DB.TraceableRepo.all()
+    |> DB.TraceableRepo.all(location: "#{__MODULE__}.get_blocks/1")
     |> Paginator.set_data(paginator)
   end
 
@@ -102,7 +102,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   def count_all_between_timestamps(start_datetime, end_datetime) do
     query_count()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.TraceableRepo.one!()
+    |> DB.TraceableRepo.one!(location: "#{__MODULE__}.count_all_between_timestamps/2")
   end
 
   @doc """
@@ -110,7 +110,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   """
   @spec count_all() :: non_neg_integer()
   def count_all() do
-    DB.TraceableRepo.one!(query_count())
+    DB.TraceableRepo.one!(query_count(), location: "#{__MODULE__}.count_all/0")
   end
 
   @doc """
@@ -118,7 +118,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   """
   @spec get_timestamp_range_all :: %{min: non_neg_integer(), max: non_neg_integer()}
   def get_timestamp_range_all() do
-    DB.TraceableRepo.one!(query_timestamp_range())
+    DB.TraceableRepo.one!(query_timestamp_range(), location: "#{__MODULE__}.get_timestamp_range_all/0")
   end
 
   @doc """
@@ -131,14 +131,14 @@ defmodule OMG.WatcherInfo.DB.Block do
   def get_timestamp_range_between(start_datetime, end_datetime) do
     query_timestamp_range()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.TraceableRepo.one!()
+    |> DB.TraceableRepo.one!(location: "#{__MODULE__}.get_timestamp_range_between/2")
   end
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   def insert(params) do
     %__MODULE__{}
     |> changeset(params)
-    |> DB.TraceableRepo.insert()
+    |> DB.TraceableRepo.insert(location: "#{__MODULE__}.insert/1")
   end
 
   @doc """
