@@ -22,7 +22,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
-  alias OMG.WatcherInfo.DB.Repo
+  alias OMG.WatcherInfo.DB.TraceableRepo
 
   require Utxo
 
@@ -71,23 +71,25 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
-    DB.Repo.one(
+    DB.TraceableRepo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
-      )
+      ),
+      location: "#{__MODULE__}.get_by_position/1"
     )
   end
 
   @spec get_by_output_id(txhash :: OMG.Crypto.hash_t(), oindex :: non_neg_integer()) :: map() | nil
   def get_by_output_id(txhash, oindex) do
-    DB.Repo.one(
+    DB.TraceableRepo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.creating_txhash == ^txhash and txoutput.oindex == ^oindex
-      )
+      ),
+      location: "#{__MODULE__}.get_by_output_id/1"
     )
   end
 
@@ -101,7 +103,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     address
     |> query_get_utxos()
     |> from(limit: ^limit, offset: ^offset)
-    |> Repo.all()
+    |> TraceableRepo.all(location: "#{__MODULE__}.get_utxos/1")
     |> Paginator.set_data(paginator)
   end
 
@@ -130,7 +132,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         select: {txoutput.currency, sum(txoutput.amount)}
       )
 
-    Repo.all(query)
+    TraceableRepo.all(query, location: "#{__MODULE__}.get_balance/1")
     |> Enum.map(fn {currency, amount} ->
       # defends against sqlite that returns integer here
       amount = amount |> Decimal.new() |> Decimal.to_integer()
@@ -244,6 +246,6 @@ NOT EXISTS (SELECT 1
   @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
   defp get_all_utxos(address) do
     query = query_get_utxos(address)
-    Repo.all(query)
+    TraceableRepo.all(query, location: "#{__MODULE__}.get_all_utxos/1")
   end
 end

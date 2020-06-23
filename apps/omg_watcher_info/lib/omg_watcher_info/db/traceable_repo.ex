@@ -75,25 +75,29 @@ defmodule OMG.WatcherInfo.DB.TraceableRepo do
 
   def update_all(queryable, updates, opts \\ []), do: trace(fn -> Repo.update_all(queryable, updates, opts) end, opts)
 
-  def trace(func, opts) do
-    location = opts[:location] || "query"
-
+  defp trace(func, opts) do
     if Tracer.current_trace_id() do
-      _ = Tracer.start_span(location)
-
-      response = func.()
-
-      _ = Tracer.finish_span()
-
-      response
+      span(func, opts)
     else
-      _ = Tracer.start_trace(location)
+      _ = Tracer.start_trace("query")
 
-      response = func.()
+      response = span(func, opts)
 
       _ = Tracer.finish_trace()
 
       response
     end
+  end
+
+  defp span(func, opts) do
+    location = opts[:location] || "query_span"
+
+    _ = Tracer.start_span(location)
+
+    response = func.()
+
+    _ = Tracer.finish_span()
+
+    response
   end
 end
