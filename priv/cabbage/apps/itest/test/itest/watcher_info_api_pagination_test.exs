@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule WatcherInfoApiTest do
-  use Cabbage.Feature, async: true, file: "watcher_info_api.feature"
+  use Cabbage.Feature, async: true, file: "watcher_info_api_pagination.feature"
 
   require Logger
 
