@@ -36,7 +36,7 @@ defmodule Itest.Client do
   @gas 180_000
   @default_retry_attempts 15
   @poll_interval 2000
-
+  @default_paging %{page: 1, limit: 200}
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
     value = if currency == Currency.ether(), do: amount_in_wei, else: 0
@@ -106,8 +106,7 @@ defmodule Itest.Client do
   end
 
   def get_utxos(params) do
-    default_paging = %{page: 1, limit: 200}
-    %{address: address, page: page, limit: limit} = Map.merge(default_paging, params)
+    %{address: address, page: page, limit: limit} = Map.merge(@default_paging, params)
 
     {:ok, response} =
       Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address, page: page, limit: limit})
@@ -117,8 +116,7 @@ defmodule Itest.Client do
   end
 
   def get_transactions(params) do
-    default_paging = %{page: 1, limit: 200}
-    %{page: page, limit: limit, end_datetime: end_datetime} = Map.merge(default_paging, params)
+    %{page: page, limit: limit, end_datetime: end_datetime} = Map.merge(@default_paging, params)
 
     {:ok, response} =
       Transaction.transactions_all(WatcherInfo.new(), %GetAllTransactionsBodySchema1{
