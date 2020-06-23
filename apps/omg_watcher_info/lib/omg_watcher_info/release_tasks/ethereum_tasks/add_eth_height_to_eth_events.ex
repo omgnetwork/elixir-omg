@@ -18,8 +18,6 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
   for `eth_events`. This module will add `eth_height` to all persisted `eth_events` where this value is non-existent.
   """
   use Ecto.Migration
-  use Spandex.Decorators
-
   alias OMG.Eth.Encoding
   alias OMG.WatcherInfo.DB
 

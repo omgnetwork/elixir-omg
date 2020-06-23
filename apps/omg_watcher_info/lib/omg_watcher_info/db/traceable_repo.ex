@@ -7,7 +7,7 @@ defmodule OMG.WatcherInfo.DB.TraceableRepo do
   def aggregate_field(queryable, aggregate, field, opts \\ []),
     do: trace(fn -> Repo.aggregate(queryable, aggregate, field) end, opts)
 
-  def all(queryable, opts \\ []), do: trace(fn -> Repo.aggregate(queryable, opts) end, opts)
+  def all(queryable, opts \\ []), do: trace(fn -> Repo.all(queryable, opts) end, opts)
 
   def delete(struct_or_changeset, opts \\ []), do: trace(fn -> Repo.delete(struct_or_changeset, opts) end, opts)
 
