@@ -4,13 +4,13 @@ info:
   title: Child chain API
   description: |
     This is the documentation for child chain API.
-    Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
+    Error codes are available in [html](https://omg.network/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
   contact:
-    name: OmiseGO
-    email: omisego@omisego.co
+    name: OMG Network
+    email: engineering@omg.network
   license:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
-    url: 'https://omisego.network/'
+    url: 'https://omg.network/'
 tags:
   - name: ChildChain
     description: Plasma operator API.
