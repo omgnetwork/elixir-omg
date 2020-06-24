@@ -31,7 +31,7 @@ defmodule Itest.Reorg do
       unpause_container!(@node1)
       unpause_container!(@node2)
 
-      Process.sleep(30 * 1000)
+      Process.sleep(100 * 1000)
     end
   end
 
