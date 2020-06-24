@@ -349,15 +349,15 @@ paths:
                           last_validated_child_block_number:
                             type: integer
                             format: int64
-                            description: The last block that the Watcher has synced with the child chain.
+                            description: The last child chain block that the Watcher has synced with the child chain.
                           last_mined_child_block_timestamp:
                             type: integer
                             format: int64
-                            description: The time of the last block that has been seen on smart contracts.
+                            description: The time of the last child chain block that has been seen on smart contracts.
                           last_mined_child_block_number:
                             type: integer
                             format: int64
-                            description: The last block that has been seen on smart contracts.
+                            description: The last child chain block that has been seen on smart contracts.
                           last_seen_eth_block_timestamp:
                             type: integer
                             format: int64
