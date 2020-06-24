@@ -1003,9 +1003,13 @@ defmodule InFlightExitsTests do
       ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()])
 
     {:ok, result} =
-      with_retries(fn ->
-        Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
-      end)
+      case with_retries(fn ->
+             Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
+           end) do
+        {:ok, result} -> result
+        # reorg tests hack
+        {:error, %{"code" => 3, "message" => "execution reverted: Queue is empty"}} -> 0
+      end
 
     case Encoding.to_binary(result) do
       "" ->
