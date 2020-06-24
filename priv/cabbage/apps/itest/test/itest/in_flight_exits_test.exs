@@ -1050,7 +1050,8 @@ defmodule InFlightExitsTests do
     {:ok, result} =
       case with_retries(fn ->
              Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
-           end) do
+           end)
+           |> IO.inspect() do
         {:ok, result} -> result
         # reorg tests hack
         {:error, %{"code" => 3, "message" => "execution reverted: Queue is empty"}} -> 0

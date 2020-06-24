@@ -18,6 +18,8 @@ defmodule Itest.Reorg do
   """
   use GenServer
 
+  alias Itest.Account
+
   require Logger
 
   @node1 "geth-1"
@@ -76,6 +78,7 @@ defmodule Itest.Reorg do
     Logger.info("Chain reorg: pausing the first node")
 
     pause_container!(@node1)
+    Account.send_empty_transaction()
 
     Process.send_after(self(), :reorg_step2, @pause_seconds * 1000)
 
@@ -95,6 +98,7 @@ defmodule Itest.Reorg do
 
     pause_container!(@node2)
     unpause_container!(@node1)
+    Account.send_empty_transaction()
 
     Process.send_after(self(), :finish_reorg, @pause_seconds * 1000)
 

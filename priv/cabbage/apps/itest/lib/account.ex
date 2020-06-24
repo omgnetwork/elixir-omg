@@ -66,6 +66,20 @@ defmodule Itest.Account do
     {addr, account_priv_enc}
   end
 
+  def send_empty_transaction() do
+    tick_acc = generate_entity()
+    account_priv_enc = Base.encode16(tick_acc.priv)
+    passphrase = "dev.period"
+
+    {:ok, addr} = create_account_from_secret(account_priv_enc, passphrase)
+
+    {:ok, [faucet | _]} = with_retries(fn -> Ethereumex.HttpClient.eth_accounts() end)
+
+    data = %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
+
+    {:ok, receipt_hash} = with_retries(fn -> Ethereumex.HttpClient.eth_send_transaction(data) end)
+  end
+
   defp generate_entity() do
     {:ok, priv} = generate_private_key()
     {:ok, pub} = generate_public_key(priv)
