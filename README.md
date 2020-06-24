@@ -1,4 +1,4 @@
-# OmiseGO Stack API Specification
+# OMG Network Stack API Specification
 
 This `gh-pages` branch is intended specifically to contain GH Project's page.
 
