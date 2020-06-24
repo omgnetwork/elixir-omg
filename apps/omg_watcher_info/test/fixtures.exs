@@ -151,14 +151,21 @@ defmodule OMG.WatcherInfo.Fixtures do
   end
 
   defp prepare_one_block({blknum, recovered_txs}) do
-    {:ok, _} =
-      DB.Block.insert_with_transactions(%{
-        transactions: recovered_txs,
-        blknum: blknum,
-        blkhash: "##{blknum}",
-        timestamp: 1_540_465_606,
-        eth_height: 1
+    mined_block = %{
+      transactions: recovered_txs,
+      blknum: blknum,
+      blkhash: "##{blknum}",
+      timestamp: 1_540_465_606,
+      eth_height: 1
+    }
+
+    {:ok, pending_block} =
+      DB.PendingBlock.insert(%{
+        data: :erlang.term_to_binary(mined_block),
+        blknum: blknum
       })
+
+    {:ok, _} = DB.Block.insert_from_pending_block(pending_block)
 
     recovered_txs
     |> Enum.with_index()

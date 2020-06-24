@@ -37,18 +37,34 @@ defmodule OMG.Watcher.Integration.TestHelper do
     |> WaitFor.ok(timeout)
   end
 
-  def wait_for_block_fetch(block_nr, timeout) do
+  def wait_for_block_fetch(block_number, timeout) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
-      if State.get_status() |> elem(0) <= block_nr,
+      if elem(State.get_status(), 0) <= block_number,
         do: :repeat,
-        else: {:ok, block_nr}
+        else: {:ok, block_number}
     end
     |> WaitFor.ok(timeout)
 
     # write to db seems to be async and wait_for_block_fetch would return too early, so sleep
     # leverage `block` events if they get implemented
     Process.sleep(100)
+  end
+
+  @doc """
+  The above wait_for_block_fetch/2 function only waits for a block to appear in the
+  state and add some "random" sleep to give the database time to process and write the block.
+  This function will instead poll for block.get until found (or timeout).
+  """
+  def wait_for_block_inserted_in_db(block_number, timeout) do
+    func = fn ->
+      case WatcherHelper.get_block(block_number) do
+        {:error, _} -> :repeat
+        {:ok, %{"blknum" => ^block_number}} -> {:ok, block_number}
+      end
+    end
+
+    WaitFor.ok(func, timeout)
   end
 
   @doc """

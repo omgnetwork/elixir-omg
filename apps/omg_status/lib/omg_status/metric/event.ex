@@ -100,6 +100,11 @@ defmodule OMG.Status.Metric.Event do
   def name(:db_message_queue_len), do: "db_message_queue_len"
 
   @doc """
+  OMG.WatcherInfo.DB.PendingBlock queue length
+  """
+  def name(:pending_block_queue_length), do: "pending_block_queue_length"
+
+  @doc """
     OMG.DB KV layer has three types of actions: write, read,  multiread
   """
   def name(:write), do: "db_write"
