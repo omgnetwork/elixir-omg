@@ -18,6 +18,12 @@ defmodule ConfigurationRetrievalTests do
   require Logger
 
   setup_all do
+    on_exit(fn ->
+      Reorg.finish_reorg()
+    end)
+
+    Reorg.start_reorg()
+
     data = ABI.encode("getVersion()", [])
 
     {:ok, response} =
@@ -44,28 +50,26 @@ defmodule ConfigurationRetrievalTests do
   end
 
   defwhen ~r/^Operator deploys "(?<service>[^"]+)"$/, %{service: service}, state do
-    Reorg.trigger_reorg(fn ->
-      {:ok, response} =
-        case service do
-          "Child Chain" ->
-            ChildChainAPI.Api.Configuration.configuration_get(ChildChainAPI.Connection.new())
+    {:ok, response} =
+      case service do
+        "Child Chain" ->
+          ChildChainAPI.Api.Configuration.configuration_get(ChildChainAPI.Connection.new())
 
-          "Watcher" ->
-            WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
+        "Watcher" ->
+          WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
 
-          "Watcher Info" ->
-            WatcherInfoAPI.Api.Configuration.configuration_get(WatcherInfoAPI.Connection.new())
-        end
+        "Watcher Info" ->
+          WatcherInfoAPI.Api.Configuration.configuration_get(WatcherInfoAPI.Connection.new())
+      end
 
-      body = Jason.decode!(response.body)
+    body = Jason.decode!(response.body)
 
-      new_state =
-        state
-        |> Map.put(:service_response, body)
-        |> Map.put(:service, service)
+    new_state =
+      state
+      |> Map.put(:service_response, body)
+      |> Map.put(:service, service)
 
-      {:ok, new_state}
-    end)
+    {:ok, new_state}
   end
 
   defthen ~r/^Operator can read its configurational values$/, _, %{service: service} = state do
