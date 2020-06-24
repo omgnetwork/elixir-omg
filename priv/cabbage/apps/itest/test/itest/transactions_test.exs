@@ -27,7 +27,9 @@ defmodule TransactionsTests do
   # to the other half
   @num_accounts 4
   setup do
-    Reorg.finish_reorg()
+    on_exit(fn ->
+      Reorg.finish_reorg()
+    end)
 
     {alices, bobs} =
       @num_accounts

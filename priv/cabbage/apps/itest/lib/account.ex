@@ -24,7 +24,7 @@ defmodule Itest.Account do
   def take_accounts(number_of_accounts) do
     1..number_of_accounts
     |> Task.async_stream(fn _ -> account() end,
-      timeout: 240_000,
+      timeout: 300_000,
       on_timeout: :kill_task,
       max_concurrency: System.schedulers_online() * 2
     )
@@ -77,7 +77,7 @@ defmodule Itest.Account do
 
     data = %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
 
-    {:ok, receipt_hash} = with_retries(fn -> Ethereumex.HttpClient.eth_send_transaction(data) end)
+    {:ok, _receipt_hash} = with_retries(fn -> Ethereumex.HttpClient.eth_send_transaction(data) end)
   end
 
   defp generate_entity() do

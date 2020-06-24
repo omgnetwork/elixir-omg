@@ -18,8 +18,6 @@ defmodule Itest.Reorg do
   """
   use GenServer
 
-  alias Itest.Account
-
   require Logger
 
   @node1 "geth-1"
@@ -27,32 +25,17 @@ defmodule Itest.Reorg do
   @pause_seconds 100
 
   def finish_reorg() do
-    if run_reorg?() do
-      unpause_container!(@node1)
-      unpause_container!(@node2)
+    if Application.get_env(:cabbage, :reorg) do
+      GenServer.cast(__MODULE__, :finish_reorg)
 
-      Process.sleep(100 * 1000)
+      Process.sleep(60 * 1000)
     end
   end
 
   def start_reorg() do
-    if run_reorg?() do
+    if Application.get_env(:cabbage, :reorg) do
       GenServer.cast(__MODULE__, :reorg_step1)
     end
-  end
-
-  def trigger_reorg(func) do
-    start_reorg()
-
-    response = func.()
-
-    finish_reorg()
-
-    response
-  end
-
-  defp run_reorg?() do
-    Application.get_env(:cabbage, :reorg)
   end
 
   def start_link() do
@@ -78,11 +61,19 @@ defmodule Itest.Reorg do
     Logger.info("Chain reorg: pausing the first node")
 
     pause_container!(@node1)
-    Account.send_empty_transaction()
 
     Process.send_after(self(), :reorg_step2, @pause_seconds * 1000)
 
     {:noreply, %{reorg: true}}
+  end
+
+  @impl true
+  def handle_cast(:finish_reorg, _) do
+    Logger.info("Chain reorg: unpausing both nodes")
+
+    stop_reorg()
+
+    {:noreply, %{reorg: false}}
   end
 
   @impl true
@@ -98,7 +89,6 @@ defmodule Itest.Reorg do
 
     pause_container!(@node2)
     unpause_container!(@node1)
-    Account.send_empty_transaction()
 
     Process.send_after(self(), :finish_reorg, @pause_seconds * 1000)
 
@@ -109,8 +99,7 @@ defmodule Itest.Reorg do
   def handle_info(:finish_reorg, _state) do
     Logger.info("Chain reorg: reorg finished, unpausing both nodes")
 
-    unpause_container!(@node1)
-    unpause_container!(@node2)
+    stop_reorg()
 
     {:noreply, %{reorg: false}}
   end
@@ -138,6 +127,11 @@ defmodule Itest.Reorg do
       timeout: 60_000,
       recv_timeout: 60_000
     )
+  end
+
+  defp stop_reorg() do
+    unpause_container!(@node1)
+    unpause_container!(@node2)
   end
 
   defp print_available_containers() do
