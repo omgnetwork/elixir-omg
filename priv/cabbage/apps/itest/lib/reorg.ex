@@ -38,6 +38,8 @@ defmodule Itest.Reorg do
   def start_reorg() do
     if run_reorg?() do
       GenServer.cast(__MODULE__, :reorg_step1)
+
+      Process.sleep((@pause_seconds + 10) * 1000)
     end
   end
 
