@@ -1476,6 +1476,9 @@ paths:
                   type: integer
                   format: int32
                   default: 200
+                end_datetime:
+                  type: integer
+                  format: int32
               required:
                 - limit
               example:
@@ -1486,6 +1489,7 @@ paths:
                 blknum: 68290000
                 limit: 100
                 page: 2
+                end_datetime: 1592476174
       responses:
         '200':
           description: Transactions succcessful response
