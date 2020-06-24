@@ -146,8 +146,8 @@ defmodule OMG.WatcherInfo.DB.Block do
   Takes a pending block, decode its data and inserts its content in the database.
   """
   # sobelow_skip ["Misc.BinToTerm"]
-  @spec insert_pending_block(PendingBlock.t()) :: {:ok, %__MODULE__{}} | {:error, any()}
-  def insert_pending_block(pending_block) do
+  @spec insert_from_pending_block(PendingBlock.t()) :: {:ok, %__MODULE__{}} | {:error, any()}
+  def insert_from_pending_block(pending_block) do
     %{
       transactions: transactions,
       blknum: block_number,
