@@ -51,8 +51,7 @@ defmodule OMG.WatcherInfo.DB.PendingBlock do
   def get_next_to_process() do
     (pending_block in __MODULE__)
     |> from(order_by: :blknum, limit: 1)
-    |> Repo.all()
-    |> Enum.at(0)
+    |> Repo.one()
   end
 
   @spec get_count() :: non_neg_integer()

@@ -46,7 +46,7 @@ defmodule OMG.WatcherInfo.Application do
 
   def start_phase(:attach_telemetry, :normal, _phase_args) do
     handlers = [
-      ["measure-global", OMG.WatcherInfo.Measure.supported_events(), &OMG.WatcherInfo.Measure.handle_event/4, nil]
+      ["measure-watcher-info", OMG.WatcherInfo.Measure.supported_events(), &OMG.WatcherInfo.Measure.handle_event/4, nil]
     ]
 
     Enum.each(handlers, fn handler ->

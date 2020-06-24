@@ -45,7 +45,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
 
     pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 11_000})
 
-    DB.Block.insert_pending_block(pending_block)
+    DB.Block.insert_from_pending_block(pending_block)
 
     utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()
 

@@ -165,7 +165,7 @@ defmodule OMG.WatcherInfo.Fixtures do
         blknum: blknum
       })
 
-    {:ok, _} = DB.Block.insert_pending_block(pending_block)
+    {:ok, _} = DB.Block.insert_from_pending_block(pending_block)
 
     recovered_txs
     |> Enum.with_index()

@@ -27,6 +27,6 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor.Storage do
 
   @spec process_block(PendingBlock.t()) :: {:ok, %Block{}} | {:error, any()}
   def process_block(block) do
-    Block.insert_pending_block(block)
+    Block.insert_from_pending_block(block)
   end
 end

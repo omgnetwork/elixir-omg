@@ -43,7 +43,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
 
     pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 11_000})
 
-    DB.Block.insert_pending_block(pending_block)
+    DB.Block.insert_from_pending_block(pending_block)
 
     utxo = DB.TxOutput.get_by_position(Utxo.position(11_000, 0, 0))
     assert not is_nil(utxo)

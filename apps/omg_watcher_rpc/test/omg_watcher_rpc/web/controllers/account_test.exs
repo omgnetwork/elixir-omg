@@ -242,7 +242,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
     pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 11_000})
 
-    DB.Block.insert_pending_block(pending_block)
+    DB.Block.insert_from_pending_block(pending_block)
 
     assert [
              %{
@@ -302,7 +302,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
     pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 11_000})
 
-    DB.Block.insert_pending_block(pending_block)
+    DB.Block.insert_from_pending_block(pending_block)
 
     utxos = WatcherHelper.get_utxos(bob.addr)
 
