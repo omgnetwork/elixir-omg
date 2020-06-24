@@ -23,11 +23,7 @@ defmodule DepositsTests do
   alias Itest.Transactions.Currency
 
   setup do
-    Reorg.finish_reorg()
-
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
-
-    Reorg.start_reorg()
 
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end
@@ -35,24 +31,26 @@ defmodule DepositsTests do
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
           %{alice_account: alice_account} = state do
-    initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
+    Reorg.trigger_reorg(fn ->
+      initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
-    {:ok, receipt_hash} =
-      amount
-      |> Currency.to_wei()
-      |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
+      {:ok, receipt_hash} =
+        amount
+        |> Currency.to_wei()
+        |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
 
-    gas_used = Client.get_gas_used(receipt_hash)
+      gas_used = Client.get_gas_used(receipt_hash)
 
-    {_, new_state} =
-      Map.get_and_update!(state, :gas, fn current_gas ->
-        {current_gas, current_gas + gas_used}
-      end)
+      {_, new_state} =
+        Map.get_and_update!(state, :gas, fn current_gas ->
+          {current_gas, current_gas + gas_used}
+        end)
 
-    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
+      balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
 
-    state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
-    {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
+      state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
+      {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
+    end)
   end
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
@@ -87,17 +85,19 @@ defmodule DepositsTests do
   defwhen ~r/^Alice sends Bob "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account} = state do
-    {:ok, [sign_hash, typed_data, _txbytes]} =
-      Client.create_transaction(
-        Currency.to_wei(amount),
-        alice_account,
-        bob_account
-      )
+    Reorg.trigger_reorg(fn ->
+      {:ok, [sign_hash, typed_data, _txbytes]} =
+        Client.create_transaction(
+          Currency.to_wei(amount),
+          alice_account,
+          bob_account
+        )
 
-    # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
-    _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
+      # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
+      _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
 
-    {:ok, state}
+      {:ok, state}
+    end)
   end
 
   defthen ~r/^Bob should have "(?<amount>[^"]+)" ETH on the child chain$/,

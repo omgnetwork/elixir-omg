@@ -25,18 +25,32 @@ defmodule Itest.Reorg do
   @pause_seconds 100
 
   def finish_reorg() do
-    if Application.get_env(:cabbage, :reorg) do
+    if run_reorg?() do
       unpause_container!(@node1)
       unpause_container!(@node2)
 
-      Process.sleep(60 * 1000)
+      Process.sleep(30 * 1000)
     end
   end
 
   def start_reorg() do
-    if Application.get_env(:cabbage, :reorg) do
+    if run_reorg?() do
       GenServer.cast(__MODULE__, :reorg_step1)
     end
+  end
+
+  def trigger_reorg(func) do
+    start_reorg()
+
+    response = func.()
+
+    finish_reorg()
+
+    response
+  end
+
+  defp run_reorg?() do
+    Application.get_env(:cabbage, :reorg)
   end
 
   def start_link() do

@@ -26,11 +26,7 @@ defmodule FeeClaimingTests do
   @expected_fee_rule %{"amount" => 1, "currency" => "0x0000000000000000000000000000000000000000"}
 
   setup do
-    Reorg.finish_reorg()
-
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
-
-    Reorg.start_reorg()
 
     initial_balance =
       @fee_claimer_address
@@ -57,39 +53,43 @@ defmodule FeeClaimingTests do
   defwhen ~r/^"(?<entity>[^"]+)" deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{entity: entity, amount: amount},
           state do
-    entity_address = state[entity].address
+    Reorg.trigger_reorg(fn ->
+      entity_address = state[entity].address
 
-    {:ok, receipt_hash} =
-      amount
-      |> Currency.to_wei()
-      |> Client.deposit(entity_address, Itest.PlasmaFramework.vault(Currency.ether()))
+      {:ok, receipt_hash} =
+        amount
+        |> Currency.to_wei()
+        |> Client.deposit(entity_address, Itest.PlasmaFramework.vault(Currency.ether()))
 
-    gas_used = Client.get_gas_used(receipt_hash)
+      gas_used = Client.get_gas_used(receipt_hash)
 
-    {_, new_state} =
-      Map.get_and_update!(state, :gas, fn current_gas ->
-        {current_gas, current_gas + gas_used}
-      end)
+      {_, new_state} =
+        Map.get_and_update!(state, :gas, fn current_gas ->
+          {current_gas, current_gas + gas_used}
+        end)
 
-    {:ok, new_state}
+      {:ok, new_state}
+    end)
   end
 
   defwhen ~r/^"(?<sender>[^"]+)" sends "(?<receiver>[^"]+)" "(?<amount>[^"]+)" ETH on the child chain$/,
           %{sender: sender, receiver: receiver, amount: amount},
           state do
-    sender = state[sender]
-    receiver = state[receiver]
+    Reorg.trigger_reorg(fn ->
+      sender = state[sender]
+      receiver = state[receiver]
 
-    {:ok, [sign_hash, typed_data, _txbytes]} =
-      Client.create_transaction(
-        Currency.to_wei(amount),
-        sender.address,
-        receiver.address
-      )
+      {:ok, [sign_hash, typed_data, _txbytes]} =
+        Client.create_transaction(
+          Currency.to_wei(amount),
+          sender.address,
+          receiver.address
+        )
 
-    _ = Client.submit_transaction(typed_data, sign_hash, [sender.pkey])
+      _ = Client.submit_transaction(typed_data, sign_hash, [sender.pkey])
 
-    {:ok, state}
+      {:ok, state}
+    end)
   end
 
   defthen ~r/^"(?<entity>[^"]+)" should have "(?<amount>[^"]+)" ETH on the child chain$/,
