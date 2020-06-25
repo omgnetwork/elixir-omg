@@ -365,7 +365,7 @@ paths:
                           last_seen_eth_block_number:
                             type: integer
                             format: int64
-                            description: The last Ethereum block that has been by the Watcher.
+                            description: The last Ethereum block that has been seen by the Watcher.
                           contract_addr:
                             type: object
                             additionalProperties: true
@@ -1997,4 +1997,3 @@ paths:
                         description: Something went wrong on the server
                         messages:
                           error_key: error_reason
-                          
