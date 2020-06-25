@@ -29,13 +29,10 @@ defmodule OMG.Watcher.API.AccountTest do
     default_app_path = "#{db_path}/app"
     exit_processor_path = "#{db_path}/exit_processor"
 
-    # Note: Order of initialization is important here, because it sets Application's env
-    :ok = OMG.DB.init(exit_processor_path)
-    :ok = OMG.DB.init(default_app_path)
-    Application.put_env(:omg_db, :path, default_app_path, persistent: true)
+    :ok = OMG.DB.init(db_path, [OMG.DB.Instance.ExitProcessor])
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
-    {:ok, _} = OMG.DB.RocksDB.Server.start_link(db_path: exit_processor_path, name: OMG.DB.RocksDB.ExitProcessor)
+    {:ok, _} = OMG.DB.start_link(db_path: db_path, instance: OMG.DB.Instance.ExitProcessor)
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
@@ -126,7 +123,7 @@ defmodule OMG.Watcher.API.AccountTest do
                }
              }}
           ],
-          OMG.DB.RocksDB.ExitProcessor
+          OMG.DB.Instance.ExitProcessor
         )
 
       assert [] == Account.get_exitable_utxos(alice.addr)

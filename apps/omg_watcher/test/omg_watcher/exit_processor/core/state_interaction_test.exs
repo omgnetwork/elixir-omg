@@ -49,8 +49,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
 
   setup do
     db_path = Briefly.create!(directory: true)
-    Application.put_env(:omg_db, :path, db_path, persistent: true)
-    :ok = OMG.DB.init()
+    :ok = OMG.DB.init(db_path)
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
 
     {:ok, processor_empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)

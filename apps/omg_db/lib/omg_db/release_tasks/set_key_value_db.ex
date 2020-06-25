@@ -17,7 +17,6 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   @behaviour Config.Provider
   require Logger
   @app :omg_db
-  @default_db_folder "app"
 
   def init(args) do
     args
@@ -38,7 +37,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
   end
 
   defp set_db(config, root_path, release) do
-    path = Path.join([root_path, "#{release}", @default_db_folder])
+    path = Path.join([root_path, "#{release}"])
     _ = Logger.info("CONFIGURATION: App: #{@app} Key: DB_PATH Value: #{inspect(path)}.")
     # if we want to access the updated path in the same VM instance, we need to update it imidiatelly
     Application.put_env(@app, :path, path)

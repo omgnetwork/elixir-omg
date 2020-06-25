@@ -32,15 +32,10 @@ defmodule OMG.Watcher.Supervisor do
   end
 
   def init(:ok) do
-    db_root_path =
-      :omg_db
-      |> Application.fetch_env!(:path)
-      |> OMG.DB.root_path()
-
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
 
     children = [
-      OMG.DB.child_spec(db_path: Path.join([db_root_path, "exit_processor"]), name: OMG.DB.RocksDB.ExitProcessor),
+      OMG.DB.child_spec(db_path: Application.fetch_env!(:omg_db, :path), instance: OMG.DB.Instance.ExitProcessor),
       {Monitor,
        [
          Alarm,

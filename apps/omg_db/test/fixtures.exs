@@ -40,14 +40,11 @@ defmodule OMG.DB.Fixtures do
   deffixture db_initialize_multi(db_initialized) do
     :ok = db_initialized
 
-    default_app_path = Application.fetch_env!(:omg_db, :path)
-    root_db_path = OMG.DB.root_path(default_app_path)
-    exit_processor_path = "#{root_db_path}/exit_processor"
+    base_path = Application.fetch_env!(:omg_db, :path)
+    instances = [OMG.DB.Instance.ExitProcessor]
 
-    :ok = OMG.DB.init(exit_processor_path)
-    {:ok, _} = OMG.DB.RocksDB.Server.start_link(db_path: exit_processor_path, name: OMG.DB.RocksDB.ExitProcessor)
-
-    Application.put_env(:omg_db, :path, default_app_path, persistent: true)
+    :ok = OMG.DB.init(base_path, instances)
+    {:ok, _} = OMG.DB.start_link(db_path: base_path, instance: OMG.DB.Instance.ExitProcessor)
 
     :ok
   end

@@ -15,8 +15,8 @@
 defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDBTest do
   use ExUnit.Case, async: true
 
-  alias OMG.Watcher.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
+  alias OMG.Watcher.ReleaseTasks.InitKeyValueDB
 
   @apps [:logger, :crypto, :ssl]
 
@@ -51,8 +51,8 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDBTest do
     :ok = InitKeyValueDB.run_multi()
 
     # check default app's db path set correctly
-    app_path = Application.fetch_env!(:omg_db, :path)
-    assert app_path == "#{dir}/watcher/app"
+    base_path = Application.fetch_env!(:omg_db, :path)
+    assert base_path == "#{dir}/watcher"
 
     started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
 
@@ -65,11 +65,10 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDBTest do
     {:ok, _} = Application.ensure_all_started(:omg_db)
 
     # start exit processor database
-    exit_processor_dir_path = Path.join([OMG.DB.root_path(app_path), "exit_processor"])
-    {:ok, pid} = OMG.DB.start_link(db_path: exit_processor_dir_path, name: TestExitProcessorDB)
-    assert pid == GenServer.whereis(TestExitProcessorDB)
+    {:ok, pid} = OMG.DB.start_link(db_path: base_path, instance: OMG.DB.Instance.ExitProcessor)
+    assert pid == GenServer.whereis(OMG.DB.Instance.ExitProcessor)
 
-    :ok = GenServer.stop(TestExitProcessorDB)
+    :ok = GenServer.stop(OMG.DB.Instance.ExitProcessor)
     :ok = Application.stop(:omg_db)
     :ok = System.delete_env("DB_PATH")
     _ = File.rm_rf!(dir)

@@ -23,10 +23,8 @@ defmodule OMG.DB do
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
   @callback start_link(term) :: GenServer.on_start()
-  @callback child_spec() :: Supervisor.child_spec()
   @callback child_spec(term) :: Supervisor.child_spec()
   @callback init(String.t()) :: :ok
-  @callback init() :: :ok
   @callback initiation_multiupdate() :: :ok | {:error, any}
 
   @callback multi_update(term()) :: :ok | {:error, any}
@@ -65,17 +63,42 @@ defmodule OMG.DB do
                       child_top_block_number: 1,
                       get_single_value: 2
 
-  def start_link(args), do: RocksDB.start_link(args)
+  @default_instance_name OMG.DB.Instance.Default
 
-  def child_spec(), do: RocksDB.child_spec()
-  def child_spec(args), do: RocksDB.child_spec(args)
-
-  def init(path) do
-    RocksDB.init(path)
+  def start_link(args) do
+    args
+    |> Keyword.put_new_lazy(:db_path, fn -> Application.fetch_env!(:omg_db, :path) end)
+    |> prepare_args()
+    |> RocksDB.start_link()
   end
 
-  def init() do
-    RocksDB.init()
+  def child_spec(args \\ []) do
+    args
+    |> Keyword.put_new_lazy(:db_path, fn -> Application.fetch_env!(:omg_db, :path) end)
+    |> prepare_args()
+    |> RocksDB.child_spec()
+  end
+
+  @doc """
+  Initalizes directory for default instance database storage.
+  """
+  def init(path) do
+    init(path, [])
+  end
+
+  @doc """
+  Initializes directories for multiple database instances. Storage for default instance is always initialized.
+  The list of `instances` has to contain atoms in the form `OMG.DB.Instance.<InstanceName>`. Instance storage
+  will be created under snake cased `<InstanceName>` subdirectory of `path`.
+  Assumes that the name of the default instance __is not__ included in `instances` list.
+  """
+  def init(path, instances) do
+    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
+
+    [@default_instance_name | instances]
+    |> Enum.map(&join_path(&1, path))
+    |> Enum.map(&RocksDB.init/1)
+    |> all_ok_or_error()
   end
 
   @doc """
@@ -153,11 +176,40 @@ defmodule OMG.DB do
   end
 
   @doc """
-  Gets parent directory of given `path`. Helper function for multi instance key-value databases.
+  Combines path for database instance storage location.
+  `instance` has to be atom in form `OMG.DB.Instance.<InstanceName>`.
   """
-  def root_path(path) do
-    path
-    |> Path.rootname()
-    |> Path.dirname()
+  def join_path(instance, base_path) when is_binary(base_path) and is_atom(instance) do
+    ["Elixir", "OMG", "DB", "Instance", instance_name] =
+      instance
+      |> Atom.to_string()
+      |> String.split(".")
+
+    Path.join(base_path, Macro.underscore(instance_name))
   end
+
+  @doc """
+  Sets the key-values expected by database implementation, providing default values
+  """
+  def prepare_args(args) do
+    base_path = Keyword.fetch!(args, :db_path)
+
+    {name, instance} =
+      args
+      |> Keyword.get(:instance)
+      |> case do
+        nil -> {OMG.DB.RocksDB.Server, @default_instance_name}
+        @default_instance_name -> {OMG.DB.RocksDB.Server, @default_instance_name}
+        instance_name -> {instance_name, instance_name}
+      end
+
+    args
+    |> Keyword.put(:db_path, join_path(instance, base_path))
+    |> Keyword.put(:name, name)
+    |> Keyword.take([:db_path, :name])
+  end
+
+  defp all_ok_or_error([]), do: :ok
+  defp all_ok_or_error([:ok | rest]), do: all_ok_or_error(rest)
+  defp all_ok_or_error([error | _]), do: error
 end

@@ -102,6 +102,58 @@ defmodule OMG.DBTest do
     [] = competitors_info -- db_writes
   end
 
+  describe "Multi-instance storage path" do
+    test "create paths for correctly prefixed instances" do
+      base_path = "/tmp"
+
+      assert "#{base_path}/exit_processor" == DB.join_path(OMG.DB.Instance.ExitProcessor, base_path)
+      assert "#{base_path}/default" == DB.join_path(OMG.DB.Instance.Default, base_path)
+      assert "#{base_path}/omg_network" == DB.join_path(OMG.DB.Instance.OMGNetwork, base_path)
+    end
+
+    test "fails when instance incorrectly prefixed" do
+      assert_raise MatchError, fn -> DB.join_path(OMG.DB.RocksDB, "/path") end
+    end
+  end
+
+  describe "Preparing sane defaults for database" do
+    @base_path "/db/path"
+    @default_name OMG.DB.RocksDB.Server
+    @default_instance_name OMG.DB.Instance.Default
+
+    test "fails when db_path not set" do
+      assert_raise KeyError, fn -> DB.prepare_args(instance: OMG.DB.Instance.Default) end
+    end
+
+    test "fails when instance is not correctly prefixed" do
+      assert_raise MatchError, fn ->
+        DB.prepare_args(db_path: @base_path, instance: OMG.DB.RocksDB)
+      end
+    end
+
+    test "suplements path of default instance when instance not set" do
+      assert [name: @default_name, db_path: "#{@base_path}/default"] == DB.prepare_args(db_path: @base_path)
+    end
+
+    test "provides default name for default db instance" do
+      assert [name: @default_name, db_path: "#{@base_path}/default"] ==
+               DB.prepare_args(db_path: @base_path, instance: @default_instance_name)
+    end
+
+    test "default instance name cannot be overwritten" do
+      assert [name: @default_name, db_path: "#{@base_path}/default"] ==
+               DB.prepare_args(db_path: @base_path, name: @default_instance_name)
+
+      assert [name: @default_name, db_path: "#{@base_path}/default"] ==
+               DB.prepare_args(db_path: @base_path, name: @default_instance_name, instance: @default_instance_name)
+    end
+
+    test "suplements path and overrides name for non-default instance" do
+      assert [name: OMG.DB.Instance.ExitProcessor, db_path: "#{@base_path}/exit_processor"] ==
+               DB.prepare_args(db_path: @base_path, instance: OMG.DB.Instance.ExitProcessor)
+    end
+  end
+
   defp create_write(:utxo = type, pid) do
     db_writes =
       Enum.map(1..@writes, fn index ->

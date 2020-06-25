@@ -34,20 +34,9 @@ defmodule OMG.DB.RocksDB do
     @server_name.start_link(args)
   end
 
-  def child_spec() do
-    db_path = Application.fetch_env!(:omg_db, :path)
-    args = [db_path: db_path, name: OMG.DB.RocksDB.Server]
-
+  def child_spec(args) do
     %{
-      id: OMG.DB.RocksDB.Server,
-      start: {OMG.DB.RocksDB.Server, :start_link, [args]},
-      type: :worker
-    }
-  end
-
-  def child_spec([db_path: _db_path, name: server_name] = args) do
-    %{
-      id: server_name,
+      id: args[:name],
       start: {OMG.DB.RocksDB.Server, :start_link, [args]},
       type: :worker
     }
@@ -148,14 +137,10 @@ defmodule OMG.DB.RocksDB do
   @doc """
   Does all of the initialization of `OMG.DB` based on the configured path
   """
-  def init(), do: do_init(@server_name, Application.fetch_env!(:omg_db, :path))
-
   def init(path) when is_binary(path) do
-    :ok = Application.put_env(:omg_db, :path, path, persistent: true)
     do_init(@server_name, path)
   end
 
-  def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :path))
   def init(server_name, path), do: do_init(server_name, path)
 
   # File.mkdir_p is called at the application start
@@ -171,7 +156,7 @@ defmodule OMG.DB.RocksDB do
       :ok
     else
       error ->
-        _ = Logger.error("Unable to init: #{inspect(error)}")
+        _ = Logger.error("Could not initialize the DB in #{path}. Reason #{inspect(error)}")
         error
     end
   end

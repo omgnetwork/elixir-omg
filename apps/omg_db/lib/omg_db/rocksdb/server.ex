@@ -45,14 +45,15 @@ defmodule OMG.DB.RocksDB.Server do
          do: :rocksdb.close(db_ref)
   end
 
-  def start_link([db_path: _db_path, name: name] = args) do
-    GenServer.start_link(__MODULE__, args, name: name)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: args[:name])
   end
 
   # https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide#prefix-databases
-  def init(db_path: db_path, name: name) do
+  def init(args) do
     # needed so that terminate callback is called on normal close
-    db_path = String.to_charlist(db_path)
+    name = Keyword.fetch!(args, :name)
+    db_path = args |> Keyword.fetch!(:db_path) |> String.to_charlist()
     Process.flag(:trap_exit, true)
     ^name = create_stats_table(name)
 

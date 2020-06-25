@@ -84,10 +84,9 @@ defmodule OMG.Performance.SimplePerftest do
   @spec setup_simple_perftest(keyword()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "perftest_db")
-    Application.put_env(:omg_db, :path, dbdir, persistent: true)
     _ = Logger.info("Perftest rocksdb path: #{inspect(dbdir)}")
 
-    :ok = OMG.DB.init()
+    :ok = OMG.DB.init(dbdir)
 
     started_apps = ensure_all_started([:omg_db, :omg_bus])
     {:ok, simple_perftest_chain} = start_simple_perftest_chain(opts)

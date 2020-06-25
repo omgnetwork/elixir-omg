@@ -24,26 +24,13 @@ defmodule OMG.ChildChain.ReleaseTasks.InitKeyValueDB do
   def run() do
     _ = on_load()
 
-    result =
-      @app
-      |> Application.get_env(:path)
-      |> process()
+    path = Application.fetch_env!(@app, :path)
+    _ = Logger.warn("Creating database at #{inspect(path)}")
+
+    result = OMG.DB.init(path)
 
     _ = on_done()
     result
-  end
-
-  defp process(path) do
-    _ = Logger.warn("Creating database at #{inspect(path)}")
-
-    case OMG.DB.init(path) do
-      {:error, term} ->
-        _ = Logger.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
-        {:error, term}
-
-      :ok ->
-        _ = Logger.warn("The database at #{inspect(path)} has been created")
-    end
   end
 
   defp on_load() do

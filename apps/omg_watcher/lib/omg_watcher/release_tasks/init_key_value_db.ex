@@ -18,7 +18,6 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDB do
   """
 
   @app :omg_db
-  @default_db_folder "app"
   @start_apps [:logger, :crypto, :ssl]
 
   require Logger
@@ -26,32 +25,14 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDB do
   def run_multi() do
     _ = on_load()
 
-    root_path =
-      @app
-      |> Application.get_env(:path)
-      |> OMG.DB.root_path()
+    base_path = Application.fetch_env!(@app, :path)
+    instances = [OMG.DB.Instance.ExitProcessor]
+    _ = Logger.warn("Creating database at #{inspect(base_path)} with instances #{inspect(instances)}")
 
-    result =
-      ["exit_processor", @default_db_folder]
-      |> Enum.map(&Path.join([root_path, &1]))
-      |> Enum.map(&process/1)
-      |> all_ok_or_error()
+    result = OMG.DB.init(base_path, instances)
 
     _ = on_done()
     result
-  end
-
-  defp process(path) do
-    _ = Logger.warn("Creating database at #{inspect(path)}")
-
-    case OMG.DB.init(path) do
-      {:error, term} ->
-        _ = Logger.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
-        {:error, term}
-
-      :ok ->
-        _ = Logger.warn("The database at #{inspect(path)} has been created")
-    end
   end
 
   defp on_load() do
@@ -62,8 +43,4 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDB do
   defp on_done() do
     _ = Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
   end
-
-  defp all_ok_or_error([]), do: :ok
-  defp all_ok_or_error([:ok | rest]), do: all_ok_or_error(rest)
-  defp all_ok_or_error([error | _]), do: error
 end
