@@ -20,21 +20,16 @@ defmodule TransactionsTests do
   alias Itest.Account
 
   alias Itest.Client
-  alias Itest.Reorg
   alias Itest.Transactions.Currency
 
   # needs to be an even number, because we split the accounts in half, the first half sends ETH
   # to the other half
   @num_accounts 4
   setup do
-    Reorg.finish_reorg()
-
     {alices, bobs} =
       @num_accounts
       |> Account.take_accounts()
       |> Enum.split(div(@num_accounts, 2))
-
-    Reorg.start_reorg()
 
     %{alices: alices, bobs: bobs}
   end

@@ -23,11 +23,7 @@ defmodule DepositsTests do
   alias Itest.Transactions.Currency
 
   setup do
-    Reorg.finish_reorg()
-
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
-
-    Reorg.start_reorg()
 
     %{alice_account: alice_account, alice_pkey: alice_pkey, bob_account: bob_account, gas: 0}
   end
@@ -38,9 +34,11 @@ defmodule DepositsTests do
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
     {:ok, receipt_hash} =
-      amount
-      |> Currency.to_wei()
-      |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
+      Reorg.execute_in_reorg(fn ->
+        amount
+        |> Currency.to_wei()
+        |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
+      end)
 
     gas_used = Client.get_gas_used(receipt_hash)
 

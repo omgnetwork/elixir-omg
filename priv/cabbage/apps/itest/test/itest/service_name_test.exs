@@ -13,17 +13,9 @@
 # limitations under the License.
 defmodule ServiceNameTests do
   use Cabbage.Feature, async: false, file: "service_name.feature"
+  @moduletag :service_name
 
   require Logger
-
-  alias Itest.Reorg
-
-  setup do
-    Reorg.finish_reorg()
-    Reorg.start_reorg()
-
-    :ok
-  end
 
   defwhen ~r/^Operator deploys "(?<service>[^"]+)"$/, %{service: service}, state do
     {:ok, response} =

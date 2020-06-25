@@ -14,23 +14,19 @@
 
 defmodule FeeClaimingTests do
   use Cabbage.Feature, async: false, file: "fee_claiming.feature"
+  @moduletag :fee_claiming
 
   require Logger
 
   alias Itest.Account
   alias Itest.Client
-  alias Itest.Reorg
   alias Itest.Transactions.Currency
 
   @fee_claimer_address "0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837"
   @expected_fee_rule %{"amount" => 1, "currency" => "0x0000000000000000000000000000000000000000"}
 
   setup do
-    Reorg.finish_reorg()
-
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
-
-    Reorg.start_reorg()
 
     initial_balance =
       @fee_claimer_address

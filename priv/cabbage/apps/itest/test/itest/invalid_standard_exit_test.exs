@@ -20,7 +20,6 @@ defmodule InvalidStandardExitsTests do
   alias Itest.Account
   alias Itest.ApiModel.Utxo
   alias Itest.Client
-  alias Itest.Reorg
   alias Itest.StandardExitChallengeClient
   alias Itest.StandardExitClient
   alias Itest.Transactions.Currency
@@ -29,11 +28,7 @@ defmodule InvalidStandardExitsTests do
   import Itest.Poller, only: [pull_api_until_successful: 3, pull_api_until_successful: 4, all_events_in_status?: 1]
 
   setup do
-    Reorg.finish_reorg()
-
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}, {carol_account, carol_pkey}] = Account.take_accounts(3)
-
-    Reorg.start_reorg()
 
     %{
       alice_account: alice_account,

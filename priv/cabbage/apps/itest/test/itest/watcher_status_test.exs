@@ -17,16 +17,6 @@ defmodule WatcherStatusTests do
 
   require Logger
 
-  alias Itest.Reorg
-
-  setup do
-    Reorg.finish_reorg()
-
-    Reorg.start_reorg()
-
-    :ok
-  end
-
   defwhen ~r/^Operator requests the watcher's status$/, %{}, state do
     {:ok, response} = WatcherSecurityCriticalAPI.Api.Status.status_get(WatcherSecurityCriticalAPI.Connection.new())
 
