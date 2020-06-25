@@ -177,7 +177,7 @@ defmodule OMG.WatcherInfo.DB.Block do
       |> Ecto.Multi.delete("pending_block", pending_block, [])
       |> Ecto.Multi.run("yield", fn _repo, _changeset ->
         {:watcher_info, "insert_from_pending_block"}
-        |> OMG.Bus.Event.new(:data, %{blknum: blknum, eth_height: eth_height})
+        |> OMG.Bus.Event.new(:data, %{blknum: block_number, eth_height: eth_height})
         |> OMG.Bus.direct_local_broadcast()
 
         {:ok, []}
