@@ -42,19 +42,21 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
           num_blocks: non_neg_integer(),
           earliest_stored_height: non_neg_integer(),
           latest_stored_height: non_neg_integer(),
+          history_ets: :ets.tid(),
           subscribers: [pid()]
         }
 
   defstruct num_blocks: 200,
             earliest_stored_height: 0,
             latest_stored_height: 0,
+            history_ets: nil,
             subscribers: []
 
   @doc false
   @spec all() :: History.t()
   def all() do
     # No need to go through the GenSever to fetch from ets.
-    :ets.match(@history_table, "$1")
+    :ets.tab2list(@history_table)
   end
 
   #
@@ -64,30 +66,33 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
   @doc false
   @impl GenServer
   def init(opts) do
-    event_bus = Keyword.fetch!(opts, :event_bus)
     num_blocks = Keyword.fetch!(opts, :num_blocks)
+    event_bus = Keyword.fetch!(opts, :event_bus)
+    :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
+
+    # The ets table is not initialized with `:read_concurrency` because we are expecting interleaving
+    # reads and writes. See http://erlang.org/doc/man/ets.html
+    history_ets = :ets.new(@history_table, [:ordered_set, :protected, :named_table])
 
     state = %__MODULE__{
-      num_blocks: num_blocks
+      num_blocks: num_blocks,
+      history_ets: history_ets
     }
 
     _ = Logger.info("Started #{__MODULE__}: #{inspect(state)}")
-    {:ok, state, {:continue, {:initialize, event_bus}}}
+    {:ok, state, {:continue, :first_fetch}}
   end
 
   @doc false
   @impl GenServer
-  def handle_continue({:initialize, event_bus}, state) do
-    # The ets table is not initialized with `:read_concurrency` because we are expecting interleaving
-    # reads and writes. See http://erlang.org/doc/man/ets.html
-    :prices = :ets.new(@history_table, [:ordered_set, :protected, :named_table])
-    :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
-
+  def handle_continue(:first_fetch, state) do
     {:ok, to_height} = EthereumHeight.get()
     from_height = to_height - state.num_blocks
-    :ok = do_populate_prices(from_height, to_height, state)
+    {:ok, earliest_height, latest_height} = do_populate_prices(from_height, to_height, state)
 
-    {:noreply, %{state | earliest_stored_height: from_height, latest_stored_height: to_height}}
+    state = %{state | earliest_stored_height: earliest_height, latest_stored_height: latest_height}
+
+    {:noreply, state}
   end
 
   #
@@ -97,10 +102,10 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
   @doc false
   @impl GenServer
   def handle_info({:internal_event_bus, :ethereum_new_height, height}, state) do
-    from_height = max(height - state.num_blocks, state.earliest_stored_height)
-    :ok = do_populate_prices(from_height, height, state)
+    from_height = height - state.num_blocks
+    {:ok, earliest_height, latest_height} = do_populate_prices(from_height, height, state)
 
-    {:noreply, %{state | earliest_stored_height: from_height, latest_stored_height: height}}
+    {:noreply, %{state | earliest_stored_height: earliest_height, latest_stored_height: latest_height}}
   end
 
   @doc false
@@ -115,13 +120,17 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
   #
 
   defp do_populate_prices(from_height, to_height, state) do
+    fetch_from_height = max(from_height, state.latest_stored_height)
+
+    # Fetch and insert new heights, leaving obsolete heights intact.
     :ok =
-      from_height..to_height
+      fetch_from_height..to_height
       |> Fetcher.stream()
-      |> stream_insert()
+      |> stream_insert(state.history_ets)
       |> Stream.run()
 
-    :ok = prune_heights(state.earliest_stored_height, from_height - 1)
+    # Prune obsolete heights.
+    :ok = prune_heights(state.history_ets, state.earliest_stored_height, from_height - 1)
 
     _ =
       Logger.info(
@@ -132,20 +141,20 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
 
     # Inform all subscribers that the history has been updated.
     _ = Enum.each(state.subscribers, fn subscriber -> send(subscriber, {History, :updated}) end)
-    :ok
+    {:ok, from_height, to_height}
   end
 
-  defp stream_insert(stream_blocks) do
+  defp stream_insert(stream_blocks, history_ets) do
     Stream.each(stream_blocks, fn block ->
       height = Encoding.int_from_hex(block["number"])
       prices = Enum.map(block["transactions"], fn tx -> Encoding.int_from_hex(tx["gasPrice"]) end)
       timestamp = Encoding.int_from_hex(block["timestamp"])
 
-      true = :ets.insert(@history_table, {height, prices, timestamp})
+      true = :ets.insert(history_ets, {height, prices, timestamp})
     end)
   end
 
-  defp prune_heights(from, to) do
-    Enum.each(from..to, fn height -> :ets.delete(@history_table, height) end)
+  defp prune_heights(history_ets, from, to) do
+    Enum.each(from..to, fn height -> :ets.delete(history_ets, height) end)
   end
 end

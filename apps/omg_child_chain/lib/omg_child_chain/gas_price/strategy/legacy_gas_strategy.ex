@@ -95,7 +95,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
   Suggests the optimal gas price.
   """
   @impl Strategy
-  @spec get_price() :: {:ok, GasPrice.t()}
+  @spec get_price() :: {:ok, pos_integer()}
   def get_price() do
     GenServer.call(__MODULE__, :get_price)
   end
@@ -136,14 +136,19 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
   @doc false
   @impl GenServer
   def handle_call({:recalculate, latest}, _, state) do
-    {:reply, :ok, do_recalculate(latest, state)}
+    state = recalculate_state(latest, state)
+
+    _ =
+      Logger.info("#{__MODULE__}: Gas calculation triggered. New price suggestion: #{inspect(state.gas_price_to_use)}")
+
+    {:reply, :ok, state}
   end
 
   #
   # Internal implementations
   #
 
-  defp do_recalculate(latest, state) do
+  defp recalculate_state(latest, state) do
     cond do
       latest.parent_height - state.last_parent_height < state.eth_gap_without_child_blocks ->
         state

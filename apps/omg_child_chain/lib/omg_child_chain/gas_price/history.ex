@@ -22,6 +22,21 @@ defmodule OMG.ChildChain.GasPrice.History do
   @type record() :: {height :: non_neg_integer(), prices :: [float()], timestamp :: non_neg_integer()}
 
   @doc """
+  Defines the child specification for this module, so that it can be started conveniently by a supervisor.
+
+  ## Examples
+
+      Supervisor.init([{History, []}], strategy: :one_for_one)
+  """
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :worker
+    }
+  end
+
+  @doc """
   Start the gas price history service.
   """
   @spec start_link(Keyword.t()) :: GenServer.on_start()

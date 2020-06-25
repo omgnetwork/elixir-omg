@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.GasPrice.Supervisor do
+defmodule OMG.ChildChain.GasPrice.GasPriceSupervisor do
   @moduledoc """
   Supervises services related to gas price.
   """
@@ -20,32 +20,27 @@ defmodule OMG.ChildChain.GasPrice.Supervisor do
   require Logger
 
   alias OMG.Bus
-  alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.GasPrice.History
   alias OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy
   alias OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy
   alias OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy
 
-  def start_link(args) do
-    Supervisor.start_link(__MODULE__, args, name: __MODULE__)
+  def start_link(init_arg) do
+    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
   def init(init_arg) do
-    children = children(init_arg)
+    num_blocks = Keyword.fetch!(init_arg, :num_blocks)
+    max_gas_price = Keyword.fetch!(init_arg, :max_gas_price)
 
-    _ = Logger.info("Starting #{__MODULE__}")
-    Supervisor.init(children, [strategy: :one_for_one])
-  end
-
-  defp children(args) do
-    num_blocks = Configuration.get(:block_submit_gas_price_history_blocks)
-    max_gas_price = Configuration.get(:block_submit_max_gas_price)
-
-    [
-      {History, [event_bus: OMG.Bus, num_blocks: num_blocks]},
+    children = [
+      {History, [event_bus: Bus, num_blocks: num_blocks]},
       {LegacyGasStrategy, [max_gas_price: max_gas_price]},
       {BlockPercentileGasStrategy, []},
       {PoissonGasStrategy, []}
     ]
+
+    _ = Logger.info("Starting #{__MODULE__}")
+    Supervisor.init(children, strategy: :one_for_one)
   end
 end

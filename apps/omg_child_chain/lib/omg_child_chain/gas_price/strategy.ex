@@ -18,8 +18,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy do
 
   To see what strategies are available, look into `OMG.ChildChain.GasPrice.Strategy.*` modules.
   """
-  alias OMG.ChildChain.GasPrice
 
   @callback recalculate(params :: Keyword.t()) :: :ok | no_return()
-  @callback get_price() :: {:ok, GasPrice.t()}
+  @callback get_price() :: {:ok, pos_integer()} | {:error, atom()}
 end

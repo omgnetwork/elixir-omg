@@ -17,10 +17,8 @@ defmodule OMG.ChildChain.GasPrice do
   Suggests gas prices based on different strategies.
   """
   alias OMG.ChildChain.Configuration
-  alias OMG.ChildChain.GasPrice.LegacyGasStrategy
-  alias OMG.ChildChain.GasPrice.PoissonGasStrategy
-
-  @type t() :: pos_integer()
+  alias OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy
+  alias OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy
 
   @strategies [LegacyGasStrategy, PoissonGasStrategy]
 
@@ -35,7 +33,7 @@ defmodule OMG.ChildChain.GasPrice do
   @doc """
   Suggests the optimal gas price using the configured strategy.
   """
-  @spec get_price() :: {:ok, t()}
+  @spec get_price() :: {:ok, pos_integer()} | {:error, atom()}
   def get_price() do
     Configuration.block_submit_gas_price_strategy().get_price()
   end

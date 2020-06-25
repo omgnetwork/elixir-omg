@@ -23,8 +23,7 @@ defmodule OMG.ChildChain.Supervisor do
   alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.DatadogEvent.ContractEventConsumer
   alias OMG.ChildChain.FeeServer
-  alias OMG.ChildChain.GasPrice.PoissonGasStrategy
-  alias OMG.ChildChain.GasPrice.LegacyGasStrategy
+  alias OMG.ChildChain.GasPrice.GasPriceSupervisor
   alias OMG.ChildChain.Monitor
   alias OMG.ChildChain.SyncSupervisor
   alias OMG.ChildChain.Tracer
@@ -48,7 +47,8 @@ defmodule OMG.ChildChain.Supervisor do
     :ok = Storage.ensure_ets_init(blocks_cache())
     {:ok, contract_deployment_height} = RootChain.get_root_deployment_height()
     metrics_collection_interval = Configuration.metrics_collection_interval()
-    block_submit_max_gas_price = Configuration.block_submit_max_gas_price()
+    gas_price_history_blocks = Configuration.block_submit_gas_price_history_blocks()
+    max_gas_price = Configuration.block_submit_max_gas_price()
     fee_server_opts = Configuration.fee_server_opts()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
@@ -72,8 +72,7 @@ defmodule OMG.ChildChain.Supervisor do
            type: :supervisor
          }
        ]},
-      {PoissonGasStrategy, [max_gas_price: block_submit_max_gas_price]},
-      {LegacyGasStrategy, [max_gas_price: block_submit_max_gas_price]}
+      {GasPriceSupervisor, [num_blocks: gas_price_history_blocks, max_gas_price: max_gas_price]}
     ]
 
     is_datadog_disabled = is_disabled?()

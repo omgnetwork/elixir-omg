@@ -20,20 +20,23 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   """
   use GenServer
   require Logger
-  alias OMG.ChildChain.GasPrice
   alias OMG.ChildChain.GasPrice.History
   alias OMG.ChildChain.GasPrice.Strategy
 
   @type t() :: %__MODULE__{
-          recommendations: %{
-            safe_low: float(),
-            standard: float(),
-            fast: float(),
-            fastest: float()
-          }
+          prices:
+            %{
+              safe_low: float(),
+              standard: float(),
+              fast: float(),
+              fastest: float()
+            }
+            | error()
         }
 
-  defstruct recommendations: %{
+  @type error() :: {:error, :all_empty_blocks}
+
+  defstruct prices: %{
               safe_low: 20_000_000_000,
               standard: 20_000_000_000,
               fast: 20_000_000_000,
@@ -63,7 +66,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   Suggests the optimal gas price.
   """
   @impl Strategy
-  @spec get_price() :: GasPrice.t()
+  @spec get_price() :: {:ok, pos_integer()} | error()
   def get_price() do
     GenServer.call(__MODULE__, :get_price)
   end
@@ -103,16 +106,25 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   @doc false
   @impl GenServer
   def handle_call(:get_price, _, state) do
-    price = state.recommendations[@target_threshold]
-    {:reply, {:ok, price}, state}
+    price =
+      case state.prices do
+        {:error, _} = error ->
+          error
+
+        prices ->
+          {:ok, prices[@target_threshold]}
+      end
+
+    {:reply, price, state}
   end
 
   @doc false
   @impl GenServer
   def handle_info({History, :updated}, state) do
-    recommendations = do_recalculate()
+    prices = do_recalculate()
 
-    {:noreply, %{state | recommendations: recommendations}}
+    _ = Logger.info("#{__MODULE__}: History updated. Prices recalculated to: #{inspect(prices)}")
+    {:noreply, %{state | prices: prices}}
   end
 
   #
@@ -122,14 +134,23 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   defp do_recalculate() do
     sorted_min_prices =
       History.all()
-      |> Enum.map(fn {_height, prices, _timestamp} -> Enum.min(prices) end)
+      |> Enum.reduce([], fn
+        # Skips empty blocks (possible in local chain and low traffic testnets)
+        {_height, [], _timestamp}, acc -> acc
+        {_height, prices, _timestamp}, acc -> [Enum.min(prices) | acc]
+      end)
       |> Enum.sort()
 
-    block_count = length(sorted_min_prices)
+    # Handles when all blocks are empty (possible on local chain and low traffic testnets)
+    case length(sorted_min_prices) do
+      0 ->
+        {:error, :all_empty_blocks}
 
-    Enum.map(@thresholds, fn value ->
-      position = floor(block_count * value / 100) - 1
-      Enum.at(sorted_min_prices, position)
-    end)
+      block_count ->
+        Enum.map(@thresholds, fn {_name, value} ->
+          position = floor(block_count * value / 100) - 1
+          Enum.at(sorted_min_prices, position)
+        end)
+    end
   end
 end

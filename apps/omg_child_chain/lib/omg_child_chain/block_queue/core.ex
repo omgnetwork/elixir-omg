@@ -47,6 +47,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   use OMG.Utils.LoggerExt
 
   @zero_bytes32 <<0::size(256)>>
+  @default_gas_price 20_000_000_000
 
   defstruct [
     :blocks,
@@ -55,6 +56,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :last_enqueued_block_at_height,
     :wait_for_enqueue,
     formed_child_block_num: 0,
+    gas_price: @default_gas_price,
     # config:
     child_block_interval: nil,
     block_submit_every_nth: 1,
@@ -67,6 +69,8 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           mined_child_block_num: BlockQueue.plasma_block_num(),
           # newest formed block num
           formed_child_block_num: BlockQueue.plasma_block_num(),
+          # gas price to use when submitting transactions
+          gas_price: pos_integer(),
           # current Ethereum block height
           parent_height: BlockQueue.eth_height(),
           # whether we're pending an enqueue signal with a new block
@@ -139,8 +143,14 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     ]
 
     :ok = GasPrice.recalculate_all(recalculate_params)
-    {:ok, gas_price_to_use} = GasPrice.get_price()
-    state = Map.update!(state, :gas_price_to_use, gas_price_to_use)
+
+    gas_price =
+      case GasPrice.get_price() do
+        {:ok, price} -> price
+        {:error, _} -> @default_gas_price
+      end
+
+    state = %{state | gas_price: gas_price}
 
     case should_form_block?(state, is_empty_block) do
       true ->
@@ -177,7 +187,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     |> Enum.filter(to_mined_block_filter(state))
     |> Enum.map(fn {_blknum, block} -> block end)
     |> Enum.sort_by(& &1.num)
-    |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
+    |> Enum.map(&Map.put(&1, :gas_price, state.gas_price))
   end
 
   #
