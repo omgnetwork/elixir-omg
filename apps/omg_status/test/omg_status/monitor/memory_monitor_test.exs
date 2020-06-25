@@ -58,7 +58,7 @@ defmodule OMG.Status.Monitor.MemoryMonitorTest do
     assert_receive :got_clear_alarm
   end
 
-  test "works with :buffered_memory and :cached_memory values are not provided", context do
+  test "works with :buffered_memory and :cached_memory values are not provided" do
     set_memsup(total_memory: 1000, free_memory: 100)
     assert_receive :got_raise_alarm
   end

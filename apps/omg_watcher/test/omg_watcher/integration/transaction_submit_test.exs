@@ -84,7 +84,7 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
              "txindex" => tx_index
            } = WatcherHelper.success?("transaction.submit_typed", typed_data_signed)
 
-    IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
+    IntegrationTest.wait_for_block_inserted_in_db(tx_blknum, @timeout)
 
     assert [
              %{

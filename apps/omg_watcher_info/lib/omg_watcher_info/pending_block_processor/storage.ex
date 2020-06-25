@@ -12,8 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.DB.Repo do
-  use Ecto.Repo,
-    otp_app: :omg_watcher_info,
-    adapter: Ecto.Adapters.Postgres
+defmodule OMG.WatcherInfo.PendingBlockProcessor.Storage do
+  @moduledoc """
+  Contains storage related functions of the PendingBlockProcessor
+  """
+
+  alias OMG.WatcherInfo.DB.Block
+  alias OMG.WatcherInfo.DB.PendingBlock
+
+  @spec get_next_pending_block() :: nil | %PendingBlock{}
+  def get_next_pending_block() do
+    PendingBlock.get_next_to_process()
+  end
+
+  @spec process_block(PendingBlock.t()) :: {:ok, %Block{}} | {:error, any()}
+  def process_block(block) do
+    Block.insert_from_pending_block(block)
+  end
 end
