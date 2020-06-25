@@ -1,4 +1,5 @@
 Feature: In Flight Exits
+  @in_flight_exits
   Scenario: Alice starts an In Flight Exit
     Given "Alice" deposits "10" ETH to the root chain
     Given "Bob" deposits "10" ETH to the root chain
@@ -14,7 +15,8 @@ Feature: In Flight Exits
     And Bob starts a piggybacked in flight exit using his most recently prepared in flight exit data
     And Alice fully challenges Bobs most recent invalid in flight exit
     Then "Alice" can processes its own most recent in flight exit
-      
+
+  @in_flight_exits
   Scenario: Standard exit invalidated with an In Flight Exit
     Given "Alice" deposits "10" ETH to the root chain
     Then "Alice" should have "10" ETH on the child chain after finality margin
@@ -31,6 +33,7 @@ Feature: In Flight Exits
     And Bob fully challenges Alices most recent invalid exit
     Then "Bob" can processes its own most recent in flight exit
 
+  @in_flight_exits
   Scenario: In-flight exited transaction input is not spendable
     Given "Alice" deposits "10" ETH to the root chain
     Then "Alice" should have "10" ETH on the child chain after finality margin
@@ -41,6 +44,7 @@ Feature: In Flight Exits
     And "Alice" in flight transaction inputs are not spendable any more
     Then "Alice" can processes its own most recent in flight exit
 
+  @in_flight_exits
   Scenario: In-flight exited transaction piggybacked output is not spendable
     Given "Alice" deposits "10" ETH to the root chain
     Then "Alice" should have "10" ETH on the child chain after finality margin

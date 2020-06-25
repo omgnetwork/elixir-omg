@@ -29,7 +29,6 @@ defmodule InFlightExitsTests do
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
   alias Itest.Fee
-  alias Itest.Reorg
   alias Itest.StandardExitChallengeClient
   alias Itest.StandardExitClient
   alias Itest.Transactions.Currency
@@ -63,7 +62,6 @@ defmodule InFlightExitsTests do
   @gas_process_exit_price 1_000_000_000
 
   setup do
-    Reorg.finish_reorg()
     # as we're testing IFEs, queue needs to be empty
     0 = get_next_exit_from_queue()
     vault_address = Currency.ether() |> Itest.PlasmaFramework.vault() |> Encoding.to_hex()
@@ -86,8 +84,6 @@ defmodule InFlightExitsTests do
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
 
     exit_game_contract_address = Itest.PlasmaFramework.exit_game_contract_address(ExPlasma.payment_v1())
-
-    Reorg.start_reorg()
 
     %{
       "exit_game_contract_address" => exit_game_contract_address,
@@ -952,11 +948,7 @@ defmodule InFlightExitsTests do
 
   defp send_transaction(txbytes) do
     transaction_submit_body_schema = %TransactionSubmitBodySchema{transaction: Encoding.to_hex(txbytes)}
-
-    {:ok, response} =
-      with_retries(fn ->
-        Transaction.submit(Watcher.new(), transaction_submit_body_schema)
-      end)
+    {:ok, response} = Transaction.submit(Watcher.new(), transaction_submit_body_schema)
 
     try do
       response
@@ -1002,21 +994,11 @@ defmodule InFlightExitsTests do
     data =
       ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(Currency.ether()), Currency.ether()])
 
-    result =
-      case with_retries(fn ->
-             Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
-           end) do
-        {:ok, res} -> res
-        # reorg tests hack
-        {:error, %{"code" => 3, "message" => "execution reverted: Queue is empty"}} -> "0x00"
-      end
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: Itest.PlasmaFramework.address(), data: Encoding.to_hex(data)})
 
     case Encoding.to_binary(result) do
       "" ->
         :queue_not_added
-
-      <<0>> ->
-        0
 
       result ->
         next_exit_id = hd(ABI.TypeDecoder.decode(result, [{:uint, 256}]))
@@ -1344,20 +1326,5 @@ defmodule InFlightExitsTests do
       |> hd()
 
     piggyback_bond_size
-  end
-
-  defp with_retries(func, total_time \\ 240, current_time \\ 0) do
-    case func.() do
-      {:ok, _} = result ->
-        result
-
-      result ->
-        if current_time < total_time do
-          Process.sleep(1_000)
-          with_retries(func, total_time, current_time + 1)
-        else
-          result
-        end
-    end
   end
 end

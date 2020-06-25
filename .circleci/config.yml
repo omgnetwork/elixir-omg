@@ -590,7 +590,7 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test --trace
+            mix test --exclude in_flight_exits --trace
           no_output_timeout: 30m
       - run:
           name: Run load test
