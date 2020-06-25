@@ -113,7 +113,7 @@ defmodule Itest.Account do
   end
 
   def with_retries(func, total_time \\ 510, current_time \\ 0) do
-    case func.() do
+    case func.() |> IO.inspect() do
       {:ok, _} = result ->
         result
 
