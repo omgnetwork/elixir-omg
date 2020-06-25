@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
+defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDB do
   @moduledoc """
     Creates an empty instance of OMG DB storage and fills it with the required initial data.
   """
@@ -23,18 +23,6 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
 
   require Logger
 
-  def run() do
-    _ = on_load()
-
-    result =
-      @app
-      |> Application.get_env(:path)
-      |> process()
-
-    _ = on_done()
-    result
-  end
-
   def run_multi() do
     _ = on_load()
 
@@ -43,19 +31,19 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
       |> Application.get_env(:path)
       |> OMG.DB.root_path()
 
-    ["exit_processor", @default_db_folder]
-    |> Enum.map(&Path.join([root_path, &1]))
-    |> Enum.each(&process/1)
+    result =
+      ["exit_processor", @default_db_folder]
+      |> Enum.map(&Path.join([root_path, &1]))
+      |> Enum.map(&process/1)
+      |> all_ok_or_error()
 
     _ = on_done()
+    result
   end
 
   defp process(path) do
     _ = Logger.warn("Creating database at #{inspect(path)}")
-    init_kv_db(path)
-  end
 
-  defp init_kv_db(path) do
     case OMG.DB.init(path) do
       {:error, term} ->
         _ = Logger.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
@@ -74,4 +62,8 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
   defp on_done() do
     _ = Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
   end
+
+  defp all_ok_or_error([]), do: :ok
+  defp all_ok_or_error([:ok | rest]), do: all_ok_or_error(rest)
+  defp all_ok_or_error([error | _]), do: error
 end

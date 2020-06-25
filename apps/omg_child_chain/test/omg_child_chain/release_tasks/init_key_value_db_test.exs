@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
+defmodule OMG.ChildChain.ReleaseTasks.InitKeyValueDBTest do
   use ExUnit.Case, async: true
 
-  alias OMG.DB.ReleaseTasks.InitKeyValueDB
+  alias OMG.ChildChain.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
 
   @apps [:logger, :crypto, :ssl]
@@ -78,38 +78,5 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
     end
 
     :ok = System.delete_env("DB_PATH")
-  end
-
-  test "init for Watcher, with multilple dbs, servers start" do
-    {:ok, dir} = Briefly.create(directory: true)
-    :ok = System.put_env("DB_PATH", dir)
-
-    _ = SetKeyValueDB.load([], release: :watcher)
-
-    :ok = InitKeyValueDB.run_multi()
-
-    # check default app's db path set correctly
-    app_path = Application.fetch_env!(:omg_db, :path)
-    assert app_path == "#{dir}/watcher/app"
-
-    started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
-
-    true =
-      @apps
-      |> Enum.map(fn app -> not Enum.member?(started_apps, app) end)
-      |> Enum.all?()
-
-    # start default application's database
-    {:ok, _} = Application.ensure_all_started(:omg_db)
-
-    # start exit processor database
-    exit_processor_dir_path = Path.join([OMG.DB.root_path(app_path), "exit_processor"])
-    {:ok, pid} = OMG.DB.start_link(db_path: exit_processor_dir_path, name: TestExitProcessorDB)
-    assert pid == GenServer.whereis(TestExitProcessorDB)
-
-    :ok = GenServer.stop(TestExitProcessorDB)
-    :ok = Application.stop(:omg_db)
-    :ok = System.delete_env("DB_PATH")
-    _ = File.rm_rf!(dir)
   end
 end
