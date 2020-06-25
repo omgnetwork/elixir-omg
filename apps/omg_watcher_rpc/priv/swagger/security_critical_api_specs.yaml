@@ -4,13 +4,13 @@ info:
   title: Watcher security-critical API
   description: |
     API specification of the Watcher's security-critical Service
-    Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
+    Error codes are available in [html](https://github.com/omgnetwork/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
   contact:
-    name: OmiseGO
-    email: omisego@omisego.co
+    name: OMG Network
+    email: engineering@omg.network
   license:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
-    url: 'https://omisego.network/'
+    url: 'https://omg.network/'
 servers:
   - url: 'https://watcher.ropsten.v1.omg.network/'
   - url: 'http://localhost:7434/'
@@ -19,7 +19,7 @@ tags:
     description: Status of the child chain.
     externalDocs:
       description: Byzantine events description
-      url: 'https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events'
+      url: 'https://github.com/omgnetwork/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events'
   - name: Account
     description: Account related API.
   - name: UTXO
@@ -345,27 +345,34 @@ paths:
                           last_validated_child_block_timestamp:
                             type: integer
                             format: int64
+                            description: The time of the last Watcher sync with the child chain.
                           last_validated_child_block_number:
                             type: integer
                             format: int64
+                            description: The last child chain block that the Watcher has synced with the child chain.
                           last_mined_child_block_timestamp:
                             type: integer
                             format: int64
+                            description: The time of the last child chain block that has been seen on smart contracts.
                           last_mined_child_block_number:
                             type: integer
                             format: int64
+                            description: The last child chain block that has been seen on smart contracts.
                           last_seen_eth_block_timestamp:
                             type: integer
                             format: int64
+                            description: The time of the last Ethereum block that has been seen by the Watcher.
                           last_seen_eth_block_number:
                             type: integer
                             format: int64
+                            description: The last Ethereum block that has been by the Watcher.
                           contract_addr:
                             type: object
                             additionalProperties: true
                             properties:
                               plasma_framework:
                                 type: string
+                                description: Plasma Contract address.
                           eth_syncing:
                             type: boolean
                           byzantine_events:
@@ -1990,3 +1997,4 @@ paths:
                         description: Something went wrong on the server
                         messages:
                           error_key: error_reason
+                          
