@@ -150,16 +150,16 @@ defmodule OMG.WatcherInfo.DB.Block do
   def insert_from_pending_block(pending_block) do
     %{
       transactions: transactions,
-      blknum: block_number,
+      blknum: blknum,
       blkhash: blkhash,
       timestamp: timestamp,
       eth_height: eth_height
     } = :erlang.binary_to_term(pending_block.data)
 
-    {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, block_number)
+    {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, blknum)
 
     current_block = %{
-      blknum: block_number,
+      blknum: blknum,
       hash: blkhash,
       timestamp: timestamp,
       eth_height: eth_height

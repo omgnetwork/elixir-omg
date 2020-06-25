@@ -33,8 +33,9 @@ defmodule OMG.WatcherInfo.ExitConsumer do
     bus_module = Keyword.get(args, :bus_module, @default_bus_module)
 
     state = %{
-      topic: Keyword.fetch!(args, :topic),
-      event_type: Keyword.fetch!(args, :event_type)
+      topics: Keyword.fetch!(args, :topics),
+      event_type: Keyword.fetch!(args, :event_type),
+      exits: []
     }
 
     :ok = bus_module.subscribe(state.topic, link: true)
@@ -43,13 +44,22 @@ defmodule OMG.WatcherInfo.ExitConsumer do
     {:ok, state}
   end
 
+  def handle_info({:internal_event_bus, :data, %{blknum: block_number, eth_height: eth_height}}, state) do
+    # data = Enum.find all blocks up to eth_height (inclusive) from state.exits
+    # Enum.each(data, fn -> 
+    # #_ = EthEvent.insert_exits!(data, state.event_type)
+    # end)
+
+    {:noreply, %{state | exits: Kernel.--(state.exits, data)}}
+  end
+
   def handle_info({:internal_event_bus, :data, data}, state) do
     _ =
       Logger.debug(
         "Received event from #{inspect(state.topic)} typeof #{inspect(state.event_type)} Data:\n#{inspect(data)}"
       )
 
-    _ = EthEvent.insert_exits!(data, state.event_type)
-    {:noreply, state}
+    # _ = EthEvent.insert_exits!(data, state.event_type)
+    {:noreply, %{state | exits: Kernel.++(state.exits, data)}}
   end
 end

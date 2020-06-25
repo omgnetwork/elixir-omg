@@ -68,7 +68,11 @@ defmodule OMG.WatcherInfo.Supervisor do
       {OMG.WatcherInfo.PendingBlockQueueLengthChecker, [check_interval: Configuration.block_queue_check_interval()]},
       {OMG.WatcherInfo.DepositConsumer, []},
       Supervisor.child_spec(
-        {OMG.WatcherInfo.ExitConsumer, [topic: {:root_chain, "ExitStarted"}, event_type: :standard_exit]},
+        {OMG.WatcherInfo.ExitConsumer,
+         [
+           topics: [{:root_chain, "ExitStarted"}, {:watcher_info, "insert_from_pending_block"}],
+           event_type: :standard_exit
+         ]},
         id: :std_exit_consumer
       ),
       Supervisor.child_spec(
