@@ -13,6 +13,7 @@
 # limitations under the License.
 defmodule InvalidStandardExitsTests do
   use Cabbage.Feature, async: false, file: "invalid_standard_exits.feature"
+  @moduletag :invalid_standard_exits_tests
 
   require Logger
 
