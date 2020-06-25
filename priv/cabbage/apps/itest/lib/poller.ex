@@ -28,7 +28,7 @@ defmodule Itest.Poller do
   alias WatcherSecurityCriticalAPI.Api.Status
 
   @sleep_retry_sec 1_000
-  @retry_count 240
+  @retry_count 400
 
   def pull_for_utxo_until_recognized_deposit(account, amount, currency, blknum) do
     payload = %AddressBodySchema1{address: account}
