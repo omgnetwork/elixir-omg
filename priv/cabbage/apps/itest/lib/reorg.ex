@@ -58,7 +58,7 @@ defmodule Itest.Reorg do
       unpause_container!(@node1)
 
       # let the nodes connect to each other
-      Process.sleep(10 * 1000)
+      Process.sleep(30 * 1000)
 
       response
     else
