@@ -21,6 +21,8 @@ defmodule ServiceNameTests do
   setup do
     Reorg.finish_reorg()
     Reorg.start_reorg()
+
+    :ok
   end
 
   defwhen ~r/^Operator deploys "(?<service>[^"]+)"$/, %{service: service}, state do

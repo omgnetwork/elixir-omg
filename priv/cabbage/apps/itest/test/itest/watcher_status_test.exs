@@ -23,6 +23,8 @@ defmodule WatcherStatusTests do
     Reorg.finish_reorg()
 
     Reorg.start_reorg()
+
+    :ok
   end
 
   defwhen ~r/^Operator requests the watcher's status$/, %{}, state do
