@@ -24,6 +24,8 @@ defmodule Itest.Client do
   alias WatcherInfoAPI.Connection, as: WatcherInfo
   alias WatcherInfoAPI.Model.AddressBodySchema1
   alias WatcherInfoAPI.Model.CreateTransactionsBodySchema
+  alias WatcherInfoAPI.Model.GetAllTransactionsBodySchema1
+  alias WatcherInfoAPI.Model.GetTransactionBodySchema
   alias WatcherInfoAPI.Model.TransactionCreateFee
   alias WatcherInfoAPI.Model.TransactionCreatePayments
 
@@ -32,7 +34,9 @@ defmodule Itest.Client do
   require Logger
 
   @gas 180_000
-
+  @default_retry_attempts 15
+  @poll_interval 2000
+  @default_paging %{page: 1, limit: 200}
   def deposit(amount_in_wei, output_address, vault_address, currency \\ Currency.ether()) do
     deposit_transaction = deposit_transaction(amount_in_wei, output_address, currency)
     value = if currency == Currency.ether(), do: amount_in_wei, else: 0
@@ -95,13 +99,38 @@ defmodule Itest.Client do
     submit_typed(typed_data_signed)
   end
 
+  def submit_transaction_and_wait(typed_data, sign_hash, private_keys) do
+    tx = submit_transaction(typed_data, sign_hash, private_keys)
+    :ok = wait_until_tx_sync_to_watcher(tx.txhash)
+    tx
+  end
+
   def get_utxos(params) do
-    default_paging = %{page: 1, limit: 200}
-    %{address: address, page: page, limit: limit} = Map.merge(default_paging, params)
+    %{address: address, page: page, limit: limit} = Map.merge(@default_paging, params)
 
     {:ok, response} =
       Account.account_get_utxos(WatcherInfo.new(), %AddressBodySchema1{address: address, page: page, limit: limit})
 
+    data = Jason.decode!(response.body)
+    {:ok, data}
+  end
+
+  def get_transactions(params) do
+    %{page: page, limit: limit, end_datetime: end_datetime} = Map.merge(@default_paging, params)
+
+    {:ok, response} =
+      Transaction.transactions_all(WatcherInfo.new(), %GetAllTransactionsBodySchema1{
+        page: page,
+        limit: limit,
+        end_datetime: end_datetime
+      })
+
+    data = Jason.decode!(response.body)
+    {:ok, data}
+  end
+
+  def get_transaction(id) do
+    {:ok, response} = Transaction.transaction_get(WatcherInfo.new(), %GetTransactionBodySchema{id: id})
     data = Jason.decode!(response.body)
     {:ok, data}
   end
@@ -126,5 +155,31 @@ defmodule Itest.Client do
     |> Deposit.new(currency, amount_in_wei)
     |> Encoding.get_data_for_rlp()
     |> ExRLP.encode()
+  end
+
+  def wait_until_tx_sync_to_watcher(tx_id) do
+    do_wait_until_tx_sync_to_watcher(tx_id, @default_retry_attempts)
+  end
+
+  defp do_wait_until_tx_sync_to_watcher(_tx_id, 0), do: :wait_until_tx_sync_failed
+
+  defp do_wait_until_tx_sync_to_watcher(tx_id, retry) do
+    {:ok, response} =
+      Transaction.transaction_get(
+        WatcherInfo.new(),
+        %GetTransactionBodySchema{
+          id: tx_id
+        }
+      )
+
+    case Jason.decode!(response.body) do
+      %{"success" => true} ->
+        :ok
+
+      _ ->
+        Process.sleep(@poll_interval)
+        Logger.info("wating for for watcher info to sync the submitted tx_id: #{tx_id}")
+        do_wait_until_tx_sync_to_watcher(tx_id, retry - 1)
+    end
   end
 end
