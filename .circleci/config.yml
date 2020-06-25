@@ -186,7 +186,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 343 ]; then
+            if [ $_counter -gt 341 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -653,6 +653,14 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
+      - run: 
+          name: "cp release"
+          command: |
+            mkdir current_release/
+            cp _build_docker/prod/watcher-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz current_release/
+            md5sum current_release/watcher-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz | awk '{print $1}' >> current_release/md5
+      - store_artifacts:
+          path: current_release/
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher_info:
@@ -663,6 +671,14 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME
+      - run: 
+          name: "cp release"
+          command: |
+            mkdir current_release/
+            cp _build_docker/prod/watcher_info-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz current_release/
+            md5sum current_release/watcher_info-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz | awk '{print $1}' >> current_release/md5
+      - store_artifacts:
+          path: current_release/
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
   deploy_child_chain:

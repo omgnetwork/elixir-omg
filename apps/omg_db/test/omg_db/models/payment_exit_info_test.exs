@@ -39,7 +39,7 @@ defmodule OMG.DB.PaymentExitInfoTest do
 
   describe "exit_infos" do
     test "should return empty list if given empty list of positions", %{db_dir: _dir, db_pid: pid} do
-      db_writes = create_write(:exit_info, pid)
+      _db_writes = create_write(:exit_info, pid)
 
       {:ok, exits} = PaymentExitInfo.exit_infos([], pid)
 
@@ -52,7 +52,7 @@ defmodule OMG.DB.PaymentExitInfoTest do
       db_writes = create_write(:exit_info, pid)
       sliced_db_writes = Enum.slice(db_writes, test_range)
 
-      utxo_pos_list = Enum.map(sliced_db_writes, fn {utxo_pos, _} = write -> utxo_pos end)
+      utxo_pos_list = Enum.map(sliced_db_writes, fn {utxo_pos, _} = _write -> utxo_pos end)
 
       {:ok, exits} = PaymentExitInfo.exit_infos(utxo_pos_list, pid)
 

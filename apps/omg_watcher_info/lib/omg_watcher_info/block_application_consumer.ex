@@ -14,45 +14,51 @@
 
 defmodule OMG.WatcherInfo.BlockApplicationConsumer do
   @moduledoc """
-  Subscribes for new blocks and inserts them to WatcherInfo.DB.
+  Subscribes for new blocks and inserts them into a pending queue of blocks waiting to be processed.
   """
-  alias OMG.WatcherInfo.DB
   require Logger
-
-  ### Client
-
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
-  end
-
-  ### Server
 
   use GenServer
 
-  def init(:ok) do
-    :ok = OMG.Bus.subscribe({:child_chain, "block.get"}, link: true)
+  alias OMG.WatcherInfo.DB
 
+  @default_bus_module OMG.Bus
+
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: Keyword.get(args, :name, __MODULE__))
+  end
+
+  def init(args) do
     _ = Logger.info("Started #{inspect(__MODULE__)}")
+
+    bus_module = Keyword.get(args, :bus_module, @default_bus_module)
+    :ok = bus_module.subscribe({:child_chain, "block.get"}, link: true)
+
     {:ok, %{}}
   end
 
   # Listens for blocks and insert them to the WatcherDB.
   def handle_info({:internal_event_bus, :block_received, block_application}, state) do
-    _ =
+    {:ok, _} =
       block_application
-      |> to_mined_block()
-      |> DB.Block.insert_with_transactions()
+      |> to_pending_block()
+      |> DB.PendingBlock.insert()
 
     {:noreply, state}
   end
 
-  defp to_mined_block(%{} = block) do
-    %{
+  defp to_pending_block(%{} = block) do
+    data = %{
       eth_height: block.eth_height,
       blknum: block.number,
       blkhash: block.hash,
       timestamp: block.timestamp,
       transactions: block.transactions
+    }
+
+    %{
+      data: :erlang.term_to_binary(data),
+      blknum: block.number
     }
   end
 end
