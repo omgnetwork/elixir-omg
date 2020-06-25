@@ -26,9 +26,7 @@ defmodule FeeClaimingTests do
   @expected_fee_rule %{"amount" => 1, "currency" => "0x0000000000000000000000000000000000000000"}
 
   setup do
-    on_exit(fn ->
-      Reorg.finish_reorg()
-    end)
+    Reorg.finish_reorg()
 
     [{alice_address, alice_pkey}, {bob_address, bob_pkey}] = Account.take_accounts(2)
 

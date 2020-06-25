@@ -18,10 +18,7 @@ defmodule ConfigurationRetrievalTests do
   require Logger
 
   setup_all do
-    on_exit(fn ->
-      Reorg.finish_reorg()
-    end)
-
+    Reorg.finish_reorg()
     Reorg.start_reorg()
 
     data = ABI.encode("getVersion()", [])

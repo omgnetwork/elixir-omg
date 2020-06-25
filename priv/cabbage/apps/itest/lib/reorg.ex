@@ -26,7 +26,8 @@ defmodule Itest.Reorg do
 
   def finish_reorg() do
     if Application.get_env(:cabbage, :reorg) do
-      GenServer.cast(__MODULE__, :finish_reorg)
+      unpause_container!(@node1)
+      unpause_container!(@node2)
 
       Process.sleep(60 * 1000)
     end
@@ -68,15 +69,6 @@ defmodule Itest.Reorg do
   end
 
   @impl true
-  def handle_cast(:finish_reorg, _) do
-    Logger.info("Chain reorg: unpausing both nodes")
-
-    stop_reorg()
-
-    {:noreply, %{reorg: false}}
-  end
-
-  @impl true
   def handle_info(:reorg_step2, %{reorg: false} = state) do
     Logger.error("Chain reorg: can not start the second step of reorg")
 
@@ -99,7 +91,8 @@ defmodule Itest.Reorg do
   def handle_info(:finish_reorg, _state) do
     Logger.info("Chain reorg: reorg finished, unpausing both nodes")
 
-    stop_reorg()
+    unpause_container!(@node1)
+    unpause_container!(@node2)
 
     {:noreply, %{reorg: false}}
   end
@@ -127,11 +120,6 @@ defmodule Itest.Reorg do
       timeout: 60_000,
       recv_timeout: 60_000
     )
-  end
-
-  defp stop_reorg() do
-    unpause_container!(@node1)
-    unpause_container!(@node2)
   end
 
   defp print_available_containers() do

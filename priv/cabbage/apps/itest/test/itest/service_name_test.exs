@@ -19,11 +19,8 @@ defmodule ServiceNameTests do
   alias Itest.Reorg
 
   setup do
+    Reorg.finish_reorg()
     Reorg.start_reorg()
-
-    on_exit(fn ->
-      Reorg.finish_reorg()
-    end)
   end
 
   defwhen ~r/^Operator deploys "(?<service>[^"]+)"$/, %{service: service}, state do

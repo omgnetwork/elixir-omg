@@ -24,7 +24,7 @@ defmodule Itest.Account do
   def take_accounts(number_of_accounts) do
     1..number_of_accounts
     |> Task.async_stream(fn _ -> account() end,
-      timeout: 300_000,
+      timeout: 240_000,
       on_timeout: :kill_task,
       max_concurrency: System.schedulers_online() * 2
     )
@@ -64,20 +64,6 @@ defmodule Itest.Account do
     end
 
     {addr, account_priv_enc}
-  end
-
-  def send_empty_transaction() do
-    tick_acc = generate_entity()
-    account_priv_enc = Base.encode16(tick_acc.priv)
-    passphrase = "dev.period"
-
-    {:ok, addr} = create_account_from_secret(account_priv_enc, passphrase)
-
-    {:ok, [faucet | _]} = with_retries(fn -> Ethereumex.HttpClient.eth_accounts() end)
-
-    data = %{from: faucet, to: addr, value: Encoding.to_hex(1_000_000 * trunc(:math.pow(10, 9 + 5)))}
-
-    {:ok, _receipt_hash} = with_retries(fn -> Ethereumex.HttpClient.eth_send_transaction(data) end)
   end
 
   defp generate_entity() do

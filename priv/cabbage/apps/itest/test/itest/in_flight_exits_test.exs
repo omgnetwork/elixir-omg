@@ -63,10 +63,7 @@ defmodule InFlightExitsTests do
   @gas_process_exit_price 1_000_000_000
 
   setup do
-    on_exit(fn ->
-      Reorg.finish_reorg()
-    end)
-
+    Reorg.finish_reorg()
     # as we're testing IFEs, queue needs to be empty
     0 = get_next_exit_from_queue()
     vault_address = Currency.ether() |> Itest.PlasmaFramework.vault() |> Encoding.to_hex()
@@ -1011,14 +1008,14 @@ defmodule InFlightExitsTests do
            end) do
         {:ok, res} -> res
         # reorg tests hack
-        {:error, %{"code" => 3, "message" => "execution reverted: Queue is empty"}} -> 0
+        {:error, %{"code" => 3, "message" => "execution reverted: Queue is empty"}} -> "0x00"
       end
 
     case Encoding.to_binary(result) do
       "" ->
         :queue_not_added
 
-      0 ->
+      <<0>> ->
         0
 
       result ->

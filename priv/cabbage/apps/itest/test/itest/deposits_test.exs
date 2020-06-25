@@ -23,9 +23,7 @@ defmodule DepositsTests do
   alias Itest.Transactions.Currency
 
   setup do
-    on_exit(fn ->
-      Reorg.finish_reorg()
-    end)
+    Reorg.finish_reorg()
 
     [{alice_account, alice_pkey}, {bob_account, _bob_pkey}] = Account.take_accounts(2)
 
