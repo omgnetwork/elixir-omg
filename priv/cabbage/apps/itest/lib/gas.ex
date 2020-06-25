@@ -41,7 +41,7 @@ defmodule Itest.Gas do
 
   def with_retries(func, total_time \\ 510, current_time \\ 0) do
     case func.() do
-      {:ok, nil} = result ->
+      {:ok, nil} ->
         Process.sleep(1_000)
         with_retries(func, total_time, current_time + 1)
 

@@ -291,10 +291,6 @@ defmodule Itest.Poller do
         Process.sleep(@sleep_retry_sec)
         submit_typed(typed_data_signed, counter - 1)
 
-      %{"messages" => %{"code" => "operation:service_unavailable"}} ->
-        Process.sleep(@sleep_retry_sec)
-        submit_typed(typed_data_signed, counter - 1)
-
       %{"txhash" => _} ->
         SubmitTransactionResponse.to_struct(decoded_response)
     end

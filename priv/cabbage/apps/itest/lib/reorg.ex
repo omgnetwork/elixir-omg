@@ -51,12 +51,14 @@ defmodule Itest.Reorg do
 
       response = func.()
 
-      Process.sleep(floor(@pause_seconds / 2) * 1000)
+      # the second sleep is shorter so the number of generated blocks is smaller
+      Process.sleep(floor(@pause_seconds / 4) * 1000)
 
       unpause_container!(@node2)
       unpause_container!(@node1)
 
-      Process.sleep(@pause_seconds * 1000)
+      # let the nodes connect to each other
+      Process.sleep(10 * 1000)
 
       response
     else
