@@ -152,7 +152,9 @@ defmodule OMG.Umbrella.MixProject do
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,
-        git: "https://github.com/omgnetwork/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
+        git: "https://github.com/omgnetwork/ex_unit_fixtures.git",
+        branch: "feature/require_files_not_load",
+        only: [:test]
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
       {:libsecp256k1, git: "https://github.com/omgnetwork/libsecp256k1.git", branch: "elixir-only", override: true},
