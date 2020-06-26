@@ -64,7 +64,7 @@ services:
       geth-2:
         condition: service_healthy
     volumes:
-      - ../../nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf
     ports:
       - 8545:80
       - 8546:81
