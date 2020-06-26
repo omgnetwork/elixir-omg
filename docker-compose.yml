@@ -59,6 +59,9 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.101
 
   nginx:
     image: nginx:latest
@@ -77,6 +80,9 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.102
 
   childchain:
     image: omisego/child_chain:latest
@@ -86,7 +92,7 @@ services:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - ETHEREUM_RPC_URL=http://nginx:8545
+      - ETHEREUM_RPC_URL=http://172.27.0.102:80
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
@@ -117,6 +123,9 @@ services:
     depends_on:
       nginx:
         condition: service_healthy
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.103
 
   watcher:
     image: omisego/watcher:latest
@@ -126,8 +135,8 @@ services:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - ETHEREUM_RPC_URL=http://nginx:8545
-      - CHILD_CHAIN_URL=http://childchain:9656
+      - ETHEREUM_RPC_URL=http://172.27.0.102:80
+      - CHILD_CHAIN_URL=http://172.27.0.103:9656
       - PORT=7434
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
@@ -157,6 +166,9 @@ services:
     depends_on:
       childchain:
         condition: service_healthy
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.104
 
   watcher_info:
     image: omisego/watcher_info:latest
@@ -166,8 +178,8 @@ services:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - ETHEREUM_RPC_URL=http://nginx:8545
-      - CHILD_CHAIN_URL=http://childchain:9656
+      - ETHEREUM_RPC_URL=http://172.27.0.102:80
+      - CHILD_CHAIN_URL=http://172.27.0.103:9656
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
       - PORT=7534
       - APP_ENV=local_docker_development
@@ -199,3 +211,13 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.105
+
+networks:
+  chain_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.27.0.0/24
