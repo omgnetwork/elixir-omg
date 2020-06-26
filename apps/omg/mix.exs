@@ -32,7 +32,7 @@ defmodule OMG.MixProject do
 
   defp deps() do
     [
-      {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git", ref: "83db9a0f5a441f7e59ae23f8c64658e2c387f8a5"},
+      {:ex_plasma, git: "https://github.com/omgnetwork/ex_plasma.git", ref: "bd42028341d9232e11a084dbc5adac08c8bf5672"},
       {:ex_rlp, "~> 0.5.3"},
       {:merkle_tree, "~> 2.0.0"},
       {:telemetry, "~> 0.4.1"},

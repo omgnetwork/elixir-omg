@@ -23,7 +23,7 @@ defmodule Itest.MixProject do
 
   defp deps() do
     [
-      {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git"},
+      {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git", branch: "master-v2"},
       {:watcher_info_api, in_umbrella: true},
       {:watcher_security_critical_api, in_umbrella: true},
       {:child_chain_api, in_umbrella: true},

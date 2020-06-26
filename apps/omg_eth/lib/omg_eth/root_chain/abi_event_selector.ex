@@ -25,10 +25,10 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       function: "ExitStarted",
       input_names: ["owner", "exitId"],
       inputs_indexed: [true, false],
-      method_id: <<221, 111, 117, 92>>,
+      method_id: <<87, 9, 33, 214>>,
       returns: [],
       type: :event,
-      types: [:address, {:uint, 160}]
+      types: [:address, {:uint, 168}]
     }
   end
 
@@ -116,10 +116,10 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       function: "ExitFinalized",
       input_names: ["exitId"],
       inputs_indexed: [true],
-      method_id: <<10, 219, 41, 176>>,
+      method_id: <<112, 229, 37, 2>>,
       returns: [],
       type: :event,
-      types: [uint: 160]
+      types: [uint: 168]
     }
   end
 
@@ -183,10 +183,10 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       function: "InFlightExitInputWithdrawn",
       input_names: ["exitId", "inputIndex"],
       inputs_indexed: [true, false],
-      method_id: <<68, 70, 236, 17>>,
+      method_id: <<32, 14, 10, 68>>,
       returns: [],
       type: :event,
-      types: [uint: 160, uint: 16]
+      types: [uint: 168, uint: 16]
     }
   end
 
@@ -196,10 +196,10 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       function: "InFlightExitOutputWithdrawn",
       input_names: ["exitId", "outputIndex"],
       inputs_indexed: [true, false],
-      method_id: <<162, 65, 198, 222>>,
+      method_id: <<61, 204, 34, 81>>,
       returns: [],
       type: :event,
-      types: [uint: 160, uint: 16]
+      types: [uint: 168, uint: 16]
     }
   end
 end

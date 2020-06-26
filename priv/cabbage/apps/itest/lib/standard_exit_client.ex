@@ -227,7 +227,7 @@ defmodule Itest.StandardExitClient do
     standard_exit_id =
       result
       |> Encoding.to_binary()
-      |> ABI.TypeDecoder.decode([{:uint, 160}])
+      |> ABI.TypeDecoder.decode([{:uint, 168}])
       |> hd()
 
     data = ABI.encode("getNextExit(uint256,address)", [Itest.PlasmaFramework.vault_id(se.currency), se.currency])
@@ -241,7 +241,7 @@ defmodule Itest.StandardExitClient do
       |> hd()
 
     # double check correctness, our exit ID must be the first one in the priority queue
-    ^standard_exit_id = next_exit_id &&& (1 <<< 160) - 1
+    ^standard_exit_id = next_exit_id &&& (1 <<< 168) - 1
 
     %{se | standard_exit_id: standard_exit_id}
   end
@@ -251,7 +251,7 @@ defmodule Itest.StandardExitClient do
 
     data =
       ABI.encode(
-        "processExits(uint256,address,uint160,uint256)",
+        "processExits(uint256,address,uint168,uint256)",
         [Itest.PlasmaFramework.vault_id(se.currency), se.currency, se.standard_exit_id, n_exits]
       )
 
