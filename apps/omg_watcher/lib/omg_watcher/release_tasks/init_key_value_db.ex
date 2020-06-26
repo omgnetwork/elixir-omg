@@ -26,7 +26,7 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDB do
     _ = on_load()
 
     base_path = Application.fetch_env!(@app, :path)
-    instances = [OMG.DB.Instance.ExitProcessor]
+    instances = [OMG.DB.Instance.Default, OMG.DB.Instance.ExitProcessor]
     _ = Logger.warn("Creating database at #{inspect(base_path)} with instances #{inspect(instances)}")
 
     result = OMG.DB.init(base_path, instances)

@@ -83,19 +83,18 @@ defmodule OMG.DB do
   Initalizes directory for default instance database storage.
   """
   def init(path) do
-    init(path, [])
+    init(path, [@default_instance_name])
   end
 
   @doc """
-  Initializes directories for multiple database instances. Storage for default instance is always initialized.
-  The list of `instances` has to contain atoms in the form `OMG.DB.Instance.<InstanceName>`. Instance storage
-  will be created under snake cased `<InstanceName>` subdirectory of `path`.
-  Assumes that the name of the default instance __is not__ included in `instances` list.
+  Initializes directories for multiple database instances. The list of `instances` has to contain
+  atoms in the form `OMG.DB.Instance.<InstanceName>`. Instance storage will be created under snake cased
+  `<InstanceName>` subdirectory of `path`.
   """
   def init(path, instances) do
     :ok = Application.put_env(:omg_db, :path, path, persistent: true)
 
-    [@default_instance_name | instances]
+    instances
     |> Enum.map(&join_path(&1, path))
     |> Enum.map(&RocksDB.init/1)
     |> all_ok_or_error()

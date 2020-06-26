@@ -31,14 +31,13 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
 
   test "if environment variables get applied in the configuration" do
     test_path = "/tmp/YOLO"
-    default_db_folder = "app"
     release = :watcher_info
     :ok = System.put_env("DB_PATH", test_path)
 
     capture_log(fn ->
       config = SetKeyValueDB.load([], release: release)
       path = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:path)
-      assert path == "#{test_path}/#{release}/#{default_db_folder}"
+      assert path == "#{test_path}/#{release}"
     end)
   end
 
@@ -49,7 +48,7 @@ defmodule OMG.DB.ReleaseTasks.SetKeyValueDBTest do
       config = SetKeyValueDB.load([], release: :watcher_info)
       path = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:path)
 
-      assert path == Path.join([System.get_env("HOME"), ".omg/data"]) <> "/watcher_info/app"
+      assert path == Path.join([System.get_env("HOME"), ".omg/data"]) <> "/watcher_info"
     end)
   end
 end

@@ -26,10 +26,8 @@ defmodule OMG.Watcher.API.AccountTest do
 
   setup do
     db_path = Briefly.create!(directory: true)
-    default_app_path = "#{db_path}/app"
-    exit_processor_path = "#{db_path}/exit_processor"
 
-    :ok = OMG.DB.init(db_path, [OMG.DB.Instance.ExitProcessor])
+    :ok = OMG.DB.init(db_path, [OMG.DB.Instance.Default, OMG.DB.Instance.ExitProcessor])
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, _} = OMG.DB.start_link(db_path: db_path, instance: OMG.DB.Instance.ExitProcessor)

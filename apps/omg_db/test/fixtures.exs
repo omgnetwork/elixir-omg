@@ -39,15 +39,11 @@ defmodule OMG.DB.Fixtures do
   deffixture db_initialize_multi(db_initialized) do
     :ok = db_initialized
 
-    base_path = Application.fetch_env!(:omg_db, :path)
+    db_path = Application.fetch_env!(:omg_db, :path)
     instance = OMG.DB.Instance.ExitProcessor
+    :ok = OMG.DB.init(db_path, [instance])
 
-    # We're using `RocksDB.init/1` directly to avoid path manipulation, done by OMG.DB.init/2.
-    # Usually easier is to call `OMG.init(path, instances)` to have default and all instances storage initialized
-    # but here default instance is initialized and started already by a base fixture.
-    :ok = OMG.DB.RocksDB.init(OMG.DB.join_path(instance, base_path))
-
-    {:ok, _} = OMG.DB.start_link(db_path: base_path, instance: instance)
+    {:ok, _} = OMG.DB.start_link(db_path: db_path, instance: instance)
 
     :ok
   end
