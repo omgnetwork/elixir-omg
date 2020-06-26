@@ -59,8 +59,6 @@ services:
         ipv4_address: 172.25.0.103
 
   nginx:
-    image: nginx:latest
-    container_name: nginx
     depends_on:
       geth-1:
         condition: service_healthy
@@ -68,164 +66,35 @@ services:
         condition: service_healthy
     volumes:
       - ./priv/cabbage/nginx.conf:/etc/nginx/nginx.conf
-    ports:
-      - 8545:80
-      - 8546:81
-      - 443:443
     networks:
       chain:
         ipv4_address: 172.25.0.104
-    healthcheck:
-      test: curl nginx:80
-      interval: 5s
-      timeout: 3s
-      retries: 5
 
   postgres:
-    # image: postgres:9.6.13-alpine
-    # restart: always
-    # ports:
-    #   - "5432:5432"
-    # environment:
-    #   POSTGRES_USER: omisego_dev
-    #   POSTGRES_PASSWORD: omisego_dev
-    #   POSTGRES_DB: omisego_dev
-    # healthcheck:
-    #   test: pg_isready -U omisego_dev
-    #   interval: 5s
-    #   timeout: 3s
-    #   retries: 5
     networks:
       chain:
         ipv4_address: 172.25.0.110
 
   childchain:
-    # image: omisego/child_chain:latest
-    # command: "full_local"
-    # container_name: childchain
-    # env_file:
-    #   - ../../localchain_contract_addresses.env
     environment:
-      # - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.25.0.104:80
-    #   - APP_ENV=local_docker_development
-    #   - DD_HOSTNAME=datadog
-    #   - DD_DISABLED=true
-    #   - DB_PATH=/data
-    #   - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
-    #   - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
-    #   - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
-    #   - FEE_ADAPTER=file
-    #   - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
-    #   - FEE_BUFFER_DURATION_MS=30000
-    #   - LOGGER_BACKEND=console
-    #   - RELEASE_COOKIE=development
-    #   - NODE_HOST=127.0.0.1
-    # restart: always
-    # ports:
-    #   - "9656:9656"
-    # expose:
-    #   - "9656"
-    # volumes:
-    #   - ../../data:/data
-    #   - ../../priv/dev-artifacts:/dev-artifacts
-    # healthcheck:
-    #   test: curl childchain:9656
-    #   interval: 30s
-    #   timeout: 1s
-    #   retries: 5
-    #   start_period: 30s
-    # depends_on:
-    #   nginx:
-    #     condition: service_healthy
     networks:
       chain:
         ipv4_address: 172.25.0.105
 
   watcher:
-    # image: omisego/watcher:latest
-    # command: "full_local"
-    # container_name: watcher
-    # env_file:
-    #   - ../../localchain_contract_addresses.env
     environment:
-      # - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.25.0.104:80
       - CHILD_CHAIN_URL=http://172.25.0.105:9656
-      # - PORT=7434
-      # - APP_ENV=local_docker_development
-      # - DD_HOSTNAME=datadog
-      # - DD_DISABLED=true
-      # - DB_PATH=/data
-      # - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
-      # - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
-      # - ETHEREUM_BLOCK_TIME_SECONDS=1
-      # - EXIT_PROCESSOR_SLA_MARGIN=5520
-      # - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
-      # - LOGGER_BACKEND=console
-      # - RELEASE_COOKIE=development
-      # - NODE_HOST=127.0.0.1
-    # restart: always
-    # ports:
-    #   - "7434:7434"
-    # expose:
-    #   - "7434"
-    # volumes:
-    #   - ../../data:/data
-    # healthcheck:
-    #   test: curl watcher:7434
-    #   interval: 30s
-    #   timeout: 1s
-    #   retries: 5
-    #   start_period: 30s
-    # depends_on:
-    #   childchain:
-    #     condition: service_healthy
     networks:
       chain:
         ipv4_address: 172.25.0.106
 
   watcher_info:
-    # image: omisego/watcher_info:latest
-    # command: "full_local"
-    # container_name: watcher_info
-    # env_file:
-    #   - ../../localchain_contract_addresses.env
     environment:
-      # - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.25.0.104:80
       - CHILD_CHAIN_URL=http://172.25.0.105:9656
       - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.25.0.110:5432/omisego_dev
-    #   - PORT=7534
-    #   - APP_ENV=local_docker_development
-    #   - DD_HOSTNAME=datadog
-    #   - DD_DISABLED=true
-    #   - DB_PATH=/data
-    #   - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
-    #   - ETHEREUM_BLOCK_TIME_SECONDS=1
-    #   - EXIT_PROCESSOR_SLA_MARGIN=5520
-    #   - EXIT_PROCESSOR_SLA_MARGIN_FORCED=TRUE
-    #   - LOGGER_BACKEND=console
-    #   - RELEASE_COOKIE=development
-    #   - NODE_HOST=127.0.0.1
-    # restart: always
-    # ports:
-    #   - "7534:7534"
-    # expose:
-    #   - "7534"
-    # volumes:
-    #   - ../../data:/data
-    # healthcheck:
-    #   test: curl watcher_info:7534
-    #   interval: 30s
-    #   timeout: 1s
-    #   retries: 5
-    #   start_period: 30s
-    # depends_on:
-    #   childchain:
-    #     condition: service_healthy
-    #   postgres:
-    #     condition: service_healthy
     networks:
       chain:
         ipv4_address: 172.25.0.107

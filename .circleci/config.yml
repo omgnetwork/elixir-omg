@@ -581,7 +581,7 @@ jobs:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Print reorg logs
-          command: docker-compose -f priv/cabbage/docker-compose-reorg.yml logs --follow | grep "reorg"
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow | grep "reorg"
           background: true
       - run:
           name: Run specs
@@ -759,7 +759,7 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
-      - run: 
+      - run:
           name: "cp release"
           command: |
             mkdir current_release/
@@ -777,7 +777,7 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME
-      - run: 
+      - run:
           name: "cp release"
           command: |
             mkdir current_release/

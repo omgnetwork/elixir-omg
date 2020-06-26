@@ -25,8 +25,8 @@ defmodule Itest.Gas do
 
   def get_gas_used(receipt_hash) do
     result =
-      {Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash),
-       Ethereumex.HttpClient.eth_get_transaction_by_hash(receipt_hash)}
+      {with_retries(fn -> Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash) end),
+       with_retries(fn -> Ethereumex.HttpClient.eth_get_transaction_by_hash(receipt_hash) end)}
 
     case result do
       {{:ok, %{"gasUsed" => gas_used}}, {:ok, %{"gasPrice" => gas_price}}} ->
@@ -35,6 +35,10 @@ defmodule Itest.Gas do
         gas_price_value * gas_used_value
 
       {{:ok, nil}, {:ok, nil}} ->
+        0
+
+      # reorg
+      {{:ok, nil}, {:ok, %{"blockHash" => nil, "blockNumber" => nil}}} ->
         0
     end
   end
