@@ -40,7 +40,7 @@ defmodule OMG.WatcherInfo.MixProject do
       # there's no apparent reason why libsecp256k1, spandex need to be included as dependencies
       # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from
       # the parent (main) mix.exs
-      {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
+      {:libsecp256k1, git: "https://github.com/omgnetwork/libsecp256k1.git", branch: "elixir-only", override: true},
       {:spandex, "~> 2.4.3"},
       {:jason, "~> 1.0"},
 

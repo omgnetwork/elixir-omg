@@ -23,7 +23,7 @@ defmodule OMG.Umbrella.MixProject do
       test_paths: test_paths(),
       aliases: aliases(),
       # Docs
-      source_url: "https://github.com/omisego/elixir-omg",
+      source_url: "https://github.com/omgnetwork/elixir-omg",
       version: current_version(),
       releases: [
         watcher: [
@@ -152,10 +152,10 @@ defmodule OMG.Umbrella.MixProject do
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,
-        git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
+        git: "https://github.com/omgnetwork/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
-      {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
+      {:libsecp256k1, git: "https://github.com/omgnetwork/libsecp256k1.git", branch: "elixir-only", override: true},
       {:spandex, "~> 2.4.3"}
     ]
   end
