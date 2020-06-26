@@ -14,7 +14,6 @@
 
 defmodule FeeClaimingTests do
   use Cabbage.Feature, async: false, file: "fee_claiming.feature"
-  @moduletag :fee_claiming
 
   require Logger
 

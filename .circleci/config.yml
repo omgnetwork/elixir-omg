@@ -581,7 +581,7 @@ jobs:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Print reorg logs
-          command: docker-compose -f docker-compose-reorg.yml logs --follow | grep "reorg"
+          command: docker-compose -f priv/cabbage/docker-compose-reorg.yml logs --follow | grep "reorg"
           background: true
       - run:
           name: Run specs
@@ -590,7 +590,7 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test --exclude in_flight_exits --exclude invalid_standard_exits_tests --exclude transactions --exclude standard_exits_tests --exclude watcher_status --exclude watcher_info_api --exclude configuration_retrieval --exclude service_name --exclude fee_claiming --trace
+            mix test --only reorg --trace
           no_output_timeout: 30m
       - run:
           name: Run load test

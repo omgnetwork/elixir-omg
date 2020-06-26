@@ -13,7 +13,6 @@
 # limitations under the License.
 defmodule WatcherStatusTests do
   use Cabbage.Feature, async: false, file: "watcher_status.feature"
-  @moduletag :watcher_status
 
   require Logger
 

@@ -15,8 +15,8 @@ services:
     ports:
       - 9000:8545
     volumes:
-      - ./data1:/data
-      - ./data/ethash:/root/.ethash
+      - ../../data1:/data
+      - ../../data/ethash:/root/.ethash
 
     healthcheck:
       test: curl geth-1:8545
@@ -44,8 +44,8 @@ services:
     ports:
       - 9001:8545
     volumes:
-      - ./data2:/data
-      - ./data/ethash:/root/.ethash
+      - ../../data2:/data
+      - ../../data/ethash:/root/.ethash
     healthcheck:
       test: curl geth-2:8545
       interval: 5s
@@ -64,7 +64,7 @@ services:
       geth-2:
         condition: service_healthy
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ../../nginx.conf:/etc/nginx/nginx.conf
     ports:
       - 8545:80
       - 8546:81
@@ -101,7 +101,7 @@ services:
     command: "full_local"
     container_name: childchain
     env_file:
-      - ./localchain_contract_addresses.env
+      - ../../localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.25.0.104:80
@@ -124,8 +124,8 @@ services:
     expose:
       - "9656"
     volumes:
-      - ./data:/data
-      - ./priv/dev-artifacts:/dev-artifacts
+      - ../../data:/data
+      - ../../priv/dev-artifacts:/dev-artifacts
     healthcheck:
       test: curl childchain:9656
       interval: 30s
@@ -144,7 +144,7 @@ services:
     command: "full_local"
     container_name: watcher
     env_file:
-      - ./localchain_contract_addresses.env
+      - ../../localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.25.0.104:80
@@ -168,7 +168,7 @@ services:
     expose:
       - "7434"
     volumes:
-      - ./data:/data
+      - ../../data:/data
     healthcheck:
       test: curl watcher:7434
       interval: 30s
@@ -187,7 +187,7 @@ services:
     command: "full_local"
     container_name: watcher_info
     env_file:
-      - ./localchain_contract_addresses.env
+      - ../../localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.25.0.104:80
@@ -211,7 +211,7 @@ services:
     expose:
       - "7534"
     volumes:
-      - ./data:/data
+      - ../../data:/data
     healthcheck:
       test: curl watcher_info:7534
       interval: 30s

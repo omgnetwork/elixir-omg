@@ -13,7 +13,6 @@
 # limitations under the License.
 defmodule ServiceNameTests do
   use Cabbage.Feature, async: false, file: "service_name.feature"
-  @moduletag :service_name
 
   require Logger
 

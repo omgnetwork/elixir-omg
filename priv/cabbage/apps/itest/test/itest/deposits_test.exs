@@ -13,6 +13,7 @@
 # limitations under the License.
 defmodule DepositsTests do
   use Cabbage.Feature, async: true, file: "deposits.feature"
+  @moduletag :reorg
 
   require Logger
 

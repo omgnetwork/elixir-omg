@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule StandardExitsTests do
   use Cabbage.Feature, async: false, file: "standard_exits.feature"
-  @moduletag :standard_exits_tests
+
   require Logger
 
   alias Itest.Account

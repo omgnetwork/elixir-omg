@@ -14,7 +14,6 @@
 
 defmodule InFlightExitsTests do
   use Cabbage.Feature, async: false, file: "in_flight_exits.feature"
-  @moduletag :in_flight_exits
 
   require Logger
 

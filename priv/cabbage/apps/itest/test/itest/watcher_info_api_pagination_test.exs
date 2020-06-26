@@ -14,7 +14,6 @@
 
 defmodule WatcherInfoApiTest do
   use Cabbage.Feature, async: true, file: "watcher_info_api_pagination.feature"
-  @moduletag :watcher_info_api
 
   require Logger
 
