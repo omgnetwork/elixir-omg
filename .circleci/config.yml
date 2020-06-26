@@ -759,6 +759,14 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
+      - run: 
+          name: "cp release"
+          command: |
+            mkdir current_release/
+            cp _build_docker/prod/watcher-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz current_release/
+            md5sum current_release/watcher-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz | awk '{print $1}' >> current_release/md5
+      - store_artifacts:
+          path: current_release/
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher_info:
@@ -769,6 +777,14 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME
+      - run: 
+          name: "cp release"
+          command: |
+            mkdir current_release/
+            cp _build_docker/prod/watcher_info-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz current_release/
+            md5sum current_release/watcher_info-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz | awk '{print $1}' >> current_release/md5
+      - store_artifacts:
+          path: current_release/
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
   deploy_child_chain:
