@@ -69,9 +69,6 @@ services:
   nginx:
     image: nginx:latest
     container_name: nginx
-    depends_on:
-      geth:
-        condition: service_healthy
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
     ports:

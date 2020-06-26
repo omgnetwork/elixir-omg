@@ -18,8 +18,8 @@ services:
     ports:
       - 9000:8545
     volumes:
-      - ../../data1:/data
-      - ../../data/ethash:/root/.ethash
+      - ./data1:/data
+      - ./data/ethash:/root/.ethash
 
     healthcheck:
       test: curl geth-1:8545
@@ -47,8 +47,8 @@ services:
     ports:
       - 9001:8545
     volumes:
-      - ../../data2:/data
-      - ../../data/ethash:/root/.ethash
+      - ./data2:/data
+      - ./data/ethash:/root/.ethash
     healthcheck:
       test: curl geth-2:8545
       interval: 5s
@@ -67,7 +67,7 @@ services:
       geth-2:
         condition: service_healthy
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./priv/cabbage/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - 8545:80
       - 8546:81
