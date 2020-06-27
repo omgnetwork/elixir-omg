@@ -56,7 +56,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
           # the factor the gas price will be increased by
           gas_price_raising_factor: float(),
           # last gas price calculated
-          gas_price_to_use: pos_integer(),
+          gas_price: pos_integer(),
           # maximum gas price above which raising has no effect, limits the gas price calculation
           max_gas_price: pos_integer(),
           # last parent height successfully evaluated for gas price
@@ -68,7 +68,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
   defstruct eth_gap_without_child_blocks: 2,
             gas_price_lowering_factor: 0.9,
             gas_price_raising_factor: 2.0,
-            gas_price_to_use: 20_000_000_000,
+            gas_price: 20_000_000_000,
             max_gas_price: 20_000_000_000,
             last_block_mined: 0,
             last_parent_height: 0,
@@ -84,6 +84,9 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
   @doc false
   @impl GenServer
   def init(init_arg) do
+    # Unfortunately LegacyGasStrategy cannot rely on its caller to enforce `max_gas_price`
+    # because the strategy can keep doubling the price through the roof and take forever
+    # to get back down below `max_gas_price` without its own ceiling.
     state = %__MODULE__{
       max_gas_price: Keyword.fetch!(init_arg, :max_gas_price)
     }
@@ -130,7 +133,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
   @doc false
   @impl GenServer
   def handle_call(:get_price, _, state) do
-    {:reply, {:ok, state.gas_price_to_use}, state}
+    {:reply, {:ok, state.gas_price}, state}
   end
 
   @doc false
@@ -138,8 +141,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
   def handle_call({:recalculate, latest}, _, state) do
     state = recalculate_state(latest, state)
 
-    _ =
-      Logger.info("#{__MODULE__}: Gas calculation triggered. New price suggestion: #{inspect(state.gas_price_to_use)}")
+    _ = Logger.info("#{__MODULE__}: Gas price recalculated. New price: #{inspect(state.gas_price)}")
 
     {:reply, :ok, state}
   end
@@ -162,19 +164,19 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
         state
 
       true ->
-        gas_price_to_use =
+        gas_price =
           calculate_gas_price(
             latest.mined_child_block_num,
             latest.formed_child_block_num,
             state.last_mined_child_block_num,
-            state.gas_price_to_use,
+            state.gas_price,
             state.gas_price_raising_factor,
             state.gas_price_lowering_factor,
             state.max_gas_price
           )
 
-        state = Map.update!(state, :gas_price_to_use, gas_price_to_use)
-        _ = Logger.debug("using new gas price '#{inspect(state.gas_price_to_use)}'")
+        state = Map.update!(state, :gas_price, gas_price)
+        _ = Logger.debug("using new gas price '#{inspect(state.gas_price)}'")
 
         case state.last_mined_child_block_num < latest.mined_child_block_num do
           true ->
@@ -203,7 +205,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
          mined_child_block_num,
          formed_child_block_num,
          last_mined_child_block_num,
-         gas_price_to_use,
+         gas_price,
          raising_factor,
          lowering_factor,
          max_gas_price
@@ -218,7 +220,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
         {_, true} -> lowering_factor
       end
 
-    Kernel.min(max_gas_price, Kernel.round(multiplier * gas_price_to_use))
+    Kernel.min(max_gas_price, Kernel.round(multiplier * gas_price))
   end
 
   defp blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num) do

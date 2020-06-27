@@ -35,7 +35,12 @@ defmodule OMG.ChildChain.GasPrice.GasPriceSupervisor do
 
     children = [
       {History, [event_bus: Bus, num_blocks: num_blocks]},
+      # Unfortunately LegacyGasStrategy cannot rely on its caller to enforce `max_gas_price`
+      # because the strategy can keep doubling the price through the roof and take forever
+      # to get back down below `max_gas_price` without its own ceiling.
       {LegacyGasStrategy, [max_gas_price: max_gas_price]},
+      # Other strategies don't need `max_gas_price` at the algorithm level because they depend
+      # on historical statistics and not an uncapped multiplier.
       {BlockPercentileGasStrategy, []},
       {PoissonGasStrategy, []}
     ]

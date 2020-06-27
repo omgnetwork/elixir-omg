@@ -15,6 +15,18 @@
 defmodule OMG.ChildChain.GasPrice do
   @moduledoc """
   Suggests gas prices based on different strategies.
+
+  ## Usage
+
+  Include `OMG.ChildChain.GasPrice.GasPriceSupervisor` in the supervision tree:
+
+      children = [
+        {GasPriceSupervisor, [num_blocks: gas_price_history_blocks, max_gas_price: max_gas_price]}
+      ]
+
+      Supervisor.init(children, strategy: :one_for_one)
+
+  Then, call `OMG.ChildChain.GasPrice.get_price()` to get the gas price suggestion.
   """
   alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy

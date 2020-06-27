@@ -18,12 +18,18 @@ defmodule OMG.ChildChain.GasPrice.History.Fetcher do
   alias Ethereumex.HttpClient
   alias OMG.Eth.Encoding
 
+  # Too large a batch and the Eth client will time out, especially because we are
+  # requesting for all transaction info in each block. Use a number that we are certain
+  # the client is able to serve or within `@retries`.
   @per_batch 20
+
   @retries 5
   @retry_ms 10_000
 
   @doc """
   Prepares a stream that fetches the gas prices within the given heights.
+
+  Internally this function fetches the input `heights` in batches of #{@per_batch} blocks.
   """
   @spec stream(Range.t()) :: Enumerable.t()
   def stream(heights) do
