@@ -24,6 +24,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
   require Logger
   alias OMG.ChildChain.GasPrice.History
   alias OMG.ChildChain.GasPrice.Strategy
+  alias OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm
 
   @type t() :: %__MODULE__{
           prices:
@@ -134,78 +135,10 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
   #
 
   defp do_recalculate() do
-    sorted_min_prices = History.all() |> filter_min() |> Enum.sort()
+    price_history = History.all()
 
-    # Handles when all blocks are empty (possible on local chain and low traffic testnets)
-    case length(sorted_min_prices) do
-      0 ->
-        {:error, :all_empty_blocks}
-
-      block_count ->
-        Enum.map(@thresholds, fn {_name, value} ->
-          position = floor(block_count * value / 100) - 1
-          Enum.at(sorted_min_prices, position)
-        end)
-    end
+    {hash_percentages, lowest_min_price, highest_min_price} = Algorithm.analyze_blocks(price_history)
+    prediction_table = Algorithm.make_prediction_table(hash_percentages, lowest_min_price, highest_min_price)
+    Algorithm.get_recommendations(@thresholds, prediction_table)
   end
-
-  defp filter_min(prices) do
-    Enum.reduce(prices, [], fn
-      # Skips empty blocks (possible in local chain and low traffic testnets)
-      {_height, [], _timestamp}, acc -> acc
-      {_height, prices, _timestamp}, acc -> [Enum.min(prices) | acc]
-    end)
-  end
-
-  #
-  # Internal implementations
-  #
-
-  # Port over https://github.com/ethgasstation/gasstation-express-oracle/blob/master/gasExpress.py
-  #
-  # def make_predictTable(block, alltx, hashpower, avg_timemined):
-  #     predictTable = pd.DataFrame({'gasprice' :  range(10, 1010, 10)})
-  #     ptable2 = pd.DataFrame({'gasprice' : range(0, 10, 1)})
-  #     predictTable = predictTable.append(ptable2).reset_index(drop=True)
-  #     predictTable = predictTable.sort_values('gasprice').reset_index(drop=True)
-  #     predictTable['hashpower_accepting'] = predictTable['gasprice'].apply(get_hpa, args=(hashpower,))
-  #     return(predictTable)
-  #
-  # def get_hpa(gasprice, hashpower):
-  #     """gets the hash power accpeting the gas price over last 200 blocks"""
-  #     hpa = hashpower.loc[gasprice >= hashpower.index, 'hashp_pct']
-  #     if gasprice > hashpower.index.max():
-  #         hpa = 100
-  #     elif gasprice < hashpower.index.min():
-  #         hpa = 0
-  #     else:
-  #         hpa = hpa.max()
-  #     return int(hpa)
-  #
-  # def analyze_last200blocks(block, blockdata):
-  #     recent_blocks = blockdata.loc[blockdata['block_number'] > (block-200), ['mingasprice', 'block_number']]
-  #     #create hashpower accepting dataframe based on mingasprice accepted in block
-  #     hashpower = recent_blocks.groupby('mingasprice').count()
-  #     hashpower = hashpower.rename(columns={'block_number': 'count'})
-  #     hashpower['cum_blocks'] = hashpower['count'].cumsum()
-  #     totalblocks = hashpower['count'].sum()
-  #     hashpower['hashp_pct'] = hashpower['cum_blocks']/totalblocks*100
-  #     #get avg blockinterval time
-  #     blockinterval = recent_blocks.sort_values('block_number').diff()
-  #     blockinterval.loc[blockinterval['block_number'] > 1, 'time_mined'] = np.nan
-  #     blockinterval.loc[blockinterval['time_mined']< 0, 'time_mined'] = np.nan
-  #     avg_timemined = blockinterval['time_mined'].mean()
-  #     if np.isnan(avg_timemined):
-  #         avg_timemined = 15
-  #     return(hashpower, avg_timemined)
-  #
-  # def get_fast():
-  #     series = prediction_table.loc[prediction_table['hashpower_accepting'] >= FAST, 'gasprice']
-  #     fastest = series.min()
-  #     return float(fastest)
-  #
-  # def get_fastest():
-  #     hpmax = prediction_table['hashpower_accepting'].max()
-  #     fastest = prediction_table.loc[prediction_table['hashpower_accepting'] == hpmax, 'gasprice'].values[0]
-  #     return float(fastest)
 end

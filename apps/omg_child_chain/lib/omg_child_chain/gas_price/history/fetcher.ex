@@ -13,6 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.ChildChain.GasPrice.History.Fetcher do
+  @moduledoc """
+  Provides functions to stream-fetch block history from an Ethereum client.
+  """
   require Logger
 
   alias Ethereumex.HttpClient

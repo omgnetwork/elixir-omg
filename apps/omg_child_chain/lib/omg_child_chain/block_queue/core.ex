@@ -40,8 +40,8 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   nonce=1 blknum=1000, nonce=2 blknum=2000 etc.
   """
   alias OMG.ChildChain.BlockQueue
-  alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.BlockSubmission
+  alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.GasPrice
 
   use OMG.Utils.LoggerExt
