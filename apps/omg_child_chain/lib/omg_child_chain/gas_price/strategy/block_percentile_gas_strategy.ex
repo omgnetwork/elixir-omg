@@ -132,14 +132,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   #
 
   defp do_recalculate() do
-    sorted_min_prices =
-      History.all()
-      |> Enum.reduce([], fn
-        # Skips empty blocks (possible in local chain and low traffic testnets)
-        {_height, [], _timestamp}, acc -> acc
-        {_height, prices, _timestamp}, acc -> [Enum.min(prices) | acc]
-      end)
-      |> Enum.sort()
+    sorted_min_prices = History.all() |> filter_min() |> Enum.sort()
 
     # Handles when all blocks are empty (possible on local chain and low traffic testnets)
     case length(sorted_min_prices) do
@@ -152,5 +145,13 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
           Enum.at(sorted_min_prices, position)
         end)
     end
+  end
+
+  defp filter_min(prices) do
+    Enum.reduce(prices, [], fn
+      # Skips empty blocks (possible in local chain and low traffic testnets)
+      {_height, [], _timestamp}, acc -> acc
+      {_height, prices, _timestamp}, acc -> [Enum.min(prices) | acc]
+    end)
   end
 end
