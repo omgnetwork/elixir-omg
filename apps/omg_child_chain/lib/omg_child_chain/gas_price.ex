@@ -28,11 +28,13 @@ defmodule OMG.ChildChain.GasPrice do
 
   Then, call `OMG.ChildChain.GasPrice.get_price()` to get the gas price suggestion.
   """
+  require Logger
   alias OMG.ChildChain.Configuration
+  alias OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy
   alias OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy
   alias OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy
 
-  @strategies [LegacyGasStrategy, PoissonGasStrategy]
+  @strategies [BlockPercentileGasStrategy, LegacyGasStrategy, PoissonGasStrategy]
 
   @doc """
   Trigger gas price recalculations for all strategies.
@@ -47,6 +49,16 @@ defmodule OMG.ChildChain.GasPrice do
   """
   @spec get_price() :: {:ok, pos_integer()} | {:error, atom()}
   def get_price() do
-    Configuration.block_submit_gas_price_strategy().get_price()
+    price_suggestions =
+      Enum.reduce(@strategies, %{}, fn strategy, suggestions ->
+        Map.put(suggestions, strategy, strategy.get_price())
+      end)
+
+    _ = Logger.info("#{__MODULE__}: All price suggestions: #{inspect(price_suggestions)}")
+
+    gas_price = price_suggestions[Configuration.block_submit_gas_price_strategy()]
+
+    _ = Logger.info("#{__MODULE__}: Suggesting gas price: #{gas_price / 1_000_000_000} gwei.")
+    gas_price
   end
 end
