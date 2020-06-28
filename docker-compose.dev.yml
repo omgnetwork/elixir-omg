@@ -45,7 +45,7 @@ services:
       - "8125:8125/udp"
       - "8126:8126/tcp"
 
-  # Submits an Ethereum transaction with a random gas price between 1 - 100 Gwei
+  # Submits an Ethereum transaction with a random gas price between 1 - $MAX_GAS_PRICE_GWEI Gwei
   # every $SLEEP_SECONDS interval
   geth-random-gas-price-tx-factory:
     image: curlimages/curl:7.71.0
@@ -57,7 +57,7 @@ services:
           TX_AMOUNT_WEI=$$(($$TX_AMOUNT_GWEI*1000000000))
           TX_AMOUNT_HEX="0x$$(printf "%x" '$$TX_AMOUNT_WEI')"
 
-          GAS_PRICE_GWEI=$$((1 + RANDOM % 100))
+          GAS_PRICE_GWEI=$$((1 + RANDOM % $$MAX_GAS_PRICE_GWEI))
           GAS_PRICE_WEI=$$(($$GAS_PRICE_GWEI*1000000000))
           GAS_PRICE_HEX="0x$$(printf "%x" '$$GAS_PRICE_WEI')"
           echo Submitting $$TX_AMOUNT_GWEI Gwei tx with gas price of $$GAS_PRICE_GWEI Gwei
@@ -80,4 +80,5 @@ services:
         done
       '
     environment:
+      - MAX_GAS_PRICE_GWEI=100
       - SLEEP_SECONDS=10
