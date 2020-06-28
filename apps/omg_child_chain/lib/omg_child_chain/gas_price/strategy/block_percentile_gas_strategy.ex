@@ -140,9 +140,9 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
         {:error, :all_empty_blocks}
 
       block_count ->
-        Enum.map(@thresholds, fn {_name, value} ->
+        Enum.map(@thresholds, fn {threshold_name, value} ->
           position = floor(block_count * value / 100) - 1
-          Enum.at(sorted_min_prices, position)
+          {threshold_name, Enum.at(sorted_min_prices, position)}
         end)
     end
   end
