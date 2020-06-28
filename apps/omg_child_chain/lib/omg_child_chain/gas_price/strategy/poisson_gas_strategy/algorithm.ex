@@ -16,16 +16,17 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
   @moduledoc """
   The algorithmic functions for PoissonGasStrategy.
 
-  Note that the internal unit used in this strategy is 10 Gwei, and therefore internal conversions
-  from wei are based on 1e8 (`100_000_000`) instead of the usual 1e9 (`1_000_000_000`).
+  Note that to align with the original EthGasStation's implementation, the internal unit
+  used in this strategy is 0.1 Gwei (100 Mwei), and therefore internal conversions from wei
+  are based on 1e8 (`100_000_000`) instead of the usual 1e9 (`1_000_000_000`).
 
-  The return of public functions, however, are already converted back to wei.
+  The return of public functions, however, are already converted back to wei to remain
+  consistent and compatible with other strategies.
+
+  See https://github.com/ethgasstation/gasstation-express-oracle/blob/3cfb354/gasExpress.py
   """
 
-  # Note that the division by 1e8 instead of 1e9 here is intentional.
-  # The unit is per 10 Gwei, which aligns with `@prediction_table_ranges`.
-  # See: https://github.com/ethgasstation/gasstation-express-oracle/blob/3cfb354/gasExpress.py#L48
-  @wei_to_10gwei 100_000_000
+  @amount100mwei 100_000_000
 
   # 1, 2, 3, .., 10, 20, 30, .., 1010
   @prediction_table_ranges :lists.seq(0, 9, 1) ++ :lists.seq(10, 1010, 10)
@@ -90,7 +91,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
       suggested_price =
         case Enum.find(prediction_table, fn {_gas_price, hpa} -> hpa >= threshold_value end) do
           nil -> nil
-          {gas_price, _hpa} -> gas_price / 10
+          {gas_price, _hpa} -> gas_price * @amount100mwei
         end
 
       {threshold_name, suggested_price}
@@ -111,7 +112,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
 
   # https://github.com/ethgasstation/gasstation-express-oracle/blob/3cfb354/gasExpress.py#L46-L57
   defp round_10gwei(price) do
-    case price / @wei_to_10gwei do
+    case price / @amount100mwei do
       gp when gp >= 1 and gp < 10 ->
         floor(gp)
 
