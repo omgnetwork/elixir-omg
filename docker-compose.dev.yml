@@ -44,3 +44,40 @@ services:
       - "2023-2024:2023-2024"
       - "8125:8125/udp"
       - "8126:8126/tcp"
+
+  # Submits an Ethereum transaction with a random gas price between 1 - 100 Gwei
+  # every $SLEEP_SECONDS interval
+  geth-random-gas-price-tx-factory:
+    image: curlimages/curl:7.71.0
+    command: >
+      sh -c '
+        while true
+        do
+          TX_AMOUNT_GWEI=$$((1 + RANDOM % 10))
+          TX_AMOUNT_WEI=$$(($$TX_AMOUNT_GWEI*1000000000))
+          TX_AMOUNT_HEX="0x$$(printf "%x" '$$TX_AMOUNT_WEI')"
+
+          GAS_PRICE_GWEI=$$((1 + RANDOM % 100))
+          GAS_PRICE_WEI=$$(($$GAS_PRICE_GWEI*1000000000))
+          GAS_PRICE_HEX="0x$$(printf "%x" '$$GAS_PRICE_WEI')"
+          echo Submitting $$TX_AMOUNT_GWEI Gwei tx with gas price of $$GAS_PRICE_GWEI Gwei
+
+          curl -s -X POST http://geth:8545 \
+            -H "Content-Type: application/json" \
+            --data "{
+                \"jsonrpc\": \"2.0\",
+                \"method\": \"eth_sendTransaction\",
+                \"params\": [{
+                  \"from\": \"0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d\",
+                  \"to\": \"0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d\",
+                  \"gasPrice\": \"'$$GAS_PRICE_HEX'\",
+                  \"value\": \"'$$TX_AMOUNT_HEX'\"
+                  }],
+                \"id\":1
+              }"
+
+          sleep $$SLEEP_SECONDS
+        done
+      '
+    environment:
+      - SLEEP_SECONDS=10
