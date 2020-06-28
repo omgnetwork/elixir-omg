@@ -18,6 +18,14 @@ defmodule OMG.ChildChain.GasPrice do
 
   ## Usage
 
+  Prepare the gas price configurations:
+
+      config :omg_child_chain,
+        # ...
+        block_submit_gas_price_strategy: OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy,
+        block_submit_max_gas_price: 20_000_000_000,
+        block_submit_gas_price_history_blocks: 200
+
   Include `OMG.ChildChain.GasPrice.GasPriceSupervisor` in the supervision tree:
 
       children = [
@@ -47,7 +55,7 @@ defmodule OMG.ChildChain.GasPrice do
   @doc """
   Suggests the optimal gas price using the configured strategy.
   """
-  @spec get_price() :: {:ok, pos_integer()} | {:error, atom()}
+  @spec get_price() :: {:ok, pos_integer()} | {:error, :no_gas_price_suggestion}
   def get_price() do
     price_suggestions =
       Enum.reduce(@strategies, %{}, fn strategy, suggestions ->
@@ -56,9 +64,16 @@ defmodule OMG.ChildChain.GasPrice do
 
     _ = Logger.info("#{__MODULE__}: All price suggestions: #{inspect(price_suggestions)}")
 
-    gas_price = price_suggestions[Configuration.block_submit_gas_price_strategy()]
+    strategy = Configuration.block_submit_gas_price_strategy()
 
-    _ = Logger.info("#{__MODULE__}: Suggesting gas price: #{gas_price / 1_000_000_000} gwei.")
-    gas_price
+    case price_suggestions[strategy] do
+      {:ok, gas_price} ->
+        _ = Logger.info("#{__MODULE__}: Suggesting gas price: #{gas_price / 1_000_000_000} gwei.")
+        {:ok, gas_price}
+
+      error ->
+        _ = Logger.info("#{__MODULE__}: Gas price suggestion for #{strategy} cannot be determined. Got: #{error}.")
+        error
+    end
   end
 end
