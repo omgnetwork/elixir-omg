@@ -15,8 +15,19 @@
 defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
   @moduledoc """
   The algorithmic functions for PoissonGasStrategy.
+
+  Note that the internal unit used in this strategy is 10 Gwei, and therefore internal conversions
+  from wei are based on 1e8 (`100_000_000`) instead of the usual 1e9 (`1_000_000_000`).
+
+  The return of public functions, however, are already converted back to wei.
   """
-  @wei_to_gwei 1_000_000_000
+
+  # Note that the division by 1e8 instead of 1e9 here is intentional.
+  # The unit is per 10 Gwei, which aligns with `@prediction_table_ranges`.
+  # See: https://github.com/ethgasstation/gasstation-express-oracle/blob/3cfb354/gasExpress.py#L48
+  @wei_to_10gwei 100_000_000
+
+  # 1, 2, 3, .., 10, 20, 30, .., 1010
   @prediction_table_ranges :lists.seq(0, 9, 1) ++ :lists.seq(10, 1010, 10)
 
   @doc """
@@ -31,7 +42,8 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
     sorted_min_prices =
       price_history
       |> remove_empty()
-      |> aggregate_min_prices()
+      |> extract_min_prices()
+      |> round_10gwei()
       |> Enum.sort()
 
     num_blocks = length(sorted_min_prices)
@@ -45,7 +57,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
     cumulative_sum = cumulative_sum(num_blocks_by_min_prices)
 
     # %{min_price => hash_percentage}
-    hash_percentages = Enum.map(cumulative_sum, fn {_min_price, cumsum} -> cumsum / num_blocks * 100 end)
+    hash_percentages = Enum.map(cumulative_sum, fn {min_price, cumsum} -> {min_price, cumsum / num_blocks * 100} end)
 
     {hash_percentages, lowest_min_price, highest_min_price}
   end
@@ -56,7 +68,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
   Equivalent to [gasExpress.py's `make_predictTable()`](https://github.com/ethgasstation/gasstation-express-oracle/blob/3cfb354/gasExpress.py#L137-L145)
   """
   def make_prediction_table(hash_percentages, lowest_min_price, highest_min_price) do
-    Enum.into(@prediction_table_ranges, %{}, fn gas_price ->
+    Enum.into(@prediction_table_ranges, [], fn gas_price ->
       hpa =
         cond do
           gas_price > highest_min_price -> 100
@@ -76,9 +88,10 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
   def get_recommendations(thresholds, prediction_table) do
     Enum.map(thresholds, fn {threshold_name, threshold_value} ->
       suggested_price =
-        prediction_table
-        |> Enum.find(fn {_gas_price, hpa} -> hpa >= threshold_value end)
-        |> elem(0)
+        case Enum.find(prediction_table, fn {_gas_price, hpa} -> hpa >= threshold_value end) do
+          nil -> nil
+          {gas_price, _hpa} -> gas_price / 10
+        end
 
       {threshold_name, suggested_price}
     end)
@@ -88,13 +101,26 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
     Enum.reject(history, fn {_height, prices, _timestamp} -> Enum.empty?(prices) end)
   end
 
-  defp aggregate_min_prices(history) do
-    Enum.map(history, fn {_height, prices, _timestamp} -> min_gwei(prices) end)
+  defp extract_min_prices(history) do
+    Enum.map(history, fn {_height, prices, _timestamp} -> Enum.min(prices) end)
   end
 
-  defp min_gwei(prices) do
-    min_price = Enum.min(prices)
-    Integer.floor_div(min_price, @wei_to_gwei) * @wei_to_gwei
+  defp round_10gwei(prices) when is_list(prices) do
+    Enum.map(prices, &round_10gwei/1)
+  end
+
+  # https://github.com/ethgasstation/gasstation-express-oracle/blob/3cfb354/gasExpress.py#L46-L57
+  defp round_10gwei(price) do
+    case price / @wei_to_10gwei do
+      gp when gp >= 1 and gp < 10 ->
+        floor(gp)
+
+      gp when gp >= 10 ->
+        floor(gp / 10) * 10
+
+      _ ->
+        0
+    end
   end
 
   defp cumulative_sum(values) do
