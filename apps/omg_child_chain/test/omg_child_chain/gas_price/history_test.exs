@@ -17,7 +17,6 @@ defmodule OMG.ChildChain.GasPrice.HistoryTest do
 
   describe "start_link/1" do
     test "starts the history server successfully" do
-
     end
   end
 end
