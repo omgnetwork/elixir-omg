@@ -52,7 +52,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
         select: e.root_chain_txhash
       )
 
-    DB.Repo.stream(query, max_rows: @max_db_rows, location: "#{__MODULE__}.stream_events_from_db/0")
+    DB.Repo.stream(query, max_rows: @max_db_rows)
   end
 
   def make_batched_request([]), do: []
@@ -81,11 +81,11 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
       where: e.root_chain_txhash == ^root_chain_txhash,
       select: e
     )
-    |> DB.Repo.all(location: "#{__MODULE__}.update_record/1")
+    |> DB.Repo.all()
     |> Enum.each(fn event ->
       event
       |> Ecto.Changeset.change(%{eth_height: eth_height})
-      |> DB.Repo.update(location: "#{__MODULE__}.updated_record/1")
+      |> DB.Repo.update()
     end)
   end
 
