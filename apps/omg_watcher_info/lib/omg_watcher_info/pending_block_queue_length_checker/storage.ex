@@ -12,8 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.DB.Repo do
-  use Ecto.Repo,
-    otp_app: :omg_watcher_info,
-    adapter: Ecto.Adapters.Postgres
+defmodule OMG.WatcherInfo.PendingBlockQueueLengthChecker.Storage do
+  @moduledoc """
+  Contains storage related functions of the PendingBlockQueueLengthChecker
+  """
+
+  alias OMG.WatcherInfo.DB.PendingBlock
+
+  @spec get_queue_length() :: non_neg_integer()
+  def get_queue_length() do
+    PendingBlock.get_count()
+  end
 end

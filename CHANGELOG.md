@@ -1,5 +1,22 @@
 # Changelog
 
+## [v1.0.1](https://github.com/omisego/elixir-omg/releases/tag/v1.0.1)
+
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v1.0.0...v1.0.1).
+
+#### APIs
+
+- None
+
+#### Core
+
+- [Fixed] Increase ExitProcessor timeouts (#1592)
+
+#### Miscellaneous
+
+- None
+
 ## [v1.0.0](https://github.com/omisego/elixir-omg/releases/tag/v1.0.0)
 
 Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
@@ -14,6 +31,8 @@ See [full changelog](https://github.com/omisego/elixir-omg/compare/v0.4.8...v1.0
 
 #### Core
 
+- [Fixed] Global get block interval (#1576)
+- [Fixed] Better restart strategy (#1565)
 - [Fixed] Prevent race condition for status cache (#1558)
 - [Fixed] Reorg block getter (#1554)
 - [Added] Cache blocks into ets (#1547)

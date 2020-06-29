@@ -12,8 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.DB.Repo do
-  use Ecto.Repo,
-    otp_app: :omg_watcher_info,
-    adapter: Ecto.Adapters.Postgres
+defmodule OMG.WatcherInfo.Configuration do
+  @moduledoc """
+  Provides access to applications configuration
+  """
+  @app :omg_watcher_info
+
+  def pending_block_processing_interval() do
+    Application.fetch_env!(@app, :pending_block_processing_interval)
+  end
+
+  def block_queue_check_interval() do
+    Application.fetch_env!(@app, :block_queue_check_interval)
+  end
 end
