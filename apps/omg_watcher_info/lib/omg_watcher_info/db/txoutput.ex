@@ -153,11 +153,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         {Ecto.Multi.update_all(
            multi,
            "spend_utxos_#{index}",
-           DB.Repo.explain(
-             from(p in DB.TxOutput,
-               where: p.blknum == ^blknum and p.txindex == ^txindex and p.oindex == ^oindex
-             ),
-             analyze: true
+           from(p in DB.TxOutput,
+             where: p.blknum == ^blknum and p.txindex == ^txindex and p.oindex == ^oindex
            ),
            set: [
              spending_tx_oindex: spending_oindex,

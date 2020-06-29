@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule WatcherInfoApiTest do
-  use Cabbage.Feature, async: true, file: "watcher_info_api.feature"
+  use Cabbage.Feature, async: true, file: "watcher_info_api_pagination.feature"
 
   require Logger
 
@@ -26,9 +26,10 @@ defmodule WatcherInfoApiTest do
   @to_milliseconds 1000
 
   setup do
-    accounts = Account.take_accounts(1)
+    accounts = Account.take_accounts(2)
     alice_account = Enum.at(accounts, 0)
-    %{alice_account: alice_account}
+    bob_account = Enum.at(accounts, 1)
+    %{alice_account: alice_account, bob_account: bob_account}
   end
 
   defgiven ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain creating 1 UTXO$/,
@@ -75,6 +76,51 @@ defmodule WatcherInfoApiTest do
     assert_equal(true, Map.equal?(data_paging, %{"page" => 1, "limit" => 2}), "as data_paging")
   end
 
+  defwhen ~r/^Alice send "(?<amount>[^"]+)" ETH to bob on the child chain$/,
+          %{amount: amount},
+          %{alice_account: alice_account, bob_account: bob_account} = state do
+    {alice_addr, alice_priv} = alice_account
+    {bob_addr, _bob_priv} = bob_account
+
+    {:ok, [sign_hash, typed_data, _txbytes]} =
+      Client.create_transaction(
+        Currency.to_wei(amount),
+        alice_addr,
+        bob_addr
+      )
+
+    # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
+    transaction = Client.submit_transaction_and_wait(typed_data, sign_hash, [alice_priv])
+
+    {:ok, Map.put_new(state, :transaction, transaction)}
+  end
+
+  defthen ~r/^Api able to list transaction correctly with end_datetime$/,
+          _,
+          %{transaction: transaction, alice_account: alice_account} = state do
+    {alice_addr, _alice_priv} = alice_account
+    {:ok, tx_data} = Client.get_transaction(transaction.txhash)
+    %{"data" => tx} = tx_data
+    {:ok, data} = Client.get_transactions(%{end_datetime: tx["block"]["timestamp"], limit: 10})
+    %{"data" => transactions} = data
+
+    is_all_newer_tx = is_all_tx_behind_timestamp(transactions, tx["block"]["timestamp"])
+
+    assert(is_all_newer_tx == true)
+
+    {:ok, data} = Client.get_transactions(%{end_datetime: 1, limit: 10})
+    %{"data" => transactions_empty} = data
+
+    assert(transactions_empty == [])
+
+    {:ok, alice_tx_data} =
+      Client.get_transactions(%{end_datetime: tx["block"]["timestamp"], limit: 10, account: alice_addr})
+
+    %{"data" => transactions_alice} = alice_tx_data
+    assert(is_all_tx_behind_timestamp(transactions_alice, tx["block"]["timestamp"]) == true)
+    {:ok, state}
+  end
+
   defp assert_equal(left, right, message) do
     assert(left == right, "Expected #{left}, but have #{right}." <> message)
   end
@@ -89,6 +135,12 @@ defmodule WatcherInfoApiTest do
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
     wait_finality_margin_blocks(finality_margin_blocks)
     Itest.Poller.pull_balance_until_amount(address, amount)
+  end
+
+  defp is_all_tx_behind_timestamp(transactions, timestamp) do
+    Enum.all?(transactions, fn t ->
+      t["block"]["timestamp"] <= timestamp
+    end)
   end
 
   defp wait_finality_margin_blocks(finality_margin_blocks) do
