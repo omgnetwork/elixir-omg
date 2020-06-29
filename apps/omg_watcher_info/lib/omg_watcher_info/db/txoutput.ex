@@ -23,6 +23,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.DB.Repo
 
   require Utxo
 
@@ -72,7 +73,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
-    DB.Repo.one(
+    Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
@@ -84,7 +85,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   @spec get_by_output_id(txhash :: OMG.Crypto.hash_t(), oindex :: non_neg_integer()) :: map() | nil
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_output_id(txhash, oindex) do
-    DB.Repo.one(
+    Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
@@ -104,7 +105,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     address
     |> query_get_utxos()
     |> from(limit: ^limit, offset: ^offset)
-    |> DB.Repo.all()
+    |> Repo.all()
     |> Paginator.set_data(paginator)
   end
 
@@ -134,7 +135,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         select: {txoutput.currency, sum(txoutput.amount)}
       )
 
-    DB.Repo.all(query)
+    Repo.all(query)
     |> Enum.map(fn {currency, amount} ->
       # defends against sqlite that returns integer here
       amount = amount |> Decimal.new() |> Decimal.to_integer()
@@ -246,6 +247,6 @@ NOT EXISTS (SELECT 1
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp get_all_utxos(address) do
     query = query_get_utxos(address)
-    DB.Repo.all(query)
+    Repo.all(query)
   end
 end
