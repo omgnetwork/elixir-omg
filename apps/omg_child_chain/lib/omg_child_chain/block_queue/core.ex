@@ -157,8 +157,12 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     gas_price =
       case GasPrice.get_price(strategy) do
         {:ok, price} when price > max_gas_price ->
-          _ = Logger.info("#{__MODULE__}: Gas price from #{strategy} exceeded max_gas_price: #{price / @gwei} gwei. "
-            <> "Lowering down to #{state.block_submit_max_gas_price / @gwei} gwei.")
+          _ =
+            Logger.info(
+              "#{__MODULE__}: Gas price from #{strategy} exceeded max_gas_price: #{price / @gwei} gwei. " <>
+                "Lowering down to #{state.block_submit_max_gas_price / @gwei} gwei."
+            )
+
           state.block_submit_max_gas_price
 
         {:ok, price} ->
@@ -166,8 +170,12 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           price
 
         {:error, :no_gas_price_history} = error ->
-          _ = Logger.info("#{__MODULE__}: Gas price from #{strategy} failed: #{inspect(error)}. "
-            <> "Using the existing price: #{state.gas_price / @gwei} gwei.")
+          _ =
+            Logger.info(
+              "#{__MODULE__}: Gas price from #{strategy} failed: #{inspect(error)}. " <>
+                "Using the existing price: #{state.gas_price / @gwei} gwei."
+            )
+
           state.gas_price
       end
 

@@ -84,7 +84,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
          block_submit_every_nth: block_submit_every_nth,
          block_submit_max_gas_price: block_submit_max_gas_price,
          block_submit_gas_price_strategy: block_submit_gas_price_strategy,
-         child_block_interval: child_block_interval,
+         child_block_interval: child_block_interval
        ]},
       {RootChainCoordinator,
        CoordinatorSetup.coordinator_setup(
