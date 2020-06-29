@@ -87,14 +87,16 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
   """
   def get_recommendations(thresholds, prediction_table) do
     Enum.map(thresholds, fn {threshold_name, threshold_value} ->
-      suggested_price =
-        case Enum.find(prediction_table, fn {_gas_price, hpa} -> hpa >= threshold_value end) do
-          nil -> nil
-          {gas_price, _hpa} -> gas_price * @amount100mwei
-        end
-
-      {threshold_name, suggested_price}
+      price = find_threshold_crossing(prediction_table, threshold_value)
+      {threshold_name, price}
     end)
+  end
+
+  defp find_threshold_crossing(prediction_table, threshold_value) do
+    case Enum.find(prediction_table, fn {_gas_price, hpa} -> hpa >= threshold_value end) do
+      nil -> nil
+      {gas_price, _hpa} -> gas_price * @amount100mwei
+    end
   end
 
   defp extract_min_prices(history) do
