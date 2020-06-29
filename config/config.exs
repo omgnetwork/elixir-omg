@@ -186,19 +186,14 @@ config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   timeout: 180_000,
   connect_timeout: 180_000,
   url: "postgres://omisego_dev:omisego_dev@localhost/omisego_dev",
-  migration_timestamps: [type: :timestamptz]
+  migration_timestamps: [type: :timestamptz],
+  telemetry_prefix: [:omg, :watcher_info, :db, :repo]
 
 config :omg_watcher_info, OMG.WatcherInfo.Tracer,
-  service: :db,
+  service: :ecto,
   adapter: SpandexDatadog.Adapter,
   disabled?: true,
   type: :db
-
-config :spandex_ecto, SpandexEcto.EctoLogger,
-  service: :ecto,
-  adapter: SpandexDatadog.Adapter,
-  tracer: OMG.WatcherInfo.Tracer,
-  otp_app: :omg_watcher_info
 
 # In mix environment, all modules are loaded, therefore it behaves like a watcher_info
 config :omg_watcher_rpc,
@@ -225,6 +220,8 @@ config :phoenix,
   json_library: Jason,
   serve_endpoints: true,
   persistent: true
+
+config :spandex_ecto, SpandexEcto.EctoLogger, tracer: OMG.WatcherInfo.Tracer
 
 config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
   service: :web,

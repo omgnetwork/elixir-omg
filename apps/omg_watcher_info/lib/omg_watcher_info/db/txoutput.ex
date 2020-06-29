@@ -17,6 +17,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   Ecto schema for transaction's output or input
   """
   use Ecto.Schema
+  use Spandex.Decorators
 
   alias OMG.State.Transaction
   alias OMG.Utils.Paginator
@@ -70,8 +71,9 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
-    DB.Repo.one(
+    Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
@@ -81,8 +83,9 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   end
 
   @spec get_by_output_id(txhash :: OMG.Crypto.hash_t(), oindex :: non_neg_integer()) :: map() | nil
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_output_id(txhash, oindex) do
-    DB.Repo.one(
+    Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
@@ -92,6 +95,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   end
 
   @spec get_utxos(keyword) :: OMG.Utils.Paginator.t(%__MODULE__{})
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_utxos(params) do
     address = Keyword.fetch!(params, :address)
     paginator = Paginator.from_constraints(params, @default_get_utxos_limit)
@@ -106,6 +110,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   end
 
   @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_balance(owner) do
     query =
       from(
@@ -239,6 +244,7 @@ NOT EXISTS (SELECT 1
   end
 
   @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp get_all_utxos(address) do
     query = query_get_utxos(address)
     Repo.all(query)
