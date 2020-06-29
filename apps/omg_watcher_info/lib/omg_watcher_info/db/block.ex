@@ -18,6 +18,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   """
   use Ecto.Schema
   use OMG.Utils.LoggerExt
+  use Spandex.Decorators
   import Ecto.Changeset
 
   alias OMG.State
@@ -49,13 +50,15 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   @spec get_max_blknum() :: non_neg_integer()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_max_blknum() do
-    DB.TraceableRepo.aggregate_field(__MODULE__, :max, :blknum, location: "#{__MODULE__}.get_max_blknum/0")
+    DB.Repo.aggregate(__MODULE__, :max, :blknum)
   end
 
   @doc """
     Gets a block specified by a block number.
   """
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get(blknum) do
     query =
       from(
@@ -63,7 +66,7 @@ defmodule OMG.WatcherInfo.DB.Block do
         where: [blknum: ^blknum]
       )
 
-    DB.TraceableRepo.one(query, location: "#{__MODULE__}.get/1")
+    DB.Repo.one(query)
   end
 
   def base_query() do
@@ -79,9 +82,10 @@ defmodule OMG.WatcherInfo.DB.Block do
   Returns a list of blocks
   """
   @spec get_blocks(Paginator.t(%DB.Block{})) :: Paginator.t(%DB.Block{})
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_blocks(paginator) do
     query_get_last(paginator.data_paging)
-    |> DB.TraceableRepo.all(location: "#{__MODULE__}.get_blocks/1")
+    |> DB.Repo.all()
     |> Paginator.set_data(paginator)
   end
 
@@ -99,26 +103,29 @@ defmodule OMG.WatcherInfo.DB.Block do
   Returns the total number of blocks in between given timestamps
   """
   @spec count_all_between_timestamps(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def count_all_between_timestamps(start_datetime, end_datetime) do
     query_count()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.TraceableRepo.one!(location: "#{__MODULE__}.count_all_between_timestamps/2")
+    |> DB.Repo.one!()
   end
 
   @doc """
   Returns the total number of blocks
   """
   @spec count_all() :: non_neg_integer()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def count_all() do
-    DB.TraceableRepo.one!(query_count(), location: "#{__MODULE__}.count_all/0")
+    DB.Repo.one!(query_count())
   end
 
   @doc """
   Returns a map with the timestamps of the earliest and latest blocks of all time.
   """
   @spec get_timestamp_range_all :: %{min: non_neg_integer(), max: non_neg_integer()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_timestamp_range_all() do
-    DB.TraceableRepo.one!(query_timestamp_range(), location: "#{__MODULE__}.get_timestamp_range_all/0")
+    DB.Repo.one!(query_timestamp_range())
   end
 
   @doc """
@@ -128,23 +135,26 @@ defmodule OMG.WatcherInfo.DB.Block do
           min: non_neg_integer(),
           max: non_neg_integer()
         }
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_timestamp_range_between(start_datetime, end_datetime) do
     query_timestamp_range()
     |> query_timestamp_between(start_datetime, end_datetime)
-    |> DB.TraceableRepo.one!(location: "#{__MODULE__}.get_timestamp_range_between/2")
+    |> DB.Repo.one!()
   end
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def insert(params) do
     %__MODULE__{}
     |> changeset(params)
-    |> DB.TraceableRepo.insert(location: "#{__MODULE__}.insert/1")
+    |> DB.Repo.insert()
   end
 
   @doc """
   Inserts complete and sorted enumerable of transactions for particular block number
   """
   @spec insert_with_transactions(mined_block()) :: {:ok, %__MODULE__{}}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def insert_with_transactions(%{
         transactions: transactions,
         blknum: block_number,
@@ -171,7 +181,7 @@ defmodule OMG.WatcherInfo.DB.Block do
       |> prepare_inserts(db_outputs_stream, "db_outputs_", DB.TxOutput)
       |> DB.TxOutput.spend_utxos(db_inputs)
 
-    {insert_duration, result} = :timer.tc(DB.TraceableRepo, :transaction, [multi])
+    {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
 
     case result do
       {:ok, _} ->

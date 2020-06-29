@@ -17,12 +17,12 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   Ecto schema for transaction's output or input
   """
   use Ecto.Schema
+  use Spandex.Decorators
 
   alias OMG.State.Transaction
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
-  alias OMG.WatcherInfo.DB.TraceableRepo
 
   require Utxo
 
@@ -70,30 +70,31 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
 
   # preload ethevents in a single query as there will not be a large number of them
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
-    DB.TraceableRepo.one(
+    DB.Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
-      ),
-      location: "#{__MODULE__}.get_by_position/1"
+      )
     )
   end
 
   @spec get_by_output_id(txhash :: OMG.Crypto.hash_t(), oindex :: non_neg_integer()) :: map() | nil
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_output_id(txhash, oindex) do
-    DB.TraceableRepo.one(
+    DB.Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
         left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.creating_txhash == ^txhash and txoutput.oindex == ^oindex
-      ),
-      location: "#{__MODULE__}.get_by_output_id/1"
+      )
     )
   end
 
   @spec get_utxos(keyword) :: OMG.Utils.Paginator.t(%__MODULE__{})
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_utxos(params) do
     address = Keyword.fetch!(params, :address)
     paginator = Paginator.from_constraints(params, @default_get_utxos_limit)
@@ -103,11 +104,12 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     address
     |> query_get_utxos()
     |> from(limit: ^limit, offset: ^offset)
-    |> TraceableRepo.all(location: "#{__MODULE__}.get_utxos/1")
+    |> DB.Repo.all()
     |> Paginator.set_data(paginator)
   end
 
   @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_balance(owner) do
     query =
       from(
@@ -132,7 +134,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
         select: {txoutput.currency, sum(txoutput.amount)}
       )
 
-    TraceableRepo.all(query, location: "#{__MODULE__}.get_balance/1")
+    DB.Repo.all(query)
     |> Enum.map(fn {currency, amount} ->
       # defends against sqlite that returns integer here
       amount = amount |> Decimal.new() |> Decimal.to_integer()
@@ -244,8 +246,9 @@ NOT EXISTS (SELECT 1
   end
 
   @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp get_all_utxos(address) do
     query = query_get_utxos(address)
-    TraceableRepo.all(query, location: "#{__MODULE__}.get_all_utxos/1")
+    DB.Repo.all(query)
   end
 end

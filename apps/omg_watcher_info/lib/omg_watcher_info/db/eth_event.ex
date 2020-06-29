@@ -20,6 +20,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   import Ecto.Changeset
 
   use Ecto.Schema
+  use Spandex.Decorators
 
   alias OMG.Crypto
   alias OMG.Eth.Encoding
@@ -61,6 +62,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp insert_deposit!(%{
          root_chain_txhash: root_chain_txhash,
          log_index: log_index,
@@ -97,7 +99,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
             }
           ]
         }
-        |> DB.TraceableRepo.insert(location: "#{__MODULE__}.insert_deposit!/1")
+        |> DB.Repo.insert()
 
         # an ethevents row just got inserted, now return the ethevent with all populated fields including
         # those populated by the DB (eg: inserted_at, updated_at, ...)
@@ -143,12 +145,12 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   Retrieves event by `root_chain_txhash_event` (unique identifier). Preload txoutputs in a single query as there will not be a large number of them.
   """
   @spec get(binary()) :: %__MODULE__{}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get(root_chain_txhash_event) do
-    DB.TraceableRepo.one(
+    DB.Repo.one(
       from(ethevent in base_query(),
         where: ethevent.root_chain_txhash_event == ^root_chain_txhash_event
-      ),
-      location: "#{__MODULE__}.get/1"
+      )
     )
   end
 
@@ -159,12 +161,13 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           paginator :: Paginator.t(%DB.EthEvent{}),
           address :: Crypto.address_t()
         ) :: Paginator.t(%DB.EthEvent{})
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_deposits(paginator, address) do
     base_query()
     |> query_deposits()
     |> query_by_address(address)
     |> query_paginated(paginator.data_paging)
-    |> DB.TraceableRepo.all(location: "#{__MODULE__}.get_deposits/2")
+    |> DB.Repo.all()
     |> Paginator.set_data(paginator)
   end
 
@@ -256,6 +259,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   @spec do_insert_exit(%__MODULE__{}, %DB.TxOutput{}) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp do_insert_exit(ethevent, tx_output) when ethevent != nil and tx_output != nil do
     # sanity check
     false = output_spent?(tx_output)
@@ -264,7 +268,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
     tx_output
     |> txoutput_changeset(%{child_chain_utxohash: generate_child_chain_utxohash(decoded_utxo_position)}, ethevent)
-    |> DB.TraceableRepo.update(location: "#{__MODULE__}.do_insert_exit/2")
+    |> DB.Repo.update()
 
     # a txoutput row just got updated, but we need to return the associated ethevent with all populated
     # fields including those populated by the DB (eg: inserted_at, updated_at, ...)
