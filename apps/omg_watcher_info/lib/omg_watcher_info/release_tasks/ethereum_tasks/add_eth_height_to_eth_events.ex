@@ -18,6 +18,8 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
   for `eth_events`. This module will add `eth_height` to all persisted `eth_events` where this value is non-existent.
   """
   use Ecto.Migration
+  use Spandex.Decorators
+
   alias OMG.Eth.Encoding
   alias OMG.WatcherInfo.DB
 
@@ -28,6 +30,7 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
   @max_db_rows 100
   @max_eth_requests 25
 
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def run() do
     Logger.info("Running: Add `eth_height` to `eth_events`")
 
