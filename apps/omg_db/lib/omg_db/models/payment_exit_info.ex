@@ -19,26 +19,26 @@ defmodule OMG.DB.Models.PaymentExitInfo do
 
   alias OMG.DB
 
-  @server_name OMG.DB.Instance.ExitProcessor
+  @instance_name OMG.DB.Instance.ExitProcessor
 
   @ten_seconds 10_000
   @one_minute 60_000
 
-  def exit_info(utxo_pos, server \\ @server_name) do
-    {:ok, data} = DB.batch_get(:exit_info, [utxo_pos], server: server)
+  def exit_info(utxo_pos, instance \\ @instance_name) do
+    {:ok, data} = DB.batch_get(:exit_info, [utxo_pos], instance: instance)
     {:ok, hd(data)}
   end
 
-  def exit_infos(utxo_pos_list, server \\ @server_name)
+  def exit_infos(utxo_pos_list, instance \\ @instance_name)
       when is_list(utxo_pos_list) do
-    DB.batch_get(:exit_info, utxo_pos_list, server: server, timeout: @ten_seconds)
+    DB.batch_get(:exit_info, utxo_pos_list, instance: instance, timeout: @ten_seconds)
   end
 
-  def all_exit_infos(server \\ @server_name) do
-    DB.get_all_by_type(:exit_info, server: server, timeout: @one_minute)
+  def all_exit_infos(instance \\ @instance_name) do
+    DB.get_all_by_type(:exit_info, instance: instance, timeout: @one_minute)
   end
 
-  def all_in_flight_exits_infos(server \\ @server_name) do
-    DB.get_all_by_type(:in_flight_exit_info, server: server, timeout: @one_minute)
+  def all_in_flight_exits_infos(instance \\ @instance_name) do
+    DB.get_all_by_type(:in_flight_exit_info, instance: instance, timeout: @one_minute)
   end
 end

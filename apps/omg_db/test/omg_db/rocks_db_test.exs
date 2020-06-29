@@ -85,7 +85,7 @@ defmodule OMG.RocksDBTest do
       data = {specific_key, :crypto.strong_rand_bytes(123)}
       :ok = DB.multi_update([{:put, type, data}], pid)
 
-      assert {:ok, [data]} == DB.batch_get(type, [specific_key], server: pid)
+      assert {:ok, [data]} == DB.batch_get(type, [specific_key], instance: pid)
     end
 
     test "can get multiple data with the type and multiple specific keys", %{db_dir: _dir, db_pid: pid} do
@@ -98,14 +98,14 @@ defmodule OMG.RocksDBTest do
         |> Enum.map(fn data -> {:put, type, data} end)
         |> DB.multi_update(pid)
 
-      assert {:ok, data_list} == DB.batch_get(type, specific_keys, server: pid)
+      assert {:ok, data_list} == DB.batch_get(type, specific_keys, instance: pid)
     end
   end
 
   test "it can get all data with the type", %{db_dir: _dir, db_pid: pid} do
     db_writes = create_write(:utxo, pid)
 
-    assert {:ok, db_writes} == DB.get_all_by_type(:utxo, server: pid)
+    assert {:ok, db_writes} == DB.get_all_by_type(:utxo, instance: pid)
   end
 
   test "if multi reading utxos returns writen results", %{db_dir: _dir, db_pid: pid} do

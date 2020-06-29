@@ -95,7 +95,7 @@ defmodule OMG.DB do
     :ok = Application.put_env(:omg_db, :path, path, persistent: true)
 
     instances
-    |> Enum.map(&join_path(&1, path))
+    |> Enum.map(&join_path(path, &1))
     |> Enum.map(&RocksDB.init/1)
     |> all_ok_or_error()
   end
@@ -178,7 +178,7 @@ defmodule OMG.DB do
   Combines path for database instance storage location.
   `instance` has to be atom in form `OMG.DB.Instance.<InstanceName>`.
   """
-  def join_path(instance, base_path) when is_binary(base_path) and is_atom(instance) do
+  def join_path(base_path, instance) when is_binary(base_path) and is_atom(instance) do
     ["Elixir", "OMG", "DB", "Instance", instance_name] =
       instance
       |> Atom.to_string()
@@ -192,20 +192,9 @@ defmodule OMG.DB do
   """
   def prepare_args(args) do
     base_path = Keyword.fetch!(args, :db_path)
+    instance = Keyword.get(args, :instance, @default_instance_name)
 
-    {name, instance} =
-      args
-      |> Keyword.get(:instance)
-      |> case do
-        nil -> {OMG.DB.RocksDB.Server, @default_instance_name}
-        @default_instance_name -> {OMG.DB.RocksDB.Server, @default_instance_name}
-        instance_name -> {instance_name, instance_name}
-      end
-
-    args
-    |> Keyword.put(:db_path, join_path(instance, base_path))
-    |> Keyword.put(:name, name)
-    |> Keyword.take([:db_path, :name])
+    [db_path: join_path(base_path, instance), name: instance]
   end
 
   defp all_ok_or_error([]), do: :ok

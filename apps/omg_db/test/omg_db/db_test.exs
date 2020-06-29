@@ -106,19 +106,18 @@ defmodule OMG.DBTest do
     test "create paths for correctly prefixed instances" do
       base_path = "/tmp"
 
-      assert "#{base_path}/exit_processor" == DB.join_path(OMG.DB.Instance.ExitProcessor, base_path)
-      assert "#{base_path}/default" == DB.join_path(OMG.DB.Instance.Default, base_path)
-      assert "#{base_path}/omg_network" == DB.join_path(OMG.DB.Instance.OMGNetwork, base_path)
+      assert "#{base_path}/exit_processor" == DB.join_path(base_path, OMG.DB.Instance.ExitProcessor)
+      assert "#{base_path}/default" == DB.join_path(base_path, OMG.DB.Instance.Default)
+      assert "#{base_path}/omg_network" == DB.join_path(base_path, OMG.DB.Instance.OMGNetwork)
     end
 
     test "fails when instance incorrectly prefixed" do
-      assert_raise MatchError, fn -> DB.join_path(OMG.DB.RocksDB, "/path") end
+      assert_raise MatchError, fn -> DB.join_path("/path", OMG.DB.RocksDB) end
     end
   end
 
   describe "Preparing sane defaults for database" do
     @base_path "/db/path"
-    @default_name OMG.DB.RocksDB.Server
     @default_instance_name OMG.DB.Instance.Default
 
     test "fails when db_path not set" do
@@ -132,25 +131,28 @@ defmodule OMG.DBTest do
     end
 
     test "suplements path of default instance when instance not set" do
-      assert [name: @default_name, db_path: "#{@base_path}/default"] == DB.prepare_args(db_path: @base_path)
+      assert %{name: @default_instance_name, db_path: "#{@base_path}/default"} ==
+               [db_path: @base_path] |> DB.prepare_args() |> Map.new()
     end
 
     test "provides default name for default db instance" do
-      assert [name: @default_name, db_path: "#{@base_path}/default"] ==
-               DB.prepare_args(db_path: @base_path, instance: @default_instance_name)
+      assert %{name: @default_instance_name, db_path: "#{@base_path}/default"} ==
+               [db_path: @base_path, instance: @default_instance_name] |> DB.prepare_args() |> Map.new()
     end
 
     test "default instance name cannot be overwritten" do
-      assert [name: @default_name, db_path: "#{@base_path}/default"] ==
-               DB.prepare_args(db_path: @base_path, name: @default_instance_name)
+      assert %{name: @default_instance_name, db_path: "#{@base_path}/default"} ==
+               [db_path: @base_path, name: @default_instance_name] |> DB.prepare_args() |> Map.new()
 
-      assert [name: @default_name, db_path: "#{@base_path}/default"] ==
-               DB.prepare_args(db_path: @base_path, name: @default_instance_name, instance: @default_instance_name)
+      assert %{name: @default_instance_name, db_path: "#{@base_path}/default"} ==
+               [db_path: @base_path, name: @default_instance_name, instance: @default_instance_name]
+               |> DB.prepare_args()
+               |> Map.new()
     end
 
     test "suplements path and overrides name for non-default instance" do
-      assert [name: OMG.DB.Instance.ExitProcessor, db_path: "#{@base_path}/exit_processor"] ==
-               DB.prepare_args(db_path: @base_path, instance: OMG.DB.Instance.ExitProcessor)
+      assert %{name: OMG.DB.Instance.ExitProcessor, db_path: "#{@base_path}/exit_processor"} ==
+               [db_path: @base_path, instance: OMG.DB.Instance.ExitProcessor] |> DB.prepare_args() |> Map.new()
     end
   end
 
