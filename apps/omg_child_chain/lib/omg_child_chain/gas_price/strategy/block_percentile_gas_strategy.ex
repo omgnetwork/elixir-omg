@@ -34,7 +34,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
             | error()
         }
 
-  @type error() :: {:error, :all_empty_blocks}
+  @type error() :: {:error, :no_gas_price_history}
 
   defstruct prices: %{
               safe_low: 20_000_000_000,
@@ -137,7 +137,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
     # Handles when all blocks are empty (possible on local chain and low traffic testnets)
     case length(sorted_min_prices) do
       0 ->
-        {:error, :all_empty_blocks}
+        {:error, :no_gas_price_history}
 
       block_count ->
         Enum.map(@thresholds, fn {threshold_name, value} ->

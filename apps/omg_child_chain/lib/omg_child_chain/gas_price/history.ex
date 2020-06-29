@@ -28,10 +28,10 @@ defmodule OMG.ChildChain.GasPrice.History do
 
       Supervisor.init([{History, []}], strategy: :one_for_one)
   """
-  def child_spec(opts) do
+  def child_spec(start_arg) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
+      start: {__MODULE__, :start_link, [start_arg]},
       type: :worker
     }
   end
@@ -40,8 +40,9 @@ defmodule OMG.ChildChain.GasPrice.History do
   Start the gas price history service.
   """
   @spec start_link(Keyword.t()) :: GenServer.on_start()
-  def start_link(opts) do
-    GenServer.start_link(Server, opts, name: Server)
+  def start_link(start_arg) do
+    {name, start_arg} = Keyword.pop(start_arg, :name, Server)
+    GenServer.start_link(Server, start_arg, name: name)
   end
 
   @doc """

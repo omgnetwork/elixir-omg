@@ -103,6 +103,8 @@ defmodule OMG.ChildChain.BlockQueue do
     _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
     block_submit_every_nth = Keyword.fetch!(args, :block_submit_every_nth)
+    block_submit_max_gas_price = Keyword.fetch!(args, :block_submit_max_gas_price)
+    block_submit_gas_price_strategy = Keyword.fetch!(args, :block_submit_gas_price_strategy)
 
     core =
       Core.new(
@@ -112,6 +114,8 @@ defmodule OMG.ChildChain.BlockQueue do
         parent_height: parent_height,
         child_block_interval: child_block_interval,
         block_submit_every_nth: block_submit_every_nth,
+        block_submit_max_gas_price: block_submit_max_gas_price,
+        block_submit_gas_price_strategy: block_submit_gas_price_strategy,
         finality_threshold: finality_threshold
       )
 

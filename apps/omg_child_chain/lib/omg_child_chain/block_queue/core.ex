@@ -48,6 +48,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   @zero_bytes32 <<0::size(256)>>
   @default_gas_price 20_000_000_000
+  @gwei 1_000_000_000
 
   defstruct [
     :blocks,
@@ -60,6 +61,8 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     # config:
     child_block_interval: nil,
     block_submit_every_nth: 1,
+    block_submit_gas_price_strategy: nil,
+    block_submit_max_gas_price: @default_gas_price * 2,
     finality_threshold: 12
   ]
 
@@ -81,6 +84,10 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           child_block_interval: pos_integer(),
           # configure to trigger forming a child chain block every this many Ethereum blocks are mined since enqueueing
           block_submit_every_nth: pos_integer(),
+          # the gas price strategy module to determine the gas price
+          block_submit_gas_price_strategy: module(),
+          # the maximum gas price to use
+          block_submit_max_gas_price: pos_integer(),
           # depth of max reorg we take into account
           finality_threshold: pos_integer()
         }
@@ -144,10 +151,24 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
     :ok = GasPrice.recalculate_all(recalculate_params)
 
+    strategy = state.block_submit_gas_price_strategy
+    max_gas_price = state.block_submit_max_gas_price
+
     gas_price =
-      case GasPrice.get_price() do
-        {:ok, price} -> price
-        {:error, _} -> @default_gas_price
+      case GasPrice.get_price(strategy) do
+        {:ok, price} when price > max_gas_price ->
+          _ = Logger.info("#{__MODULE__}: Gas price from #{strategy} exceeded max_gas_price: #{price / @gwei} gwei. "
+            <> "Lowering down to #{state.block_submit_max_gas_price / @gwei} gwei.")
+          state.block_submit_max_gas_price
+
+        {:ok, price} ->
+          _ = Logger.info("#{__MODULE__}: Gas price from #{strategy} applied: #{price / @gwei} gwei.")
+          price
+
+        {:error, :no_gas_price_history} = error ->
+          _ = Logger.info("#{__MODULE__}: Gas price from #{strategy} failed: #{inspect(error)}. "
+            <> "Using the existing price: #{state.gas_price / @gwei} gwei.")
+          state.gas_price
       end
 
     state = %{state | gas_price: gas_price}

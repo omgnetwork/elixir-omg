@@ -37,7 +37,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
             | error()
         }
 
-  @type error() :: {:error, :all_empty_blocks}
+  @type error() :: {:error, :no_gas_price_history}
 
   defstruct prices: %{
               safe_low: 20_000_000_000,
@@ -134,11 +134,20 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
   # Internal implementations
   #
 
+  # An equivalent of https://github.com/ethgasstation/gasstation-express-oracle/blob/3cfb354/gasExpress.py#L213-L229
   defp do_recalculate() do
-    price_history = History.all()
+    case exclude_empty(History.all()) do
+      [] ->
+        {:error, :no_gas_price_history}
 
-    {hash_percentages, lowest_min_price, highest_min_price} = Algorithm.analyze_blocks(price_history)
-    prediction_table = Algorithm.make_prediction_table(hash_percentages, lowest_min_price, highest_min_price)
-    Algorithm.get_recommendations(@thresholds, prediction_table)
+      price_history ->
+        {hash_percentages, lowest_min_price, highest_min_price} = Algorithm.analyze_blocks(price_history)
+        prediction_table = Algorithm.make_prediction_table(hash_percentages, lowest_min_price, highest_min_price)
+        Algorithm.get_recommendations(@thresholds, prediction_table)
+    end
+  end
+
+  defp exclude_empty(history) do
+    Enum.reject(history, fn {_height, prices, _timestamp} -> Enum.empty?(prices) end)
   end
 end

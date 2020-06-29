@@ -42,7 +42,6 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
     # [min_price1, min_price2, min_price3, ...]
     sorted_min_prices =
       price_history
-      |> remove_empty()
       |> extract_min_prices()
       |> round_10gwei()
       |> Enum.sort()
@@ -96,10 +95,6 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy.Algorithm do
 
       {threshold_name, suggested_price}
     end)
-  end
-
-  defp remove_empty(history) do
-    Enum.reject(history, fn {_height, prices, _timestamp} -> Enum.empty?(prices) end)
   end
 
   defp extract_min_prices(history) do
