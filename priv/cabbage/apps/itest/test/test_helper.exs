@@ -112,6 +112,4 @@ end
 add_exit_queue.("ETH", Currency.ether())
 add_exit_queue.("ERC20", Currency.erc20())
 
-{:ok, _} = Itest.Reorg.start_link()
-
 ExUnit.start(trace: "--trace" in System.argv(), timeout: milliseconds)
