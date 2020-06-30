@@ -23,6 +23,8 @@ defmodule Itest.Reorg do
   @node2 "geth-2"
   @pause_seconds 100
 
+  @rpc_nodes ["http://localhost:9000", "http://localhost:9001"]
+
   def execute_in_reorg(func) do
     if Application.get_env(:cabbage, :reorg) do
       pause_container!(@node1)
@@ -51,25 +53,20 @@ defmodule Itest.Reorg do
   end
 
   def create_account_from_secret(secret, passphrase) do
-    with_retries(fn ->
-      Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: "http://localhost:9000")
-    end)
-
-    with_retries(fn ->
-      Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: "http://localhost:9001")
+    Enum.each(@rpc_nodes, fn rpc_node ->
+      with_retries(fn ->
+        Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: rpc_node)
+      end)
     end)
   end
 
-  def unlock_account(addr) do
-    {:ok, true} =
-      with_retries(fn ->
-        Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], url: "http://localhost:9000")
-      end)
-
-    {:ok, true} =
-      with_retries(fn ->
-        Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], url: "http://localhost:9001")
-      end)
+  def unlock_account(addr, passphrase) do
+    Enum.each(@rpc_nodes, fn rpc_node ->
+      {:ok, true} =
+        with_retries(fn ->
+          Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], url: rpc_node)
+        end)
+    end)
   end
 
   defp pause_container!(container) do
