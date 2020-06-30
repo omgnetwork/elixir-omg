@@ -32,7 +32,7 @@ defmodule Itest.Reorg do
       pause_container!(@node1)
       unpause_container!(@node2)
 
-      Account.take_accounts(10)
+      response = func.()
 
       Process.sleep(@pause_seconds * 1000)
 
