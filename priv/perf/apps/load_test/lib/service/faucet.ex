@@ -99,7 +99,7 @@ defmodule LoadTest.Service.Faucet do
         faucet_account: faucet_account,
         fee: Keyword.fetch!(config, :fee_wei),
         faucet_deposit_wei: Keyword.fetch!(config, :faucet_deposit_wei),
-        deposit_finality_margin: Keyword.fetch!(config, :deposit_finality_margin) |> IO.inspect(),
+        deposit_finality_margin: Keyword.fetch!(config, :deposit_finality_margin),
         gas_price: Keyword.fetch!(config, :gas_price)
       )
 

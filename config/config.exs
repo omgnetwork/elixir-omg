@@ -32,7 +32,7 @@ config :sentry,
   }
 
 config :omg,
-  deposit_finality_margin: 1,
+  deposit_finality_margin: 10,
   ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   coordinator_eth_height_check_interval_ms: 6_000
 

@@ -31,8 +31,11 @@ defmodule DepositsTests do
 
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
-          %{alice_account: alice_account} = state do
-    initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
+          %{alice_account: alice_account, bob_account: bob_account} = state do
+    initial_balance = Itest.Poller.root_chain_get_balance(alice_account) |> IO.inspect()
+
+    # Client.get_balance(alice_account) |> IO.inspect()
+    # Client.get_balance(bob_account) |> IO.inspect()
 
     {:ok, receipt_hash} =
       Reorg.execute_in_reorg(fn ->
@@ -48,7 +51,10 @@ defmodule DepositsTests do
         {current_gas, current_gas + gas_used}
       end)
 
-    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
+    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account) |> IO.inspect()
+
+    # Client.get_balance(alice_account) |> IO.inspect()
+    # Client.get_balance(bob_account) |> IO.inspect()
 
     state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
