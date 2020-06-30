@@ -61,6 +61,8 @@ defmodule Itest.Reorg do
     |> Poller.account_get_balances()
     |> IO.inspect()
 
+    Process.sleep(2_000)
+
     fetch_balance(address)
   end
 
