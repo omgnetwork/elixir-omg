@@ -50,6 +50,28 @@ defmodule Itest.Reorg do
     end
   end
 
+  def create_account_from_secret(secret, passphrase) do
+    with_retries(fn ->
+      Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: "http://localhost:9000")
+    end)
+
+    with_retries(fn ->
+      Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: "http://localhost:9001")
+    end)
+  end
+
+  def unlock_account(addr) do
+    {:ok, true} =
+      with_retries(fn ->
+        Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], url: "http://localhost:9000")
+      end)
+
+    {:ok, true} =
+      with_retries(fn ->
+        Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], url: "http://localhost:9001")
+      end)
+  end
+
   defp pause_container!(container) do
     pause_container_url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/#{container}/pause"
 
@@ -66,6 +88,21 @@ defmodule Itest.Reorg do
     unpause_response = post_request!(unpause_container_url)
 
     Logger.info("Chain reorg: unpause response - #{inspect(unpause_response)}")
+  end
+
+  defp with_retries(func, total_time \\ 510, current_time \\ 0) do
+    case func.() do
+      {:ok, _} = result ->
+        result
+
+      result ->
+        if current_time < total_time do
+          Process.sleep(1_000)
+          with_retries(func, total_time, current_time + 1)
+        else
+          result
+        end
+    end
   end
 
   defp post_request!(url) do

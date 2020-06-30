@@ -17,6 +17,7 @@ defmodule Itest.Account do
     Maintaining used accounts state so that we're able to run tests multiple times.
   """
 
+  alias Itest.Reorg
   alias Itest.Transactions.Encoding
   import Itest.Poller, only: [wait_on_receipt_confirmed: 1]
 
@@ -47,19 +48,11 @@ defmodule Itest.Account do
     wait_on_receipt_confirmed(receipt_hash)
 
     if Application.get_env(:cabbage, :reorg) do
-      {:ok, true} =
-        with_retries(fn ->
-          Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], url: "http://localhost:9000")
-        end)
-
-      {:ok, true} =
-        with_retries(fn ->
-          Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], url: "http://localhost:9001")
-        end)
+      Reorg.unlock_account(addr, passphrase)
     else
       {:ok, true} =
         with_retries(fn ->
-          Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], [])
+          Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], [])
         end)
     end
 
@@ -98,13 +91,7 @@ defmodule Itest.Account do
 
   defp create_account_from_secret(secret, passphrase) do
     if Application.get_env(:cabbage, :reorg) do
-      with_retries(fn ->
-        Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: "http://localhost:9000")
-      end)
-
-      with_retries(fn ->
-        Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: "http://localhost:9001")
-      end)
+      Reorg.create_account_from_secret(secret, passphrase)
     else
       with_retries(fn ->
         Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
