@@ -48,13 +48,9 @@ defmodule PaymentV2Test do
           %{amount: amount},
           %{alice: alice} = state do
     expecting_amount = Currency.to_wei(amount)
-    balance = Client.get_exact_balance(alice.account, expecting_amount)
-    balance = balance["amount"]
+    balance = Client.get_exact_balance(alice.account, expecting_amount)["amount"] || 0
 
-    case expecting_amount do
-      0 -> assert(balance == nil, "Alice ETH amount is not 0")
-      _ -> assert_equal(expecting_amount, balance, "For #{alice.account}")
-    end
+    assert_equal(expecting_amount, balance, "For #{alice.account}")
 
     {:ok, state}
   end
@@ -96,12 +92,9 @@ defmodule PaymentV2Test do
           %{bob: bob} = state do
     expecting_amount = Currency.to_wei(amount)
 
-    balance = Client.get_exact_balance(bob.account, expecting_amount)["amount"]
+    balance = Client.get_exact_balance(bob.account, expecting_amount)["amount"] || 0
 
-    case expecting_amount do
-      0 -> assert(balance == nil, "Bob ETH amount is not 0")
-      _ -> assert_equal(expecting_amount, balance, "For Bob: #{bob.account}")
-    end
+    assert_equal(expecting_amount, balance, "For Bob: #{bob.account}")
 
     {:ok, state}
   end
