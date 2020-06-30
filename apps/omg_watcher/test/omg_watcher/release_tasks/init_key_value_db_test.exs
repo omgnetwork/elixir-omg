@@ -18,7 +18,7 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDBTest do
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
   alias OMG.Watcher.ReleaseTasks.InitKeyValueDB
 
-  @apps [:logger, :crypto, :ssl]
+  @apps [:crypto, :ssl]
 
   setup_all do
     _ = Enum.each(@apps, &Application.ensure_all_started/1)
