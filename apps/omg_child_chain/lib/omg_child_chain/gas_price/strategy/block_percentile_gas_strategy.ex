@@ -55,7 +55,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   @behaviour Strategy
 
   @doc """
-  Starts the Poisson regression strategy.
+  Starts the block percentile strategy.
   """
   @spec start_link(Keyword.t()) :: GenServer.on_start()
   def start_link(init_arg) do
