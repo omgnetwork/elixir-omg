@@ -74,16 +74,4 @@ defmodule Itest.Reorg do
       recv_timeout: 60_000
     )
   end
-
-  defp print_available_containers() do
-    url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/json"
-
-    response =
-      HTTPoison.get!(url, [{"content-type", "application/json"}],
-        timeout: 60_000,
-        recv_timeout: 60_000
-      )
-
-    Logger.info("Chain reorg: running containers - #{inspect(Jason.decode!(response.body), limit: :infinity)}")
-  end
 end
