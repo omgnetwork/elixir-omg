@@ -53,11 +53,14 @@ defmodule Itest.Reorg do
   end
 
   def create_account_from_secret(secret, passphrase) do
-    Enum.each(@rpc_nodes, fn rpc_node ->
-      with_retries(fn ->
-        Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: rpc_node)
+    result =
+      Enum.map(@rpc_nodes, fn rpc_node ->
+        with_retries(fn ->
+          Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], url: rpc_node)
+        end)
       end)
-    end)
+
+    List.first(result)
   end
 
   def unlock_account(addr, passphrase) do
