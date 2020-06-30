@@ -210,24 +210,24 @@ defmodule OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy do
          lowering_factor,
          max_gas_price
        ) do
-    blocks_needs_be_mined? = blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num)
-    new_blocks_mined? = new_blocks_mined?(mined_child_block_num, last_mined_child_block_num)
+    more_blocks_to_mine? = more_blocks_to_mine?(formed_child_block_num, mined_child_block_num)
+    new_blocks_recently_mined? = new_blocks_recently_mined?(mined_child_block_num, last_mined_child_block_num)
 
     multiplier =
-      case {blocks_needs_be_mined?, new_blocks_mined?} do
+      case {more_blocks_to_mine?, new_blocks_recently_mined?} do
         {false, _} -> 1.0
         {true, false} -> raising_factor
-        {_, true} -> lowering_factor
+        {true, true} -> lowering_factor
       end
 
     Kernel.min(max_gas_price, Kernel.round(multiplier * gas_price))
   end
 
-  defp blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num) do
+  defp more_blocks_to_mine?(formed_child_block_num, mined_child_block_num) do
     formed_child_block_num > mined_child_block_num
   end
 
-  defp new_blocks_mined?(mined_child_block_num, last_mined_block_num) do
+  defp new_blocks_recently_mined?(mined_child_block_num, last_mined_block_num) do
     mined_child_block_num > last_mined_block_num
   end
 
