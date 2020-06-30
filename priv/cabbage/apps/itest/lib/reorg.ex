@@ -17,6 +17,8 @@ defmodule Itest.Reorg do
     Chain reorg triggering logic.
   """
 
+  alias Itest.Account
+
   require Logger
 
   @node1 "geth-1"
@@ -29,6 +31,8 @@ defmodule Itest.Reorg do
     if Application.get_env(:cabbage, :reorg) do
       pause_container!(@node1)
       unpause_container!(@node2)
+
+      Account.take_accounts(10)
 
       Process.sleep(@pause_seconds * 1000)
 
