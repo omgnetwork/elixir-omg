@@ -271,7 +271,7 @@ defmodule Itest.Poller do
     end
   end
 
-  defp account_get_balances(address) do
+  def account_get_balances(address) do
     WatcherInfoAPI.Api.Account.account_get_balance(
       WatcherInfo.new(),
       %{

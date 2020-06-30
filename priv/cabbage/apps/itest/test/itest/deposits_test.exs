@@ -32,12 +32,9 @@ defmodule DepositsTests do
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
           %{alice_account: alice_account, bob_account: bob_account} = state do
-    IO.inspect("balance before deposit on the root chain")
+    initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
-    initial_balance = Itest.Poller.root_chain_get_balance(alice_account) |> IO.inspect()
-
-    Client.get_balance(alice_account) |> IO.inspect()
-    Client.get_balance(bob_account) |> IO.inspect()
+    task = Task.async(fn -> Reorg.fetch_balance(alice_account) end)
 
     {:ok, receipt_hash} =
       Reorg.execute_in_reorg(fn ->
@@ -46,6 +43,8 @@ defmodule DepositsTests do
         |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
       end)
 
+    Task.shutdown(task)
+
     gas_used = Client.get_gas_used(receipt_hash)
 
     {_, new_state} =
@@ -53,11 +52,7 @@ defmodule DepositsTests do
         {current_gas, current_gas + gas_used}
       end)
 
-    IO.inspect("balance after deposit on the root chain")
-    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account) |> IO.inspect()
-
-    Client.get_balance(alice_account) |> IO.inspect()
-    Client.get_balance(bob_account) |> IO.inspect()
+    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
 
     state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
     {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}

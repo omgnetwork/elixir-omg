@@ -17,7 +17,7 @@ defmodule Itest.Reorg do
     Chain reorg triggering logic.
   """
 
-  alias Itest.Account
+  alias Itest.{Account, Poller}
 
   require Logger
 
@@ -54,6 +54,14 @@ defmodule Itest.Reorg do
     else
       func.()
     end
+  end
+
+  def fetch_balance(address) do
+    address
+    |> Poller.account_get_balances()
+    |> IO.inspect()
+
+    fetch_balance(address)
   end
 
   def create_account_from_secret(secret, passphrase) do
