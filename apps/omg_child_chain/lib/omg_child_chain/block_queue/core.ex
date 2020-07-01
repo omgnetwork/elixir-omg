@@ -351,6 +351,15 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :ok
   end
 
+  # Fallback for unknown server errors: https://eth.wiki/json-rpc/json-rpc-error-codes-improvement-proposal
+  # Only server errors are handled as they are the only set of errors that we have no control of.
+  # Returns `:ok` so that BlockQueue can continue and do a retry, similar to a low replacement price error.
+  def process_submit_result(submission, {:error, %{"code" => code} = error}, newest_mined_blknum)
+      when code >= -32_099 and code <= -32_000 do
+    _ = Logger.error("Submission #{inspect(submission)} resulted in an unknown server error: #{inspect(error)}.")
+    :ok
+  end
+
   #
   # Private functions
   #

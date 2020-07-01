@@ -741,5 +741,15 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
                assert {:error, :account_locked} = Core.process_submit_result(submission, @account_locked_response, 0)
              end) =~ "[error]"
     end
+
+    test "logs unknown server error response", %{submission: submission} do
+      assert capture_log(fn ->
+        assert :ok = Core.process_submit_result(submission, {:error, %{"code" => -32_000, "message" => "foo error"}}, 1000)
+      end) =~ "unknown server error: %{\"code\" => -32000, \"message\" => \"foo error\"}"
+
+      assert capture_log(fn ->
+        assert :ok = Core.process_submit_result(submission, {:error, %{"code" => -32_070, "message" => "bar error"}}, 2000)
+      end) =~ "unknown server error: %{\"code\" => -32070, \"message\" => \"bar error\"}"
+    end
   end
 end
