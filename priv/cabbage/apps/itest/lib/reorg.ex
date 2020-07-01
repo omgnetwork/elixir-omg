@@ -58,7 +58,7 @@ defmodule Itest.Reorg do
 
   def fetch_balance(address) do
     address
-    |> Poller.account_get_balances()
+    |> Poller.account_get_utxos()
     |> IO.inspect()
 
     Process.sleep(2_000)

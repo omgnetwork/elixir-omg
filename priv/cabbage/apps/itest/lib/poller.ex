@@ -35,6 +35,12 @@ defmodule Itest.Poller do
     pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, @retry_count)
   end
 
+  def account_get_utxos(address) do
+    payload = %AddressBodySchema1{address: address}
+    {:ok, data} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), payload)
+    Jason.decode!(data.body)
+  end
+
   def pull_api_until_successful(module, function, connection, payload \\ nil),
     do: pull_api_until_successful(module, function, connection, payload, @retry_count)
 
