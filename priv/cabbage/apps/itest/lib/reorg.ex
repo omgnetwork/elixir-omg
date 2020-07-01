@@ -56,7 +56,9 @@ defmodule Itest.Reorg do
     end
   end
 
-  def fetch_balance(address) do
+  def fetch_balance(address, infinite \\ true)
+
+  def fetch_balance(address, true) do
     address
     |> Poller.account_get_utxos()
     |> IO.inspect()
@@ -64,6 +66,12 @@ defmodule Itest.Reorg do
     Process.sleep(5_000)
 
     fetch_balance(address)
+  end
+
+  def fetch_balance(address, false) do
+    address
+    |> Poller.account_get_utxos()
+    |> IO.inspect()
   end
 
   def create_account_from_secret(secret, passphrase) do

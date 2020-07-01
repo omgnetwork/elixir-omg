@@ -35,6 +35,7 @@ defmodule DepositsTests do
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
     task = Task.async(fn -> Reorg.fetch_balance(alice_account) end)
+    Reorg.fetch_balance(alice_account, false)
 
     {:ok, receipt_hash} =
       Reorg.execute_in_reorg(fn ->
@@ -42,6 +43,8 @@ defmodule DepositsTests do
         |> Currency.to_wei()
         |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
       end)
+
+    Reorg.fetch_balance(alice_account, false)
 
     Task.shutdown(task)
 
