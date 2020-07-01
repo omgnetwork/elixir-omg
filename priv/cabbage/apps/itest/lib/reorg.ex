@@ -48,7 +48,7 @@ defmodule Itest.Reorg do
       unpause_container!(@node1)
 
       # let the nodes connect to each other
-      # Process.sleep(60 * 1000)
+      Process.sleep(60 * 1000)
 
       response
     else
@@ -61,7 +61,7 @@ defmodule Itest.Reorg do
     |> Poller.account_get_utxos()
     |> IO.inspect()
 
-    Process.sleep(2_000)
+    Process.sleep(5_000)
 
     fetch_balance(address)
   end

@@ -37,8 +37,11 @@ defmodule Itest.Poller do
 
   def account_get_utxos(address) do
     payload = %AddressBodySchema1{address: address}
-    {:ok, data} = WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), payload)
-    Jason.decode!(data.body)
+
+    case WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), payload) do
+      {:ok, data} -> Jason.decode!(data.body)["data"]
+      _ -> account_get_utxos(address)
+    end
   end
 
   def pull_api_until_successful(module, function, connection, payload \\ nil),
