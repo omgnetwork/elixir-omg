@@ -17,6 +17,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   Ecto Schema representing a transaction
   """
   use Ecto.Schema
+  use Spandex.Decorators
   use OMG.Utils.LoggerExt
 
   alias OMG.Utils.Paginator
@@ -47,6 +48,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     Gets a transaction specified by a hash.
     Optionally, fetches block which the transaction was included in.
   """
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get(hash) do
     query =
       from(
@@ -67,6 +69,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   * constraints - accepts keyword in the form of [schema_field: value]
   """
   @spec get_by_filters(Keyword.t(), Paginator.t(%__MODULE__{})) :: Paginator.t(%__MODULE__{})
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_filters(constraints, paginator) do
     allowed_constraints = [:address, :blknum, :txindex, :txtypes, :metadata, :end_datetime]
 
@@ -121,6 +124,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   Returns the total number of transactions between the given timestamps.
   """
   @spec count_all_between_timestamps(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def count_all_between_timestamps(start_datetime, end_datetime) do
     query_count()
     |> query_timestamp_between(start_datetime, end_datetime)
@@ -131,6 +135,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   Returns the total number of transactions
   """
   @spec count_all() :: non_neg_integer()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def count_all() do
     DB.Repo.one!(query_count())
   end
@@ -155,6 +160,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   defp query_get_by(query, constraints) when is_list(constraints), do: query |> where(^constraints)
 
   @spec get_by_blknum(pos_integer) :: list(%__MODULE__{})
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_blknum(blknum) do
     __MODULE__
     |> query_get_by(blknum: blknum)
@@ -171,6 +177,7 @@ defmodule OMG.WatcherInfo.DB.Transaction do
     )
   end
 
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_position(blknum, txindex) do
     DB.Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
   end

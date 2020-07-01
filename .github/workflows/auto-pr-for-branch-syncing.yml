@@ -1,0 +1,24 @@
+name: Auto PR for syncing master to master-v2
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  auto-pr-for-branch-syncing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Create Pull Request
+        run: |
+          set -o xtrace
+
+          readonly FROM_BRANCH="master"
+          readonly TO_BRANCH="master-v2"
+          readonly TITLE="sync: auto syncing from ${FROM_BRANCH} to ${TO_BRANCH}"
+          readonly BODY="Time to sync \`${TO_BRANCH}\` with updates from \`${FROM_BRANCH}\`!"
+
+          curl -X POST "https://api.github.com/repos/omgnetwork/elixir-omg/pulls" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" \
+          --data "{\"title\": \"${TITLE}\", \"head\": \"${FROM_BRANCH}\", \"base\": \"${TO_BRANCH}\", \"body\": \"${BODY}\"}"
