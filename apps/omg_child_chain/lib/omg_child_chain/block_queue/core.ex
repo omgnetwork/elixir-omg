@@ -281,6 +281,17 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :ok
   end
 
+  # https://github.com/ethereum/go-ethereum/blob/v1.9.15/core/tx_pool.go#L62-L64
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "transaction underpriced"}},
+        _newest_mined_blknum
+      ) do
+    log_tx_underpriced(submission)
+    :ok
+  end
+
+  # https://github.com/ethereum/go-ethereum/blob/v1.9.15/core/tx_pool.go#L66-L68
   def process_submit_result(
         submission,
         {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}},
@@ -613,6 +624,11 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   defp log_known_tx(submission) do
     _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+    :ok
+  end
+
+  defp log_tx_underpriced(submission) do
+    _ = Logger.debug("Submission #{inspect(submission)} got rejected due to low gas price - ignored")
     :ok
   end
 

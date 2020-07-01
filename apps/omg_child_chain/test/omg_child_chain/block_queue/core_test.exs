@@ -25,6 +25,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
   # responses from geth to simulate what we're getting from geth in `BlockQueue`
   @known_transaction_response {:error, %{"code" => -32_000, "message" => "known transaction tx"}}
+  @transaction_underpriced_response {:error, %{"code" => -32_000, "message" => "transaction underpriced"}}
   @replacement_transaction_response {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}}
   @nonce_too_low_response {:error, %{"code" => -32_000, "message" => "nonce too low"}}
   @account_locked_response {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}}
@@ -711,6 +712,8 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "benign reports / warnings from geth", %{submission: submission} do
       # no change in mined blknum
       assert :ok = Core.process_submit_result(submission, @known_transaction_response, 1000)
+
+      assert :ok = Core.process_submit_result(submission, @transaction_underpriced_response, 1000)
 
       assert :ok = Core.process_submit_result(submission, @replacement_transaction_response, 1000)
     end
