@@ -18,12 +18,14 @@ defmodule OMG.WatcherInfo.DB.Block do
   """
   use Ecto.Schema
   use OMG.Utils.LoggerExt
+  use Spandex.Decorators
   import Ecto.Changeset
 
   alias OMG.State
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Block.Chunk
+  alias OMG.WatcherInfo.DB.PendingBlock
 
   import Ecto.Query, only: [from: 2]
 
@@ -49,6 +51,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   @spec get_max_blknum() :: non_neg_integer()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_max_blknum() do
     DB.Repo.aggregate(__MODULE__, :max, :blknum)
   end
@@ -56,6 +59,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   @doc """
     Gets a block specified by a block number.
   """
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get(blknum) do
     query =
       from(
@@ -79,6 +83,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   Returns a list of blocks
   """
   @spec get_blocks(Paginator.t(%DB.Block{})) :: Paginator.t(%DB.Block{})
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_blocks(paginator) do
     query_get_last(paginator.data_paging)
     |> DB.Repo.all()
@@ -99,6 +104,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   Returns the total number of blocks in between given timestamps
   """
   @spec count_all_between_timestamps(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def count_all_between_timestamps(start_datetime, end_datetime) do
     query_count()
     |> query_timestamp_between(start_datetime, end_datetime)
@@ -109,6 +115,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   Returns the total number of blocks
   """
   @spec count_all() :: non_neg_integer()
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def count_all() do
     DB.Repo.one!(query_count())
   end
@@ -117,6 +124,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   Returns a map with the timestamps of the earliest and latest blocks of all time.
   """
   @spec get_timestamp_range_all :: %{min: non_neg_integer(), max: non_neg_integer()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_timestamp_range_all() do
     DB.Repo.one!(query_timestamp_range())
   end
@@ -128,6 +136,7 @@ defmodule OMG.WatcherInfo.DB.Block do
           min: non_neg_integer(),
           max: non_neg_integer()
         }
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_timestamp_range_between(start_datetime, end_datetime) do
     query_timestamp_range()
     |> query_timestamp_between(start_datetime, end_datetime)
@@ -135,6 +144,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   @spec insert(map()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def insert(params) do
     %__MODULE__{}
     |> changeset(params)
@@ -142,16 +152,20 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   @doc """
-  Inserts complete and sorted enumerable of transactions for particular block number
+  Takes a pending block, decode its data and inserts its content in the database.
   """
-  @spec insert_with_transactions(mined_block()) :: {:ok, %__MODULE__{}}
-  def insert_with_transactions(%{
-        transactions: transactions,
-        blknum: block_number,
-        blkhash: blkhash,
-        timestamp: timestamp,
-        eth_height: eth_height
-      }) do
+  # sobelow_skip ["Misc.BinToTerm"]
+  @spec insert_from_pending_block(PendingBlock.t()) :: {:ok, %__MODULE__{}} | {:error, any()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
+  def insert_from_pending_block(pending_block) do
+    %{
+      transactions: transactions,
+      blknum: block_number,
+      blkhash: blkhash,
+      timestamp: timestamp,
+      eth_height: eth_height
+    } = :erlang.binary_to_term(pending_block.data)
+
     {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, block_number)
 
     current_block = %{
@@ -170,6 +184,7 @@ defmodule OMG.WatcherInfo.DB.Block do
       |> prepare_inserts(db_txs_stream, "db_txs_", DB.Transaction)
       |> prepare_inserts(db_outputs_stream, "db_outputs_", DB.TxOutput)
       |> DB.TxOutput.spend_utxos(db_inputs)
+      |> Ecto.Multi.delete("pending_block", pending_block, [])
 
     {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
 

@@ -64,6 +64,7 @@ defmodule OMG.WatcherInfo.Factory do
   use OMG.WatcherInfo.Factory.Block
   use OMG.WatcherInfo.Factory.DataHelper
   use OMG.WatcherInfo.Factory.EthEvent
+  use OMG.WatcherInfo.Factory.PendingBlock
   use OMG.WatcherInfo.Factory.Transaction
   use OMG.WatcherInfo.Factory.TxOutput
 end
