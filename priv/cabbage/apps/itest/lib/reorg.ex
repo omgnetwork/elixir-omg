@@ -32,7 +32,7 @@ defmodule Itest.Reorg do
       pause_container!(@node1)
       unpause_container!(@node2)
 
-      response = func.()
+      func.()
 
       Process.sleep(@pause_seconds * 1000)
 
@@ -47,32 +47,10 @@ defmodule Itest.Reorg do
       unpause_container!(@node2)
       unpause_container!(@node1)
 
-      # let the nodes connect to each other
-
-      # Process.sleep(60 * 1000)
-
       response
     else
       func.()
     end
-  end
-
-  def fetch_balance(address, infinite \\ true)
-
-  def fetch_balance(address, true) do
-    address
-    |> Poller.account_get_utxos()
-    |> IO.inspect()
-
-    Process.sleep(5_000)
-
-    fetch_balance(address)
-  end
-
-  def fetch_balance(address, false) do
-    address
-    |> Poller.account_get_utxos()
-    |> IO.inspect()
   end
 
   def create_account_from_secret(secret, passphrase) do

@@ -28,20 +28,11 @@ defmodule Itest.Poller do
   alias WatcherSecurityCriticalAPI.Api.Status
 
   @sleep_retry_sec 1_000
-  @retry_count 400
+  @retry_count 60
 
   def pull_for_utxo_until_recognized_deposit(account, amount, currency, blknum) do
     payload = %AddressBodySchema1{address: account}
     pull_for_utxo_until_recognized_deposit(payload, amount, currency, blknum, @retry_count)
-  end
-
-  def account_get_utxos(address) do
-    payload = %AddressBodySchema1{address: address}
-
-    case WatcherInfoAPI.Api.Account.account_get_utxos(WatcherInfo.new(), payload) do
-      {:ok, data} -> Jason.decode!(data.body)["data"]
-      _ -> account_get_utxos(address)
-    end
   end
 
   def pull_api_until_successful(module, function, connection, payload \\ nil),
@@ -280,7 +271,7 @@ defmodule Itest.Poller do
     end
   end
 
-  def account_get_balances(address) do
+  defp account_get_balances(address) do
     WatcherInfoAPI.Api.Account.account_get_balance(
       WatcherInfo.new(),
       %{

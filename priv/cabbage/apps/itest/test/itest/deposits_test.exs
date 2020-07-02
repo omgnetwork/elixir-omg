@@ -31,7 +31,7 @@ defmodule DepositsTests do
 
   defwhen ~r/^Alice deposits "(?<amount>[^"]+)" ETH to the root chain$/,
           %{amount: amount},
-          %{alice_account: alice_account, bob_account: bob_account} = state do
+          %{alice_account: alice_account} = state do
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
     {:ok, receipt_hash} =
