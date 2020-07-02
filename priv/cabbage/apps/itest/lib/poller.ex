@@ -205,8 +205,13 @@ defmodule Itest.Poller do
       nil when amount == 0 ->
         nil
 
-      %{"amount" => ^amount} = balance ->
-        balance
+      %{"amount" => found_amount} = balance ->
+        if found_amount >= amount do
+          balance
+        else
+          Process.sleep(@sleep_retry_sec)
+          pull_balance_until_amount(address, amount, currency, counter - 1)
+        end
 
       _ ->
         Process.sleep(@sleep_retry_sec)
