@@ -39,7 +39,7 @@ defmodule OMG.ChildChain.ReleaseTasks.InitKeyValueDBTest do
     :ok = InitKeyValueDB.run()
 
     started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
-    [true, true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
+    [true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
     {:ok, _} = Application.ensure_all_started(:omg_db)
     :ok = Application.stop(:omg_db)
     :ok = System.delete_env("DB_PATH")

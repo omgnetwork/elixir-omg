@@ -9,7 +9,7 @@ test/support/conformance/signatures_hashes.ex:129: Guard test _@11::<<_:224>> =:
 test/support/conformance/signatures_hashes_case.ex:40: The created fun has no local return
 test/support/dev_geth.ex:55: The created fun has no local return
 test/support/dev_geth.ex:62: Function stop/1 has no local return
-test/support/dev_geth.ex:65: The pattern {'exit_status', 35072} can never match the type 'ok' | {'error',_}
+test/support/dev_geth.ex:67: The pattern {'exit_status', _code@1} can never match the type 'ok' | {'error',_}
 test/support/dev_helper.ex:146: The call 'Elixir.Support.DevHelper':unlock_if_possible(_account_enc@1::any(),'geth') will never return since it differs in the 2nd argument from the success typing arguments: (any(),'parity')
 test/support/test_helper.ex:68: Function do_deposit/3 has no local return
 apps/omg/lib/omg/utxo/position.ex:46: Type specification 'Elixir.OMG.Utxo.Position':'decode!'(number()) -> t() is a supertype of the success typing: 'Elixir.OMG.Utxo.Position':'decode!'(number()) -> {'utxo_position',non_neg_integer(),non_neg_integer(),char()}

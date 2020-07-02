@@ -64,8 +64,7 @@ defmodule OMG.Eth.DevGeth do
     _ = Process.monitor(pid)
 
     case Exexec.stop_and_wait(pid) do
-      {:exit_status, 256} -> :ok
-      {:exit_status, 35_072} -> :ok
+      {:exit_status, code} when code in [256, 35_072] -> :ok
     end
   end
 

@@ -19,6 +19,7 @@ ExUnit.start()
 {:ok, _} = Application.ensure_all_started(:httpoison)
 {:ok, _} = Application.ensure_all_started(:fake_server)
 {:ok, _} = Application.ensure_all_started(:ex_machina)
+{:ok, _} = Application.ensure_all_started(:ssl)
 
 Mix.Task.run("ecto.create", ~w(--quiet))
 Mix.Task.run("ecto.migrate", ~w(--quiet))
