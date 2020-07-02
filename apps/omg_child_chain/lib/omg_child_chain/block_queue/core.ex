@@ -632,17 +632,17 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   end
 
   defp log_known_tx(submission) do
-    _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+    _ = Logger.info("Submission #{inspect(submission)} is known transaction - ignored")
     :ok
   end
 
   defp log_tx_underpriced(submission) do
-    _ = Logger.debug("Submission #{inspect(submission)} got rejected due to low gas price - ignored")
+    _ = Logger.info("Submission #{inspect(submission)} got rejected due to low gas price - ignored")
     :ok
   end
 
   defp log_low_replacement_price(submission) do
-    _ = Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
+    _ = Logger.info("Submission #{inspect(submission)} is known, but with higher price - ignored")
     :ok
   end
 
