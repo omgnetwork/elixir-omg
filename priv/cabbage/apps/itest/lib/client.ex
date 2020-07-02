@@ -56,7 +56,7 @@ defmodule Itest.Client do
     {:ok, receipt_hash}
   end
 
-  def create_transaction(amount_in_wei, input_address, output_address, currency \\ Currency.ether(), tries \\ 10) do
+  def create_transaction(amount_in_wei, input_address, output_address, currency \\ Currency.ether(), tries \\ 120) do
     transaction = %CreateTransactionsBodySchema{
       owner: input_address,
       payments: [
