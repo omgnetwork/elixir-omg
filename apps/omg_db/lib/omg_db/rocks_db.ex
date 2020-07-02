@@ -150,11 +150,9 @@ defmodule OMG.DB.RocksDB do
     :ok = File.mkdir_p(path)
 
     with :ok <- @server_name.init_storage(path),
-         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
+         {:ok, _pid} = @server_name.start_link(name: instance_name, db_path: path),
          :ok <- initiation_multiupdate(instance_name) do
-      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
-
-      :ok
+      GenServer.stop(instance_name)
     else
       error ->
         _ = Logger.error("Could not initialize the DB in #{inspect(path)}. Reason #{inspect(error)}")

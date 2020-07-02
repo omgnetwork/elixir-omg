@@ -95,8 +95,9 @@ defmodule OMG.DB do
     :ok = Application.put_env(:omg_db, :path, path, persistent: true)
 
     instances
-    |> Enum.map(&join_path(path, &1))
-    |> Enum.map(&RocksDB.init/1)
+    |> Enum.map(fn instance ->
+      RocksDB.init(instance, join_path(path, instance))
+    end)
     |> all_ok_or_error()
   end
 

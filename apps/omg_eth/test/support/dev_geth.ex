@@ -62,8 +62,11 @@ defmodule OMG.Eth.DevGeth do
   defp stop(pid) do
     # NOTE: monitor is required to stop_and_wait, don't know why? `monitor: true` on run doesn't work
     _ = Process.monitor(pid)
-    {:exit_status, 35_072} = Exexec.stop_and_wait(pid)
-    :ok
+
+    case Exexec.stop_and_wait(pid) do
+      {:exit_status, 256} -> :ok
+      {:exit_status, 35_072} -> :ok
+    end
   end
 
   defp launch(cmd) do
@@ -83,6 +86,6 @@ defmodule OMG.Eth.DevGeth do
   end
 
   defp wait_for_geth_start(geth_out) do
-    Support.DevNode.wait_for_start(geth_out, "IPC endpoint opened", 15_000)
+    Support.DevNode.wait_for_start(geth_out, "Successfully sealed new block", 15_000)
   end
 end
