@@ -34,19 +34,12 @@ defmodule DepositsTests do
           %{alice_account: alice_account, bob_account: bob_account} = state do
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
-    task = Task.async(fn -> Reorg.fetch_balance(alice_account) end)
-    Reorg.fetch_balance(alice_account, false)
-
     {:ok, receipt_hash} =
       Reorg.execute_in_reorg(fn ->
         amount
         |> Currency.to_wei()
         |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
       end)
-
-    Reorg.fetch_balance(alice_account, false)
-
-    Task.shutdown(task)
 
     gas_used = Client.get_gas_used(receipt_hash)
 
