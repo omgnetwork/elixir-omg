@@ -56,7 +56,7 @@ defmodule Itest.Client do
     {:ok, receipt_hash}
   end
 
-  def create_transaction(amount_in_wei, input_address, output_address, currency \\ Currency.ether()) do
+  def create_transaction(amount_in_wei, input_address, output_address, currency \\ Currency.ether(), tries \\ 10) do
     transaction = %CreateTransactionsBodySchema{
       owner: input_address,
       payments: [
@@ -71,18 +71,27 @@ defmodule Itest.Client do
 
     {:ok, response} = Transaction.create_transaction(WatcherInfo.new(), transaction)
 
-    %{
-      "result" => "complete",
-      "transactions" => [
-        %{
-          "sign_hash" => sign_hash,
-          "typed_data" => typed_data,
-          "txbytes" => txbytes
-        }
-      ]
-    } = Jason.decode!(response.body)["data"]
+    case Jason.decode!(response.body)["data"] do
+      %{
+        "result" => "complete",
+        "transactions" => [
+          %{
+            "sign_hash" => sign_hash,
+            "typed_data" => typed_data,
+            "txbytes" => txbytes
+          }
+        ]
+      } ->
+        {:ok, [sign_hash, typed_data, txbytes]}
 
-    {:ok, [sign_hash, typed_data, txbytes]}
+      %{"code" => "create:client_error", "messages" => %{"code" => "operation:service_unavailable"}} = result ->
+        if tries == 0 do
+          result
+        else
+          Process.sleep(1_000)
+          create_transaction(amount_in_wei, input_address, output_address, currency, tries - 1)
+        end
+    end
   end
 
   def submit_transaction(typed_data, sign_hash, private_keys) do
