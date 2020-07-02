@@ -206,7 +206,7 @@ defmodule Itest.Poller do
         nil
 
       %{"amount" => found_amount} = balance ->
-        if found_amount >= amount do
+        if found_amount > amount do
           balance
         else
           Process.sleep(@sleep_retry_sec)
