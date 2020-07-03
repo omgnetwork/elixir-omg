@@ -24,7 +24,8 @@ config :load_test,
   childchain_transactions_test_config: %{
     concurrent_sessions: concurrency,
     transactions_per_session: tx_per_session,
-    transaction_delay: tx_delay
+    transaction_delay: tx_delay,
+    merge_scenario_sessions: true
   },
   watcher_info_test_config: %{
     concurrent_sessions: 100,
