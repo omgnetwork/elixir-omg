@@ -38,15 +38,9 @@ defmodule DepositsTests do
 
     {:ok, receipt_hash} =
       Reorg.execute_in_reorg(fn ->
-        {:ok, hash} =
-          result =
-          amount
-          |> Currency.to_wei()
-          |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
-
-        :ok = Client.wait_until_tx_sync_to_watcher(hash, 200)
-
-        result
+        amount
+        |> Currency.to_wei()
+        |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
       end)
 
     gas_used = Client.get_gas_used(receipt_hash)
@@ -63,7 +57,6 @@ defmodule DepositsTests do
       |> Map.put_new(:alice_ethereum_balance, balance_after_deposit)
       |> Map.put_new(:alice_initial_balance, initial_balance)
       |> Map.put(:block_number_before_deposit, block_number_before_deposit)
-      |> Map.put(:deposit_transaction_hash, receipt_hash)
 
     {:ok, state}
   end
@@ -72,8 +65,7 @@ defmodule DepositsTests do
           %{amount: amount},
           %{
             alice_account: alice_account,
-            block_number_before_deposit: block_number_before_deposit,
-            deposit_transaction_hash: deposit_transaction_hash
+            block_number_before_deposit: block_number_before_deposit
           } = state do
     {:ok, response} =
       WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())

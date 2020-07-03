@@ -34,15 +34,15 @@ defmodule Itest.Reorg do
 
       func.()
 
-      # Process.sleep(@pause_seconds * 1000)
-      # Process.sleep(floor(@pause_seconds / 4) * 1000)
+      Process.sleep(@pause_seconds * 1000)
 
       pause_container!(@node2)
       unpause_container!(@node1)
 
       response = func.()
 
-      # Process.sleep(@pause_seconds * 1000)
+      # the second sleep is shorter so the number of generated blocks is smaller
+      Process.sleep(floor(@pause_seconds / 5) * 1000)
 
       unpause_container!(@node2)
       unpause_container!(@node1)
