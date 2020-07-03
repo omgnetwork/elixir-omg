@@ -166,8 +166,8 @@ defmodule Itest.Client do
     |> ExRLP.encode()
   end
 
-  def wait_until_tx_sync_to_watcher(tx_id) do
-    do_wait_until_tx_sync_to_watcher(tx_id, @default_retry_attempts)
+  def wait_until_tx_sync_to_watcher(tx_id, retry_attempts \\ nil) do
+    do_wait_until_tx_sync_to_watcher(tx_id, retry_attempts || @default_retry_attempts)
   end
 
   def wait_until_block_number(block_number) do

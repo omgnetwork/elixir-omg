@@ -79,7 +79,7 @@ defmodule DepositsTests do
     final_block = block_number_before_deposit + finality_margin_blocks
 
     :ok = Client.wait_until_block_number(final_block)
-    :ok = Client.wait_until_tx_sync_to_watcher(deposit_transaction_hash)
+    :ok = Client.wait_until_tx_sync_to_watcher(deposit_transaction_hash, 200)
 
     expecting_amount = Currency.to_wei(amount)
 
