@@ -57,13 +57,18 @@ defmodule DepositsTests do
       |> Map.put_new(:alice_ethereum_balance, balance_after_deposit)
       |> Map.put_new(:alice_initial_balance, initial_balance)
       |> Map.put(:block_number_before_deposit, block_number_before_deposit)
+      |> Map.put(:deposit_transaction_hash, receipt_hash)
 
     {:ok, state}
   end
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
-          %{alice_account: alice_account, block_number_before_deposit: block_number_before_deposit} = state do
+          %{
+            alice_account: alice_account,
+            block_number_before_deposit: block_number_before_deposit,
+            deposit_transaction_hash: deposit_transaction_hash
+          } = state do
     {:ok, response} =
       WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
 
@@ -74,6 +79,7 @@ defmodule DepositsTests do
     final_block = block_number_before_deposit + finality_margin_blocks
 
     :ok = Client.wait_until_block_number(final_block)
+    :ok = Client.wait_until_tx_sync_to_watcher(deposit_transaction_hash)
 
     expecting_amount = Currency.to_wei(amount)
 
