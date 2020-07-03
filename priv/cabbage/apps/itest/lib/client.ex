@@ -170,6 +170,30 @@ defmodule Itest.Client do
     do_wait_until_tx_sync_to_watcher(tx_id, @default_retry_attempts)
   end
 
+  def wait_until_block_number(block_number) do
+    {:ok, current_block_number} = get_latest_block_number()
+
+    if current_block_number >= block_number do
+      :ok
+    else
+      Process.sleep(1_000)
+
+      wait_until_block_number(block_number)
+    end
+  end
+
+  def get_latest_block_number() do
+    case Ethereumex.HttpClient.eth_get_block_by_number("latest", false) do
+      {:ok, %{"number" => "0x" <> number_hex}} ->
+        {return, ""} = Integer.parse(number_hex, 16)
+        {:ok, return}
+
+      _other ->
+        Process.sleep(1_000)
+        get_latest_block_number()
+    end
+  end
+
   defp do_wait_until_tx_sync_to_watcher(_tx_id, 0), do: :wait_until_tx_sync_failed
 
   defp do_wait_until_tx_sync_to_watcher(tx_id, retry) do

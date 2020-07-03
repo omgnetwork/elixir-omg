@@ -34,6 +34,8 @@ defmodule DepositsTests do
           %{alice_account: alice_account} = state do
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
+    {:ok, block_number_before_deposit} = Client.get_latest_block_number()
+
     {:ok, receipt_hash} =
       Reorg.execute_in_reorg(fn ->
         amount
@@ -50,15 +52,18 @@ defmodule DepositsTests do
 
     balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
 
-    state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
-    {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
+    state =
+      new_state
+      |> Map.put_new(:alice_ethereum_balance, balance_after_deposit)
+      |> Map.put_new(:alice_initial_balance, initial_balance)
+      |> Map.put(:block_number_before_deposit, block_number_before_deposit)
+
+    {:ok, state}
   end
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
-          %{alice_account: alice_account} = state do
-    geth_block_every = 1
-
+          %{alice_account: alice_account, block_number_before_deposit: block_number_before_deposit} = state do
     {:ok, response} =
       WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
 
@@ -66,17 +71,13 @@ defmodule DepositsTests do
       WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
 
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
-    to_miliseconds = 1000
+    final_block = block_number_before_deposit + finality_margin_blocks
 
-    finality_margin_blocks
-    |> Kernel.*(geth_block_every)
-    |> Kernel.*(to_miliseconds)
-    |> Kernel.round()
-    |> Process.sleep()
+    :ok = Client.wait_until_block_number(final_block)
 
     expecting_amount = Currency.to_wei(amount)
 
-    balance = Client.get_exact_balance(alice_account, expecting_amount)
+    balance = Client.get_balance(alice_account)
 
     balance = balance["amount"]
     assert_equal(expecting_amount, balance, "For #{alice_account}")
