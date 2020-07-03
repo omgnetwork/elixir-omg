@@ -47,6 +47,9 @@ defmodule Itest.Reorg do
       unpause_container!(@node2)
       unpause_container!(@node1)
 
+      # wait for reorg
+      Process.sleep(30 * 1000)
+
       response
     else
       func.()
