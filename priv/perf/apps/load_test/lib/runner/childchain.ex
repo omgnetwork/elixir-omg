@@ -32,6 +32,8 @@ defmodule LoadTest.Runner.ChildChainTransactions do
 
   alias LoadTest.Ethereum.Account
 
+  require Logger
+
   @default_config %{
     concurrent_sessions: 1,
     transactions_per_session: 1,
@@ -43,6 +45,8 @@ defmodule LoadTest.Runner.ChildChainTransactions do
   end
 
   def scenarios() do
+    :ok = env_var_and_config_valid?()
+
     test_currency = Application.fetch_env!(:load_test, :test_currency)
     fee_amount = Application.fetch_env!(:load_test, :fee_amount)
     config = default_config()
@@ -66,5 +70,27 @@ defmodule LoadTest.Runner.ChildChainTransactions do
          test_currency: test_currency
        }}
     ]
+  end
+
+  defp env_var_and_config_valid?() do
+    fee_amount = Application.fetch_env!(:load_test, :fee_amount)
+    config = default_config()
+
+    cond do
+      is_float(config.transactions_per_session) ->
+        _ =
+          Logger.error(
+            "config.transactions_per_session must be integer, get a float: #{config.transactions_per_session}"
+          )
+
+        :error_non_integer_value
+
+      is_float(fee_amount) ->
+        _ = Logger.error("fee_amount must be integer, get a float: #{fee_amount}")
+        :error_non_integer_value
+
+      true ->
+        :ok
+    end
   end
 end
