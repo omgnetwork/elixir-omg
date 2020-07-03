@@ -12,6 +12,7 @@ defmodule LoadTest.Application do
       :hackney_pool.start_pool(
         LoadTest.Connection.ConnectionDefaults.pool_name(),
         timeout: 180_000,
+        connect_timeout: 30_000,
         pool_size: pool_size,
         max_connections: max_connections
       )
@@ -30,8 +31,8 @@ defmodule LoadTest.Application do
   defp fetch_faucet_config() do
     faucet_config_keys = [
       :faucet_private_key,
-      :fee_wei,
-      :faucet_deposit_wei,
+      :fee_amount,
+      :faucet_deposit_amount,
       :deposit_finality_margin,
       :gas_price
     ]

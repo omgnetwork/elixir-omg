@@ -44,9 +44,9 @@ defmodule LoadTest.Scenario.AccountTransactions do
 
   def run(session) do
     iterations = config(session, [:iterations])
-    fee_wei = Application.fetch_env!(:load_test, :fee_wei)
+    fee_amount = Application.fetch_env!(:load_test, :fee_amount)
 
-    amount = iterations * (@test_output_amount + fee_wei)
+    amount = iterations * (@test_output_amount + fee_amount)
     {:ok, sender} = Account.new()
     {:ok, _} = Faucet.fund_child_chain_account(sender, amount, @eth)
 
