@@ -91,8 +91,6 @@ defmodule Itest.Poller do
       {:ok, "0x" <> number_hex} ->
         {count, ""} = Integer.parse(number_hex, 16)
 
-        IO.inspect(count)
-
         if count >= peer_count do
           :ok
         else
@@ -228,13 +226,8 @@ defmodule Itest.Poller do
       nil when amount == 0 ->
         nil
 
-      %{"amount" => found_amount} = balance ->
-        if found_amount > amount do
-          balance
-        else
-          Process.sleep(@sleep_retry_sec)
-          pull_balance_until_amount(address, amount, currency, counter - 1)
-        end
+      %{"amount" => ^amount} = balance ->
+        balance
 
       _ ->
         Process.sleep(@sleep_retry_sec)

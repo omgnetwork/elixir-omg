@@ -17,7 +17,7 @@ defmodule Itest.Reorg do
     Chain reorg triggering logic.
   """
 
-  alias Itest.{Account, Poller}
+  alias Itest.Poller
 
   require Logger
 
@@ -43,7 +43,7 @@ defmodule Itest.Reorg do
       unpause_container!(@node2)
       unpause_container!(@node1)
 
-      Poller.wait_until_peer_count(1)
+      :ok = Poller.wait_until_peer_count(1)
       Process.sleep(30_000)
 
       response
