@@ -34,8 +34,6 @@ defmodule DepositsTests do
           %{alice_account: alice_account} = state do
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
-    {:ok, block_number_before_deposit} = Client.get_latest_block_number()
-
     {:ok, receipt_hash} =
       Reorg.execute_in_reorg(fn ->
         amount
@@ -56,7 +54,6 @@ defmodule DepositsTests do
       new_state
       |> Map.put_new(:alice_ethereum_balance, balance_after_deposit)
       |> Map.put_new(:alice_initial_balance, initial_balance)
-      |> Map.put(:block_number_before_deposit, block_number_before_deposit)
 
     {:ok, state}
   end
@@ -64,8 +61,7 @@ defmodule DepositsTests do
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
           %{
-            alice_account: alice_account,
-            block_number_before_deposit: block_number_before_deposit
+            alice_account: alice_account
           } = state do
     {:ok, response} =
       WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
@@ -73,8 +69,10 @@ defmodule DepositsTests do
     watcher_security_critical_config =
       WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
 
+    {:ok, block_number_after_deposit} = Client.get_latest_block_number()
+
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
-    final_block = block_number_before_deposit + finality_margin_blocks
+    final_block = block_number_after_deposit + finality_margin_blocks
 
     :ok = Client.wait_until_block_number(final_block)
 
