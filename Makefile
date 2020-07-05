@@ -225,14 +225,14 @@ init-contracts-reorg: clean-contracts
 	mkdir data/ || true && \
 	URL=$$(grep "SNAPSHOT" snapshot_reorg.env | cut -d'=' -f2-) && \
 	curl -o data1/snapshot.tar.gz $$URL && \
-        cp data1/snapshot.tar.gz data2/snapshot.tar.gz && \
-        cp data1/snapshot.tar.gz data/snapshot.tar.gz && \
 	cd data1 && \
 	tar --strip-components 1 -zxvf snapshot.tar.gz data/geth && \
 	tar --exclude=data/* -xvzf snapshot.tar.gz && \
+        mv snapshot.tar.gz ../data2/snapshot.tar.gz && \
 	cd ../data2 && \
 	tar --strip-components 1 -zxvf snapshot.tar.gz data/geth && \
 	tar --exclude=data/* -xvzf snapshot.tar.gz && \
+        mv snapshot.tar.gz ../data/snapshot.tar.gz && \
 	cd ../data && \
 	tar --strip-components 1 -zxvf snapshot.tar.gz data/geth && \
 	tar --exclude=data/* -xvzf snapshot.tar.gz && \
