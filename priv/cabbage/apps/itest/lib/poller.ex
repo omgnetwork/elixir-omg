@@ -28,7 +28,7 @@ defmodule Itest.Poller do
   alias WatcherSecurityCriticalAPI.Api.Status
 
   @sleep_retry_sec 1_000
-  @retry_count 120
+  @retry_count 240
 
   def pull_for_utxo_until_recognized_deposit(account, amount, currency, blknum) do
     payload = %AddressBodySchema1{address: account}
@@ -87,21 +87,9 @@ defmodule Itest.Poller do
   Waits until the node has the required peers nubmer.
   """
   def wait_until_peer_count(peer_count) do
-    case Ethereumex.HttpClient.net_peer_count() do
-      {:ok, "0x" <> number_hex} ->
-        {count, ""} = Integer.parse(number_hex, 16)
+    _ = Logger.info("Waiting for peer count to equal to #{peer_count}")
 
-        if count >= peer_count do
-          :ok
-        else
-          Process.sleep(2_000)
-          wait_until_peer_count(peer_count)
-        end
-
-      _other ->
-        Process.sleep(2_000)
-        wait_until_peer_count(peer_count)
-    end
+    do_wait_until_peer_count(peer_count)
   end
 
   @doc """
@@ -117,6 +105,25 @@ defmodule Itest.Poller do
   #######################################################################################################
   ### PRIVATE
   #######################################################################################################
+
+  defp do_wait_until_peer_count(peer_count) do
+    case Ethereumex.HttpClient.net_peer_count() do
+      {:ok, "0x" <> number_hex} ->
+        {count, ""} = Integer.parse(number_hex, 16)
+
+        if count >= peer_count do
+          :ok
+        else
+          Process.sleep(2_000)
+          do_wait_until_peer_count(peer_count)
+        end
+
+      _other ->
+        Process.sleep(2_000)
+        do_wait_until_peer_count(peer_count)
+    end
+  end
+
   defp pull_api_until_successful(module, function, connection, payload, 0),
     do: Jason.decode!(apply(module, function, [connection, payload]))["data"]
 
@@ -178,8 +185,8 @@ defmodule Itest.Poller do
 
   defp get_balance(address, currency, 0) do
     {:ok, response} = account_get_balances(address)
-    Jason.decode!(response.body)["data"]
-    # raise "Could not get the account balance for token address #{currency}. Got: #{inspect(data)}"
+    data = Jason.decode!(response.body)["data"]
+    raise "Could not get the account balance for token address #{currency}. Got: #{inspect(data)}"
   end
 
   defp get_balance(address, currency, counter) do

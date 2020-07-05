@@ -60,25 +60,27 @@ defmodule DepositsTests do
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
-          %{
-            alice_account: alice_account
-          } = state do
+          %{alice_account: alice_account} = state do
+    geth_block_every = 1
+
     {:ok, response} =
       WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
 
     watcher_security_critical_config =
       WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
 
-    {:ok, block_number_after_deposit} = Client.get_latest_block_number()
-
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
-    final_block = block_number_after_deposit + finality_margin_blocks
+    to_miliseconds = 1000
 
-    :ok = Client.wait_until_block_number(final_block)
+    finality_margin_blocks
+    |> Kernel.*(geth_block_every)
+    |> Kernel.*(to_miliseconds)
+    |> Kernel.round()
+    |> Process.sleep()
 
     expecting_amount = Currency.to_wei(amount)
 
-    balance = Client.get_balance(alice_account)
+    balance = Client.get_exact_balance(alice_account, expecting_amount)
 
     balance = balance["amount"]
     assert_equal(expecting_amount, balance, "For #{alice_account}")
