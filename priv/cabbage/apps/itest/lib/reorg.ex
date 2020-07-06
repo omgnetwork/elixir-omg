@@ -51,7 +51,7 @@ defmodule Itest.Reorg do
 
       :ok = Poller.wait_until_peer_count(1)
 
-      Process.sleep(10_000)
+      Process.sleep(20_000)
 
       response
     else
