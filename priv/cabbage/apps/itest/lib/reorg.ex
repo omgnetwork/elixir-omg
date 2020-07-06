@@ -31,25 +31,19 @@ defmodule Itest.Reorg do
       pause_container!(@node1)
       unpause_container!(@node2)
 
-      Process.sleep(50 * 1000)
-
       response = func.()
-
-      Process.sleep(50 * 1000)
 
       pause_container!(@node2)
       unpause_container!(@node1)
 
-      func.()
+      Process.sleep(20 * 1000)
 
-      Process.sleep(10 * 1000)
+      func.()
 
       unpause_container!(@node2)
       unpause_container!(@node1)
 
       :ok = Poller.wait_until_peer_count(1)
-
-      Process.sleep(60_000)
 
       response
     else
