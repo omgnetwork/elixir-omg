@@ -27,13 +27,12 @@ defmodule LoadTest.Scenario.FundAccount do
   alias Chaperon.Session
   alias LoadTest.Service.Faucet
 
-  @eth <<0::160>>
-
   @spec run(Session.t()) :: Session.t()
   def run(session) do
     account = config(session, [:account])
     initial_funds = config(session, [:initial_funds])
-    {:ok, utxo} = Faucet.fund_child_chain_account(account, initial_funds, @eth)
+    test_currency = config(session, [:test_currency])
+    {:ok, utxo} = Faucet.fund_child_chain_account(account, initial_funds, test_currency)
 
     Session.assign(session, utxo: utxo)
   end

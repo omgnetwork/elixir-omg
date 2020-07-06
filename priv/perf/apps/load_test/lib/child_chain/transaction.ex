@@ -25,7 +25,6 @@ defmodule LoadTest.ChildChain.Transaction do
   alias LoadTest.Connection.ChildChain, as: Connection
 
   @retry_interval 1_000
-  @eth <<0::160>>
 
   @doc """
   Spends a utxo.
@@ -46,20 +45,28 @@ defmodule LoadTest.ChildChain.Transaction do
           Utxo.address_binary(),
           pos_integer()
         ) :: list(Utxo.t())
-  def spend_utxo(utxo, amount, fee, signer, receiver, currency \\ @eth, retries \\ 0) do
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries \\ 0)
+
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries) when byte_size(currency) == 20 do
     change_amount = utxo.amount - amount - fee
     receiver_output = %Utxo{owner: receiver.addr, currency: currency, amount: amount}
-    do_spend(utxo, receiver_output, change_amount, signer, retries)
+    do_spend(utxo, receiver_output, change_amount, currency, signer, retries)
   end
 
-  defp do_spend(_input, _output, change_amount, _signer, _retries) when change_amount < 0, do: :error_insufficient_funds
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries) do
+    spend_utxo(utxo, amount, fee, signer, receiver, Encoding.to_binary(currency), retries)
+  end
 
-  defp do_spend(input, output, 0, signer, retries) do
+  defp do_spend(_input, _output, change_amount, _currency, _signer, _retries) when change_amount < 0 do
+    :error_insufficient_funds
+  end
+
+  defp do_spend(input, output, 0, _currency, signer, retries) do
     submit_tx([input], [output], [signer], retries)
   end
 
-  defp do_spend(input, output, change_amount, signer, retries) do
-    change_output = %Utxo{owner: signer.addr, currency: @eth, amount: change_amount}
+  defp do_spend(input, output, change_amount, currency, signer, retries) do
+    change_output = %Utxo{owner: signer.addr, currency: currency, amount: change_amount}
     submit_tx([input], [change_output, output], [signer], retries)
   end
 
@@ -125,7 +132,9 @@ defmodule LoadTest.ChildChain.Transaction do
         {:ok, blknum, txindex}
 
       %{"code" => reason} ->
-        _ = Logger.warn("Transaction submission has failed, reason: #{inspect(reason)}")
+        _ =
+          Logger.warn("Transaction submission has failed, reason: #{inspect(reason)}, tx inputs: #{inspect(tx.inputs)}")
+
         {:error, reason}
     end
   end

@@ -1,0 +1,45 @@
+name: Auto Merge PR without conflicts
+
+on:
+  pull_request:
+    branches: [ master-v2 ]
+
+jobs:
+  auto-merge-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Attach Label to PR
+        run: |
+          set -o xtrace
+
+          curl -X PATCH "https://api.github.com/repos/omgnetwork/elixir-omg/issues/${{ github.event.pull_request.number }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" \
+          --data "{\"labels\": [\"sync master-v2\"]}"
+
+      - name: Merge PR
+        if: github.head_ref == 'master'
+        run: |
+          set -o xtrace
+
+          function check_merge() {
+          curl "https://api.github.com/repos/omgnetwork/elixir-omg/pulls/${{ github.event.pull_request.number }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" |
+          jq -r '.mergeable'
+          }  
+
+          until [ "$(check_merge)" = true -o "$(check_merge)" = false ]; do
+            echo -n 'waiting...'
+            sleep 10
+          done
+
+          if [ "$(check_merge)" = true ]; then
+             curl -X PUT "https://api.github.com/repos/omgnetwork/elixir-omg/pulls/${{ github.event.pull_request.number }}/merge" \
+             -H "Accept: application/vnd.github.v3+json" \
+             -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" \
+             --data "{\"commit_title\": \"auto-merged ${{ github.event.pull_request.number }}\"}"
+          else
+             echo "PR unmerged"
+          fi

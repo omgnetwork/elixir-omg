@@ -19,9 +19,10 @@ config :load_test,
   watcher_info_url: System.get_env("WATCHER_INFO_URL"),
   faucet_private_key: System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY"),
   eth_vault_address: System.get_env("CONTRACT_ADDRESS_ETH_VAULT"),
-  faucet_deposit_wei: trunc(:math.pow(10, 14)),
-  initial_funds_wei: trunc(:math.pow(10, 7)),
-  fee_wei: 1,
+  erc20_vault_address: System.get_env("CONTRACT_ADDRESS_ERC20_VAULT"),
+  test_currency: "0x0000000000000000000000000000000000000000",
+  faucet_deposit_amount: trunc(:math.pow(10, 14)),
+  fee_amount: 1,
   deposit_finality_margin: 10,
   gas_price: 2_000_000_000
 
