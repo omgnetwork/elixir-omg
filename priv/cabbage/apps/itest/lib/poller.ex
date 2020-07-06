@@ -180,7 +180,7 @@ defmodule Itest.Poller do
     end
   end
 
-  defp get_transaction_receipt(receipt_hash),
+  def get_transaction_receipt(receipt_hash),
     do: Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash)
 
   defp get_balance(address, currency, 0) do
