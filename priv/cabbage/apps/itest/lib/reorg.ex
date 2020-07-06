@@ -31,19 +31,34 @@ defmodule Itest.Reorg do
       pause_container!(@node1)
       unpause_container!(@node2)
 
-      response = func.()
+      # Process.sleep(20_000)
+
+      response = {:ok, hash1} = func.()
+
+      IO.inspect(hash1)
+      Poller.get_transaction_receipt(hash1) |> IO.inspect()
+
+      # Process.sleep(10_000)
 
       pause_container!(@node2)
       unpause_container!(@node1)
 
-      Process.sleep(20 * 1000)
+      # Process.sleep(20_000)
 
-      func.()
+      # Process.sleep(20 * 1000)
+
+      {:ok, hash2} = func.()
+
+      IO.inspect(hash2)
+      Poller.get_transaction_receipt(hash2) |> IO.inspect()
+
+      # Process.sleep(10_000)
 
       unpause_container!(@node2)
       unpause_container!(@node1)
 
       :ok = Poller.wait_until_peer_count(1)
+      Process.sleep(60_000)
 
       response
     else
