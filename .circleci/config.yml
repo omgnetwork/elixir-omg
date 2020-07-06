@@ -592,45 +592,6 @@ jobs:
             mix deps.get
             mix test --only reorg --trace
           no_output_timeout: 30m
-      - run:
-          name: Run load test
-          command: |
-            cd priv/perf
-            make init
-            make test
-      - run:
-          name: (Cabbage) Format generated code and check for warnings
-          command: |
-            cd priv/cabbage
-            # run format ONLY on formatted code so that it cleans up quoted atoms because
-            # we cannot exclude folders to --warnings-as-errors
-            mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
-            mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
-            mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
-            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
-      - run:
-          name: (Perf) Format generated code and check for warnings
-          command: |
-            cd priv/perf
-            # run format ONLY on formatted code so that it cleans up quoted atoms because
-            # we cannot exclude folders to --warnings-as-errors
-            mix format apps/*_api/lib/*_api/model/*.ex
-            make format-code-check-warnings
-      - save_cache:
-          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
-          paths:
-            - "priv/cabbage/deps"
-            - "priv/perf/deps"
-      - run:
-          name: (Cabbage) Credo and formatting
-          command: |
-            cd priv/cabbage
-            mix do credo, format --check-formatted --dry-run
-      - run:
-          name: (Perf) Credo and formatting
-          command: |
-            cd priv/perf
-            mix do credo, format --check-formatted --dry-run
 
   test_barebone_release:
     machine:
