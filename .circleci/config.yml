@@ -580,6 +580,15 @@ jobs:
       - restore_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
+          name: Print watcher logs
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow | grep "watcher"
+      - run:
+          name: Print watcher_info logs
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow | grep "watcher_info"
+      - run:
+          name: Print childchain logs
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow | grep "childchain
+      - run:
           name: Print reorg logs
           command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow | grep "reorg"
           background: true

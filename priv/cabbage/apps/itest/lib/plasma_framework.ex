@@ -101,7 +101,7 @@ defmodule Itest.PlasmaFramework do
     end)
   end
 
-  def with_retries(func, total_time \\ 120, current_time \\ 0) do
+  defp with_retries(func, total_time \\ 120, current_time \\ 0) do
     case func.() do
       {:ok, _} = result ->
         result

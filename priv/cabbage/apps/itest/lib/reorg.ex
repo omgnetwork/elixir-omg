@@ -17,7 +17,7 @@ defmodule Itest.Reorg do
     Chain reorg triggering logic.
   """
 
-  alias Itest.Poller
+  alias Itest.Client
 
   require Logger
 
@@ -28,30 +28,34 @@ defmodule Itest.Reorg do
 
   def execute_in_reorg(func) do
     if Application.get_env(:cabbage, :reorg) do
+      wait_for_nodes_to_be_in_sync()
+
+      {:ok, block_before_reorg} = Client.get_latest_block_number()
+
       pause_container!(@node1)
       unpause_container!(@node2)
 
-      Process.sleep(10_000)
+      :ok = Client.wait_until_block_number(block_before_reorg + 1)
 
       func.()
 
-      Process.sleep(10_000)
+      :ok = Client.wait_until_block_number(block_before_reorg + 2)
+
+      {:ok, block_on_the_first_node} = Client.get_latest_block_number()
 
       pause_container!(@node2)
       unpause_container!(@node1)
 
-      Process.sleep(30_000)
+      :ok = Client.wait_until_block_number(block_before_reorg + 1)
 
       response = func.()
 
-      Process.sleep(30_000)
+      :ok = Client.wait_until_block_number(block_on_the_first_node + 2)
 
       unpause_container!(@node2)
       unpause_container!(@node1)
 
-      :ok = Poller.wait_until_peer_count(1)
-
-      Process.sleep(20_000)
+      wait_for_nodes_to_be_in_sync()
 
       response
     else
@@ -79,12 +83,55 @@ defmodule Itest.Reorg do
     end)
   end
 
+  def wait_until_peer_count(peer_count) do
+    _ = Logger.info("Waiting for peer count to equal to #{peer_count}")
+
+    Enum.each(@rpc_nodes, fn node -> do_wait_until_peer_count(node, peer_count) end)
+  end
+
+  defp wait_for_nodes_to_be_in_sync() do
+    wait_until_peer_count(1) && Enum.each(@rpc_nodes, fn rpc_node -> wait_until_synced(rpc_node) end) &&
+      wait_until_peer_count(1)
+  end
+
+  defp wait_until_synced(node) do
+    case Ethereumex.HttpClient.request("eth_syncing", [], url: node) do
+      {:ok, false} ->
+        :ok
+
+      _other ->
+        Process.sleep(1_000)
+        wait_until_synced(node)
+    end
+  end
+
+  defp do_wait_until_peer_count(node, peer_count) do
+    case Ethereumex.HttpClient.request("net_peerCount", [], url: node) do
+      {:ok, "0x" <> number_hex} ->
+        {count, ""} = Integer.parse(number_hex, 16)
+
+        if count >= peer_count do
+          :ok
+        else
+          Process.sleep(2_000)
+          do_wait_until_peer_count(node, peer_count)
+        end
+
+      _other ->
+        Process.sleep(2_000)
+        do_wait_until_peer_count(node, peer_count)
+    end
+  end
+
   defp pause_container!(container) do
     pause_container_url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/#{container}/pause"
 
     pause_response = post_request!(pause_container_url)
 
     Logger.info("Chain reorg: pause response - #{inspect(pause_response)}")
+
+    # the pause operation is not instant, let's wait for 2s
+    Process.sleep(2_000)
 
     204 = pause_response.status_code
   end

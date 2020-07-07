@@ -84,15 +84,6 @@ defmodule Itest.Poller do
     do: wait_on_receipt_status(receipt_hash, "0x1", @retry_count)
 
   @doc """
-  Waits until the node has the required peers nubmer.
-  """
-  def wait_until_peer_count(peer_count) do
-    _ = Logger.info("Waiting for peer count to equal to #{peer_count}")
-
-    do_wait_until_peer_count(peer_count)
-  end
-
-  @doc """
   API:: Pull until the utxo is not found for the address.
   """
   def utxo_absent?(address, utxo_pos), do: utxo_absent?(address, utxo_pos, @retry_count)
@@ -105,24 +96,6 @@ defmodule Itest.Poller do
   #######################################################################################################
   ### PRIVATE
   #######################################################################################################
-
-  defp do_wait_until_peer_count(peer_count) do
-    case Ethereumex.HttpClient.net_peer_count() do
-      {:ok, "0x" <> number_hex} ->
-        {count, ""} = Integer.parse(number_hex, 16)
-
-        if count >= peer_count do
-          :ok
-        else
-          Process.sleep(2_000)
-          do_wait_until_peer_count(peer_count)
-        end
-
-      _other ->
-        Process.sleep(2_000)
-        do_wait_until_peer_count(peer_count)
-    end
-  end
 
   defp pull_api_until_successful(module, function, connection, payload, 0),
     do: Jason.decode!(apply(module, function, [connection, payload]))["data"]
