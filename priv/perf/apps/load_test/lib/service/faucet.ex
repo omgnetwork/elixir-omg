@@ -44,25 +44,27 @@ defmodule LoadTest.Service.Faucet do
   # allow the faucet to retry to avoid failing the test prematurely.
   @fund_child_chain_account_retries 100
 
-  @eth <<0::160>>
-
   @type state :: %__MODULE__{
           faucet_account: Account.t(),
           fee: pos_integer(),
-          faucet_deposit_wei: pos_integer(),
+          faucet_deposit_amount: pos_integer(),
           deposit_finality_margin: pos_integer(),
           gas_price: pos_integer(),
           utxos: map()
         }
-  defstruct [:faucet_account, :fee, :faucet_deposit_wei, :deposit_finality_margin, :gas_price, utxos: %{}]
+  defstruct [:faucet_account, :fee, :faucet_deposit_amount, :deposit_finality_margin, :gas_price, utxos: %{}]
 
   @doc """
   Sends funds to an account on the childchain.
   If the faucet doesn't have enough funds it will deposit more. Note that this can take some time to finalize.
   """
   @spec fund_child_chain_account(Account.t(), pos_integer(), Utxo.address_binary()) :: Utxo.t()
-  def fund_child_chain_account(receiver, amount, currency) do
+  def fund_child_chain_account(receiver, amount, currency) when byte_size(currency) == 20 do
     GenServer.call(__MODULE__, {:fund_child_chain, receiver, amount, currency}, :infinity)
+  end
+
+  def fund_child_chain_account(receiver, amount, currency) do
+    fund_child_chain_account(receiver, amount, Encoding.to_binary(currency))
   end
 
   @doc """
@@ -97,8 +99,8 @@ defmodule LoadTest.Service.Faucet do
       struct!(
         __MODULE__,
         faucet_account: faucet_account,
-        fee: Keyword.fetch!(config, :fee_wei),
-        faucet_deposit_wei: Keyword.fetch!(config, :faucet_deposit_wei),
+        fee: Keyword.fetch!(config, :fee_amount),
+        faucet_deposit_amount: Keyword.fetch!(config, :faucet_deposit_amount),
         deposit_finality_margin: Keyword.fetch!(config, :deposit_finality_margin),
         gas_price: Keyword.fetch!(config, :gas_price)
       )
@@ -122,7 +124,7 @@ defmodule LoadTest.Service.Faucet do
         state.fee,
         state.faucet_account,
         receiver,
-        @eth,
+        currency,
         @fund_child_chain_account_retries
       )
 
@@ -151,7 +153,7 @@ defmodule LoadTest.Service.Faucet do
     if utxo == nil or utxo.amount - amount - state.fee < 0 do
       deposit(
         state.faucet_account,
-        max(state.faucet_deposit_wei, amount + state.fee),
+        max(state.faucet_deposit_amount, amount + state.fee),
         currency,
         state.deposit_finality_margin,
         state.gas_price
