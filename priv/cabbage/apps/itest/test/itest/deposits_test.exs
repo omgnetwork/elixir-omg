@@ -20,6 +20,7 @@ defmodule DepositsTests do
   alias Itest.Account
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
+  alias Itest.Poller
   alias Itest.Reorg
   alias Itest.Transactions.Currency
 
@@ -54,15 +55,14 @@ defmodule DepositsTests do
       new_state
       |> Map.put_new(:alice_ethereum_balance, balance_after_deposit)
       |> Map.put_new(:alice_initial_balance, initial_balance)
+      |> Map.put(:deposit_transaction_hash, receipt_hash)
 
     {:ok, state}
   end
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
-          %{alice_account: alice_account} = state do
-    geth_block_every = 1
-
+          %{alice_account: alice_account, deposit_transaction_hash: deposit_transaction_hash} = state do
     {:ok, response} =
       WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
 
@@ -70,17 +70,13 @@ defmodule DepositsTests do
       WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
 
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
-    to_miliseconds = 1000
 
-    finality_margin_blocks
-    |> Kernel.*(geth_block_every)
-    |> Kernel.*(to_miliseconds)
-    |> Kernel.round()
-    |> Process.sleep()
+    {:ok, number} = Poller.get_transaction_block_number(deposit_transaction_hash)
+    :ok = Client.wait_until_block_number(number + finality_margin_blocks)
 
     expecting_amount = Currency.to_wei(amount)
 
-    balance = Client.get_exact_balance(alice_account, expecting_amount)
+    balance = Client.get_balance(alice_account)
 
     balance = balance["amount"]
     assert_equal(expecting_amount, balance, "For #{alice_account}")

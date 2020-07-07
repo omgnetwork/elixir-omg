@@ -38,6 +38,13 @@ defmodule Itest.Poller do
   def pull_api_until_successful(module, function, connection, payload \\ nil),
     do: pull_api_until_successful(module, function, connection, payload, @retry_count)
 
+  def get_transaction_block_number(receipt_hash) do
+    {:ok, %{"blockNumber" => "0x" <> number_hex}} = get_transaction_receipt(receipt_hash)
+    {number, ""} = Integer.parse(number_hex, 16)
+
+    {:ok, number}
+  end
+
   @doc """
   API:: If we're trying to transact with UTXOs that were not recognized *yet*
   """
