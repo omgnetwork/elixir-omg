@@ -18,14 +18,10 @@ defmodule OMG.ChildChain.ReleaseTasks.InitKeyValueDBTest do
   alias OMG.ChildChain.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
 
-  @apps [:crypto, :ssl]
+  @apps [:logger, :crypto, :ssl]
 
   setup_all do
     _ = Enum.each(@apps, &Application.ensure_all_started/1)
-
-    on_exit(fn ->
-      @apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
-    end)
 
     :ok
   end
@@ -39,7 +35,7 @@ defmodule OMG.ChildChain.ReleaseTasks.InitKeyValueDBTest do
     :ok = InitKeyValueDB.run()
 
     started_apps = Enum.map(Application.started_applications(), fn {app, _, _} -> app end)
-    [true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
+    [true, true, true] = Enum.map(@apps, fn app -> not Enum.member?(started_apps, app) end)
     {:ok, _} = Application.ensure_all_started(:omg_db)
     :ok = Application.stop(:omg_db)
     :ok = System.delete_env("DB_PATH")

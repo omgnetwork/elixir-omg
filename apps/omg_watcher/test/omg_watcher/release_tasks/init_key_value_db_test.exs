@@ -18,14 +18,10 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDBTest do
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
   alias OMG.Watcher.ReleaseTasks.InitKeyValueDB
 
-  @apps [:crypto, :ssl]
+  @apps [:logger, :crypto, :ssl]
 
   setup_all do
     _ = Enum.each(@apps, &Application.ensure_all_started/1)
-
-    on_exit(fn ->
-      @apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
-    end)
 
     :ok
   end

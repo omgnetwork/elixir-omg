@@ -21,6 +21,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetTracerTest do
   @app :omg_child_chain
 
   setup do
+    _ = Application.ensure_all_started(:logger)
     {:ok, pid} = __MODULE__.System.start_link([])
     nil = Process.put(__MODULE__.System, pid)
     :ok
