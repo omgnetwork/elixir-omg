@@ -35,22 +35,24 @@ defmodule Itest.Reorg do
       pause_container!(@node1)
       unpause_container!(@node2)
 
-      :ok = Client.wait_until_block_number(block_before_reorg + 1)
+      :ok = Client.wait_until_block_number(block_before_reorg + 4)
 
       func.()
 
-      :ok = Client.wait_until_block_number(block_before_reorg + 2)
+      {:ok, block_on_the_first_node1} = Client.get_latest_block_number()
 
-      {:ok, block_on_the_first_node} = Client.get_latest_block_number()
+      :ok = Client.wait_until_block_number(block_on_the_first_node1 + 2)
+
+      {:ok, block_on_the_first_node2} = Client.get_latest_block_number()
 
       pause_container!(@node2)
       unpause_container!(@node1)
 
-      :ok = Client.wait_until_block_number(block_before_reorg + 1)
+      :ok = Client.wait_until_block_number(block_before_reorg + 4)
 
       response = func.()
 
-      :ok = Client.wait_until_block_number(block_on_the_first_node + 2)
+      :ok = Client.wait_until_block_number(block_on_the_first_node2 + 2)
 
       unpause_container!(@node2)
       unpause_container!(@node1)
@@ -140,6 +142,9 @@ defmodule Itest.Reorg do
     unpause_container_url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/containers/#{container}/unpause"
 
     unpause_response = post_request!(unpause_container_url)
+
+    # the unpause operation is not instant, let's wait for 2s
+    Process.sleep(2_000)
 
     Logger.info("Chain reorg: unpause response - #{inspect(unpause_response)}")
   end

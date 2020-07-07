@@ -49,11 +49,8 @@ defmodule DepositsTests do
         {current_gas, current_gas + gas_used}
       end)
 
-    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
-
     state =
       new_state
-      |> Map.put_new(:alice_ethereum_balance, balance_after_deposit)
       |> Map.put_new(:alice_initial_balance, initial_balance)
       |> Map.put(:deposit_transaction_hash, receipt_hash)
 
@@ -95,6 +92,19 @@ defmodule DepositsTests do
 
     # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
     _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
+
+    {:ok, state}
+  end
+
+  defthen ~r/^Alice should have the root chain balance changed by "(?<amount>[^"]+)" ETH$/,
+          %{amount: amount},
+          %{
+            alice_account: alice_account,
+            alice_initial_balance: alice_initial_balance,
+            gas: gas
+          } = state do
+    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
+    assert_equal(Currency.to_wei(amount), balance_after_deposit + gas - alice_initial_balance, "For #{alice_account}.")
 
     {:ok, state}
   end
