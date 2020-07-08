@@ -25,6 +25,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
 
   # responses from geth to simulate what we're getting from geth in `BlockQueue`
   @known_transaction_response {:error, %{"code" => -32_000, "message" => "known transaction tx"}}
+  @transaction_underpriced_response {:error, %{"code" => -32_000, "message" => "transaction underpriced"}}
   @replacement_transaction_response {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}}
   @nonce_too_low_response {:error, %{"code" => -32_000, "message" => "nonce too low"}}
   @account_locked_response {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}}
@@ -712,6 +713,8 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       # no change in mined blknum
       assert :ok = Core.process_submit_result(submission, @known_transaction_response, 1000)
 
+      assert :ok = Core.process_submit_result(submission, @transaction_underpriced_response, 1000)
+
       assert :ok = Core.process_submit_result(submission, @replacement_transaction_response, 1000)
     end
 
@@ -737,6 +740,26 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
       assert capture_log(fn ->
                assert {:error, :account_locked} = Core.process_submit_result(submission, @account_locked_response, 0)
              end) =~ "[error]"
+    end
+
+    test "logs unknown server error response", %{submission: submission} do
+      assert capture_log(fn ->
+               assert :ok =
+                        Core.process_submit_result(
+                          submission,
+                          {:error, %{"code" => -32_000, "message" => "foo error"}},
+                          1000
+                        )
+             end) =~ "unknown server error: %{\"code\" => -32000, \"message\" => \"foo error\"}"
+
+      assert capture_log(fn ->
+               assert :ok =
+                        Core.process_submit_result(
+                          submission,
+                          {:error, %{"code" => -32_070, "message" => "bar error"}},
+                          2000
+                        )
+             end) =~ "unknown server error: %{\"code\" => -32070, \"message\" => \"bar error\"}"
     end
   end
 end
