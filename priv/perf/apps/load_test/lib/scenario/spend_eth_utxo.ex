@@ -35,29 +35,35 @@ defmodule LoadTest.Scenario.SpendEthUtxo do
   alias Chaperon.Timing
 
   def run(session) do
-    fee_wei = Application.fetch_env!(:load_test, :fee_wei)
+    fee_amount = Application.fetch_env!(:load_test, :fee_amount)
 
     sender = config(session, [:sender])
     receiver = config(session, [:receiver])
     amount = config(session, [:amount], nil)
+    test_currency = config(session, [:test_currency], nil)
     delay = config(session, [:transaction_delay], 0)
     transactions_per_session = config(session, [:transactions_per_session])
 
-    repeat(session, :submit_transaction, [amount, fee_wei, sender, receiver, delay], transactions_per_session)
+    repeat(
+      session,
+      :submit_transaction,
+      [amount, fee_amount, sender, receiver, test_currency, delay],
+      transactions_per_session
+    )
   end
 
-  def submit_transaction(session, nil, fee_wei, sender, receiver, delay) do
+  def submit_transaction(session, nil, fee_amount, sender, receiver, currency, delay) do
     utxo = session.assigned.utxo
-    amount = utxo.amount - fee_wei
-    submit_transaction(session, amount, fee_wei, sender, receiver, delay)
+    amount = utxo.amount - fee_amount
+    submit_transaction(session, amount, fee_amount, sender, receiver, currency, delay)
   end
 
-  def submit_transaction(session, amount, fee_wei, sender, receiver, delay) do
+  def submit_transaction(session, amount, fee_amount, sender, receiver, currency, delay) do
     Process.sleep(delay)
     utxo = session.assigned.utxo
     start = Timing.timestamp()
 
-    [next_utxo | _] = LoadTest.ChildChain.Transaction.spend_utxo(utxo, amount, fee_wei, sender, receiver)
+    [next_utxo | _] = LoadTest.ChildChain.Transaction.spend_utxo(utxo, amount, fee_amount, sender, receiver, currency)
 
     session
     |> Session.assign(utxo: next_utxo)
