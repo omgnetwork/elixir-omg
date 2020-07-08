@@ -115,12 +115,12 @@ defmodule Itest.Reorg do
         if count >= peer_count do
           :ok
         else
-          Process.sleep(2_000)
+          Process.sleep(1_000)
           do_wait_until_peer_count(node, peer_count)
         end
 
       _other ->
-        Process.sleep(2_000)
+        Process.sleep(1_000)
         do_wait_until_peer_count(node, peer_count)
     end
   end

@@ -25,8 +25,8 @@ defmodule Itest.Gas do
 
   def get_gas_used(receipt_hash) do
     result =
-      {with_retries(fn -> Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash) end),
-       with_retries(fn -> Ethereumex.HttpClient.eth_get_transaction_by_hash(receipt_hash) end)}
+      {Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash),
+       Ethereumex.HttpClient.eth_get_transaction_by_hash(receipt_hash)}
 
     case result do
       {{:ok, %{"gasUsed" => gas_used}}, {:ok, %{"gasPrice" => gas_price}}} ->
@@ -41,25 +41,6 @@ defmodule Itest.Gas do
       {{:ok, nil}, {:ok, %{"blockHash" => nil, "blockNumber" => nil}}} ->
         Logger.info("transaction #{receipt_hash} is in reorg")
         0
-    end
-  end
-
-  def with_retries(func, total_time \\ 510, current_time \\ 0) do
-    case func.() do
-      {:ok, nil} ->
-        Process.sleep(1_000)
-        with_retries(func, total_time, current_time + 1)
-
-      {:ok, _} = result ->
-        result
-
-      result ->
-        if current_time < total_time do
-          Process.sleep(1_000)
-          with_retries(func, total_time, current_time + 1)
-        else
-          result
-        end
     end
   end
 end

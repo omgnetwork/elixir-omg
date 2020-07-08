@@ -54,8 +54,7 @@ defmodule Itest.PlasmaFramework do
   def exit_game_contract_address(tx_type) do
     data = ABI.encode("exitGames(uint256)", [tx_type])
 
-    {:ok, result} =
-      with_retries(fn -> Ethereumex.HttpClient.eth_call(%{to: address(), data: Encoding.to_hex(data)}) end)
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: address(), data: Encoding.to_hex(data)})
 
     result
     |> Encoding.to_binary()
@@ -67,8 +66,7 @@ defmodule Itest.PlasmaFramework do
   defp get_vault(id) do
     data = ABI.encode("vaults(uint256)", [id])
 
-    {:ok, result} =
-      with_retries(fn -> Ethereumex.HttpClient.eth_call(%{to: address(), data: Encoding.to_hex(data)}) end)
+    {:ok, result} = Ethereumex.HttpClient.eth_call(%{to: address(), data: Encoding.to_hex(data)})
 
     result
     |> Encoding.to_binary()
@@ -99,20 +97,5 @@ defmodule Itest.PlasmaFramework do
       [key, value] = String.split(line, "=")
       Map.put(acc, key, value)
     end)
-  end
-
-  defp with_retries(func, total_time \\ 120, current_time \\ 0) do
-    case func.() do
-      {:ok, _} = result ->
-        result
-
-      result ->
-        if current_time < total_time do
-          Process.sleep(1_000)
-          with_retries(func, total_time, current_time + 1)
-        else
-          result
-        end
-    end
   end
 end
