@@ -651,6 +651,9 @@ paths:
                   type: integer
                   format: int32
                   default: 200
+                end_datetime:
+                  type: integer
+                  format: int32
               required:
                 - limit
               example:
@@ -661,6 +664,7 @@ paths:
                 blknum: 68290000
                 limit: 100
                 page: 2
+                end_datetime: 1592476174
       responses:
         '200':
           description: Transactions succcessful response
@@ -1242,7 +1246,7 @@ paths:
         Returns a list of deposits ordered by Ethereum height in descending order for the given address.
       operationId: deposit_all
       requestBody:
-        description: The supported request parameters for /deposit.all. The "address" parameter is required.
+        description: The supported request parameters for /deposit.all. The "limit" and "page" parameters are optional.
         required: true
         content:
           application/json:
@@ -1250,6 +1254,8 @@ paths:
               title: AllDepositsBodySchema
               type: object
               properties:
+                address:
+                  type: string
                 page:
                   type: integer
                   format: int32
@@ -1258,8 +1264,6 @@ paths:
                   type: integer
                   format: int32
                   default: 100
-                address:
-                  type: string
               example:
                 page: 2
                 limit: 100
