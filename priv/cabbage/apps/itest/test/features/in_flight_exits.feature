@@ -14,7 +14,7 @@ Feature: In Flight Exits
     And Bob starts a piggybacked in flight exit using his most recently prepared in flight exit data
     And Alice fully challenges Bobs most recent invalid in flight exit
     Then "Alice" can processes its own most recent in flight exit
-      
+
   Scenario: Standard exit invalidated with an In Flight Exit
     Given "Alice" deposits "10" ETH to the root chain
     Then "Alice" should have "10" ETH on the child chain after finality margin

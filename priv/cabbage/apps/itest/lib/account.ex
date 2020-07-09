@@ -17,6 +17,7 @@ defmodule Itest.Account do
     Maintaining used accounts state so that we're able to run tests multiple times.
   """
 
+  alias Itest.Reorg
   alias Itest.Transactions.Encoding
   import Itest.Poller, only: [wait_on_receipt_confirmed: 1]
 
@@ -24,7 +25,7 @@ defmodule Itest.Account do
   def take_accounts(number_of_accounts) do
     1..number_of_accounts
     |> Task.async_stream(fn _ -> account() end,
-      timeout: 60_000,
+      timeout: 120_000,
       on_timeout: :kill_task,
       max_concurrency: System.schedulers_online() * 2
     )
@@ -46,7 +47,11 @@ defmodule Itest.Account do
 
     wait_on_receipt_confirmed(receipt_hash)
 
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [addr, "dev.period", 0], [])
+    if Application.get_env(:cabbage, :reorg) do
+      Reorg.unlock_account(addr, passphrase)
+    else
+      {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], [])
+    end
 
     {addr, account_priv_enc}
   end
@@ -79,9 +84,13 @@ defmodule Itest.Account do
     {:ok, address}
   end
 
-  defp create_account_from_secret(secret, passphrase) do
-    Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
-  end
-
   defp hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
+
+  defp create_account_from_secret(secret, passphrase) do
+    if Application.get_env(:cabbage, :reorg) do
+      Reorg.create_account_from_secret(secret, passphrase)
+    else
+      Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
+    end
+  end
 end

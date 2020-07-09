@@ -13,6 +13,7 @@
 # limitations under the License.
 defmodule ConfigurationRetrievalTests do
   use Cabbage.Feature, async: true, file: "configuration_api.feature"
+
   alias Itest.Transactions.Encoding
   require Logger
 
