@@ -250,9 +250,6 @@ init-contracts-reorg: clean-contracts
 	PLASMA_FRAMEWORK_TX_HASH=$$PLASMA_FRAMEWORK_TX_HASH PLASMA_FRAMEWORK=$$PLASMA_FRAMEWORK \
 	PAYMENT_EIP712_LIBMOCK=$$PAYMENT_EIP712_LIBMOCK MERKLE_WRAPPER=$$MERKLE_WRAPPER ERC20_MINTABLE=$$ERC20_MINTABLE
 
-init-integration-tests:
-	git clone https://github.com/omgnetwork/specs ./priv/cabbage
-
 .PHONY: init-contracts
 
 #
