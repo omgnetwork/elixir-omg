@@ -190,6 +190,7 @@ defmodule OMG.Eth.RootChain.Fields do
     Map.delete(reduce_naming(data, contracts_naming), :output_tx_inclusion_proof)
   end
 
+  # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
   def rename(data, %ABI.FunctionSelector{function: "startExit"}) do
     contracts_naming = [
       {"utxoPosToExit", :utxo_pos},

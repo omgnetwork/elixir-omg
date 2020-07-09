@@ -17,6 +17,7 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
 
   We define Solidity Function selectors that help us decode returned values from function calls
   """
+  # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
   def start_exit() do
     %ABI.FunctionSelector{
       function: "startExit",
