@@ -36,6 +36,11 @@ defmodule Itest.Gas do
 
       {{:ok, nil}, {:ok, nil}} ->
         0
+
+      # reorg
+      {{:ok, nil}, {:ok, %{"blockHash" => nil, "blockNumber" => nil}}} ->
+        Logger.info("transaction #{receipt_hash} is in reorg")
+        0
     end
   end
 end

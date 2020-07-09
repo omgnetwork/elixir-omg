@@ -28,7 +28,7 @@ defmodule Itest.Poller do
   alias WatcherSecurityCriticalAPI.Api.Status
 
   @sleep_retry_sec 1_000
-  @retry_count 30
+  @retry_count 240
 
   def pull_for_utxo_until_recognized_deposit(account, amount, currency, blknum) do
     payload = %AddressBodySchema1{address: account}
@@ -37,6 +37,13 @@ defmodule Itest.Poller do
 
   def pull_api_until_successful(module, function, connection, payload \\ nil),
     do: pull_api_until_successful(module, function, connection, payload, @retry_count)
+
+  def get_transaction_block_number(receipt_hash) do
+    {:ok, %{"blockNumber" => "0x" <> number_hex}} = get_transaction_receipt(receipt_hash)
+    {number, ""} = Integer.parse(number_hex, 16)
+
+    {:ok, number}
+  end
 
   @doc """
   API:: If we're trying to transact with UTXOs that were not recognized *yet*
@@ -96,6 +103,7 @@ defmodule Itest.Poller do
   #######################################################################################################
   ### PRIVATE
   #######################################################################################################
+
   defp pull_api_until_successful(module, function, connection, payload, 0),
     do: Jason.decode!(apply(module, function, [connection, payload]))["data"]
 
@@ -138,11 +146,7 @@ defmodule Itest.Poller do
         Process.sleep(@sleep_retry_sec)
         do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
 
-      {:error, :closed} ->
-        Process.sleep(@sleep_retry_sec)
-        do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
-
-      {:error, :socket_closed_remotely} ->
+      {:error, _} ->
         Process.sleep(@sleep_retry_sec)
         do_wait_on_receipt_status(receipt_hash, expected_status, counter - 1)
 
@@ -292,6 +296,10 @@ defmodule Itest.Poller do
 
     case decoded_response do
       %{"messages" => %{"code" => "submit:utxo_not_found"}} ->
+        Process.sleep(@sleep_retry_sec)
+        submit_typed(typed_data_signed, counter - 1)
+
+      %{"messages" => %{"code" => "operation:service_unavailable"}} ->
         Process.sleep(@sleep_retry_sec)
         submit_typed(typed_data_signed, counter - 1)
 

@@ -29,6 +29,7 @@ defmodule WatcherInfoApiTest do
     accounts = Account.take_accounts(2)
     alice_account = Enum.at(accounts, 0)
     bob_account = Enum.at(accounts, 1)
+
     %{alice_account: alice_account, bob_account: bob_account}
   end
 

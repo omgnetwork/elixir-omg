@@ -160,8 +160,11 @@ jobs:
             - priv
             - data
             - snapshots.env
+            - snapshot_reorg.env
+            - nginx.conf
             - contract_addresses_template.env
             - localchain_contract_addresses.env
+
 
   audit_deps:
     executor: builder
@@ -281,7 +284,7 @@ jobs:
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
-  
+
   watcher_info_coveralls_and_integration_tests:
     executor: builder_pg_geth
     environment:
@@ -526,6 +529,82 @@ jobs:
             cd priv/perf
             mix do credo, format --check-formatted --dry-run
 
+  test_docker_compose_reorg:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      REORG: true
+    steps:
+      - checkout
+      - run:
+          name: Setup data dir
+          command: |
+            [ -d data1 ] || mkdir data1 && chmod 777 data1
+            [ -d data2 ] || mkdir data2 && chmod 777 data2
+            [ -d data ] || mkdir data && chmod 777 data
+      - run: make docker-child_chain
+      - run: make docker-watcher
+      - run: make docker-watcher_info
+      - run:
+          name: Start daemon services
+          command: |
+            cd priv/cabbage
+            make start_daemon_services_reorg || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+      - run:
+          name: Print docker states
+          command: |
+            docker image ls
+            docker-compose ps
+      - restore_cache:
+          key: v2-asdf-install
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
+            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
+            source $BASH_ENV
+            asdf plugin-add erlang || asdf plugin-update erlang
+            asdf plugin-add elixir || asdf plugin-update elixir
+            asdf install erlang 22.3
+            asdf install elixir 1.10.2
+            asdf global elixir 1.10.2
+            asdf global erlang 22.3
+          no_output_timeout: 2400
+      - save_cache:
+          key: v2-asdf-install
+          paths:
+            - ~/.asdf
+            - ~/.asdf-vm
+      - run: make install-hex-rebar
+      - run: sh .circleci/status.sh
+      - restore_cache:
+          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+      - run:
+          name: Print watcher logs
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow watcher
+          background: true
+      - run:
+          name: Print watcher_info logs
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow watcher_info
+          background: true
+      - run:
+          name: Print childchain logs
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow childchain
+          background: true
+      - run:
+          name: Print reorg logs
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow | grep "reorg"
+          background: true
+      - run:
+          name: Run specs
+          command: |
+            cd priv/cabbage
+            make install
+            make generate_api_code
+            mix deps.get
+            mix test --only reorg --trace
+          no_output_timeout: 30m
+
   test_barebone_release:
     machine:
       image: ubuntu-1604:201903-01
@@ -653,7 +732,7 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
-      - run: 
+      - run:
           name: "cp release"
           command: |
             mkdir current_release/
@@ -671,7 +750,7 @@ jobs:
     steps:
       - checkout
       - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME
-      - run: 
+      - run:
           name: "cp release"
           command: |
             mkdir current_release/
@@ -802,6 +881,9 @@ workflows:
           requires: [build]
           filters: *all_branches_and_tags
       - test_docker_compose_release:
+          requires: [build]
+          filters: *all_branches_and_tags
+      - test_docker_compose_reorg:
           requires: [build]
           filters: *all_branches_and_tags
       - audit_deps:

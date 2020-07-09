@@ -13,12 +13,15 @@
 # limitations under the License.
 defmodule DepositsTests do
   use Cabbage.Feature, async: true, file: "deposits.feature"
+  @moduletag :reorg
 
   require Logger
 
   alias Itest.Account
   alias Itest.ApiModel.WatcherSecurityCriticalConfiguration
   alias Itest.Client
+  alias Itest.Poller
+  alias Itest.Reorg
   alias Itest.Transactions.Currency
 
   setup do
@@ -33,9 +36,11 @@ defmodule DepositsTests do
     initial_balance = Itest.Poller.root_chain_get_balance(alice_account)
 
     {:ok, receipt_hash} =
-      amount
-      |> Currency.to_wei()
-      |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
+      Reorg.execute_in_reorg(fn ->
+        amount
+        |> Currency.to_wei()
+        |> Client.deposit(alice_account, Itest.PlasmaFramework.vault(Currency.ether()))
+      end)
 
     gas_used = Client.get_gas_used(receipt_hash)
 
@@ -44,17 +49,17 @@ defmodule DepositsTests do
         {current_gas, current_gas + gas_used}
       end)
 
-    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
+    state =
+      new_state
+      |> Map.put_new(:alice_initial_balance, initial_balance)
+      |> Map.put(:deposit_transaction_hash, receipt_hash)
 
-    state = Map.put_new(new_state, :alice_ethereum_balance, balance_after_deposit)
-    {:ok, Map.put_new(state, :alice_initial_balance, initial_balance)}
+    {:ok, state}
   end
 
   defthen ~r/^Alice should have "(?<amount>[^"]+)" ETH on the child chain$/,
           %{amount: amount},
-          %{alice_account: alice_account} = state do
-    geth_block_every = 1
-
+          %{alice_account: alice_account, deposit_transaction_hash: deposit_transaction_hash} = state do
     {:ok, response} =
       WatcherSecurityCriticalAPI.Api.Configuration.configuration_get(WatcherSecurityCriticalAPI.Connection.new())
 
@@ -62,13 +67,9 @@ defmodule DepositsTests do
       WatcherSecurityCriticalConfiguration.to_struct(Jason.decode!(response.body)["data"])
 
     finality_margin_blocks = watcher_security_critical_config.deposit_finality_margin
-    to_miliseconds = 1000
 
-    finality_margin_blocks
-    |> Kernel.*(geth_block_every)
-    |> Kernel.*(to_miliseconds)
-    |> Kernel.round()
-    |> Process.sleep()
+    {:ok, number} = Poller.get_transaction_block_number(deposit_transaction_hash)
+    :ok = Client.wait_until_block_number(number + finality_margin_blocks)
 
     expecting_amount = Currency.to_wei(amount)
 
@@ -91,6 +92,19 @@ defmodule DepositsTests do
 
     # Alice needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
     _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
+
+    {:ok, state}
+  end
+
+  defthen ~r/^Alice should have the root chain balance changed by "(?<amount>[^"]+)" ETH$/,
+          %{amount: amount},
+          %{
+            alice_account: alice_account,
+            alice_initial_balance: alice_initial_balance,
+            gas: gas
+          } = state do
+    balance_after_deposit = Itest.Poller.root_chain_get_balance(alice_account)
+    assert_equal(Currency.to_wei(amount), balance_after_deposit + gas - alice_initial_balance, "For #{alice_account}.")
 
     {:ok, state}
   end
