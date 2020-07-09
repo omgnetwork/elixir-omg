@@ -90,9 +90,18 @@ defmodule OMG.Eth.RootChain.Abi do
     |> Fields.rename(function_spec)
   end
 
+  defp decode_function_call_result(%{function: "startExit"} = function_spec, values) do
+    function_spec.input_names
+    |> Enum.zip(values)
+    |> Enum.into(%{})
+    |> Fields.rename(function_spec)
+  end
+
   defp decode_function_call_result(function_spec, values) do
     function_spec.input_names
     |> Enum.zip(values)
     |> Enum.into(%{})
   end
+
+
 end

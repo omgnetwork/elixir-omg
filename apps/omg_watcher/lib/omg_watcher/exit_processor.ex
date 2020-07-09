@@ -717,6 +717,7 @@ defmodule OMG.Watcher.ExitProcessor do
          min_exit_period_seconds,
          child_block_interval
        ) do
+
     {:utxo_position, blknum, _, _} = Utxo.Position.decode!(utxo_pos_enc)
     {_block_hash, utxo_creation_block_timestamp} = RootChain.blocks(blknum)
     {:ok, exit_block_timestamp} = Eth.get_block_timestamp_by_number(eth_height)
