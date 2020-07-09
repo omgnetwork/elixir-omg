@@ -108,7 +108,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       txbytes_2 = Transaction.raw_txbytes(tx2)
 
       assert {:ok, events} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> Core.check_validity(processor)
 
       assert_events(events, [
@@ -133,7 +133,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       processor = processor |> start_ife_from(tx)
 
       assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> Core.check_validity(processor)
     end
 
@@ -148,7 +148,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       processor = processor |> start_ife_from(signed_tx, sigs: sigs)
 
       assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> Core.check_validity(processor)
     end
 
@@ -158,7 +158,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1], 3000)]
       }
 
@@ -183,7 +183,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
                   txbytes: ^txbytes
                 }
               ]} =
-               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}, processor,
                  only: [Event.PiggybackAvailable]
                )
     end
@@ -201,7 +201,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
                   available_outputs: [%{index: 0}]
                 }
               ]} =
-               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}, processor,
                  only: [Event.PiggybackAvailable]
                )
     end
@@ -219,7 +219,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
                   available_outputs: []
                 }
               ]} =
-               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}, processor,
                  only: [Event.PiggybackAvailable]
                )
     end
@@ -242,7 +242,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
                   available_outputs: []
                 }
               ]} =
-               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}, processor,
                  only: [Event.PiggybackAvailable]
                )
     end
@@ -256,7 +256,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization], %{})
 
       assert {:ok, []} =
-               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor,
+               check_validity_filtered(%ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}, processor,
                  only: [Event.PiggybackAvailable]
                )
     end
@@ -264,12 +264,12 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
     test "challenged IFEs emit the same piggybacks as canonical ones",
          %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
       assert {:ok, events_canonical} =
-               Core.check_validity(%ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}, processor)
+               Core.check_validity(%ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}, processor)
 
       {challenged_processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
 
       assert {:ok, events_challenged} =
-               Core.check_validity(%ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}, challenged_processor)
+               Core.check_validity(%ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}, challenged_processor)
 
       assert_events(events_canonical, events_challenged)
     end
@@ -281,7 +281,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       processor = processor |> start_ife_from(comp)
 
       assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> check_validity_filtered(processor, only: [Event.InvalidPiggyback])
     end
 
@@ -294,7 +294,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
@@ -302,7 +302,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       processor = processor |> start_ife_from(comp) |> Core.find_ifes_in_blocks(request)
 
       assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> check_validity_filtered(processor, only: [Event.InvalidPiggyback])
     end
 
@@ -311,7 +311,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       txbytes = txbytes(tx)
       {comp_txbytes, other_sig} = {txbytes(comp), sig(comp, 1)}
       state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0, :input)
-      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -341,7 +341,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
           %{}
         )
 
-      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -357,7 +357,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
         |> piggyback_ife_from(tx_hash, 0, :input)
         |> Core.challenge_piggybacks([%{tx_hash: tx_hash, output_index: 0, omg_data: %{piggyback_type: :input}}])
 
-      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}
 
       assert {:ok, []} = check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
@@ -374,7 +374,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
 
@@ -405,7 +405,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
@@ -440,7 +440,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5 + state.sla_margin,
+        eth_timestamp_now: 5 + state.sla_seconds,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
@@ -465,7 +465,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
@@ -492,7 +492,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
@@ -524,7 +524,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)],
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
@@ -560,7 +560,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)],
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
@@ -595,7 +595,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)],
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
@@ -631,7 +631,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([other_tx, tx], tx_blknum)],
         blocks_result: [Block.hashed_txs_at([comp], comp_blknum)]
       }
@@ -659,7 +659,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       # NOTE: the piggybacked index is the second one, compared to the invalid piggyback situation
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([comp], 4000)]
       }
 
@@ -678,7 +678,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)],
         blocks_result: [Block.hashed_txs_at([comp], 4000)]
       }
@@ -692,7 +692,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
          %{processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], 3000)]
       }
 
@@ -719,7 +719,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 4000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx], tx_blknum)]
       }
 
@@ -771,7 +771,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       txbytes = txbytes(tx)
       state = state |> start_ife_from(comp) |> piggyback_ife_from(ife_id, 0, :input)
 
-      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}
 
       assert {:ok, %{input_tx: "input_tx", input_utxo_pos: Utxo.position(1, 0, 0)}} =
                Core.get_input_challenge_data(request, state, txbytes, 0)

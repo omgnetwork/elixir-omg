@@ -17,8 +17,8 @@ defmodule OMG.Watcher.Configuration do
   Provides access to applications configuration
   """
   @app :omg_watcher
-  def exit_processor_sla_margin() do
-    Application.fetch_env!(@app, :exit_processor_sla_margin)
+  def exit_processor_sla_seconds() do
+    Application.fetch_env!(@app, :exit_processor_sla_seconds)
   end
 
   def exit_processor_sla_margin_forced() do

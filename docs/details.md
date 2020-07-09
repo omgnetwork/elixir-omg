@@ -217,14 +217,14 @@ Options of the fee adapter, depends on adapter
 
 ## Watcher configuration - `:omg_watcher` app
 
-* **`exit_processor_sla_margin`** - the margin to define the notion of a "late", invalid exit.
+* **`exit_processor_sla_seconds`** - the margin to define the notion of a "late", invalid exit.
 After this margin passes, every invalid exit is deemed a critical failure of the child chain (`unchallenged_exit`).
 Such event will prompt a mass exit and stop processing new blocks.
 See [exit validation documentation](docs/exit_validation.md) for details.
 Cannot be larger than `min_exit_period_seconds` because otherwise it leads to a dangerous setup of the Watcher (in particular - muting the reports of unchallenged_exits).
-Override using the `EXIT_PROCESSOR_SLA_MARGIN` system environment variable.
+Override using the `EXIT_PROCESSOR_SLA_SECONDS` system environment variable.
 
-* **`exit_processor_sla_margin_forced`** - if set to `true`, will allow one to set a `exit_processor_sla_margin` that is larger than the `min_exit_period_seconds` of the child chain we're running for.
+* **`exit_processor_sla_margin_forced`** - if set to `true`, will allow one to set a `exit_processor_sla_seconds` that is larger than the `min_exit_period_seconds` of the child chain we're running for.
 Set to `true` only when you know what you are doing.
 Defaults to `false`, override using the `EXIT_PROCESSOR_SLA_MARGIN_FORCED` system environment variable.
 

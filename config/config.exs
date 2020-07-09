@@ -154,9 +154,9 @@ config :os_mon,
 config :omg_watcher, child_chain_url: "http://localhost:9656"
 
 config :omg_watcher,
-  # 23 hours worth of blocks - this is how long the child chain server has to block spends from exiting utxos
-  exit_processor_sla_margin: 23 * 60 * 4,
-  # this means we don't want the `sla_margin` above be larger than the `min_exit_period`
+  # 23 hours - this is how long the child chain server has to block spends from exiting utxos
+  exit_processor_sla_seconds: 23 * 60 * 60,
+  # this means we don't want the `sla_seconds` above be larger than the `min_exit_period`
   exit_processor_sla_margin_forced: false,
   maximum_block_withholding_time_ms: 15 * 60 * 60 * 1000,
   maximum_number_of_unapplied_blocks: 50,

@@ -67,11 +67,11 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
 
   @doc """
   Returns a tuple with byzantine events: first element is a list of events for ifes with competitor
-  and the second is the same list filtered for late ifes past sla margin
+  and the second is the same list filtered for late ifes past sla seconds
   """
   @spec get_ife_txs_with_competitors(Core.t(), KnownTx.known_txs_by_input_t(), pos_integer()) ::
           {list(Event.NonCanonicalIFE.t()), list(Event.UnchallengedNonCanonicalIFE.t())}
-  def get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now) do
+  def get_ife_txs_with_competitors(state, known_txs_by_input, eth_timestamp_now) do
     non_canonical_ifes =
       state.in_flight_exits
       |> Map.values()
@@ -87,13 +87,13 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
       |> Enum.uniq()
       |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
 
-    past_sla_margin = fn {ife, _double_spend} ->
-      ife.eth_height + state.sla_margin <= eth_height_now
+    past_sla_seconds = fn {ife, _double_spend} ->
+      ife.timestamp + state.sla_seconds <= eth_timestamp_now
     end
 
     late_non_canonical_ife_events =
       non_canonical_ifes
-      |> Stream.filter(past_sla_margin)
+      |> Stream.filter(past_sla_seconds)
       |> Stream.map(fn {ife, _double_spend} -> Transaction.raw_txbytes(ife.tx) end)
       |> Enum.uniq()
       |> Enum.map(fn txbytes -> %Event.UnchallengedNonCanonicalIFE{txbytes: txbytes} end)

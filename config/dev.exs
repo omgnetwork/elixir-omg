@@ -44,9 +44,9 @@ config :omg_watcher_info, OMG.WatcherInfo.Tracer,
 config :omg_watcher, environment: :dev
 
 config :omg_watcher,
-  # 1 hour of Ethereum blocks
-  exit_processor_sla_margin: 60 * 4,
-  # this means we allow the `sla_margin` above be larger than the `min_exit_period`
+  # 1 hour
+  exit_processor_sla_seconds: 60 * 60,
+  # this means we allow the `sla_seconds` above be larger than the `min_exit_period`
   exit_processor_sla_margin_forced: true
 
 config :omg_watcher, OMG.Watcher.Tracer,

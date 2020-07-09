@@ -51,7 +51,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       # both IFE txs are inlcuded in one of the blocks and picked up by the `ExitProcessor`
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1], tx1_blknum)]
       }
 
@@ -88,7 +88,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: []
       }
 
@@ -121,7 +121,7 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
       # both IFE txs are inlcuded in one of the blocks and picked up by the `ExitProcessor`
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1, tx2], tx2_blknum)]
       }
 

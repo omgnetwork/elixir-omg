@@ -43,7 +43,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     exit_id = Keyword.get(opts, :exit_id, @exit_id)
     call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
     root_chain_txhash = <<1::256>>
-    block_timestamp = :os.system_time(:second)
+    block_timestamp = Keyword.get(opts, :block_timestamp, 2)
     scheduled_finalization_time = block_timestamp + 100
 
     event = %{

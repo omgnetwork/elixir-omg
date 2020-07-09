@@ -48,7 +48,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
     test "none if input never spent elsewhere",
          %{processor_filled: processor} do
       assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}
                |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
     end
 
@@ -58,11 +58,11 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       processor = processor |> start_ife_from(comp)
 
       assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}
                |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
@@ -72,7 +72,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([comp], 3000)]
       }
 
@@ -88,7 +88,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([tx1], 3000)]
       }
 
@@ -106,11 +106,11 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       processor = processor |> start_ife_from(tx)
 
       assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
@@ -121,7 +121,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       processor = processor |> start_ife_from(comp)
 
       assert {:ok, events} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
       assert_events(events, [%Event.NonCanonicalIFE{txbytes: txbytes}, %Event.NonCanonicalIFE{txbytes: comp_txbytes}])
@@ -136,7 +136,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                 competing_tx_pos: Utxo.position(0, 0, 0),
                 competing_proof: ""
               }} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
@@ -150,7 +150,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       challenge_event = ife_challenge(tx2, comp)
       {processor, _} = Core.new_ife_challenges(processor, [challenge_event])
 
-      exit_processor_request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+      exit_processor_request = %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
 
       assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
                exit_processor_request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
@@ -173,7 +173,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([comp], other_blknum)]
       }
 
@@ -205,7 +205,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([comp, comp], other_blknum)],
         ife_input_spending_blocks_result: [Block.hashed_txs_at([comp, comp], other_blknum)]
       }
@@ -249,7 +249,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       comp1 = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 1}])
       comp2 = TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 2}])
       txbytes = txbytes(tx1)
-      request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+      request = %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
       processor = processor |> start_ife_from(comp1) |> start_ife_from(comp2)
 
       # before any challenge
@@ -272,7 +272,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1], other_blknum)]
       }
 
@@ -292,7 +292,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([tx1, comp], other_blknum)],
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx1, comp], other_blknum)]
       }
@@ -310,7 +310,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([comp, tx1], other_blknum)],
         ife_input_spending_blocks_result: [Block.hashed_txs_at([comp, tx1], other_blknum)]
       }
@@ -330,7 +330,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5 + processor.sla_margin,
+        eth_timestamp_now: 5 + processor.sla_seconds,
         blocks_result: [Block.hashed_txs_at([comp, tx1], other_blknum)],
         ife_input_spending_blocks_result: [Block.hashed_txs_at([comp, tx1], other_blknum)]
       }
@@ -349,7 +349,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [block1, block2],
         # note the flipped order here, all still works as the blocks should be processed starting from oldest
         ife_input_spending_blocks_result: [block2, block1]
@@ -370,7 +370,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([comp], other_blknum)]
       }
 
@@ -420,7 +420,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
         exit_processor_request = %ExitProcessor.Request{
           blknum_now: 5000,
-          eth_height_now: 5,
+          eth_timestamp_now: 5,
           blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
         }
 
@@ -448,7 +448,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([comp], 3000)]
       }
 
@@ -471,7 +471,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         blocks_result: [Block.hashed_txs_at([recovered_oldest], 2000), Block.hashed_txs_at([recovered_recent], 3000)]
       }
 
@@ -552,7 +552,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       txbytes = txbytes(tx)
       processor = processor |> start_ife_from(comp)
 
-      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 5}
 
       assert {:ok, %{input_tx: "input_tx", input_utxo_pos: Utxo.position(1, 0, 0)}} =
                Core.get_competitor_for_ife(request, processor, txbytes)
@@ -568,7 +568,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
     test "none if input not yet created during sync",
          %{processor_filled: processor} do
       assert %{utxos_to_check: to_check} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 13}
+               %ExitProcessor.Request{blknum_now: 1000, eth_timestamp_now: 13}
                |> Core.determine_utxo_existence_to_get(processor)
 
       assert Utxo.position(9000, 0, 1) not in to_check
@@ -579,14 +579,14 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       txbytes = Transaction.raw_txbytes(tx)
 
       assert {:error, :ife_not_known_for_tx} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     test "for malformed input txbytes doesn't crash",
          %{processor_empty: processor} do
       assert {:error, :malformed_transaction} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> Core.get_competitor_for_ife(processor, <<0>>)
     end
   end
@@ -600,7 +600,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at(txs, other_blknum)]
       }
 
@@ -621,20 +621,20 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
     test "proving canonical for nonexistent tx doesn't crash", %{processor_empty: processor, transactions: [tx | _]} do
       txbytes = Transaction.raw_txbytes(tx)
-      request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+      request = %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
       processor = processor |> Core.find_ifes_in_blocks(request)
       assert {:error, :ife_not_known_for_tx} = Core.prove_canonical_for_ife(processor, txbytes)
     end
 
     test "for malformed input txbytes doesn't crash", %{processor_empty: processor} do
-      request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+      request = %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
       processor = processor |> Core.find_ifes_in_blocks(request)
       assert {:error, :malformed_transaction} = Core.prove_canonical_for_ife(processor, <<0>>)
     end
 
     test "none if ifes are fresh and canonical by default", %{processor_filled: processor} do
       assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               %ExitProcessor.Request{blknum_now: 5000, eth_timestamp_now: 5}
                |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
     end
 
@@ -650,7 +650,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         ife_input_spending_blocks_result: [Block.hashed_txs_at(txs, other_blknum)]
       }
 
@@ -667,7 +667,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
       request = %ExitProcessor.Request{
         blknum_now: 5000,
-        eth_height_now: 5,
+        eth_timestamp_now: 5,
         # NOTE: `tx` is included twice
         ife_input_spending_blocks_result: [Block.hashed_txs_at([tx, tx], other_blknum)]
       }

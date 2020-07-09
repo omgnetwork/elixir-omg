@@ -44,8 +44,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   use OMG.Utils.LoggerExt
 
-  @default_sla_margin 10
-
+  @default_sla_seconds 10
   @zero_address OMG.Eth.zero_address()
 
   @max_inputs Transaction.Payment.max_inputs()
@@ -70,7 +69,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @type new_piggyback_event_t() :: new_piggyback_input_event_t() | new_piggyback_output_event_t()
 
   defstruct [
-    :sla_margin,
+    :sla_seconds,
     :min_exit_period_seconds,
     :child_block_interval,
     exits: %{},
@@ -80,7 +79,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   ]
 
   @type t :: %__MODULE__{
-          sla_margin: non_neg_integer(),
+          sla_seconds: non_neg_integer(),
           exits: %{Utxo.Position.t() => ExitInfo.t()},
           in_flight_exits: %{Transaction.tx_hash() => InFlightExitInfo.t()},
           # NOTE: maps only standard exit_ids to the natural keys of standard exits (input pointers/utxo_pos)
@@ -114,7 +113,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           db_competitors :: [{Transaction.tx_hash(), CompetitorInfo.t()}],
           min_exit_period_seconds :: non_neg_integer(),
           child_block_interval :: non_neg_integer,
-          sla_margin :: non_neg_integer
+          sla_seconds :: non_neg_integer
         ) :: {:ok, t()}
   def init(
         db_exits,
@@ -122,7 +121,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         db_competitors,
         min_exit_period_seconds,
         child_block_interval,
-        sla_margin \\ @default_sla_margin
+        sla_seconds \\ @default_sla_seconds
       ) do
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
 
@@ -134,32 +133,32 @@ defmodule OMG.Watcher.ExitProcessor.Core do
        in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
        exit_ids: exit_ids,
        competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
-       sla_margin: sla_margin,
+       sla_seconds: sla_seconds,
        min_exit_period_seconds: min_exit_period_seconds,
        child_block_interval: child_block_interval
      }}
   end
 
   @doc """
-  Use to check if the settings regarding the `:exit_processor_sla_margin` config of `:omg_watcher` are OK.
+  Use to check if the settings regarding the `:exit_processor_sla_seconds` config of `:omg_watcher` are OK.
 
   Since there are combinations of our configuration that may lead to a dangerous setup of the Watcher
-  (in particular - muting the reports of unchallenged_exits), we're enforcing that the `exit_processor_sla_margin`
+  (in particular - muting the reports of unchallenged_exits), we're enforcing that the `exit_processor_sla_seconds`
   be not larger than `min_exit_period`.
   """
-  @spec check_sla_margin(pos_integer(), boolean(), pos_integer(), pos_integer()) :: :ok | {:error, :sla_margin_too_big}
-  def check_sla_margin(sla_margin, sla_margin_forced, min_exit_period_seconds, ethereum_block_time_seconds)
+  @spec check_sla_seconds(pos_integer(), boolean(), pos_integer()) :: :ok | {:error, :sla_margin_too_big}
+  def check_sla_seconds(sla_seconds, sla_margin_forced, min_exit_period_seconds)
 
-  def check_sla_margin(sla_margin, true, min_exit_period_seconds, ethereum_block_time_seconds) do
+  def check_sla_seconds(sla_seconds, true, min_exit_period_seconds) do
     _ =
-      if !sla_margin_safe?(sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
-        do: Logger.warn("Allowing unsafe sla margin of #{sla_margin} blocks")
+      if !sla_seconds_safe?(sla_seconds, min_exit_period_seconds),
+        do: Logger.warn("Allowing unsafe sla margin of #{sla_seconds} seconds")
 
     :ok
   end
 
-  def check_sla_margin(sla_margin, false, min_exit_period_seconds, ethereum_block_time_seconds) do
-    if sla_margin_safe?(sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
+  def check_sla_seconds(sla_seconds, false, min_exit_period_seconds) do
+    if sla_seconds_safe?(sla_seconds, min_exit_period_seconds),
       do: :ok,
       else: {:error, :sla_margin_too_big}
   end
@@ -460,17 +459,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec check_validity(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
   def check_validity(
         %ExitProcessor.Request{
-          eth_height_now: eth_height_now,
+          eth_timestamp_now: eth_timestamp_now,
           utxos_to_check: utxos_to_check,
           utxo_exists_result: utxo_exists_result,
           blocks_result: blocks
         },
         %__MODULE__{} = state
-      )
-      when not is_nil(eth_height_now) do
+      ) do
     utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
 
-    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_height_now)
+    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_timestamp_now)
 
     invalid_exit_events =
       invalid_exits
@@ -483,12 +481,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
 
     {non_canonical_ife_events, late_non_canonical_ife_events} =
-      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now)
+      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, eth_timestamp_now)
 
     invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
     {invalid_piggybacks_events, late_invalid_piggybacks_events} =
-      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, eth_height_now)
+      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, eth_timestamp_now)
 
     available_piggybacks_events =
       state
@@ -627,6 +625,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     address != @zero_address
   end
 
-  defp sla_margin_safe?(exit_processor_sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
-    do: exit_processor_sla_margin * ethereum_block_time_seconds < min_exit_period_seconds
+  defp sla_seconds_safe?(exit_processor_sla_seconds, min_exit_period_seconds) do
+    exit_processor_sla_seconds < min_exit_period_seconds
+  end
 end

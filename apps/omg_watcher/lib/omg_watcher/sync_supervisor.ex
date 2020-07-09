@@ -69,7 +69,7 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   defp children(args) do
     contract_deployment_height = Keyword.fetch!(args, :contract_deployment_height)
-    exit_processor_sla_margin = Configuration.exit_processor_sla_margin()
+    exit_processor_sla_seconds = Configuration.exit_processor_sla_seconds()
     exit_processor_sla_margin_forced = Configuration.exit_processor_sla_margin_forced()
     metrics_collection_interval = Configuration.metrics_collection_interval()
     finality_margin = Configuration.exit_finality_margin()
@@ -77,7 +77,6 @@ defmodule OMG.Watcher.SyncSupervisor do
     ethereum_events_check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
     coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
     min_exit_period_seconds = OMG.Eth.Configuration.min_exit_period_seconds()
-    ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
 
@@ -91,11 +90,10 @@ defmodule OMG.Watcher.SyncSupervisor do
        )},
       {ExitProcessor,
        [
-         exit_processor_sla_margin: exit_processor_sla_margin,
+         exit_processor_sla_seconds: exit_processor_sla_seconds,
          exit_processor_sla_margin_forced: exit_processor_sla_margin_forced,
          metrics_collection_interval: metrics_collection_interval,
          min_exit_period_seconds: min_exit_period_seconds,
-         ethereum_block_time_seconds: ethereum_block_time_seconds,
          child_block_interval: child_block_interval
        ]},
       %{

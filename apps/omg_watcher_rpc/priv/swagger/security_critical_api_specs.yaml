@@ -233,7 +233,7 @@ paths:
                               format: int256
                             contract_semver:
                               type: string
-                            exit_processor_sla_margin:
+                            exit_processor_sla_seconds:
                               type: integer
                               format: int256
                             network:

@@ -4,7 +4,7 @@
 # setup of our services
 
 # test_barebone_release taylored values. Compare also with priv/cabbage/docker-compose-cabbage.yml
-export EXIT_PROCESSOR_SLA_MARGIN=30
+export EXIT_PROCESSOR_SLA_SECONDS=30
 
 # the rest stays same as bin/variables
 export APP_ENV=local-development
@@ -18,6 +18,7 @@ export CHILD_CHAIN_URL=http://127.0.0.1:9656
 export ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
 export ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
 export ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+export ETHEREUM_BLOCK_TIME_SECONDS=1
 export FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
 export FEE_ADAPTER=file
 # Fee specs file path needs to be an absolute path as the childchain will start deep in the _build subdirectory

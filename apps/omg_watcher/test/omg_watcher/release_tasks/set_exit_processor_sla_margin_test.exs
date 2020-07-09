@@ -19,37 +19,37 @@ defmodule OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMarginTest do
   @app :omg_watcher
 
   test "if environment variables get applied in the configuration" do
-    :ok = System.put_env("EXIT_PROCESSOR_SLA_MARGIN", "15")
+    :ok = System.put_env("EXIT_PROCESSOR_SLA_SECONDS", "15")
     :ok = System.put_env("EXIT_PROCESSOR_SLA_MARGIN_FORCED", "TRUE")
     config = SetExitProcessorSLAMargin.load([], [])
-    exit_processor_sla_margin = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:exit_processor_sla_margin)
+    exit_processor_sla_seconds = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:exit_processor_sla_seconds)
 
     exit_processor_sla_margin_forced =
       config |> Keyword.fetch!(@app) |> Keyword.fetch!(:exit_processor_sla_margin_forced)
 
-    assert exit_processor_sla_margin == 15
+    assert exit_processor_sla_seconds == 15
     assert exit_processor_sla_margin_forced == true
   end
 
   test "if default configuration is used when there's no environment variables" do
-    :ok = System.delete_env("EXIT_PROCESSOR_SLA_MARGIN")
+    :ok = System.delete_env("EXIT_PROCESSOR_SLA_SECONDS")
     :ok = System.delete_env("EXIT_PROCESSOR_SLA_MARGIN_FORCED")
     config = SetExitProcessorSLAMargin.load([], [])
-    exit_processor_sla_margin = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:exit_processor_sla_margin)
+    exit_processor_sla_seconds = config |> Keyword.fetch!(@app) |> Keyword.fetch!(:exit_processor_sla_seconds)
 
     exit_processor_sla_margin_forced =
       config |> Keyword.fetch!(@app) |> Keyword.fetch!(:exit_processor_sla_margin_forced)
 
-    exit_processor_sla_margin_updated = Application.get_env(@app, :exit_processor_sla_margin)
+    exit_processor_sla_seconds_updated = Application.get_env(@app, :exit_processor_sla_seconds)
     exit_processor_sla_margin_forced_updated = Application.get_env(@app, :exit_processor_sla_margin_forced)
-    assert exit_processor_sla_margin == exit_processor_sla_margin_updated
+    assert exit_processor_sla_seconds == exit_processor_sla_seconds_updated
     assert exit_processor_sla_margin_forced == exit_processor_sla_margin_forced_updated
   end
 
   test "if exit is thrown when faulty margin configuration is used" do
-    :ok = System.put_env("EXIT_PROCESSOR_SLA_MARGIN", "15a")
+    :ok = System.put_env("EXIT_PROCESSOR_SLA_SECONDS", "15a")
     catch_exit(SetExitProcessorSLAMargin.load([], []))
-    :ok = System.delete_env("EXIT_PROCESSOR_SLA_MARGIN")
+    :ok = System.delete_env("EXIT_PROCESSOR_SLA_SECONDS")
   end
 
   test "if exit is thrown when faulty margin force configuration is used" do
