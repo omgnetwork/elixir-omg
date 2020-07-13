@@ -145,7 +145,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   Retrieves event by `root_chain_txhash_event` (unique identifier). Preload txoutputs in a single query as there will not be a large number of them.
   """
   @spec get(binary()) :: %__MODULE__{}
-  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get(root_chain_txhash_event) do
     DB.Repo.one(
       from(ethevent in base_query(),
