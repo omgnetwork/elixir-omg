@@ -347,6 +347,23 @@ docker-push: docker
 	docker push $(WATCHER_IMAGE_NAME)
 	docker push $(WATCHER_INFO_IMAGE_NAME)
 
+### Cabbage reorg docker logs
+
+cabbage-reorg-watcher-logs:
+	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher
+
+cabbage-reorg-watcher_info-logs:
+	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher_info
+
+cabbage-reorg-childchain-logs:
+	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow childchain
+
+cabbage-reorg-geth-logs:
+	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "geth"
+
+cabbage-reorgs-logs:
+	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "reorg"
+
 ###OTHER
 docker-start-cluster:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \

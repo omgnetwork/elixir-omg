@@ -591,23 +591,23 @@ jobs:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Print watcher logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher
+          command: make cabbage-reorg-watcher-logs
           background: true
       - run:
           name: Print watcher_info logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher_info
+          command: make cabbage-reorg-watcher_info-logs
           background: true
       - run:
           name: Print childchain logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow childchain
+          command: make cabbage-reorg-childchain-logs
           background: true
       - run:
           name: Print geth logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "geth"
+          command: cabbage-reorg-geth-logs
           background: true
       - run:
           name: Print reorg logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "reorg"
+          command: make cabbage-reorgs-logs
           background: true
       - run:
           name: Run specs
