@@ -591,23 +591,23 @@ jobs:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Print watcher logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-specs.yml logs --follow watcher
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher
           background: true
       - run:
           name: Print watcher_info logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-specs.yml logs --follow watcher_info
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher_info
           background: true
       - run:
           name: Print childchain logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-specs.yml logs --follow childchain
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow childchain
           background: true
       - run:
           name: Print geth logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-specs.yml logs --follow | grep "geth"
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "geth"
           background: true
       - run:
           name: Print reorg logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-specs.yml logs --follow | grep "reorg"
+          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "reorg"
           background: true
       - run:
           name: Run specs
