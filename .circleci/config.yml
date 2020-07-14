@@ -603,7 +603,7 @@ jobs:
           background: true
       - run:
           name: Print geth logs
-          command: cabbage-reorg-geth-logs
+          command: make cabbage-reorg-geth-logs
           background: true
       - run:
           name: Print reorg logs
