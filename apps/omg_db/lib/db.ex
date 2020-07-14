@@ -180,10 +180,8 @@ defmodule OMG.DB do
     Path.join(base_path, Macro.underscore(instance_name))
   end
 
-  @doc """
-  Sets the key-values expected by database implementation, providing default values
-  """
-  def prepare_args(args) do
+  # Sets the key-values expected by database implementation, providing default values
+  defp prepare_args(args) do
     base_path = Keyword.fetch!(args, :db_path)
     instance = Keyword.get(args, :instance, @default_instance_name)
 

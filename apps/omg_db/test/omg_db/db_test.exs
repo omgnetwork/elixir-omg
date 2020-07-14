@@ -116,46 +116,6 @@ defmodule OMG.DBTest do
     end
   end
 
-  describe "Preparing sane defaults for database" do
-    @base_path "/db/path"
-    @default_instance_name OMG.DB.Instance.Default
-
-    test "fails when db_path not set" do
-      assert_raise KeyError, fn -> DB.prepare_args(instance: OMG.DB.Instance.Default) end
-    end
-
-    test "fails when instance is not correctly prefixed" do
-      assert_raise MatchError, fn ->
-        DB.prepare_args(db_path: @base_path, instance: OMG.DB.RocksDB)
-      end
-    end
-
-    test "suplements path of default instance when instance not set" do
-      assert %{name: @default_instance_name, db_path: "#{@base_path}/default"} ==
-               [db_path: @base_path] |> DB.prepare_args() |> Map.new()
-    end
-
-    test "provides default name for default db instance" do
-      assert %{name: @default_instance_name, db_path: "#{@base_path}/default"} ==
-               [db_path: @base_path, instance: @default_instance_name] |> DB.prepare_args() |> Map.new()
-    end
-
-    test "default instance name cannot be overwritten" do
-      assert %{name: @default_instance_name, db_path: "#{@base_path}/default"} ==
-               [db_path: @base_path, name: @default_instance_name] |> DB.prepare_args() |> Map.new()
-
-      assert %{name: @default_instance_name, db_path: "#{@base_path}/default"} ==
-               [db_path: @base_path, name: @default_instance_name, instance: @default_instance_name]
-               |> DB.prepare_args()
-               |> Map.new()
-    end
-
-    test "suplements path and overrides name for non-default instance" do
-      assert %{name: OMG.DB.Instance.ExitProcessor, db_path: "#{@base_path}/exit_processor"} ==
-               [db_path: @base_path, instance: OMG.DB.Instance.ExitProcessor] |> DB.prepare_args() |> Map.new()
-    end
-  end
-
   defp create_write(:utxo = type, pid) do
     db_writes =
       Enum.map(1..@writes, fn index ->
