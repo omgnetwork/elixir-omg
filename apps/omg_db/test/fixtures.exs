@@ -43,7 +43,7 @@ defmodule OMG.DB.Fixtures do
     instance = OMG.DB.Instance.ExitProcessor
     :ok = OMG.DB.init(db_path, [instance])
 
-    {:ok, _} = OMG.DB.start_link(db_path: db_path, instance: instance)
+    {:ok, _} = Supervisor.start_link([OMG.DB.child_spec(db_path: db_path, instance: instance)], strategy: :one_for_one)
 
     :ok
   end

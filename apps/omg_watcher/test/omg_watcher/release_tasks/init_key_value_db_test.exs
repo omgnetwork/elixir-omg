@@ -61,8 +61,13 @@ defmodule OMG.Watcher.ReleaseTasks.InitKeyValueDBTest do
     {:ok, _} = Application.ensure_all_started(:omg_db)
 
     # start exit processor database
-    {:ok, pid} = OMG.DB.start_link(db_path: base_path, instance: OMG.DB.Instance.ExitProcessor)
-    assert pid == GenServer.whereis(OMG.DB.Instance.ExitProcessor)
+    {:ok, _} =
+      Supervisor.start_link(
+        [OMG.DB.child_spec(db_path: base_path, instance: OMG.DB.Instance.ExitProcessor)],
+        strategy: :one_for_one
+      )
+
+    assert OMG.DB.Instance.ExitProcessor |> GenServer.whereis() |> Kernel.is_pid()
 
     :ok = GenServer.stop(OMG.DB.Instance.ExitProcessor)
     :ok = Application.stop(:omg_db)

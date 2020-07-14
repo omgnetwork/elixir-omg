@@ -22,7 +22,6 @@ defmodule OMG.DB do
   alias OMG.DB.RocksDB
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
-  @callback start_link(term) :: GenServer.on_start()
   @callback child_spec(term) :: Supervisor.child_spec()
   @callback init(String.t()) :: :ok
   @callback initiation_multiupdate() :: :ok | {:error, any}
@@ -64,13 +63,6 @@ defmodule OMG.DB do
                       get_single_value: 2
 
   @default_instance_name OMG.DB.Instance.Default
-
-  def start_link(args) do
-    args
-    |> Keyword.put_new_lazy(:db_path, fn -> Application.fetch_env!(:omg_db, :path) end)
-    |> prepare_args()
-    |> RocksDB.start_link()
-  end
 
   def child_spec(args \\ []) do
     args

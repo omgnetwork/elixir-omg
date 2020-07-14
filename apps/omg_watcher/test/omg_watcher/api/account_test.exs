@@ -30,7 +30,12 @@ defmodule OMG.Watcher.API.AccountTest do
     :ok = OMG.DB.init(db_path, [OMG.DB.Instance.Default, OMG.DB.Instance.ExitProcessor])
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
-    {:ok, _} = OMG.DB.start_link(db_path: db_path, instance: OMG.DB.Instance.ExitProcessor)
+
+    {:ok, _} =
+      Supervisor.start_link(
+        [OMG.DB.child_spec(db_path: db_path, instance: OMG.DB.Instance.ExitProcessor)],
+        strategy: :one_for_one
+      )
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
