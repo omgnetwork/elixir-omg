@@ -26,3 +26,4 @@ Mix.Task.run("ecto.migrate", ~w(--quiet))
 
 {:ok, _} = Application.ensure_all_started(:briefly)
 {:ok, _} = Application.ensure_all_started(:erlexec)
+{:ok, _} = Application.ensure_all_started(:logger)
