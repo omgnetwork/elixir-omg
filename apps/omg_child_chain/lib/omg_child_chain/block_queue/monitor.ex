@@ -87,7 +87,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
 
   # Listens for a block being submitted and add it to monitoring if it hasn't been tracked
   def handle_info({:internal_event_bus, :block_submitting, blknum}, state) do
-    pending_blocks = add_new_blknum(state.pending_blocks, blknum)
+    pending_blocks = add_new_blknum(state.pending_blocks, blknum, state.root_chain_height)
     {:noreply, %{state | pending_blocks: pending_blocks}}
   end
 
@@ -116,11 +116,11 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
   #
 
   # Add the blknum to tracking only if it is not already tracked
-  @spec add_new_blknum([{blknum(), any()}], blknum()) :: :ok
-  defp add_new_blknum(pending_blocks, blknum) do
+  @spec add_new_blknum([{blknum(), any()}], blknum(), non_neg_integer()) :: :ok
+  defp add_new_blknum(pending_blocks, blknum, root_chain_height) do
     case Enum.any?(pending_blocks, fn {pending_blknum, _} -> pending_blknum == blknum end) do
       true -> pending_blocks
-      false -> [{blknum, EthereumHeight.get()} | pending_blocks]
+      false -> [{blknum, root_chain_height} | pending_blocks]
     end
   end
 
