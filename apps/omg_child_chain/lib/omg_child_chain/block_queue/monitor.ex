@@ -27,9 +27,10 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
             alarm_raised: false
 
   @typep blknum() :: pos_integer()
+  @typep pending_block() :: {blknum :: blknum(), first_submit_height :: pos_integer()}
 
   @type t() :: %__MODULE__{
-          pending_blocks: [{blknum :: blknum(), first_submit_height :: pos_integer()}],
+          pending_blocks: [pending_block()],
           root_chain_height: non_neg_integer(),
           stall_threshold_in_root_chain_blocks: pos_integer(),
           alarm_module: module(),
@@ -118,7 +119,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
   #
 
   # Add the blknum to tracking only if it is not already tracked
-  @spec add_new_blknum([{blknum(), any()}], blknum(), non_neg_integer()) :: :ok
+  @spec add_new_blknum([{blknum(), any()}], blknum(), non_neg_integer()) :: [pending_block()]
   defp add_new_blknum(pending_blocks, blknum, root_chain_height) do
     case Enum.any?(pending_blocks, fn {pending_blknum, _} -> pending_blknum == blknum end) do
       true -> pending_blocks
@@ -126,7 +127,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
     end
   end
 
-  @spec remove_blknum([{blknum(), any()}], blknum()) :: :ok
+  @spec remove_blknum([{blknum(), any()}], blknum()) :: [pending_block()]
   defp remove_blknum(pending_blocks, blknum) do
     Enum.reject(pending_blocks, fn {pending_blknum, _} -> pending_blknum == blknum end)
   end
