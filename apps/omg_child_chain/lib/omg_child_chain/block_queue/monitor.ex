@@ -124,7 +124,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
     end
   end
 
-  @spec add_new_blknum([{blknum(), any()}], blknum()) :: :ok
+  @spec remove_blknum([{blknum(), any()}], blknum()) :: :ok
   defp remove_blknum(pending_blocks, blknum) do
     Enum.reject(pending_blocks, fn {pending_blknum, _} -> pending_blknum == blknum end)
   end
