@@ -218,9 +218,9 @@ defmodule OMG.ChildChain.BlockQueue do
           _ = log_eth_node_error()
           error
 
-        {:ok, root_chain_txhash} ->
+        {:ok, txhash} ->
           _ = publish_block_submitted_event(submission.num)
-          _ = GasAnalyzer.enqueue(root_chain_txhash)
+          _ = GasAnalyzer.enqueue(txhash)
           _ = Balance.check()
           :ok
 
