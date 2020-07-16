@@ -34,6 +34,8 @@ defmodule OMG.Status.Metric.Event do
     :block_queue,
     :block_queue_blknum_submitting,
     :block_queue_blknum_submitted,
+    :block_queue_num_blocks_submitting,
+    :block_queue_num_blocks_stalled
   ]
 
   @doc """
@@ -75,6 +77,16 @@ defmodule OMG.Status.Metric.Event do
   Child Chain BlockQueue blknum submitted
   """
   def name(:block_queue_blknum_submitted), do: "block_queue_blknum_submitted"
+
+  @doc """
+  Child Chain BlockQueue's number of blocks currently being submitted
+  """
+  def name(:block_queue_num_blocks_submitting), do: "block_queue_num_blocks_submitting"
+
+  @doc """
+  Child Chain BlockQueue's number of blocks currently being submitted and stalled
+  """
+  def name(:block_queue_num_blocks_stalled), do: "block_queue_num_blocks_stalled"
 
   @doc """
   Child Chain authority address balance

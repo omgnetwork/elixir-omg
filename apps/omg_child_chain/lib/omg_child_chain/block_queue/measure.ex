@@ -33,6 +33,8 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
     [:process, BlockQueue],
     [:blknum_submitting, BlockQueue],
     [:blknum_submitted, BlockQueue],
+    [:blocks_submitting, BlockQueue.Monitor],
+    [:blocks_stalled, BlockQueue.Monitor],
     [:gas, GasAnalyzer],
     [:authority_balance, Balance]
   ]
@@ -63,5 +65,13 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
 
   def handle_event([:blknum_submitted, BlockQueue], blknum, _, _config) do
     _ = Datadog.gauge(name(:block_queue_blknum_submitted), blknum)
+  end
+
+  def handle_event([:blocks_submitting, BlockQueue.Monitor], _, %{blocks: blocks}, _config) do
+    _ = Datadog.gauge(name(:block_queue_num_blocks_submitting), length(blocks))
+  end
+
+  def handle_event([:blocks_stalled, BlockQueue.Monitor], _, %{blocks: blocks}, _config) do
+    _ = Datadog.gauge(name(:block_queue_num_blocks_stalled), length(blocks))
   end
 end
