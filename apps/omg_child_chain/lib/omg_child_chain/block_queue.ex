@@ -235,6 +235,9 @@ defmodule OMG.ChildChain.BlockQueue do
   # This differs from `:enqueue_block` which publishes only once when the block is formed.
   # For example, when a block is re-submitted 3 times before it got accepted, there would be
   # 1 x `:enqueue_block` and 3 x `:block_submitting` events published.
+  #
+  # The telemetry event is emitted for raw metrics propagation. The bus event is published so
+  # a consumer, potentially a GenServer or other processes can perform extra operations on the data.
   defp publish_block_submitting_event(blknum) do
     _ = :telemetry.execute([:blknum_submitting, __MODULE__], blknum)
 
@@ -245,6 +248,9 @@ defmodule OMG.ChildChain.BlockQueue do
 
   # Publishes when a block is successfully submitted. Only 1 `block_submitted` event will ever
   # be published for each block.
+  #
+  # The telemetry event is emitted for raw metrics propagation. The bus event is published so
+  # a consumer, potentially a GenServer or other processes can perform extra operations on the data.
   defp publish_block_submitted_event(blknum) do
     _ = :telemetry.execute([:blknum_submitted, __MODULE__], blknum)
 
