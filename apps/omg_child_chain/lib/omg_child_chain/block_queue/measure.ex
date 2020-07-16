@@ -51,7 +51,7 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
 
   def handle_event([:gas, GasAnalyzer], %{gas: gas}, _, _config) do
     gwei = div(gas, 1_000_000_000)
-    _ = Datadog.gauge(name(:block_submission), gwei)
+    _ = Datadog.gauge(name(:block_submission_gas), gwei)
   end
 
   def handle_event([:authority_balance, Balance], %{authority_balance: authority_balance}, _, _config) do
