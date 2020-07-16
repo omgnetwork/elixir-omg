@@ -64,6 +64,11 @@ defmodule OMG.Status.Metric.Event do
   def name(:block_transactions), do: "block_transactions"
 
   @doc """
+  Childchain Block successfully submitted
+  """
+  def name(:block_submission_success), do: "block_submission_success"
+
+  @doc """
   Child Chain Block queue gas usage metric
   """
   def name(:block_submission_gas), do: "block_submission_gas"
