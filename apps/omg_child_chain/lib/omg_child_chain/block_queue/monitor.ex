@@ -17,13 +17,12 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
   Listens to block events and raises :block_submission_stalled alarm when a pending block
   doesn't get successfully submitted within the specified time threshold.
   """
-
   use GenServer
   require Logger
-  alias OMG.Eth.EthereumHeight
 
   defstruct pending_blocks: [],
-            stall_threshold_in_rootchain_blocks: 2,
+            root_chain_height: 0,
+            stall_threshold_in_root_chain_blocks: 2,
             alarm_module: nil,
             alarm_raised: false
 
@@ -31,7 +30,8 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
 
   @type t() :: %__MODULE__{
           pending_blocks: [{blknum :: blknum(), first_submit_height :: pos_integer()}],
-          stall_threshold_in_rootchain_blocks: pos_integer(),
+          root_chain_height: non_neg_integer(),
+          stall_threshold_in_root_chain_blocks: pos_integer(),
           alarm_module: module(),
           alarm_raised: boolean()
         }
@@ -56,29 +56,33 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
 
     state = %__MODULE__{
       pending_blocks: [],
-      stall_threshold_in_rootchain_blocks: Keyword.fetch!(opts, :stall_threshold_in_rootchain_blocks),
+      stall_threshold_in_root_chain_blocks: Keyword.fetch!(opts, :stall_threshold_in_root_chain_blocks),
       alarm_module: Keyword.fetch!(opts, :alarm_module),
       alarm_raised: false
     }
 
     :ok = event_bus.subscribe({:child_chain, "blocks"}, link: true)
     :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
+
     {:ok, _} = :timer.send_interval(check_interval_ms, self(), :check_stall)
     {:ok, state}
   end
 
   def handle_info(:check_stall, state) do
-    root_chain_height = EthereumHeight.get()
-
     stalled_blocks =
       Enum.filter(state.pending_blocks, fn {_blknum, first_submit_height} ->
-        root_chain_height - first_submit_height >= state.stall_threshold_in_rootchain_blocks
+        state.root_chain_height - first_submit_height >= state.stall_threshold_in_root_chain_blocks
       end)
 
-    _ = log_stalled_blocks(stalled_blocks, root_chain_height)
+    _ = log_stalled_blocks(stalled_blocks, state.root_chain_height)
     _ = trigger_alarm(state.alarm_module, state.alarm_raised, stalled_blocks)
 
     {:ok, state}
+  end
+
+  # Keeps track of the latest root chain height
+  def handle_info({:internal_event_bus, :ethereum_new_height, new_height}, state) do
+    {:noreply, %{state | root_chain_height: new_height}}
   end
 
   # Listens for a block being submitted and add it to monitoring if it hasn't been tracked
@@ -112,6 +116,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
   #
 
   # Add the blknum to tracking only if it is not already tracked
+  @spec add_new_blknum([{blknum(), any()}], blknum()) :: :ok
   defp add_new_blknum(pending_blocks, blknum) do
     case Enum.any?(pending_blocks, fn {pending_blknum, _} -> pending_blknum == blknum end) do
       true -> pending_blocks
@@ -119,6 +124,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
     end
   end
 
+  @spec add_new_blknum([{blknum(), any()}], blknum()) :: :ok
   defp remove_blknum(pending_blocks, blknum) do
     Enum.reject(pending_blocks, fn {pending_blknum, _} -> pending_blknum == blknum end)
   end
