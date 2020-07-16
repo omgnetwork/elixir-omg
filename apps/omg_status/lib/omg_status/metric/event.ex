@@ -31,11 +31,7 @@ defmodule OMG.Status.Metric.Event do
     :piggyback,
     :piggyback_challenges_processor,
     :piggyback_processor,
-    :block_queue,
-    :block_queue_blknum_submitting,
-    :block_queue_blknum_submitted,
-    :block_queue_num_blocks_submitting,
-    :block_queue_num_blocks_stalled
+    :block_queue
   ]
 
   @doc """
