@@ -31,7 +31,9 @@ defmodule OMG.Status.Metric.Event do
     :piggyback,
     :piggyback_challenges_processor,
     :piggyback_processor,
-    :block_queue
+    :block_queue,
+    :block_queue_blknum_submitting,
+    :block_queue_blknum_submitted,
   ]
 
   @doc """
@@ -63,6 +65,16 @@ defmodule OMG.Status.Metric.Event do
   Child Chain Block queue gas usage metric
   """
   def name(:block_submission), do: "block_submission_gas"
+
+  @doc """
+  Child Chain BlockQueue blknum being submitted
+  """
+  def name(:block_queue_blknum_submitting), do: "block_queue_blknum_submitting"
+
+  @doc """
+  Child Chain BlockQueue blknum submitted
+  """
+  def name(:block_queue_blknum_submitted), do: "block_queue_blknum_submitted"
 
   @doc """
   Child Chain authority address balance
