@@ -70,12 +70,12 @@ defmodule OMG.Status.Metric.Event do
   def name(:block_submission_gas), do: "block_submission_gas"
 
   @doc """
-  Child Chain BlockQueue blknum being submitted
+  Child Chain BlockQueue's blknum of the block being submitted
   """
   def name(:block_queue_blknum_submitting), do: "block_queue_blknum_submitting"
 
   @doc """
-  Child Chain BlockQueue blknum submitted
+  Child Chain BlockQueue's blknum of the block submitted
   """
   def name(:block_queue_blknum_submitted), do: "block_queue_blknum_submitted"
 

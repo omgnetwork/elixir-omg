@@ -31,8 +31,10 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
 
   @supported_events [
     [:process, BlockQueue],
+    # Events triggered when a block is submitting or submitted
     [:blknum_submitting, BlockQueue],
     [:blknum_submitted, BlockQueue],
+    # Events providing collections of blocks being submitted or stalled
     [:blocks_submitting, BlockQueue.Monitor],
     [:blocks_stalled, BlockQueue.Monitor],
     [:gas, GasAnalyzer],
