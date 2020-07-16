@@ -205,6 +205,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
   defp submit(submission) do
     _ = Logger.info("Submitting: #{inspect(submission)}")
+    _ = publish_block_submitting_event(submission.num)
 
     submit_result = Eth.submit_block(submission.hash, submission.nonce, submission.gas_price)
     newest_mined_blknum = RootChain.get_mined_child_block()
@@ -217,8 +218,9 @@ defmodule OMG.ChildChain.BlockQueue do
           _ = log_eth_node_error()
           error
 
-        {:ok, txhash} ->
-          _ = GasAnalyzer.enqueue(txhash)
+        {:ok, root_chain_txhash} ->
+          _ = publish_block_submitted_event(submission.num)
+          _ = GasAnalyzer.enqueue(root_chain_txhash)
           _ = Balance.check()
           :ok
 
@@ -227,6 +229,24 @@ defmodule OMG.ChildChain.BlockQueue do
       end
 
     :ok = final_result
+  end
+
+  # Publishes each time a block is being submitted, regardless of failing or being successful.
+  # This differs from `:enqueue_block` which publishes only once when the block is formed.
+  # For example, when a block is re-submitted 3 times before it got accepted, there would be
+  # 1 x `:enqueue_block` and 3 x `:block_submitting` events published.
+  defp publish_block_submitting_event(blknum) do
+    {:child_chain, "blocks"}
+    |> OMG.Bus.Event.new(:block_submitting, blknum)
+    |> OMG.Bus.direct_local_broadcast()
+  end
+
+  # Publishes when a block is successfully submitted. Only 1 `block_submitted` event will ever
+  # be published for each block.
+  defp publish_block_submitted_event(blknum) do
+    {:child_chain, "blocks"}
+    |> OMG.Bus.Event.new(:block_submitted, blknum)
+    |> OMG.Bus.direct_local_broadcast()
   end
 
   defp log_init_error(fields) do
