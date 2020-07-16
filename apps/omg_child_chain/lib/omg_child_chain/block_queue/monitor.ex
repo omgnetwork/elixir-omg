@@ -22,7 +22,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
 
   defstruct pending_blocks: [],
             root_chain_height: 0,
-            stall_threshold_in_root_chain_blocks: 2,
+            stall_threshold_in_root_chain_blocks: 4,
             alarm_module: nil,
             alarm_raised: false
 
