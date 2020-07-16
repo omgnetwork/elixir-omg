@@ -60,6 +60,11 @@ defmodule OMG.Status.Metric.Event do
   def name(:block_transactions), do: "block_transactions"
 
   @doc """
+  Childchain Block submission attempted
+  """
+  def name(:block_submission_attempt), do: "block_submission_attempt"
+
+  @doc """
   Childchain Block successfully submitted
   """
   def name(:block_submission_success), do: "block_submission_success"
