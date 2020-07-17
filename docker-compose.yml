@@ -41,7 +41,6 @@ services:
             --datadir data/ \
             --syncmode 'full' \
             --networkid 1337 \
-            --gasprice '1' \
             --keystore=./data/geth/keystore/ \
             --password /tmp/geth-blank-password \
             --unlock "0,1" \
