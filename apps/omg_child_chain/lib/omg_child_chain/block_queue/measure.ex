@@ -72,10 +72,6 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
     _ = Datadog.increment(name(:block_submission_success), 1)
   end
 
-  def handle_event([:blocks_submitting, SubmissionMonitor], %{blocks: blocks}, _, _config) do
-    _ = Datadog.gauge(name(:block_queue_num_blocks_submitting), length(blocks))
-  end
-
   def handle_event([:blocks_stalled, SubmissionMonitor], %{blocks: blocks}, _, _config) do
     _ = Datadog.gauge(name(:block_queue_num_blocks_stalled), length(blocks))
   end

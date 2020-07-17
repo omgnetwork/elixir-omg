@@ -75,7 +75,6 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
         state.root_chain_height - first_submit_height >= state.stall_threshold_blocks
       end)
 
-    _ = :telemetry.execute([:blocks_submitting, __MODULE__], %{blocks: state.pending_blocks})
     _ = :telemetry.execute([:blocks_stalled, __MODULE__], %{blocks: stalled_blocks})
     _ = log_stalled_blocks(stalled_blocks, state.root_chain_height)
     _ = trigger_alarm(state.alarm_module, state.alarm_raised, stalled_blocks)
