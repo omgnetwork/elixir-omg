@@ -35,7 +35,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
     {:ok, monitor} =
       SubmissionMonitor.start_link(
         alarm_module: __MODULE__.Alarm,
-        event_bus: __MODULE__.BusMock,
+        event_bus_module: __MODULE__.BusMock,
         stall_threshold_blocks: stall_threshold_blocks,
         check_interval_ms: check_interval_ms
       )
