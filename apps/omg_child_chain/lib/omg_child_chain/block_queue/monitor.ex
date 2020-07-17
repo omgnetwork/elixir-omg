@@ -80,7 +80,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
     _ = log_stalled_blocks(stalled_blocks, state.root_chain_height)
     _ = trigger_alarm(state.alarm_module, state.alarm_raised, stalled_blocks)
 
-    {:ok, state}
+    {:noreply, state}
   end
 
   # Keeps track of the latest root chain height

@@ -20,6 +20,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
   use Supervisor
   use OMG.Utils.LoggerExt
 
+  alias OMG.Bus
   alias OMG.ChildChain.BlockQueue
   alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
@@ -31,6 +32,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
   alias OMG.EthereumEventListener
   alias OMG.RootChainCoordinator
   alias OMG.State
+  alias OMG.Status.Alert.Alarm
 
   @events_bucket :events_bucket
   def start_link(args) do
@@ -90,7 +92,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
        [
          check_interval_ms: block_stalled_submission_check_interval_ms,
          stall_threshold_in_root_chain_blocks: block_stalled_submission_threshold_in_root_chain_blocks,
-         event_bus_module: OMG.Bus,
+         event_bus_module: Bus,
          alarm_module: Alarm
        ]},
       {RootChainCoordinator,
