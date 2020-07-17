@@ -67,14 +67,13 @@ defmodule OMG.ChildChain.SyncSupervisor do
     submission_finality_margin = Configuration.submission_finality_margin()
     block_submit_every_nth = Configuration.block_submit_every_nth()
     block_submit_max_gas_price = Configuration.block_submit_max_gas_price()
+    block_submit_stall_threshold_blocks = OMG.ChildChain.Configuration.block_submit_stall_threshold_blocks()
     ethereum_events_check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
     coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
     deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
     authority_address = OMG.Eth.Configuration.authority_address()
-    block_stalled_submission_check_interval_ms = OMG.Eth.Configuration.block_stalled_submission_check_interval_ms()
-    block_stalled_submission_threshold_blocks = OMG.Eth.Configuration.block_stalled_submission_threshold_blocks()
 
     [
       {GasAnalyzer, []},
@@ -91,8 +90,8 @@ defmodule OMG.ChildChain.SyncSupervisor do
        ]},
       {SubmissionMonitor,
        [
-         check_interval_ms: block_stalled_submission_check_interval_ms,
-         stall_threshold_blocks: block_stalled_submission_threshold_blocks,
+         check_interval_ms: ethereum_events_check_interval_ms,
+         stall_threshold_blocks: block_submit_stall_threshold_blocks,
          event_bus_module: Bus,
          alarm_module: Alarm
        ]},
