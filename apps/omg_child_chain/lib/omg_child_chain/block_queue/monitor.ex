@@ -22,7 +22,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
 
   defstruct pending_blocks: [],
             root_chain_height: 0,
-            stall_threshold_in_root_chain_blocks: 4,
+            stall_threshold_blocks: 4,
             alarm_module: nil,
             alarm_raised: false
 
@@ -32,7 +32,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
   @type t() :: %__MODULE__{
           pending_blocks: [pending_block()],
           root_chain_height: non_neg_integer(),
-          stall_threshold_in_root_chain_blocks: pos_integer(),
+          stall_threshold_blocks: pos_integer(),
           alarm_module: module(),
           alarm_raised: boolean()
         }
@@ -57,7 +57,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
 
     state = %__MODULE__{
       pending_blocks: [],
-      stall_threshold_in_root_chain_blocks: Keyword.fetch!(opts, :stall_threshold_in_root_chain_blocks),
+      stall_threshold_blocks: Keyword.fetch!(opts, :stall_threshold_blocks),
       alarm_module: Keyword.fetch!(opts, :alarm_module),
       alarm_raised: false
     }
@@ -72,7 +72,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
   def handle_info(:check_stall, state) do
     stalled_blocks =
       Enum.filter(state.pending_blocks, fn {_blknum, first_submit_height} ->
-        state.root_chain_height - first_submit_height >= state.stall_threshold_in_root_chain_blocks
+        state.root_chain_height - first_submit_height >= state.stall_threshold_blocks
       end)
 
     _ = :telemetry.execute([:blocks_submitting, __MODULE__], %{blocks: state.pending_blocks})

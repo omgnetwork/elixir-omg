@@ -81,8 +81,8 @@ defmodule OMG.Eth.Configuration do
     Application.fetch_env!(@app, :block_stalled_submission_check_interval_ms)
   end
 
-  @spec block_stalled_submission_threshold_in_root_chain_blocks() :: pos_integer | no_return
-  def block_stalled_submission_threshold_in_root_chain_blocks() do
-    Application.fetch_env!(@app, :block_stalled_submission_threshold_in_root_chain_blocks)
+  @spec block_stalled_submission_threshold_blocks() :: pos_integer | no_return
+  def block_stalled_submission_threshold_blocks() do
+    Application.fetch_env!(@app, :block_stalled_submission_threshold_blocks)
   end
 end

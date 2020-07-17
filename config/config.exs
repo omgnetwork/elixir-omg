@@ -107,7 +107,7 @@ config :omg_eth,
   ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   ethereum_stalled_sync_threshold_ms: 20_000,
   block_stalled_submission_check_interval_ms: 5_000,
-  block_stalled_submission_threshold_in_root_chain_blocks: 4,
+  block_stalled_submission_threshold_blocks: 4,
   node_logging_in_debug: false
 
 config :omg_status,

@@ -73,7 +73,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
     contracts = OMG.Eth.Configuration.contracts()
     authority_address = OMG.Eth.Configuration.authority_address()
     block_stalled_submission_check_interval_ms = OMG.Eth.Configuration.block_stalled_submission_check_interval_ms()
-    block_stalled_submission_threshold_in_root_chain_blocks = OMG.Eth.Configuration.block_stalled_submission_threshold_in_root_chain_blocks()
+    block_stalled_submission_threshold_blocks = OMG.Eth.Configuration.block_stalled_submission_threshold_blocks()
 
     [
       {GasAnalyzer, []},
@@ -91,7 +91,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
       {BlockQueue.Monitor,
        [
          check_interval_ms: block_stalled_submission_check_interval_ms,
-         stall_threshold_in_root_chain_blocks: block_stalled_submission_threshold_in_root_chain_blocks,
+         stall_threshold_blocks: block_stalled_submission_threshold_blocks,
          event_bus_module: Bus,
          alarm_module: Alarm
        ]},
