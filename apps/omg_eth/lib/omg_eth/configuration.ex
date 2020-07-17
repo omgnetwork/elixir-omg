@@ -75,14 +75,4 @@ defmodule OMG.Eth.Configuration do
   def ethereum_stalled_sync_threshold_ms() do
     Application.fetch_env!(@app, :ethereum_stalled_sync_threshold_ms)
   end
-
-  @spec block_stalled_submission_check_interval_ms() :: pos_integer | no_return
-  def block_stalled_submission_check_interval_ms() do
-    Application.fetch_env!(@app, :block_stalled_submission_check_interval_ms)
-  end
-
-  @spec block_stalled_submission_threshold_blocks() :: pos_integer | no_return
-  def block_stalled_submission_threshold_blocks() do
-    Application.fetch_env!(@app, :block_stalled_submission_threshold_blocks)
-  end
 end
