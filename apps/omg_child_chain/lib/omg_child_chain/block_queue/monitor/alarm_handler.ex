@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChain.BlockQueue.Monitor.AlarmHandler do
   @moduledoc """
-  Listens for :block_submission_stalled alarms and reflect the alarm's state back to the monitor.
+  Listens for :block_submit_stalled alarms and reflect the alarm's state back to the monitor.
   """
   require Logger
 
@@ -29,15 +29,15 @@ defmodule OMG.ChildChain.BlockQueue.Monitor.AlarmHandler do
 
   def handle_call(_request, state), do: {:ok, :ok, state}
 
-  def handle_event({:set_alarm, {:block_submission_stalled, %{reporter: @reporter}}}, state) do
-    _ = Logger.warn(":block_submission_stalled alarm raised.")
-    :ok = GenServer.cast(@monitor, {:set_alarm, :block_submission_stalled})
+  def handle_event({:set_alarm, {:block_submit_stalled, %{reporter: @reporter}}}, state) do
+    _ = Logger.warn(":block_submit_stalled alarm raised.")
+    :ok = GenServer.cast(@monitor, {:set_alarm, :block_submit_stalled})
     {:ok, state}
   end
 
-  def handle_event({:clear_alarm, {:block_submission_stalled, %{reporter: @reporter}}}, state) do
-    _ = Logger.warn(":block_submission_stalled alarm cleared.")
-    :ok = GenServer.cast(@monitor, {:clear_alarm, :block_submission_stalled})
+  def handle_event({:clear_alarm, {:block_submit_stalled, %{reporter: @reporter}}}, state) do
+    _ = Logger.warn(":block_submit_stalled alarm cleared.")
+    :ok = GenServer.cast(@monitor, {:clear_alarm, :block_submit_stalled})
     {:ok, state}
   end
 

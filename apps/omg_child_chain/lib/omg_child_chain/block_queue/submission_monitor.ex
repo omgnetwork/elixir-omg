@@ -14,7 +14,7 @@
 
 defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
   @moduledoc """
-  Listens to block events and raises :block_submission_stalled alarm when a pending block
+  Listens to block events and raises :block_submit_stalled alarm when a pending block
   doesn't get successfully submitted within the specified time threshold.
   """
   use GenServer
@@ -106,11 +106,11 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
   # These functions are called by the AlarmHandler so that this monitor process can update
   # its internal state according to the raised alarms.
   #
-  def handle_cast({:set_alarm, :block_submission_stalled}, state) do
+  def handle_cast({:set_alarm, :block_submit_stalled}, state) do
     {:noreply, %{state | alarm_raised: true}}
   end
 
-  def handle_cast({:clear_alarm, :block_submission_stalled}, state) do
+  def handle_cast({:clear_alarm, :block_submit_stalled}, state) do
     {:noreply, %{state | alarm_raised: false}}
   end
 
@@ -147,11 +147,11 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
   defp trigger_alarm(_alarm_module, false, []), do: :ok
 
   defp trigger_alarm(alarm_module, false, _stalled_blocks) do
-    alarm_module.set(alarm_module.block_submission_stalled(__MODULE__))
+    alarm_module.set(alarm_module.block_submit_stalled(__MODULE__))
   end
 
   defp trigger_alarm(alarm_module, true, []) do
-    alarm_module.clear(alarm_module.block_submission_stalled(__MODULE__))
+    alarm_module.clear(alarm_module.block_submit_stalled(__MODULE__))
   end
 
   defp trigger_alarm(_alarm_module, true, _stalled_blocks), do: :ok

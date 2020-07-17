@@ -56,7 +56,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
      }}
   end
 
-  test "does not raise :block_submission_stalled alarm when block is below stall threshold", context do
+  test "does not raise :block_submit_stalled alarm when block is below stall threshold", context do
     capture_log(fn ->
       # Inform the monitor of a pending block
       _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
@@ -69,7 +69,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
     end)
   end
 
-  test "raises :block_submission_stalled alarm when blocks is at stall threshold", context do
+  test "raises :block_submit_stalled alarm when blocks is at stall threshold", context do
     capture_log(fn ->
       # Inform the monitor of a pending block
       _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
@@ -81,7 +81,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
     end)
   end
 
-  test "raises :block_submission_stalled alarm when blocks is above stall threshold", context do
+  test "raises :block_submit_stalled alarm when blocks is above stall threshold", context do
     capture_log(fn ->
       # Inform the monitor of a pending block
       _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
@@ -93,7 +93,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
     end)
   end
 
-  test "does not raise :block_submission_stalled alarm when it is already raised", context do
+  test "does not raise :block_submit_stalled alarm when it is already raised", context do
     # Set the monitor in a raised state
     :sys.replace_state(context.monitor, fn state -> %{state | alarm_raised: true} end)
 
@@ -109,7 +109,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
     end)
   end
 
-  test "clears :block_submission_stalled alarm when the stalled block no longer stalls", context do
+  test "clears :block_submit_stalled alarm when the stalled block no longer stalls", context do
     # Set the monitor in a raised state
     :sys.replace_state(context.monitor, fn state -> %{state | alarm_raised: true} end)
 
@@ -128,7 +128,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
     end)
   end
 
-  test "does not clear :block_submission_stalled alarm when some but not all stalled blocks got submitted", context do
+  test "does not clear :block_submit_stalled alarm when some but not all stalled blocks got submitted", context do
     # Set the monitor in a raised state
     :sys.replace_state(context.monitor, fn state -> %{state | alarm_raised: true} end)
 
@@ -163,15 +163,15 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
       {:ok, %{listener: listener}}
     end
 
-    def block_submission_stalled(reporter) do
-      {:block_submission_stalled, %{node: Node.self(), reporter: reporter}}
+    def block_submit_stalled(reporter) do
+      {:block_submit_stalled, %{node: Node.self(), reporter: reporter}}
     end
 
-    def set({:block_submission_stalled, _details}) do
+    def set({:block_submit_stalled, _details}) do
       GenServer.call(__MODULE__, :got_raise_alarm)
     end
 
-    def clear({:block_submission_stalled, _details}) do
+    def clear({:block_submit_stalled, _details}) do
       GenServer.call(__MODULE__, :got_clear_alarm)
     end
 
