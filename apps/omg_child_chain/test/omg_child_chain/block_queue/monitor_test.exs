@@ -30,133 +30,121 @@ defmodule OMG.ChildChain.BlockQueue.MonitorTest do
   setup do
     {:ok, alarm} = __MODULE__.Alarm.start(self())
     stall_threshold_blocks = 10
-    check_interval_ms = 50
+    check_interval_ms = 10
 
     {:ok, monitor} =
       Monitor.start_link(
         alarm_module: __MODULE__.Alarm,
         event_bus: __MODULE__.BusMock,
-        stall_threshold_in_root_chain_blocks: stall_threshold_blocks,
+        stall_threshold_blocks: stall_threshold_blocks,
         check_interval_ms: check_interval_ms
       )
 
-    :ok = on_exit(fn ->
-      _ = Process.exit(alarm, :test_cleanup)
-      _ = Process.exit(monitor, :test_cleanup)
-      _ = Process.sleep(10)
-    end)
+    :ok =
+      on_exit(fn ->
+        _ = Process.exit(alarm, :test_cleanup)
+        _ = Process.exit(monitor, :test_cleanup)
+        _ = Process.sleep(10)
+      end)
 
-    {:ok, %{
-      alarm: alarm,
-      monitor: monitor,
-      stall_threshold_blocks: stall_threshold_blocks,
-      check_interval_ms: check_interval_ms
-    }}
+    {:ok,
+     %{
+       alarm: alarm,
+       monitor: monitor,
+       stall_threshold_blocks: stall_threshold_blocks,
+       check_interval_ms: check_interval_ms
+     }}
   end
 
   test "does not raise :block_submission_stalled alarm when block is below stall threshold", context do
-    height = 1
-    _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height})
-    _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
-
     capture_log(fn ->
-      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height + context.stall_threshold_blocks - 1})
-      refute_receive(:got_raise_alarm)
+      # Inform the monitor of a pending block
+      _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
+
+      # Push the height just below the stalling height
+      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, context.stall_threshold_blocks - 1})
+
+      # Wait for 10x the check interval to make sure it really does not get raised again.
+      refute_receive(:got_raise_alarm, context.check_interval_ms * 10)
     end)
   end
 
   test "raises :block_submission_stalled alarm when blocks is at stall threshold", context do
-    height = 1
-    _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height})
-    _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
-
     capture_log(fn ->
-      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height + context.stall_threshold_blocks})
+      # Inform the monitor of a pending block
+      _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
+
+      # Push the height to the stalling height
+      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, context.stall_threshold_blocks})
+
       assert_receive(:got_raise_alarm)
     end)
   end
 
   test "raises :block_submission_stalled alarm when blocks is above stall threshold", context do
-    height = 1
-    _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height})
-    _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
-
     capture_log(fn ->
-      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height + context.stall_threshold_blocks + 1})
+      # Inform the monitor of a pending block
+      _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
+
+      # Push the height pass the stalling height
+      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, context.stall_threshold_blocks + 1})
+
       assert_receive(:got_raise_alarm)
     end)
   end
 
   test "does not raise :block_submission_stalled alarm when it is already raised", context do
-    height = 1
-    _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height})
-    _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
-
-    stalled_height = height + context.stall_threshold_blocks + 1
+    # Set the monitor in a raised state
+    :sys.replace_state(context.monitor, fn state -> %{state | alarm_raised: true} end)
 
     capture_log(fn ->
-      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, stalled_height})
-      assert_receive(:got_raise_alarm)
-    end)
+      # Inform the monitor of a pending block
+      _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
 
-    # Because we're bypassing the actual alarm mechanism with a custom one for testing, the monitor's
-    # alarm_raised state does not get triggered, so we manually set `alarm_raised: true` here so that
-    # the alarm can be cleared
-    _ = GenServer.cast(context.monitor, {:set_alarm, :block_submission_stalled})
+      # Push the height pass the stalling height
+      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, context.stall_threshold_blocks})
 
-    _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, stalled_height + 1})
-    _ = send(context.monitor, {:internal_event_bus, :block_submitting, 2000})
-
-    next_stalled_height = stalled_height + context.stall_threshold_blocks + 1
-
-    capture_log(fn ->
-      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, next_stalled_height})
-      # We wait for 10x the check interval to make sure it really does not get raised again.
+      # Wait for 10x the check interval to make sure it really does not get raised again.
       refute_receive(:got_raise_alarm, context.check_interval_ms * 10)
     end)
   end
 
   test "clears :block_submission_stalled alarm when the stalled block no longer stalls", context do
-    height = 1
-    _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height})
-    _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
+    # Set the monitor in a raised state
+    :sys.replace_state(context.monitor, fn state -> %{state | alarm_raised: true} end)
 
     capture_log(fn ->
-      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, height + context.stall_threshold_blocks + 1})
-      assert_receive(:got_raise_alarm)
+      # Inform the monitor of a pending block
+      _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
+
+      # Push the height pass the stalling height
+      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, context.stall_threshold_blocks})
+
+      # Now we inform the monitor that block #1000 is submitted
+      _ = send(context.monitor, {:internal_event_bus, :block_submitted, 1000})
+
+      # Expecting the alarm to be cleared
+      assert_receive(:got_clear_alarm)
     end)
-
-    # Because we're bypassing the actual alarm mechanism with a custom one for testing, the monitor's
-    # alarm_raised state does not get triggered, so we manually set `alarm_raised: true` here so that
-    # the alarm can be cleared
-    _ = GenServer.cast(context.monitor, {:set_alarm, :block_submission_stalled})
-
-    _ = send(context.monitor, {:internal_event_bus, :block_submitted, 1000})
-    assert_receive(:got_clear_alarm)
   end
 
   test "does not clear :block_submission_stalled alarm when some but not all stalled blocks got submitted", context do
-    _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, 100})
-    _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
-
-    _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, 200})
-    _ = send(context.monitor, {:internal_event_bus, :block_submitting, 2000})
+    # Set the monitor in a raised state
+    :sys.replace_state(context.monitor, fn state -> %{state | alarm_raised: true} end)
 
     capture_log(fn ->
-      # At height 300, both block #1000 and #2000 are stalled, and the alarm should've been raised
-      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, 300})
-      assert_receive(:got_raise_alarm)
+      # Inform the monitor of two pending blocks
+      _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
+      _ = send(context.monitor, {:internal_event_bus, :block_submitting, 2000})
 
-      # Because we're bypassing the actual alarm mechanism with a custom one for testing, the monitor's
-      # alarm_raised state does not get triggered, so we manually set `alarm_raised: true` here so that
-      # the alarm can be cleared.
-      _ = GenServer.cast(context.monitor, {:set_alarm, :block_submission_stalled})
+      # Push the height pass the stalling height
+      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, context.stall_threshold_blocks})
 
-      # Now we tell the monitor that block #1000 is submitted, leaving #2000 still stalled
+      # Now we inform the monitor that block #1000 is submitted, leaving #2000 still stalled
       _ = send(context.monitor, {:internal_event_bus, :block_submitted, 1000})
 
-      # Because #2000 is still stalled, the alarm must not be cleared. We wait for 10x the check interval
-      # to make sure it really does not get cleared.
+      # Because #2000 is still stalled, the alarm must not be cleared.
+      # Wait for 10x the check interval to make sure it really does not get cleared.
       refute_receive(:got_clear_alarm, context.check_interval_ms * 10)
     end)
   end
