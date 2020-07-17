@@ -85,11 +85,6 @@ defmodule OMG.Status.Metric.Event do
   def name(:block_queue_blknum_submitted), do: "block_queue_blknum_submitted"
 
   @doc """
-  Child Chain BlockQueue's number of blocks currently being submitted
-  """
-  def name(:block_queue_num_blocks_submitting), do: "block_queue_num_blocks_submitting"
-
-  @doc """
   Child Chain BlockQueue's number of blocks currently being submitted and stalled
   """
   def name(:block_queue_num_blocks_stalled), do: "block_queue_num_blocks_stalled"

@@ -62,12 +62,12 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
     _ = Datadog.gauge(name(:authority_balance), gwei)
   end
 
-  def handle_event([:blknum_submitting, BlockQueue], blknum, _, _config) do
+  def handle_event([:blknum_submitting, BlockQueue], %{blknum: blknum}, _, _config) do
     _ = Datadog.gauge(name(:block_queue_blknum_submitting), blknum)
     _ = Datadog.increment(name(:block_submission_attempt), 1)
   end
 
-  def handle_event([:blknum_submitted, BlockQueue], blknum, _, _config) do
+  def handle_event([:blknum_submitted, BlockQueue], %{blknum: blknum}, _, _config) do
     _ = Datadog.gauge(name(:block_queue_blknum_submitted), blknum)
     _ = Datadog.increment(name(:block_submission_success), 1)
   end

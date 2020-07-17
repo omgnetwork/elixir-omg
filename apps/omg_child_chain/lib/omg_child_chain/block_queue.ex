@@ -244,7 +244,7 @@ defmodule OMG.ChildChain.BlockQueue do
   # The telemetry event is emitted for raw metrics propagation. The bus event is published so
   # a consumer, potentially a GenServer or other processes can perform extra operations on the data.
   defp publish_block_submitting_event(blknum) do
-    _ = :telemetry.execute([:blknum_submitting, __MODULE__], blknum)
+    _ = :telemetry.execute([:blknum_submitting, __MODULE__], %{blknum: blknum})
 
     {:child_chain, "blocks"}
     |> OMG.Bus.Event.new(:block_submitting, blknum)
@@ -257,7 +257,7 @@ defmodule OMG.ChildChain.BlockQueue do
   # The telemetry event is emitted for raw metrics propagation. The bus event is published so
   # a consumer, potentially a GenServer or other processes can perform extra operations on the data.
   defp publish_block_submitted_event(blknum) do
-    _ = :telemetry.execute([:blknum_submitted, __MODULE__], blknum)
+    _ = :telemetry.execute([:blknum_submitted, __MODULE__], %{blknum: blknum})
 
     {:child_chain, "blocks"}
     |> OMG.Bus.Event.new(:block_submitted, blknum)
