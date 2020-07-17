@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.BlockQueue.MonitorTest do
+defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureLog, only: [capture_log: 1]
-  alias OMG.ChildChain.BlockQueue.Monitor
+  alias OMG.ChildChain.BlockQueue.SubmissionMonitor
 
   setup_all do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
@@ -33,7 +33,7 @@ defmodule OMG.ChildChain.BlockQueue.MonitorTest do
     check_interval_ms = 10
 
     {:ok, monitor} =
-      Monitor.start_link(
+      SubmissionMonitor.start_link(
         alarm_module: __MODULE__.Alarm,
         event_bus: __MODULE__.BusMock,
         stall_threshold_blocks: stall_threshold_blocks,

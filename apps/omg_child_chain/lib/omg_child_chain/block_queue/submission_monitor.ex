@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.BlockQueue.Monitor do
+defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
   @moduledoc """
   Listens to block events and raises :block_submission_stalled alarm when a pending block
   doesn't get successfully submitted within the specified time threshold.
@@ -52,7 +52,7 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
   def init(opts) do
     _ = Logger.info("Starting #{__MODULE__}")
     _ = install_alarm_handler()
-    event_bus = Keyword.fetch!(opts, :event_bus)
+    event_bus = Keyword.fetch!(opts, :event_bus_module)
     check_interval_ms = Keyword.fetch!(opts, :check_interval_ms)
 
     state = %__MODULE__{

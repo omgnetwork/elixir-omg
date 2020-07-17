@@ -24,6 +24,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
   alias OMG.ChildChain.BlockQueue
   alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
+  alias OMG.ChildChain.BlockQueue.SubmissionMonitor
   alias OMG.ChildChain.ChildManager
   alias OMG.ChildChain.Configuration
   alias OMG.ChildChain.CoordinatorSetup
@@ -88,7 +89,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
          block_submit_max_gas_price: block_submit_max_gas_price,
          child_block_interval: child_block_interval
        ]},
-      {BlockQueue.Monitor,
+      {SubmissionMonitor,
        [
          check_interval_ms: block_stalled_submission_check_interval_ms,
          stall_threshold_blocks: block_stalled_submission_threshold_blocks,

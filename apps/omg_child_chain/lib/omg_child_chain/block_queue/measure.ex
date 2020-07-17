@@ -27,6 +27,7 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
   alias OMG.ChildChain.BlockQueue
   alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
+  alias OMG.ChildChain.BlockQueue.SubmissionMonitor
   alias OMG.Status.Metric.Datadog
 
   @supported_events [
@@ -35,14 +36,14 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
     [:blknum_submitting, BlockQueue],
     [:blknum_submitted, BlockQueue],
     # Events providing collections of blocks being submitted or stalled
-    [:blocks_submitting, BlockQueue.Monitor],
-    [:blocks_stalled, BlockQueue.Monitor],
+    [:blocks_submitting, SubmissionMonitor],
+    [:blocks_stalled, SubmissionMonitor],
     [:gas, GasAnalyzer],
     [:authority_balance, Balance]
   ]
   def supported_events(), do: @supported_events
 
-  def handle_event([:process, BlockQueue], _, _state, _config) do
+  def handle_event([:process, BlockQueue], _measurements, _metadata, _config) do
     value =
       self()
       |> Process.info(:message_queue_len)
@@ -71,11 +72,11 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
     _ = Datadog.increment(name(:block_submission_success), 1)
   end
 
-  def handle_event([:blocks_submitting, BlockQueue.Monitor], _, %{blocks: blocks}, _config) do
+  def handle_event([:blocks_submitting, SubmissionMonitor], %{blocks: blocks}, _, _config) do
     _ = Datadog.gauge(name(:block_queue_num_blocks_submitting), length(blocks))
   end
 
-  def handle_event([:blocks_stalled, BlockQueue.Monitor], _, %{blocks: blocks}, _config) do
+  def handle_event([:blocks_stalled, SubmissionMonitor], %{blocks: blocks}, _, _config) do
     _ = Datadog.gauge(name(:block_queue_num_blocks_stalled), length(blocks))
   end
 end
