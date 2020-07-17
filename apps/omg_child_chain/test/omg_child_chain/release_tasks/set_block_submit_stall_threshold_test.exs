@@ -16,7 +16,7 @@ defmodule OMG.ChildChain.ReleaseTasks.SetBlockSubmitStallThresholdTest do
   use ExUnit.Case, async: true
   alias OMG.ChildChain.ReleaseTasks.SetBlockSubmitStallThreshold
 
-  @app :omg_eth
+  @app :omg_child_chain
   @env_key "BLOCK_SUBMIT_STALL_THRESHOLD_BLOCKS"
   @config_key :block_submit_stall_threshold_blocks
 
