@@ -163,7 +163,8 @@ defmodule OMG.ChildChain.BlockQueue.Monitor do
 
   defp log_stalled_blocks(stalled_blocks, root_chain_height) do
     Logger.warn(
-      "#{__MODULE__}: Stalled blocks: #{inspect(stalled_blocks)}. Current height: #{inspect(root_chain_height)}"
+      "#{__MODULE__}: Stalled blocks: #{inspect(stalled_blocks)}. " <>
+        "Current height: #{inspect(root_chain_height)}"
     )
   end
 end
