@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.ReleaseTasks.SetBlockSubmitStallThresholdTest do
+defmodule OMG.ChildChain.ReleaseTasks.SetBlockSubmitStallThresholdTest do
   use ExUnit.Case, async: true
-  alias OMG.Eth.ReleaseTasks.SetBlockSubmitStallThreshold
+  alias OMG.ChildChain.ReleaseTasks.SetBlockSubmitStallThreshold
 
   @app :omg_eth
   @env_key "BLOCK_SUBMIT_STALL_THRESHOLD_BLOCKS"
