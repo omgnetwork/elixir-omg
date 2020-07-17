@@ -99,10 +99,7 @@ jobs:
           source ~/.bash_profile
           asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
           asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-          asdf install erlang 22.3
-          asdf install elixir 1.10.2
-          asdf global elixir 1.10.2
-          asdf global erlang 22.3
+          asdf install
       - run: make init_test
       - run:
           command: ./bin/setup
@@ -472,10 +469,7 @@ jobs:
             source $BASH_ENV
             asdf plugin-add erlang || asdf plugin-update erlang
             asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install erlang 22.3
-            asdf install elixir 1.10.2
-            asdf global elixir 1.10.2
-            asdf global erlang 22.3
+            asdf install
           no_output_timeout: 2400
       - save_cache:
           key: v2-asdf-install
@@ -575,10 +569,7 @@ jobs:
             source $BASH_ENV
             asdf plugin-add erlang || asdf plugin-update erlang
             asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install erlang 22.3
-            asdf install elixir 1.10.2
-            asdf global elixir 1.10.2
-            asdf global erlang 22.3
+            asdf install
           no_output_timeout: 2400
       - save_cache:
           key: v2-asdf-install
@@ -647,10 +638,7 @@ jobs:
             source $BASH_ENV
             asdf plugin-add erlang || asdf plugin-update erlang
             asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install erlang 22.3
-            asdf install elixir 1.10.2
-            asdf global elixir 1.10.2
-            asdf global erlang 22.3
+            asdf install
           no_output_timeout: 2400
       - save_cache:
           key: v2-asdf-install
