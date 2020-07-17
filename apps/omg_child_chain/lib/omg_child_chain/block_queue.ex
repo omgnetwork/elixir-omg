@@ -194,6 +194,11 @@ defmodule OMG.ChildChain.BlockQueue do
     {:noreply, state1}
   end
 
+  @doc false
+  # Ignore unrelated events
+  def handle_info({:internal_event_bus, :block_submitting, _}, state), do: {:noreply, state}
+  def handle_info({:internal_event_bus, :block_submitted, _}, state), do: {:noreply, state}
+
   # private (server)
 
   @spec submit_blocks(Core.t()) :: :ok

@@ -100,6 +100,11 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
     {:noreply, %{state | pending_blocks: pending_blocks}}
   end
 
+  # Ignore unrelated events
+  def handle_info({:internal_event_bus, :enqueue_block, _}, state) do
+    {:noreply, state}
+  end
+
   #
   # Handle incoming alarms
   #
