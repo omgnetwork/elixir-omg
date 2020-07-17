@@ -1,5 +1,23 @@
 # Changelog
 
+## [v1.0.3](https://github.com/omisego/elixir-omg/releases/tag/v1.0.3)
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v1.0.2...v1.0.3).
+
+#### APIs
+- [Changed] Update request body swagger for /transaction.all (#1609)
+
+#### Core
+- [Fix] Ensure margin is working for reorg protection on childchain (#1622)
+- [Fix] Handle "transaction underpriced" and other unknown server error responses (#1617)
+- [Fix] Get call_data from liquidity contract and rename it (#1635)
+- [Changed] Integrate spandex ecto (#1602)
+
+#### Miscellaneous
+- [Changed] Load test with erc20 token (#1577)
+- [Changed] Auto PR with Auto merge for syncing master-v2 (#1604)
+- [Changed] Add reorged docker compose for cabbage test (#1579)
+
 ## [v1.0.2](https://github.com/omisego/elixir-omg/releases/tag/v1.0.2)
 Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
 See [full changelog](https://github.com/omisego/elixir-omg/compare/v1.0.1...v1.0.2).
