@@ -43,9 +43,9 @@ defmodule OMG.ChildChain.Configuration do
     Application.fetch_env!(@app, :block_submit_max_gas_price)
   end
 
-  @spec block_stalled_submission_threshold_blocks() :: pos_integer() | no_return()
-  def block_stalled_submission_threshold_blocks() do
-    Application.fetch_env!(@app, :block_stalled_submission_threshold_blocks)
+  @spec block_submit_stall_threshold_blocks() :: pos_integer() | no_return()
+  def block_submit_stall_threshold_blocks() do
+    Application.fetch_env!(@app, :block_submit_stall_threshold_blocks)
   end
 
   @doc """
