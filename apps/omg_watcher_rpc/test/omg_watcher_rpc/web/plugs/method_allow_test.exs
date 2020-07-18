@@ -14,77 +14,71 @@
 
 defmodule OMG.WatcherRPC.Web.Plugs.MethodAllowTest do
   use ExUnit.Case, async: true
-  use Plug.Test
+  use Phoenix.ConnTest
 
-  alias OMG.ChildChainRPC.Web.TestHelper
   alias OMG.WatcherRPC.Web.Plugs.MethodAllow
 
-  test "allows if the HTTP request method is GET" do
-    init_conn = conn(:get, "/foo", %{})
+  test "returns the original conn if the HTTP request method is GET" do
+    init_conn = build_conn(:get, "/foo", %{})
 
     assert MethodAllow.call(init_conn, []) == init_conn
   end
 
-  test "allows if the HTTP request method is POST" do
-    init_conn = conn(:post, "/foo", %{})
+  test "returns the original conn if the HTTP request method is POST" do
+    init_conn = build_conn(:post, "/foo", %{})
 
     assert MethodAllow.call(init_conn, []) == init_conn
   end
 
-  test "disallows if the HTTP request method is neither GET nor POST" do
-    assert catch_error(
-      %{
-        "data" => %{
-          "code" => "operation:method_not_allowed",
-          "message" => "PUT is not allowed."
-        }
-      } = TestHelper.rpc_call(:put, "/status.get", %{})
-    )
+  test "returns operation:method_not_allowed if the HTTP request method is neither GET nor POST" do
+    # PUT
+    %Plug.Conn{resp_body: response} = :put
+      |> build_conn("/foo", %{})
+      |> MethodAllow.call([])
 
-    assert catch_error(
-      %{
-        "data" => %{
-          "code" => "operation:method_not_allowed",
-          "message" => "HEAD is not allowed."
-        }
-      } = TestHelper.rpc_call(:head, "/status.get", %{})
-    )
+    assert Jason.decode!(response) == %{
+      "data" => %{"code" => "operation:method_not_allowed", "description" => "PUT is not allowed.", "object" => "error"},
+      "success" => false
+    }
 
-    assert catch_error(
-      %{
-        "data" => %{
-          "code" => "operation:method_not_allowed",
-          "message" => "DELETE is not allowed."
-        }
-      } = TestHelper.rpc_call(:delete, "/status.get", %{})
-    )
+    # PATCH
+    %Plug.Conn{resp_body: response} = :patch
+      |> build_conn("/foo", %{})
+      |> MethodAllow.call([])
 
-    assert catch_error(
-      %{
-        "data" => %{
-          "code" => "operation:method_not_allowed",
-          "message" => "OPTION is not allowed."
-        }
-      } = TestHelper.rpc_call(:option, "/status.get", %{})
-    )
+    assert Jason.decode!(response) == %{
+      "data" => %{"code" => "operation:method_not_allowed", "description" => "PATCH is not allowed.", "object" => "error"},
+      "success" => false
+    }
 
-    assert catch_error(
-      %{
-        "data" => %{
-          "code" => "operation:method_not_allowed",
-          "message" => "TRACE is not allowed."
-        }
-      } = TestHelper.rpc_call(:trace, "/status.get", %{})
-    )
+    # DELETE
+    %Plug.Conn{resp_body: response} = :delete
+      |> build_conn("/foo", %{})
+      |> MethodAllow.call([])
 
-    assert catch_error(
-      %{
-        "data" => %{
-          "code" => "operation:method_not_allowed",
-          "message" => "PATCH is not allowed."
-        }
-      } = TestHelper.rpc_call(:patch, "/status.get", %{})
-    )
+    assert Jason.decode!(response) == %{
+      "data" => %{"code" => "operation:method_not_allowed", "description" => "DELETE is not allowed.", "object" => "error"},
+      "success" => false
+    }
+
+    # OPTION
+    %Plug.Conn{resp_body: response} = :option
+      |> build_conn("/foo", %{})
+      |> MethodAllow.call([])
+
+    assert Jason.decode!(response) == %{
+      "data" => %{"code" => "operation:method_not_allowed", "description" => "OPTION is not allowed.", "object" => "error"},
+      "success" => false
+    }
+
+    # TRACE
+    %Plug.Conn{resp_body: response} = :trace
+      |> build_conn("/foo", %{})
+      |> MethodAllow.call([])
+
+    assert Jason.decode!(response) == %{
+      "data" => %{"code" => "operation:method_not_allowed", "description" => "TRACE is not allowed.", "object" => "error"},
+      "success" => false
+    }
   end
-
 end
