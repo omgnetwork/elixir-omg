@@ -32,7 +32,7 @@ defmodule OMG.ChildChainRPC.Web.Endpoint do
   if Application.get_env(:omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)
 
-  plug(OMG.ChildChainRPC.Web.Plugs.MethodAllow)
+  plug(OMG.ChildChainRPC.Web.Plugs.HttpMethodAllow)
   plug(OMG.ChildChainRPC.Web.Plugs.MethodParamFilter)
   plug(OMG.ChildChainRPC.Web.Router)
 end

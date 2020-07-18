@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Web.Plugs.MethodAllow do
+defmodule OMG.WatcherRPC.Web.Plugs.HttpMethodAllow do
   @moduledoc """
   Allows when the HTTP request method is either `GET` or `POST`.
   Otherwise, halt the request from getting passed through plugs.
@@ -31,7 +31,7 @@ defmodule OMG.WatcherRPC.Web.Plugs.MethodAllow do
   def call(%Plug.Conn{method: method} = conn, _) do
     data =
       Error.serialize(
-        "operation:method_not_allowed",
+        "operation:http_method_not_allowed",
         "#{method} is not allowed."
       )
 
