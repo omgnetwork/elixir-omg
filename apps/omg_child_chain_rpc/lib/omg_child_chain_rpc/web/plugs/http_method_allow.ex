@@ -19,8 +19,9 @@ defmodule OMG.ChildChainRPC.Web.Plugs.HttpMethodAllow do
   """
 
   import Plug.Conn, only: [halt: 1]
-  alias Phoenix.Controller
+
   alias OMG.Utils.HttpRPC.Error
+  alias Phoenix.Controller
 
   @allowed_http_methods ["GET", "POST"]
 
