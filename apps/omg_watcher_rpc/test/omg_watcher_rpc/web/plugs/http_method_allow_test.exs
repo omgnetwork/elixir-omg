@@ -32,53 +32,78 @@ defmodule OMG.WatcherRPC.Web.Plugs.HttpMethodAllowTest do
 
   test "returns operation:http_method_not_allowed if the HTTP request method is neither GET nor POST" do
     # PUT
-    %Plug.Conn{resp_body: response} = :put
+    %Plug.Conn{resp_body: response} =
+      :put
       |> build_conn("/foo", %{})
       |> HttpMethodAllow.call([])
 
     assert Jason.decode!(response) == %{
-      "data" => %{"code" => "operation:http_method_not_allowed", "description" => "PUT is not allowed.", "object" => "error"},
-      "success" => false
-    }
+             "data" => %{
+               "code" => "operation:http_method_not_allowed",
+               "description" => "PUT is not allowed.",
+               "object" => "error"
+             },
+             "success" => false
+           }
 
     # PATCH
-    %Plug.Conn{resp_body: response} = :patch
+    %Plug.Conn{resp_body: response} =
+      :patch
       |> build_conn("/foo", %{})
       |> HttpMethodAllow.call([])
 
     assert Jason.decode!(response) == %{
-      "data" => %{"code" => "operation:http_method_not_allowed", "description" => "PATCH is not allowed.", "object" => "error"},
-      "success" => false
-    }
+             "data" => %{
+               "code" => "operation:http_method_not_allowed",
+               "description" => "PATCH is not allowed.",
+               "object" => "error"
+             },
+             "success" => false
+           }
 
     # DELETE
-    %Plug.Conn{resp_body: response} = :delete
+    %Plug.Conn{resp_body: response} =
+      :delete
       |> build_conn("/foo", %{})
       |> HttpMethodAllow.call([])
 
     assert Jason.decode!(response) == %{
-      "data" => %{"code" => "operation:http_method_not_allowed", "description" => "DELETE is not allowed.", "object" => "error"},
-      "success" => false
-    }
+             "data" => %{
+               "code" => "operation:http_method_not_allowed",
+               "description" => "DELETE is not allowed.",
+               "object" => "error"
+             },
+             "success" => false
+           }
 
     # OPTION
-    %Plug.Conn{resp_body: response} = :option
+    %Plug.Conn{resp_body: response} =
+      :option
       |> build_conn("/foo", %{})
       |> HttpMethodAllow.call([])
 
     assert Jason.decode!(response) == %{
-      "data" => %{"code" => "operation:http_method_not_allowed", "description" => "OPTION is not allowed.", "object" => "error"},
-      "success" => false
-    }
+             "data" => %{
+               "code" => "operation:http_method_not_allowed",
+               "description" => "OPTION is not allowed.",
+               "object" => "error"
+             },
+             "success" => false
+           }
 
     # TRACE
-    %Plug.Conn{resp_body: response} = :trace
+    %Plug.Conn{resp_body: response} =
+      :trace
       |> build_conn("/foo", %{})
       |> HttpMethodAllow.call([])
 
     assert Jason.decode!(response) == %{
-      "data" => %{"code" => "operation:http_method_not_allowed", "description" => "TRACE is not allowed.", "object" => "error"},
-      "success" => false
-    }
+             "data" => %{
+               "code" => "operation:http_method_not_allowed",
+               "description" => "TRACE is not allowed.",
+               "object" => "error"
+             },
+             "success" => false
+           }
   end
 end
