@@ -22,6 +22,8 @@ defmodule OMG.ChildChainRPC.Web.Plugs.MethodParamFilter do
 
   For a GET: `body_params` will be ignored and `query_params` will be
   set to `params`.
+
+  For other http method, the original `conn` is returned.
   """
 
   def init(args), do: args
@@ -37,4 +39,6 @@ defmodule OMG.ChildChainRPC.Web.Plugs.MethodParamFilter do
     |> Map.put(:body_params, %{})
     |> Map.put(:params, params)
   end
+
+  def call(conn, _), do: conn
 end
