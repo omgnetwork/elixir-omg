@@ -453,7 +453,7 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Print docker states
           command: |
@@ -553,7 +553,7 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services_reorg || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make start_daemon_services_reorg-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Print docker states
           command: |
