@@ -101,6 +101,11 @@ config :omg_eth,
   eth_node: :geth,
   run_test_eth_dev_node: true
 
+config :omg_eth, OMG.Eth.Tenderly.Client,
+  tenderly_project_url: "https://api.tenderly.co/api/v1/account/user/project/project_name",
+  access_key: "zfOssxgzPcyEdzxLp5odHMMXvpdXHbZ6",
+  network_id: "3"
+
 config :omg_performance, watcher_url: "localhost:7435"
 
 config :omg_status,

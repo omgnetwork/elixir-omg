@@ -14,7 +14,7 @@
 defmodule OMG.ChildChain.EthereumEventAggregator do
   @moduledoc """
   This process combines all plasma contract events we're interested in and does eth_getLogs + enriches them if needed
-  for all Ethereum Event Listener processes. 
+  for all Ethereum Event Listener processes.
   """
   use GenServer
   require Logger
@@ -151,6 +151,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
           {:ok, enriched_data} = rpc.get_call_data(decoded_log.root_chain_txhash)
 
           enriched_data_decoded = enriched_data |> from_hex |> Abi.decode_function()
+          # TODO: if decode_function returns error try to parse from tenderly
           Map.put(decoded_log, :call_data, enriched_data_decoded)
 
         _ ->
