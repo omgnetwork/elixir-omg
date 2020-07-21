@@ -21,6 +21,12 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   alias Support.WatcherHelper
 
+  @valid_block %{
+    hash: "0x" <> String.duplicate("00", 32),
+    number: 1000,
+    transactions: ["0x00"]
+  }
+
   describe "get_block/2" do
     @tag fixtures: [:initial_blocks]
     test "/block.get returns correct block if existent" do
@@ -133,11 +139,12 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   end
 
   describe "validate_block/2" do
-
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "/validate_block rejects parameter of wrong length hash" do
-      wrong_length_hash = "0x1234"
-      %{"data" => data} = WatcherHelper.rpc_call("block.validate", %{hash: wrong_length_hash}, 200)
+    test "rejects invalid 'hash' parameter" do
+      invalid_hash = "0x1234"
+      invalid_params = Map.replace!(@valid_block, :hash, invalid_hash)
+
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", invalid_params, 200)
 
       expected = %{
         "code" => "operation:bad_request",
@@ -155,10 +162,33 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "/validate_block rejects parameter of wrong type in transactions array" do
-      correct_block_hash = "0xefd3e3b0be2d4a20fd51bac220ba946dcf43c3762d51773f921a5d02a7f4b470"
-      invalid_tx_rlp = "0xinvalid"
-      %{"data" => data} = WatcherHelper.rpc_call("block.validate", %{hash: correct_block_hash, transactions: [invalid_tx_rlp]}, 200)
+    test "rejects non-list 'transactions' parameter" do
+      invalid_transactions_param = "0x1234"
+      invalid_params = Map.replace!(@valid_block, :transactions, invalid_transactions_param)
+
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", invalid_params, 200)
+
+      expected = %{
+        "code" => "operation:bad_request",
+        "description" => "Parameters required by this operation are missing or incorrect.",
+        "messages" => %{
+          "validation_error" => %{
+            "parameter" => ":list",
+            "validator" => ":hex"
+          }
+        },
+        "object" => "error"
+      }
+
+      assert expected == data
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "rejects invalid list elements in 'transactions' parameter" do
+      invalid_tx_rlp = "0xZ"
+      invalid_params = Map.replace!(@valid_block, :transactions, [invalid_tx_rlp])
+
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", invalid_params, 200)
 
       expected = %{
         "code" => "operation:bad_request",
@@ -167,6 +197,28 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
           "validation_error" => %{
             "parameter" => "transactions.hash",
             "validator" => ":hex"
+          }
+        },
+        "object" => "error"
+      }
+
+      assert expected == data
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "rejects invalid block number parameter" do
+      invalid_blknum = "1000"
+      invalid_params = Map.replace!(@valid_block, :number, invalid_blknum)
+
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", invalid_params, 200)
+
+      expected = %{
+        "code" => "operation:bad_request",
+        "description" => "Parameters required by this operation are missing or incorrect.",
+        "messages" => %{
+          "validation_error" => %{
+            "parameter" => "number",
+            "validator" => ":integer"
           }
         },
         "object" => "error"
