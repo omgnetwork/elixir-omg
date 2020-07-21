@@ -20,7 +20,14 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   import OMG.WatcherInfo.Factory
 
   alias Support.WatcherHelper
+  alias OMG.DevCrypto
+  alias OMG.State.Transaction
+  alias OMG.WireFormatTypes
+  alias OMG.Eth.Encoding
+  alias OMG.WatcherRPC.Web.Controller.Block
 
+  @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
+  @eth OMG.Eth.zero_address()
   @valid_block %{
     hash: "0x" <> String.duplicate("00", 32),
     number: 1000,
@@ -173,8 +180,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         "description" => "Parameters required by this operation are missing or incorrect.",
         "messages" => %{
           "validation_error" => %{
-            "parameter" => ":list",
-            "validator" => ":hex"
+            "parameter" => "transactions",
+            "validator" => ":list"
           }
         },
         "object" => "error"
@@ -225,6 +232,42 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       }
 
       assert expected == data
+    end
+  end
+
+  describe "verify_transactions/1" do
+    test "returns error if a transaction contains duplicate inputs" do
+      %{priv: alice_private_key, addr: alice_address} = OMG.TestHelper.generate_entity()
+
+      input_1 = {1, 0, 0}
+      input_2 = {2, 0, 0}
+
+      valid_payment = Transaction.Payment.new([input_1, input_2], [{alice_address, @eth, 12}])
+      invalid_payment = Transaction.Payment.new([input_1, input_1], [{alice_address, @eth, 12}])
+
+      signed_valid_tx = DevCrypto.sign(valid_payment, [alice_private_key, alice_private_key])
+      signed_invalid_tx = DevCrypto.sign(invalid_payment, [alice_private_key, alice_private_key])
+
+      %{sigs: sigs_valid} = signed_valid_tx
+      %{sigs: sigs_invalid} = signed_invalid_tx
+
+      txbytes_valid = signed_valid_tx |> Transaction.raw_txbytes()
+      txbytes_invalid = signed_invalid_tx |> Transaction.raw_txbytes()
+
+      [_, inputs_valid, outputs_valid, _, _] = ExRLP.decode(txbytes_valid)
+      [_, inputs_invalid, outputs_invalid, _, _] = ExRLP.decode(txbytes_invalid)
+
+      hash_invalid =
+        [sigs_invalid, @payment_tx_type, inputs_invalid, outputs_invalid, 0, <<0::256>>]
+        |> ExRLP.encode()
+        |> Encoding.to_hex()
+
+      hash_valid =
+        [sigs_valid, @payment_tx_type, inputs_valid, outputs_valid, 0, <<0::256>>]
+        |> ExRLP.encode()
+        |> Encoding.to_hex()
+
+      assert {:error, :duplicate_inputs} == Block.verify_transactions([hash_invalid, hash_valid])
     end
   end
 end

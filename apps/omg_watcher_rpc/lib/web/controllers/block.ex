@@ -19,6 +19,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
 
   use OMG.WatcherRPC.Web, :controller
 
+  alias OMG.Block
+  alias OMG.Eth.Encoding
+  alias OMG.State.Transaction
   alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
   alias OMG.WatcherRPC.Web.Validator
 
@@ -48,25 +51,25 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   Executes stateful and stateless validation of a block.
   """
   def validate_block(conn, params) do
-    with {:ok, _block} <- Validator.BlockConstraints.parse_block(params),
-      {:ok, _block} <- validate_stateless(params),
-      {:ok, block} <- validate_stateful(params)
-    do
+    with {:ok, block} <- Validator.BlockConstraints.parse_to_validate(params) do
       api_response(block, conn, :validate_block)
     end
   end
 
-  @doc """
-  Verifies that all transactions are correctly formed.
-  Verifies that given Merkle root matches reconstructed Merkle root.
-  """
-  defp validate_stateless(block) do
-
+  @spec stateless_validate(Block.t()) :: any
+  defp stateless_validate(_block) do
   end
 
-  @doc """
-  """
-  defp validate_stateful(block) do
+  @spec stateful_validate(Block.t()) :: any
+  defp stateful_validate(_block) do
+  end
 
+  def verify_transactions(transactions) do
+    Enum.reduce_while(transactions, {:ok, []}, fn tx, {:ok, already_recovered} ->
+      case tx |> Encoding.from_hex() |> Transaction.Recovered.recover_from() do
+        {:ok, recovered} -> {:cont, {:ok, [recovered | already_recovered]}}
+        error -> {:halt, error}
+      end
+    end)
   end
 end
