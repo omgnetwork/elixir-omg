@@ -131,4 +131,48 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
              } = response
     end
   end
+
+  describe "validate_block/2" do
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "/validate_block rejects parameter of wrong length hash" do
+      wrong_length_hash = "0x1234"
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", %{hash: wrong_length_hash}, 200)
+
+      expected = %{
+        "code" => "operation:bad_request",
+        "description" => "Parameters required by this operation are missing or incorrect.",
+        "messages" => %{
+          "validation_error" => %{
+            "parameter" => "hash",
+            "validator" => "{:length, 32}"
+          }
+        },
+        "object" => "error"
+      }
+
+      assert expected == data
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "/validate_block rejects parameter of wrong type in transactions array" do
+      correct_block_hash = "0xefd3e3b0be2d4a20fd51bac220ba946dcf43c3762d51773f921a5d02a7f4b470"
+      invalid_tx_rlp = "0xinvalid"
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", %{hash: correct_block_hash, transactions: [invalid_tx_rlp]}, 200)
+
+      expected = %{
+        "code" => "operation:bad_request",
+        "description" => "Parameters required by this operation are missing or incorrect.",
+        "messages" => %{
+          "validation_error" => %{
+            "parameter" => "transactions.hash",
+            "validator" => ":hex"
+          }
+        },
+        "object" => "error"
+      }
+
+      assert expected == data
+    end
+  end
 end

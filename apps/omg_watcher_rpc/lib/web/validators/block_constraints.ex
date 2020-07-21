@@ -16,6 +16,8 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
   @moduledoc """
   Validates `/block.all` query parameters
   """
+
+  use OMG.WatcherRPC.Web, :controller
   alias OMG.WatcherRPC.Web.Validator.Helpers
 
   @doc """
@@ -29,5 +31,16 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
     ]
 
     Helpers.validate_constraints(params, constraints)
+  end
+
+  @spec parse_block(map) :: {:error, {:validation_error, binary, any}} | {:ok, map}
+  def parse_block(block) do
+    with {:ok, _hash} <- expect(block, "hash", :hash),
+         {:ok, _transactions} <- expect(block, "transactions", list: &is_hex/1),
+         do: {:ok, block}
+  end
+
+  defp is_hex(original) do
+    expect(%{"hash" => original}, "hash", :hex)
   end
 end
