@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   @valid_block %{
     hash: "0x" <> String.duplicate("00", 32),
     number: 1000,
-    transactions: ["0x00"]
+    transactions: ["0xf8c0f843b841fc6dbf49a4baa783ec576291f6083be5ea3dd4b5f2f5e2c1fc2bb1a50fbda4b81d9b147c7a0199f39c705f90de2be790adfbded38e8ef7a0032e4aa591a5b3b51b01e1a000000000000000000000000000000000000000000000000000000000b2d05e00f5f401f294d42b31665b93c128541c8b89a0e545afb08b7dd894000000000000000000000000000000000000000087038d7ea4c67fff80a00000000000000000000000000000000000000000000000000000000000001337"]
   }
 
   describe "get_block/2" do
@@ -225,6 +225,13 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       }
 
       assert expected == data
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "rejects unmatched merkle root hash" do
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", @valid_block, 200)
+
+      IO.inspect(data)
     end
   end
 end

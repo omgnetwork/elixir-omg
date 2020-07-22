@@ -48,10 +48,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   Executes stateful and stateless validation of a block.
   """
   def validate_block(conn, params) do
-    with {:ok, _block} <- Validator.BlockConstraints.parse_block(params),
-      {:ok, _block} <- validate_stateless(params),
-      {:ok, block} <- validate_stateful(params)
-    do
+    with {:ok, _block} <- Validator.BlockConstraints.parse_to_validate(params),
+         {:ok, _block} <- validate_stateless(params),
+         {:ok, block} <- validate_stateful(params) do
       api_response(block, conn, :validate_block)
     end
   end
@@ -60,13 +59,35 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   Verifies that all transactions are correctly formed.
   Verifies that given Merkle root matches reconstructed Merkle root.
   """
-  defp validate_stateless(block) do
+  def validate_stateless(params) do
+    with {:ok, _block} <- validate_merkle_root(params),
+         {:ok, block} <- validate_correctly_formed_transactions(params),
+         do: {:ok, block}
+  end
 
+  def validate_correctly_formed_transactions(params) do
+  end
+
+  def validate_merkle_root(
+        %{"hash" => merkle_root_hash, "transactions" => transactions, "number" => number} = block
+      ) do
+    %{hash: reconstructed_merkle_root_hash} =
+      transactions
+      |> Enum.map(&OMG.Eth.Encoding.from_hex/1)
+      |> Enum.map(fn tx ->
+        {:ok, recovered_tx} = OMG.State.Transaction.Recovered.recover_from(tx)
+        recovered_tx
+      end)
+      |> OMG.Block.hashed_txs_at(number)
+
+    case merkle_root_hash == reconstructed_merkle_root_hash do
+      true -> {:ok, block}
+      _ -> {:error, :unmatched_merkle_root}
+    end
   end
 
   @doc """
   """
   defp validate_stateful(block) do
-
   end
 end
