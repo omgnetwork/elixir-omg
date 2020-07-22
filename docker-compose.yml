@@ -102,8 +102,8 @@ services:
       - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
       - FEE_ADAPTER=feed
       - FEE_FEED_URL=host.docker.internal:4000/api/v1
-      - STORED_FEE_UPDATE_INTERVAL_MINUTES=5
-      - FEE_CHANGE_TOLERANCE_PERCENT=10
+      - STORED_FEE_UPDATE_INTERVAL_MINUTES=1
+      - FEE_CHANGE_TOLERANCE_PERCENT=1
       - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
       - FEE_BUFFER_DURATION_MS=30000
       - LOGGER_BACKEND=console
