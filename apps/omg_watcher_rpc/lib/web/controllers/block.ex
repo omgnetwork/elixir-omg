@@ -64,6 +64,12 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   defp stateful_validate(_block) do
   end
 
+  @doc """
+  Verifies that transactions are correctly formed.
+  """
+  @spec verify_transactions(transactions :: list(Transaction.Recovered.t())) ::
+          {:ok, list(Transaction.Recovered.t())}
+          | {:error, Transaction.Recovered.recover_tx_error()}
   def verify_transactions(transactions) do
     transactions
     |> Enum.reverse()
