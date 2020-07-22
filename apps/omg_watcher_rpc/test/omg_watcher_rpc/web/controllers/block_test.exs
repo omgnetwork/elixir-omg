@@ -27,8 +27,10 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   alias OMG.WatcherRPC.Web.Controller.Block
   alias OMG.TestHelper
 
-  @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
+  @alice OMG.TestHelper.generate_entity()
+  @bob OMG.TestHelper.generate_entity()
   @eth OMG.Eth.zero_address()
+  @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
   @valid_block %{
     hash: "0x" <> String.duplicate("00", 32),
     number: 1000,
@@ -54,7 +56,9 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       expected = %{
         "code" => "operation:bad_request",
         "description" => "Parameters required by this operation are missing or incorrect.",
-        "messages" => %{"validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}},
+        "messages" => %{
+          "validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}
+        },
         "object" => "error"
       }
 
@@ -69,7 +73,9 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       expected = %{
         "code" => "operation:bad_request",
         "description" => "Parameters required by this operation are missing or incorrect.",
-        "messages" => %{"validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}},
+        "messages" => %{
+          "validation_error" => %{"parameter" => "blknum", "validator" => ":integer"}
+        },
         "object" => "error"
       }
 
@@ -238,15 +244,12 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   describe "verify_transactions/1" do
     test "returns error if a transaction is not correctly formed (duplicate inputs in this example)" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+      input_3 = {3, 0, 0, @alice}
 
-      input_1 = {1, 0, 0, alice}
-      input_2 = {2, 0, 0, alice}
-      input_3 = {3, 0, 0, alice}
-
-      signed_valid_tx = TestHelper.create_signed([input_1, input_2], @eth, [{bob, 10}])
-      signed_invalid_tx = TestHelper.create_signed([input_3, input_3], @eth, [{bob, 10}])
+      signed_valid_tx = TestHelper.create_signed([input_1, input_2], @eth, [{@bob, 10}])
+      signed_invalid_tx = TestHelper.create_signed([input_3, input_3], @eth, [{@bob, 10}])
 
       %{sigs: sigs_valid} = signed_valid_tx
       %{sigs: sigs_invalid} = signed_invalid_tx
@@ -271,11 +274,9 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
     end
 
     test "accepts correctly formed transactions" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}, {2, 0, 0, @alice}], @eth, [{@bob, 10}])
 
-      recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{bob, 10}])
-      recovered_tx_2 = TestHelper.create_recovered([{3, 0, 0, alice}, {4, 0, 0, alice}], @eth, [{bob, 10}])
+      recovered_tx_2 = TestHelper.create_recovered([{3, 0, 0, @alice}, {4, 0, 0, @alice}], @eth, [{@bob, 10}])
 
       signed_txbytes_1 =
         recovered_tx_1
@@ -288,48 +289,51 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         |> Encoding.to_hex()
 
       {:ok, expected_1} = signed_txbytes_1 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
+
       {:ok, expected_2} = signed_txbytes_2 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
 
-      assert {:ok, [expected_1, expected_2]} == Block.verify_transactions([signed_txbytes_1, signed_txbytes_2])
+      assert {:ok, [expected_1, expected_2]} ==
+               Block.verify_transactions([signed_txbytes_1, signed_txbytes_2])
     end
   end
 
   describe "verify_merkle_root/1" do
-    test "returns error for mismatched merkle root hash" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-
-      recovered_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
+    test "returns error for non-matching Merkle root hash" do
+      recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
+      recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
       signed_txbytes =
-        recovered_tx
-        |> Map.get(:signed_tx_bytes)
-        |> Encoding.to_hex()
+        [recovered_tx_1, recovered_tx_2]
+        |> Enum.map(fn tx -> tx.signed_tx_bytes end)
+        |> Enum.map(&Encoding.to_hex/1)
 
       block = %{
         hash: "0x0",
         number: 1000,
-        transactions: [signed_txbytes]
+        transactions: signed_txbytes
       }
 
       assert {:error, :mismatched_merkle_root} == Block.validate_merkle_root(block)
     end
 
-    test "accepts matched merkle root hash" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-
-      recovered_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
+    test "accepts matching Merkle root hash" do
+      recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
+      recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
       signed_txbytes =
-        recovered_tx
-        |> Map.get(:signed_tx_bytes)
-        |> Encoding.to_hex()
+        [recovered_tx_1, recovered_tx_2]
+        |> Enum.map(fn tx -> tx.signed_tx_bytes end)
+        |> Enum.map(&Encoding.to_hex/1)
+
+      merkle_root =
+        [recovered_tx_1, recovered_tx_2]
+        |> Enum.map(&Transaction.raw_txbytes/1)
+        |> Merkle.hash()
 
       block = %{
-        hash: Merkle.hash([signed_txbytes]),
+        hash: merkle_root,
         number: 1000,
-        transactions: [signed_txbytes]
+        transactions: signed_txbytes
       }
 
       assert {:ok, block} = Block.validate_merkle_root(block)
