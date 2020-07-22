@@ -86,7 +86,7 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
   defp validate_positive_amount(_amount, error), do: {:error, error}
 
   defp validate_optional_positive_amount(nil, _error), do: {:ok, nil}
-  defp validate_optional_positive_amount(amount, _error) when is_integer(amount) and amount > 0, do: {:ok, amount}
+  defp validate_optional_positive_amount(amount, _error) when amount > 0, do: {:ok, amount}
   defp validate_optional_positive_amount(_amount, error), do: {:error, error}
 
   defp validate_pegged_currency(nil), do: {:ok, nil}
@@ -122,5 +122,7 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
   end
 
   defp validate_fee_type("fixed"), do: {:ok, :fixed}
+  defp validate_fee_type("pegged"), do: {:ok, :pegged}
   defp validate_fee_type(_), do: {:error, :unsupported_fee_type}
+
 end
