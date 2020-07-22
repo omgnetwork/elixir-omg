@@ -71,11 +71,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
           {:ok, list(Transaction.Recovered.t())}
           | {:error, Transaction.Recovered.recover_tx_error()}
   def verify_transactions(transactions) do
-    transactions
-    |> Enum.reverse()
-    |> Enum.reduce_while({:ok, []}, fn tx, {:ok, already_recovered} ->
+    Enum.reduce_while(transactions, {:ok, []}, fn tx, {:ok, already_recovered} ->
       case tx |> Encoding.from_hex() |> Transaction.Recovered.recover_from() do
-        {:ok, recovered} -> {:cont, {:ok, [recovered | already_recovered]}}
+        {:ok, recovered} -> {:cont, {:ok, already_recovered ++ [recovered]}}
         error -> {:halt, error}
       end
     end)
