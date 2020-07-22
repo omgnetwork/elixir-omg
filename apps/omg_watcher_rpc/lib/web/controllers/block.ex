@@ -51,28 +51,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   Executes stateful and stateless validation of a block.
   """
   def validate_block(conn, params) do
-    with {:ok, _block} <- Validator.BlockConstraints.parse_to_validate(params),
-         {:ok, _block} <- stateless_validate(params),
-         {:ok, block} <- stateful_validate(params) do
+    with {:ok, block} <- Validator.BlockConstraints.parse_to_validate(params),
+         {:ok, _block} <- stateless_validate(block) do
       api_response(block, conn, :validate_block)
-    end
-  end
-
-  def validate_merkle_root(
-        %{"hash" => merkle_root_hash, "transactions" => transactions, "number" => number} = block
-      ) do
-    %{hash: reconstructed_merkle_root_hash} =
-      transactions
-      |> Enum.map(&OMG.Eth.Encoding.from_hex/1)
-      |> Enum.map(fn tx ->
-        {:ok, recovered_tx} = OMG.State.Transaction.Recovered.recover_from(tx)
-        recovered_tx
-      end)
-      |> OMG.Block.hashed_txs_at(number)
-
-    case merkle_root_hash == reconstructed_merkle_root_hash do
-      true -> {:ok, block}
-      _ -> {:error, :unmatched_merkle_root}
     end
   end
 
@@ -85,6 +66,25 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
 
   @spec stateful_validate(Block.t()) :: any
   defp stateful_validate(_block) do
+  end
+
+  @doc """
+  Verifies that given Merkle root matches reconstructed Merkle root.
+  """
+  def validate_merkle_root(%{hash: merkle_root_hash, transactions: transactions, number: number} = block) do
+    %{hash: reconstructed_merkle_root_hash} =
+      transactions
+      |> Enum.map(&OMG.Eth.Encoding.from_hex/1)
+      |> Enum.map(fn tx ->
+        {:ok, recovered_tx} = OMG.State.Transaction.Recovered.recover_from(tx)
+        recovered_tx
+      end)
+      |> OMG.Block.hashed_txs_at(number)
+
+    case merkle_root_hash == reconstructed_merkle_root_hash do
+      true -> {:ok, block}
+      _ -> {:error, :mismatched_merkle_root}
+    end
   end
 
   @doc """

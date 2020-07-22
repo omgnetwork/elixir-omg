@@ -20,18 +20,20 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   import OMG.WatcherInfo.Factory
 
   alias Support.WatcherHelper
+  alias OMG.Merkle
   alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.WireFormatTypes
   alias OMG.Eth.Encoding
   alias OMG.WatcherRPC.Web.Controller.Block
+  alias OMG.TestHelper
 
   @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
   @eth OMG.Eth.zero_address()
   @valid_block %{
     hash: "0x" <> String.duplicate("00", 32),
     number: 1000,
-    transactions: ["0xf8c0f843b841fc6dbf49a4baa783ec576291f6083be5ea3dd4b5f2f5e2c1fc2bb1a50fbda4b81d9b147c7a0199f39c705f90de2be790adfbded38e8ef7a0032e4aa591a5b3b51b01e1a000000000000000000000000000000000000000000000000000000000b2d05e00f5f401f294d42b31665b93c128541c8b89a0e545afb08b7dd894000000000000000000000000000000000000000087038d7ea4c67fff80a00000000000000000000000000000000000000000000000000000000000001337"]
+    transactions: ["0x00"]
   }
 
   describe "get_block/2" do
@@ -233,13 +235,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       assert expected == data
     end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "rejects unmatched merkle root hash" do
-      %{"data" => data} = WatcherHelper.rpc_call("block.validate", @valid_block, 200)
-
-      IO.inspect(data)
-    end
   end
 
   describe "verify_transactions/1" do
@@ -314,6 +309,55 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       {:ok, expected_2} = hash_2 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
 
       assert {:ok, [expected_1, expected_2]} == Block.verify_transactions([hash_1, hash_2])
+    end
+  end
+
+  describe "verify_merkle_root/1" do
+    @tag fixtures: [:stable_alice, :stable_bob]
+    test "returns error for mismatched merkle root hash" , %{
+      stable_alice: alice,
+      stable_bob: bob
+    } do
+      %{signed_tx: signed_tx} = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
+
+      [_, inputs_1, outputs_1, _, _] = signed_tx |> Transaction.raw_txbytes() |> ExRLP.decode()
+
+      hex_txbytes =
+        [signed_tx.sigs, @payment_tx_type, inputs_1, outputs_1, 0, <<0::256>>]
+        |> ExRLP.encode()
+        |> Encoding.to_hex()
+
+      block = %{
+        hash: "0x0",
+        number: 1000,
+        transactions: [hex_txbytes]
+      }
+
+      assert {:error, :mismatched_merkle_root} == Block.validate_merkle_root(block)
+    end
+
+    @tag fixtures: [:stable_alice, :stable_bob]
+    test "accepts matched merkle root hash" , %{
+      stable_alice: alice,
+      stable_bob: bob
+    } do
+      %{signed_tx: signed_tx} = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
+
+      [_, inputs_1, outputs_1, _, _] = signed_tx |> Transaction.raw_txbytes() |> ExRLP.decode()
+
+      hex_txbytes =
+        [signed_tx.sigs, @payment_tx_type, inputs_1, outputs_1, 0, <<0::256>>]
+        |> ExRLP.encode()
+        |> Encoding.to_hex()
+
+      block = %{
+        hash: <<234, 157, 26, 111, 8, 233, 30, 135, 235, 214, 186, 73, 134, 230, 217, 122,
+        241, 60, 132, 204, 81, 58, 118, 154, 133, 163, 135, 76, 54, 177, 10, 46>>,
+        number: 1000,
+        transactions: [hex_txbytes]
+      }
+
+      assert {:ok, block} = Block.validate_merkle_root(block)
     end
   end
 end
