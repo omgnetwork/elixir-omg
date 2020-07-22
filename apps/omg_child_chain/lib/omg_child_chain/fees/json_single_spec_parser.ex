@@ -124,5 +124,4 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParser do
   defp validate_fee_type("fixed"), do: {:ok, :fixed}
   defp validate_fee_type("pegged"), do: {:ok, :pegged}
   defp validate_fee_type(_), do: {:error, :unsupported_fee_type}
-
 end
