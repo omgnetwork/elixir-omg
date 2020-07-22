@@ -141,8 +141,22 @@ make docker-watcher_info
 Start geth and postgres:
 ```bash
 cd priv/cabbage
-make start_daemon_services
+make start_daemon_services-2
 ```
+
+If the above command fails with the message similar to:
+```
+Creating network "omisego_chain_net" with driver "bridge"
+ERROR: Pool overlaps with other one on this address space
+```
+
+try the following remedy and retry:
+```bash
+make stop_daemon_services
+rm -rf ../../data/*
+docker network prune
+```
+
 
 Build the integration tests project and run tests:
 ```bash
