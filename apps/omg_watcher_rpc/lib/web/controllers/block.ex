@@ -71,17 +71,18 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   @doc """
   Verifies that given Merkle root matches reconstructed Merkle root.
   """
-  def validate_merkle_root(%{hash: merkle_root_hash, transactions: transactions, number: number} = block) do
+  @spec validate_merkle_root(Block.t()) :: {:ok, Block.t()} | {:error, :mismatched_merkle_root}
+  def validate_merkle_root(block) do
     %{hash: reconstructed_merkle_root_hash} =
-      transactions
+      block.transactions
       |> Enum.map(&OMG.Eth.Encoding.from_hex/1)
       |> Enum.map(fn tx ->
         {:ok, recovered_tx} = OMG.State.Transaction.Recovered.recover_from(tx)
         recovered_tx
       end)
-      |> OMG.Block.hashed_txs_at(number)
+      |> OMG.Block.hashed_txs_at(block.number)
 
-    case merkle_root_hash == reconstructed_merkle_root_hash do
+    case block.hash == reconstructed_merkle_root_hash do
       true -> {:ok, block}
       _ -> {:error, :mismatched_merkle_root}
     end
