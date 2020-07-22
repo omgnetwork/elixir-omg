@@ -295,49 +295,41 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   end
 
   describe "verify_merkle_root/1" do
-    @tag fixtures: [:stable_alice, :stable_bob]
-    test "returns error for mismatched merkle root hash", %{
-      stable_alice: alice,
-      stable_bob: bob
-    } do
-      %{signed_tx: signed_tx} = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
+    test "returns error for mismatched merkle root hash" do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
 
-      [_, inputs_1, outputs_1, _, _] = signed_tx |> Transaction.raw_txbytes() |> ExRLP.decode()
+      recovered_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
 
-      hex_txbytes =
-        [signed_tx.sigs, @payment_tx_type, inputs_1, outputs_1, 0, <<0::256>>]
-        |> ExRLP.encode()
+      signed_txbytes =
+        recovered_tx
+        |> Map.get(:signed_tx_bytes)
         |> Encoding.to_hex()
 
       block = %{
         hash: "0x0",
         number: 1000,
-        transactions: [hex_txbytes]
+        transactions: [signed_txbytes]
       }
 
       assert {:error, :mismatched_merkle_root} == Block.validate_merkle_root(block)
     end
 
-    @tag fixtures: [:stable_alice, :stable_bob]
-    test "accepts matched merkle root hash", %{
-      stable_alice: alice,
-      stable_bob: bob
-    } do
-      %{signed_tx: signed_tx} = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
+    test "accepts matched merkle root hash" do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
 
-      [_, inputs_1, outputs_1, _, _] = signed_tx |> Transaction.raw_txbytes() |> ExRLP.decode()
+      recovered_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
 
-      hex_txbytes =
-        [signed_tx.sigs, @payment_tx_type, inputs_1, outputs_1, 0, <<0::256>>]
-        |> ExRLP.encode()
+      signed_txbytes =
+        recovered_tx
+        |> Map.get(:signed_tx_bytes)
         |> Encoding.to_hex()
 
       block = %{
-        hash:
-          <<234, 157, 26, 111, 8, 233, 30, 135, 235, 214, 186, 73, 134, 230, 217, 122, 241, 60, 132, 204, 81, 58, 118,
-            154, 133, 163, 135, 76, 54, 177, 10, 46>>,
+        hash: Merkle.hash([signed_txbytes]),
         number: 1000,
-        transactions: [hex_txbytes]
+        transactions: [signed_txbytes]
       }
 
       assert {:ok, block} = Block.validate_merkle_root(block)
