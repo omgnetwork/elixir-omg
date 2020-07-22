@@ -41,7 +41,9 @@ defmodule OMG.DB.MixProject do
       # TEST ONLY
       {:briefly, "~> 0.3.0", only: [:dev, :test]},
       {:telemetry, "~> 0.4.1"},
-      {:omg_utils, in_umbrella: true}
+      {:omg_utils, in_umbrella: true},
+      # DEV ONLY
+      {:benchee, "~> 1.0", only: :dev}
     ]
   end
 end
