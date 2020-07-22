@@ -236,7 +236,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   end
 
   describe "verify_transactions/1" do
-    test "returns error if a transaction contains duplicate inputs" do
+    test "returns error if a transaction is not correctly formed (duplicate inputs in this example)" do
       %{priv: alice_private_key, addr: alice_address} = OMG.TestHelper.generate_entity()
 
       input_1 = {1, 0, 0}
@@ -268,6 +268,45 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         |> Encoding.to_hex()
 
       assert {:error, :duplicate_inputs} == Block.verify_transactions([hash_invalid, hash_valid])
+    end
+
+    test "accepts correctly formed transactions" do
+      %{priv: alice_private_key, addr: alice_address} = OMG.TestHelper.generate_entity()
+
+      input_1 = {1, 0, 0}
+      input_2 = {2, 0, 0}
+      input_3 = {3, 0, 0}
+      input_4 = {4, 0, 0}
+
+      payment_1 = Transaction.Payment.new([input_1, input_2], [{alice_address, @eth, 12}])
+      payment_2 = Transaction.Payment.new([input_3, input_4], [{alice_address, @eth, 12}])
+
+      signed_tx_1 = DevCrypto.sign(payment_1, [alice_private_key, alice_private_key])
+      signed_tx_2 = DevCrypto.sign(payment_2, [alice_private_key, alice_private_key])
+
+      %{sigs: sigs_1} = signed_tx_1
+      %{sigs: sigs_2} = signed_tx_2
+
+      txbytes_1 = signed_tx_1 |> Transaction.raw_txbytes()
+      txbytes_2 = signed_tx_2 |> Transaction.raw_txbytes()
+
+      [_, inputs_1, outputs_1, _, _] = ExRLP.decode(txbytes_1)
+      [_, inputs_2, outputs_2, _, _] = ExRLP.decode(txbytes_2)
+
+      hash_1 =
+        [sigs_1, @payment_tx_type, inputs_1, outputs_1, 0, <<0::256>>]
+        |> ExRLP.encode()
+        |> Encoding.to_hex()
+
+      hash_2 =
+        [sigs_2, @payment_tx_type, inputs_2, outputs_2, 0, <<0::256>>]
+        |> ExRLP.encode()
+        |> Encoding.to_hex()
+
+      {:ok, expected_1} = hash_1 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
+      {:ok, expected_2} = hash_2 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
+
+      assert {:ok, [expected_1, expected_2]} == Block.verify_transactions([hash_1, hash_2])
     end
   end
 end
