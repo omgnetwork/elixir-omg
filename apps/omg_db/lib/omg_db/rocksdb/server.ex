@@ -68,7 +68,7 @@ defmodule OMG.DB.RocksDB.Server do
         {:ok, %__MODULE__{name: name, db_ref: db_ref}}
 
       error ->
-        _ = Logger.error("It seems that database is not initialized. Check README.md")
+        _ = Logger.error("It seems that database is not initialized: #{inspect(error)}")
         error
     end
   end
