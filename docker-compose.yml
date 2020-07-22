@@ -100,8 +100,7 @@ services:
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
       - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
-      - FEE_ADAPTER=feed
-      - FEE_FEED_URL=host.docker.internal:4000/api/v1
+      - FEE_ADAPTER=file
       - STORED_FEE_UPDATE_INTERVAL_MINUTES=1
       - FEE_CHANGE_TOLERANCE_PERCENT=1
       - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
