@@ -21,7 +21,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   alias Support.WatcherHelper
   alias OMG.Merkle
-  alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.WireFormatTypes
   alias OMG.Eth.Encoding
@@ -239,16 +238,15 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   describe "verify_transactions/1" do
     test "returns error if a transaction is not correctly formed (duplicate inputs in this example)" do
-      %{priv: alice_private_key, addr: alice_address} = OMG.TestHelper.generate_entity()
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
 
-      input_1 = {1, 0, 0}
-      input_2 = {2, 0, 0}
+      input_1 = {1, 0, 0, alice}
+      input_2 = {2, 0, 0, alice}
+      input_3 = {3, 0, 0, alice}
 
-      valid_payment = Transaction.Payment.new([input_1, input_2], [{alice_address, @eth, 12}])
-      invalid_payment = Transaction.Payment.new([input_1, input_1], [{alice_address, @eth, 12}])
-
-      signed_valid_tx = DevCrypto.sign(valid_payment, [alice_private_key, alice_private_key])
-      signed_invalid_tx = DevCrypto.sign(invalid_payment, [alice_private_key, alice_private_key])
+      signed_valid_tx = TestHelper.create_signed([input_1, input_2], @eth, [{bob, 10}])
+      signed_invalid_tx = TestHelper.create_signed([input_3, input_3], @eth, [{bob, 10}])
 
       %{sigs: sigs_valid} = signed_valid_tx
       %{sigs: sigs_invalid} = signed_invalid_tx
@@ -259,13 +257,13 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       [_, inputs_valid, outputs_valid, _, _] = ExRLP.decode(txbytes_valid)
       [_, inputs_invalid, outputs_invalid, _, _] = ExRLP.decode(txbytes_invalid)
 
-      hash_invalid =
-        [sigs_invalid, @payment_tx_type, inputs_invalid, outputs_invalid, 0, <<0::256>>]
+      hash_valid =
+        [sigs_valid, @payment_tx_type, inputs_valid, outputs_valid, 0, <<0::256>>]
         |> ExRLP.encode()
         |> Encoding.to_hex()
 
-      hash_valid =
-        [sigs_valid, @payment_tx_type, inputs_valid, outputs_valid, 0, <<0::256>>]
+      hash_invalid =
+        [sigs_invalid, @payment_tx_type, inputs_invalid, outputs_invalid, 0, <<0::256>>]
         |> ExRLP.encode()
         |> Encoding.to_hex()
 
@@ -273,48 +271,32 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
     end
 
     test "accepts correctly formed transactions" do
-      %{priv: alice_private_key, addr: alice_address} = OMG.TestHelper.generate_entity()
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
 
-      input_1 = {1, 0, 0}
-      input_2 = {2, 0, 0}
-      input_3 = {3, 0, 0}
-      input_4 = {4, 0, 0}
+      recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{bob, 10}])
+      recovered_tx_2 = TestHelper.create_recovered([{3, 0, 0, alice}, {4, 0, 0, alice}], @eth, [{bob, 10}])
 
-      payment_1 = Transaction.Payment.new([input_1, input_2], [{alice_address, @eth, 12}])
-      payment_2 = Transaction.Payment.new([input_3, input_4], [{alice_address, @eth, 12}])
-
-      signed_tx_1 = DevCrypto.sign(payment_1, [alice_private_key, alice_private_key])
-      signed_tx_2 = DevCrypto.sign(payment_2, [alice_private_key, alice_private_key])
-
-      %{sigs: sigs_1} = signed_tx_1
-      %{sigs: sigs_2} = signed_tx_2
-
-      txbytes_1 = Transaction.raw_txbytes(signed_tx_1)
-      txbytes_2 = Transaction.raw_txbytes(signed_tx_2)
-
-      [_, inputs_1, outputs_1, _, _] = ExRLP.decode(txbytes_1)
-      [_, inputs_2, outputs_2, _, _] = ExRLP.decode(txbytes_2)
-
-      hash_1 =
-        [sigs_1, @payment_tx_type, inputs_1, outputs_1, 0, <<0::256>>]
-        |> ExRLP.encode()
+      signed_txbytes_1 =
+        recovered_tx_1
+        |> Map.get(:signed_tx_bytes)
         |> Encoding.to_hex()
 
-      hash_2 =
-        [sigs_2, @payment_tx_type, inputs_2, outputs_2, 0, <<0::256>>]
-        |> ExRLP.encode()
+      signed_txbytes_2 =
+        recovered_tx_2
+        |> Map.get(:signed_tx_bytes)
         |> Encoding.to_hex()
 
-      {:ok, expected_1} = hash_1 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
-      {:ok, expected_2} = hash_2 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
+      {:ok, expected_1} = signed_txbytes_1 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
+      {:ok, expected_2} = signed_txbytes_2 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
 
-      assert {:ok, [expected_1, expected_2]} == Block.verify_transactions([hash_1, hash_2])
+      assert {:ok, [expected_1, expected_2]} == Block.verify_transactions([signed_txbytes_1, signed_txbytes_2])
     end
   end
 
   describe "verify_merkle_root/1" do
     @tag fixtures: [:stable_alice, :stable_bob]
-    test "returns error for mismatched merkle root hash" , %{
+    test "returns error for mismatched merkle root hash", %{
       stable_alice: alice,
       stable_bob: bob
     } do
@@ -337,7 +319,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
     end
 
     @tag fixtures: [:stable_alice, :stable_bob]
-    test "accepts matched merkle root hash" , %{
+    test "accepts matched merkle root hash", %{
       stable_alice: alice,
       stable_bob: bob
     } do
@@ -351,8 +333,9 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         |> Encoding.to_hex()
 
       block = %{
-        hash: <<234, 157, 26, 111, 8, 233, 30, 135, 235, 214, 186, 73, 134, 230, 217, 122,
-        241, 60, 132, 204, 81, 58, 118, 154, 133, 163, 135, 76, 54, 177, 10, 46>>,
+        hash:
+          <<234, 157, 26, 111, 8, 233, 30, 135, 235, 214, 186, 73, 134, 230, 217, 122, 241, 60, 132, 204, 81, 58, 118,
+            154, 133, 163, 135, 76, 54, 177, 10, 46>>,
         number: 1000,
         transactions: [hex_txbytes]
       }
