@@ -19,6 +19,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
 
   use OMG.WatcherRPC.Web, :controller
 
+  alias OMG.Block
+  alias OMG.Eth.Encoding
+  alias OMG.State.Transaction
   alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
   alias OMG.WatcherRPC.Web.Validator
 
@@ -49,23 +52,10 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   """
   def validate_block(conn, params) do
     with {:ok, _block} <- Validator.BlockConstraints.parse_to_validate(params),
-         {:ok, _block} <- validate_stateless(params),
-         {:ok, block} <- validate_stateful(params) do
+         {:ok, _block} <- stateless_validate(params),
+         {:ok, block} <- stateful_validate(params) do
       api_response(block, conn, :validate_block)
     end
-  end
-
-  @doc """
-  Verifies that all transactions are correctly formed.
-  Verifies that given Merkle root matches reconstructed Merkle root.
-  """
-  def validate_stateless(params) do
-    with {:ok, _block} <- validate_merkle_root(params),
-         {:ok, block} <- validate_correctly_formed_transactions(params),
-         do: {:ok, block}
-  end
-
-  def validate_correctly_formed_transactions(params) do
   end
 
   def validate_merkle_root(
@@ -86,8 +76,31 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
     end
   end
 
+  @spec stateless_validate(Block.t()) :: any
+  defp stateless_validate(block) do
+    with {:ok, _block} <- validate_merkle_root(block),
+         {:ok, block} <- verify_transactions(block),
+         do: {:ok, block}
+  end
+
+  @spec stateful_validate(Block.t()) :: any
+  defp stateful_validate(_block) do
+  end
+
   @doc """
+  Verifies that transactions are correctly formed.
   """
-  defp validate_stateful(block) do
+  @spec verify_transactions(transactions :: list(Transaction.Recovered.t())) ::
+          {:ok, list(Transaction.Recovered.t())}
+          | {:error, Transaction.Recovered.recover_tx_error()}
+  def verify_transactions(transactions) do
+    transactions
+    |> Enum.reverse()
+    |> Enum.reduce_while({:ok, []}, fn tx, {:ok, already_recovered} ->
+      case tx |> Encoding.from_hex() |> Transaction.Recovered.recover_from() do
+        {:ok, recovered} -> {:cont, {:ok, [recovered | already_recovered]}}
+        error -> {:halt, error}
+      end
+    end)
   end
 end
