@@ -251,8 +251,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       %{sigs: sigs_valid} = signed_valid_tx
       %{sigs: sigs_invalid} = signed_invalid_tx
 
-      txbytes_valid = signed_valid_tx |> Transaction.raw_txbytes()
-      txbytes_invalid = signed_invalid_tx |> Transaction.raw_txbytes()
+      txbytes_valid = Transaction.raw_txbytes(signed_valid_tx)
+      txbytes_invalid = Transaction.raw_txbytes(signed_invalid_tx)
 
       [_, inputs_valid, outputs_valid, _, _] = ExRLP.decode(txbytes_valid)
       [_, inputs_invalid, outputs_invalid, _, _] = ExRLP.decode(txbytes_invalid)
@@ -287,8 +287,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       %{sigs: sigs_1} = signed_tx_1
       %{sigs: sigs_2} = signed_tx_2
 
-      txbytes_1 = signed_tx_1 |> Transaction.raw_txbytes()
-      txbytes_2 = signed_tx_2 |> Transaction.raw_txbytes()
+      txbytes_1 = Transaction.raw_txbytes(signed_tx_1)
+      txbytes_2 = Transaction.raw_txbytes(signed_tx_2)
 
       [_, inputs_1, outputs_1, _, _] = ExRLP.decode(txbytes_1)
       [_, inputs_2, outputs_2, _, _] = ExRLP.decode(txbytes_2)
