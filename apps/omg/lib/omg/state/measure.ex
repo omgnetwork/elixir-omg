@@ -18,38 +18,15 @@ defmodule OMG.State.Measure do
   """
 
   import OMG.Status.Metric.Event, only: [name: 1]
-  alias OMG.State
   alias OMG.State.Core
-  alias OMG.State.MeasurementCalculation
   alias OMG.Status.Metric.Datadog
 
   @supported_events [
-    [:process, State],
     [:pending_transactions, Core],
     [:block_transactions, Core]
   ]
+
   def supported_events(), do: @supported_events
-
-  def handle_event([:process, State], _, %Core{} = state, _config) do
-    execute = fn ->
-      try do
-        Enum.each(MeasurementCalculation.calculate(state), fn
-          {key, value} -> _ = Datadog.gauge(name(key), value)
-          {key, value, metadata} -> _ = Datadog.gauge(name(key), value, tags: [metadata])
-        end)
-      rescue
-        _e in ArgumentError ->
-          # This exception occurs when we run without datadog (statix).
-          # In normal scenarios, telemetry would get detached but because this is a spawned proces...
-          :ok
-      end
-    end
-
-    # TODO proper fix! this is a very hackish approach to get measurements off the back
-    # of OMG State
-    _ = Task.start(execute)
-    :ok
-  end
 
   def handle_event([:pending_transactions, Core], %{new_tx: _new_tx}, _, _config) do
     _ = Datadog.increment(name(:pending_transactions), 1)

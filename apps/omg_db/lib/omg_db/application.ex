@@ -14,11 +14,13 @@
 
 defmodule OMG.DB.Application do
   @moduledoc false
-
   use Application
 
   def start(_type, _args) do
-    children = [OMG.DB.child_spec()]
+    children = [
+      OMG.DB.child_spec(),
+      {OMG.DB.Monitor, [check_interval_ms: 5 * 60 * 1000]}
+    ]
 
     opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
 

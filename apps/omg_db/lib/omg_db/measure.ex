@@ -16,36 +16,36 @@ defmodule OMG.DB.Measure do
   @moduledoc """
    A telemetry handler for DB related metrics.
   """
-  alias OMG.Status.Metric.Datadog
   import OMG.Status.Metric.Event, only: [name: 1]
-
+  alias OMG.DB.Monitor
   alias OMG.DB.RocksDB.Server
+  alias OMG.Eth.Encoding
+  alias OMG.Status.Metric.Datadog
 
   @write :write
   @read :read
   @multiread :multiread
   @keys [@write, @read, @multiread]
 
-  @services [Server]
+  @supported_events [
+    [:process, Server],
+    [:update_write, Server],
+    [:update_read, Server],
+    [:update_multiread, Server],
+    [:balances, Monitor],
+    [:total_unspent_addresses, Monitor],
+    [:total_unspent_outputs, Monitor]
+  ]
 
-  @supported_events List.foldl(@services, [], fn service, acc ->
-                      acc ++
-                        [
-                          [:process, service],
-                          [:update_write, service],
-                          [:update_read, service],
-                          [:update_multiread, service]
-                        ]
-                    end)
   def supported_events(), do: @supported_events
 
-  def handle_event([:process, service_name], _, state, _config) when service_name in @services do
+  def handle_event([:process, Server], _, state, _config) do
     value =
       self()
       |> Process.info(:message_queue_len)
       |> elem(1)
 
-    _ = Datadog.gauge(name(:db_message_queue_len), value, tags: ["service_name:#{service_name}"])
+    _ = Datadog.gauge(name(:db_message_queue_len), value, tags: ["service_name:#{Server}"])
 
     Enum.each(@keys, fn table_key ->
       case :ets.take(state.name, table_key) do
@@ -59,15 +59,29 @@ defmodule OMG.DB.Measure do
     end)
   end
 
-  def handle_event([:update_write, service_name], _, state, _config) when service_name in @services do
+  def handle_event([:update_write, Server], _, state, _config) do
     :ets.update_counter(state.name, @write, {2, 1}, {@write, 0})
   end
 
-  def handle_event([:update_read, service_name], _, state, _config) when service_name in @services do
+  def handle_event([:update_read, Server], _, state, _config) do
     :ets.update_counter(state.name, @read, {2, 1}, {@read, 0})
   end
 
-  def handle_event([:update_multiread, service_name], _, state, _config) when service_name in @services do
+  def handle_event([:update_multiread, Server], _, state, _config) do
     :ets.update_counter(state.name, @multiread, {2, 1}, {@multiread, 0})
+  end
+
+  def handle_event([:balances, Monitor], measurements, _metadata, _config) do
+    Enum.each(measurements.balances, fn {currency, amount} ->
+      Datadog.gauge(name(:balance), amount, tags: ["currency:#{Encoding.to_hex(currency)}"])
+    end)
+  end
+
+  def handle_event([:total_unspent_addresses, Monitor], measurements, _metadata, _config) do
+    Datadog.gauge(name(:total_unspent_addresses), measurements.total_unspent_addresses)
+  end
+
+  def handle_event([:total_unspent_outputs, Monitor], measurements, _metadata, _config) do
+    Datadog.gauge(name(:total_unspent_outputs), measurements.total_unspent_outputs)
   end
 end

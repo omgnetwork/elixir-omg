@@ -70,14 +70,19 @@ defmodule OMG.Status.Metric.Event do
   def name(:authority_balance), do: "authority_balance"
 
   @doc """
-  OMG.State balance per currency
+  OMG.DB's balance per currency
   """
   def name(:balance), do: "balance"
 
   @doc """
-  OMG.State number of unique_users in the system
+  OMG.DB's number of unique address with unspent outputs in the system
   """
-  def name(:unique_users), do: "unique_users"
+  def name(:total_unspent_addresses), do: "total_unspent_addresses"
+
+  @doc """
+  OMG.DB's number of unspent outputs in the system
+  """
+  def name(:total_unspent_outputs), do: "total_unspent_outputs"
 
   @doc """
   OMG.Watcher.BlockGetter message queue length
