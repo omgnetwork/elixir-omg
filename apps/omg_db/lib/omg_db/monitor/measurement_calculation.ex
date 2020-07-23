@@ -29,7 +29,7 @@ defmodule OMG.DB.Monitor.MeasurementCalculation do
   @spec balances_by_currency([Utxo.t()]) :: %{required(Eth.address()) => non_neg_integer()}
   def balances_by_currency(utxos) do
     utxos
-    |> Enum.map(fn {_, %OMG.Utxo{output: output}} -> output end)
+    |> Enum.map(fn {_, %{output: output}} -> output end)
     |> Enum.map(&{Map.get(&1, :currency), Map.get(&1, :amount, 0)})
     |> Enum.filter(fn {currency, _amount} -> currency end)
     |> Enum.reduce(%{}, fn {currency, amount}, acc ->
@@ -47,7 +47,7 @@ defmodule OMG.DB.Monitor.MeasurementCalculation do
   @spec total_unspent_addresses([Utxo.t()]) :: non_neg_integer()
   def total_unspent_addresses(utxos) do
     utxos
-    |> Enum.map(fn {_utxopos, %Utxo{output: output}} -> output end)
+    |> Enum.map(fn {_utxopos, %{output: output}} -> output end)
     |> Enum.map(&Map.get(&1, :owner))
     |> Enum.filter(& &1)
     |> Enum.uniq()
@@ -60,7 +60,7 @@ defmodule OMG.DB.Monitor.MeasurementCalculation do
   @spec total_unspent_outputs([Utxo.t()]) :: non_neg_integer()
   def total_unspent_outputs(utxos) do
     utxos
-    |> Enum.map(fn {_utxopos, %Utxo{output: output}} -> output end)
+    |> Enum.map(fn {_utxopos, %{output: output}} -> output end)
     |> Enum.filter(fn output -> Map.has_key?(output, :amount) end)
     |> Enum.count()
   end
