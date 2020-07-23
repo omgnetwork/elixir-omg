@@ -1,0 +1,99 @@
+Operating System: macOS
+CPU Information: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+Number of Available Cores: 12
+Available memory: 16 GB
+Elixir 1.10.2
+Erlang 22.3
+
+Benchmark suite executing with the following configuration:
+warmup: 2 s
+time: 10 s
+memory time: 2 s
+parallel: 1
+inputs: 1,000 utxos, 10,000 utxos, 100,000 utxos, 200,000 utxos
+Estimated total run time: 1.87 min
+
+Benchmarking utxos with input 1,000 utxos...
+Benchmarking utxos with input 10,000 utxos...
+Benchmarking utxos with input 100,000 utxos...
+Benchmarking utxos with input 200,000 utxos...
+Benchmarking utxos_with_snapshot with input 1,000 utxos...
+Benchmarking utxos_with_snapshot with input 10,000 utxos...
+Benchmarking utxos_with_snapshot with input 100,000 utxos...
+Benchmarking utxos_with_snapshot with input 200,000 utxos...
+
+##### With input 1,000 utxos #####
+Name                          ips        average  deviation         median         99th %
+utxos_with_snapshot         36.38       27.49 ms    ±37.94%       25.82 ms       54.02 ms
+utxos                       34.88       28.67 ms    ±38.27%       26.72 ms       58.55 ms
+
+Comparison:
+utxos_with_snapshot         36.38
+utxos                       34.88 - 1.04x slower +1.18 ms
+
+Memory usage statistics:
+
+Name                        average  deviation         median         99th %
+utxos_with_snapshot         4.36 MB     ±3.09%        4.37 MB        4.57 MB
+utxos                       4.34 MB     ±3.22%        4.34 MB        4.54 MB
+
+Comparison:
+utxos_with_snapshot         4.37 MB
+utxos                       4.34 MB - 0.99x memory usage -0.02721 MB
+
+##### With input 10,000 utxos #####
+Name                          ips        average  deviation         median         99th %
+utxos                       10.76       92.93 ms    ±12.40%       91.12 ms      119.04 ms
+utxos_with_snapshot         10.75       93.06 ms    ±12.39%       92.59 ms      128.48 ms
+
+Comparison:
+utxos                       10.76
+utxos_with_snapshot         10.75 - 1.00x slower +0.131 ms
+
+Memory usage statistics:
+
+Name                        average  deviation         median         99th %
+utxos                       8.90 MB     ±1.66%        8.90 MB        9.12 MB
+utxos_with_snapshot         8.89 MB     ±1.67%        8.90 MB        9.12 MB
+
+Comparison:
+utxos                       8.90 MB
+utxos_with_snapshot         8.89 MB - 1.00x memory usage -0.00729 MB
+
+##### With input 100,000 utxos #####
+Name                          ips        average  deviation         median         99th %
+utxos_with_snapshot          1.27      787.10 ms     ±4.90%      785.94 ms      863.01 ms
+utxos                        1.26      794.70 ms     ±6.31%      795.54 ms      932.87 ms
+
+Comparison:
+utxos_with_snapshot          1.27
+utxos                        1.26 - 1.01x slower +7.59 ms
+
+Memory usage statistics:
+
+Name                        average  deviation         median         99th %
+utxos_with_snapshot        54.46 MB     ±0.52%       54.46 MB       54.74 MB
+utxos                      54.34 MB     ±0.42%       54.34 MB       54.50 MB
+
+Comparison:
+utxos_with_snapshot        54.46 MB
+utxos                      54.34 MB - 1.00x memory usage -0.12043 MB
+
+##### With input 200,000 utxos #####
+Name                          ips        average  deviation         median         99th %
+utxos                        0.61         1.64 s     ±7.93%         1.57 s         1.88 s
+utxos_with_snapshot          0.58         1.74 s     ±9.83%         1.78 s         1.98 s
+
+Comparison:
+utxos                        0.61
+utxos_with_snapshot          0.58 - 1.06x slower +0.102 s
+
+Memory usage statistics:
+
+Name                        average  deviation         median         99th %
+utxos                     104.21 MB     ±0.34%      104.21 MB      104.46 MB
+utxos_with_snapshot       103.63 MB     ±0.32%      103.63 MB      103.86 MB
+
+Comparison:
+utxos                     104.21 MB
+utxos_with_snapshot       103.63 MB - 0.99x memory usage -0.58236 MB

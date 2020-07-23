@@ -1,0 +1,93 @@
+Operating System: macOS
+CPU Information: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+Number of Available Cores: 12
+Available memory: 16 GB
+Elixir 1.10.2
+Erlang 22.3
+
+Benchmark suite executing with the following configuration:
+warmup: 2 s
+time: 10 s
+memory time: 2 s
+parallel: 1
+inputs: 1,000 utxos, 10,000 utxos, 100,000 utxos
+Estimated total run time: 2.10 min
+
+Benchmarking iterate with input 1,000 utxos...
+Benchmarking iterate with input 10,000 utxos...
+Benchmarking iterate with input 100,000 utxos...
+Benchmarking iterate_decode with input 1,000 utxos...
+Benchmarking iterate_decode with input 10,000 utxos...
+Benchmarking iterate_decode with input 100,000 utxos...
+Benchmarking iterate_reverse_decode with input 1,000 utxos...
+Benchmarking iterate_reverse_decode with input 10,000 utxos...
+Benchmarking iterate_reverse_decode with input 100,000 utxos...
+
+##### With input 1,000 utxos #####
+Name                             ips        average  deviation         median         99th %
+iterate                        55.21       18.11 ms    ±39.53%       16.38 ms       34.71 ms
+iterate_reverse_decode         35.98       27.80 ms    ±39.28%       25.75 ms       55.54 ms
+iterate_decode                 35.85       27.89 ms    ±41.73%       24.98 ms       56.84 ms
+
+Comparison:
+iterate                        55.21
+iterate_reverse_decode         35.98 - 1.53x slower +9.68 ms
+iterate_decode                 35.85 - 1.54x slower +9.78 ms
+
+Memory usage statistics:
+
+Name                           average  deviation         median         99th %
+iterate                        1.13 MB     ±4.05%        1.13 MB        1.21 MB
+iterate_reverse_decode         4.33 MB     ±3.17%        4.34 MB        4.54 MB
+iterate_decode                 4.23 MB     ±4.02%        4.24 MB        4.51 MB
+
+Comparison:
+iterate                        1.13 MB
+iterate_reverse_decode         4.33 MB - 3.83x memory usage +3.20 MB
+iterate_decode                 4.23 MB - 3.74x memory usage +3.10 MB
+
+##### With input 10,000 utxos #####
+Name                             ips        average  deviation         median         99th %
+iterate                        15.71       63.66 ms    ±12.08%       62.19 ms       82.58 ms
+iterate_reverse_decode         10.50       95.22 ms    ±12.52%       94.53 ms      124.67 ms
+iterate_decode                 10.50       95.23 ms    ±14.59%       94.04 ms      139.46 ms
+
+Comparison:
+iterate                        15.71
+iterate_reverse_decode         10.50 - 1.50x slower +31.56 ms
+iterate_decode                 10.50 - 1.50x slower +31.57 ms
+
+Memory usage statistics:
+
+Name                           average  deviation         median         99th %
+iterate                        2.31 MB     ±2.04%        2.31 MB        2.39 MB
+iterate_reverse_decode         8.90 MB     ±1.66%        8.90 MB        9.12 MB
+iterate_decode                 8.64 MB     ±2.12%        8.63 MB        8.94 MB
+
+Comparison:
+iterate                        2.31 MB
+iterate_reverse_decode         8.90 MB - 3.85x memory usage +6.59 MB
+iterate_decode                 8.64 MB - 3.74x memory usage +6.33 MB
+
+##### With input 100,000 utxos #####
+Name                             ips        average  deviation         median         99th %
+iterate                         1.94      515.39 ms     ±2.93%      517.44 ms      544.25 ms
+iterate_reverse_decode          1.25      803.14 ms     ±5.01%      807.43 ms      872.77 ms
+iterate_decode                  1.19      838.78 ms     ±4.43%      836.77 ms      906.42 ms
+
+Comparison:
+iterate                         1.94
+iterate_reverse_decode          1.25 - 1.56x slower +287.75 ms
+iterate_decode                  1.19 - 1.63x slower +323.39 ms
+
+Memory usage statistics:
+
+Name                           average  deviation         median         99th %
+iterate                       14.00 MB     ±0.42%       14.00 MB       14.07 MB
+iterate_reverse_decode        54.40 MB     ±0.37%       54.40 MB       54.54 MB
+iterate_decode                52.64 MB     ±0.37%       52.64 MB       52.77 MB
+
+Comparison:
+iterate                       14.00 MB
+iterate_reverse_decode        54.40 MB - 3.89x memory usage +40.40 MB
+iterate_decode                52.64 MB - 3.76x memory usage +38.64 MB

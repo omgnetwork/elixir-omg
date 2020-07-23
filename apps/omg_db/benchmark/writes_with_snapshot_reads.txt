@@ -1,0 +1,105 @@
+Operating System: macOS
+CPU Information: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+Number of Available Cores: 12
+Available memory: 16 GB
+Elixir 1.10.2
+Erlang 22.3
+
+Benchmark suite executing with the following configuration:
+warmup: 2 s
+time: 30 s
+memory time: 10 s
+parallel: 1
+inputs: 1 utxo writes, direct reads, 1 utxo writes, no reads, 1 utxo writes, snapshot reads, 1,000 utxo writes, direct reads, 1,000 utxo writes, no reads, 1,000 utxo writes, snapshot reads, 100 utxo writes, direct reads, 100 utxo writes, no reads, 100 utxo writes, snapshot reads
+Estimated total run time: 6.30 min
+
+Benchmarking utxo write with input 1 utxo writes, direct reads...
+Benchmarking utxo write with input 1 utxo writes, no reads...
+Benchmarking utxo write with input 1 utxo writes, snapshot reads...
+Benchmarking utxo write with input 1,000 utxo writes, direct reads...
+Benchmarking utxo write with input 1,000 utxo writes, no reads...
+Benchmarking utxo write with input 1,000 utxo writes, snapshot reads...
+Benchmarking utxo write with input 100 utxo writes, direct reads...
+Benchmarking utxo write with input 100 utxo writes, no reads...
+Benchmarking utxo write with input 100 utxo writes, snapshot reads...
+
+##### With input 1 utxo writes, direct reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write        2.46 K      406.14 μs    ±18.38%      392.05 μs      633.15 μs
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write       189.46 KB     ±1.55%      189.08 KB      193.14 KB
+
+##### With input 1 utxo writes, no reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write        2.55 K      392.43 μs    ±13.44%      375.57 μs      641.26 μs
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write       189.44 KB     ±1.55%      189.08 KB      193.14 KB
+
+##### With input 1 utxo writes, snapshot reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write        2.50 K      400.34 μs    ±24.15%      384.40 μs      640.61 μs
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write       189.49 KB     ±1.54%      189.08 KB      193.14 KB
+
+##### With input 100 utxo writes, direct reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write         24.85       40.25 ms     ±3.88%       39.96 ms       45.07 ms
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write        18.56 MB     ±0.18%       18.56 MB       18.63 MB
+
+##### With input 100 utxo writes, no reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write         26.15       38.24 ms     ±2.54%       38.06 ms       41.60 ms
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write        18.56 MB     ±0.18%       18.56 MB       18.63 MB
+
+##### With input 100 utxo writes, snapshot reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write         24.15       41.42 ms     ±5.52%       40.73 ms       50.92 ms
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write        18.56 MB     ±0.18%       18.56 MB       18.63 MB
+
+##### With input 1,000 utxo writes, direct reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write          2.29      437.42 ms     ±6.41%      452.51 ms      472.77 ms
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write       185.89 MB     ±0.06%      185.88 MB      186.14 MB
+
+##### With input 1,000 utxo writes, no reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write          2.44      410.02 ms     ±6.27%      424.05 ms      469.01 ms
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write       185.90 MB     ±0.05%      185.87 MB      186.05 MB
+
+##### With input 1,000 utxo writes, snapshot reads #####
+Name                 ips        average  deviation         median         99th %
+utxo write          2.32      431.77 ms     ±6.78%      450.55 ms      468.85 ms
+
+Memory usage statistics:
+
+Name               average  deviation         median         99th %
+utxo write       185.88 MB     ±0.06%      185.88 MB      186.06 MB
