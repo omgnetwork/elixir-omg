@@ -128,10 +128,8 @@ install_deps
 #Linux and MacOS
 #asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
 #asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-#asdf install erlang 22.3
-#asdf install elixir 1.10.2
-#asdf global elixir 1.10.2
-#asdf global erlang 22.3
+#asdf install
+
 if ! command -v mix > /dev/null; then
   fancy_echo "It looks like you don't have Elixir installed."
   echo "See https://asdf-vm.com/#/core-manage-asdf-vm for instructions."

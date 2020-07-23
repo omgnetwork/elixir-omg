@@ -20,6 +20,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   import Ecto.Changeset
 
   use Ecto.Schema
+  use Spandex.Decorators
 
   alias OMG.Crypto
   alias OMG.Eth.Encoding
@@ -61,6 +62,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp insert_deposit!(%{
          root_chain_txhash: root_chain_txhash,
          log_index: log_index,
@@ -158,6 +160,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           paginator :: Paginator.t(%DB.EthEvent{}),
           address :: Crypto.address_t()
         ) :: Paginator.t(%DB.EthEvent{})
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_deposits(paginator, address) do
     base_query()
     |> query_deposits()
@@ -255,6 +258,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   @spec do_insert_exit(%__MODULE__{}, %DB.TxOutput{}) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp do_insert_exit(ethevent, tx_output) when ethevent != nil and tx_output != nil do
     # sanity check
     false = output_spent?(tx_output)

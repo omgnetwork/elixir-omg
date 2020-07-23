@@ -27,6 +27,7 @@ defmodule OMG.State.Transaction.Witness do
   Pre-check done after decoding to quickly assert whether the witness has one of valid forms
   """
   def valid?(witness) when is_binary(witness), do: signature_length?(witness)
+  def valid?(_), do: false
 
   @doc """
   Prepares the witness to be quickly used in stateful validation

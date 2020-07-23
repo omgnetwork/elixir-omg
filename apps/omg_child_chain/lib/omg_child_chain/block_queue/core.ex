@@ -281,6 +281,17 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :ok
   end
 
+  # https://github.com/ethereum/go-ethereum/blob/v1.9.15/core/tx_pool.go#L62-L64
+  def process_submit_result(
+        submission,
+        {:error, %{"code" => -32_000, "message" => "transaction underpriced"}},
+        _newest_mined_blknum
+      ) do
+    log_tx_underpriced(submission)
+    :ok
+  end
+
+  # https://github.com/ethereum/go-ethereum/blob/v1.9.15/core/tx_pool.go#L66-L68
   def process_submit_result(
         submission,
         {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}},
@@ -337,6 +348,15 @@ defmodule OMG.ChildChain.BlockQueue.Core do
         _newest_mined_blknum
       ) do
     log_ganache_nonce_too_low(error)
+    :ok
+  end
+
+  # Fallback for unknown server errors: https://eth.wiki/json-rpc/json-rpc-error-codes-improvement-proposal
+  # Only server errors are handled as they are the only set of errors that we have no control of.
+  # Returns `:ok` so that BlockQueue can continue and do a retry, similar to a low replacement price error.
+  def process_submit_result(submission, {:error, %{"code" => code} = error}, _newest_mined_blknum)
+      when code >= -32_099 and code <= -32_000 do
+    _ = Logger.error("Submission #{inspect(submission)} resulted in an unknown server error: #{inspect(error)}.")
     :ok
   end
 
@@ -612,12 +632,17 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   end
 
   defp log_known_tx(submission) do
-    _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+    _ = Logger.info("Submission #{inspect(submission)} is known transaction - ignored")
+    :ok
+  end
+
+  defp log_tx_underpriced(submission) do
+    _ = Logger.info("Submission #{inspect(submission)} got rejected due to low gas price - ignored")
     :ok
   end
 
   defp log_low_replacement_price(submission) do
-    _ = Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
+    _ = Logger.info("Submission #{inspect(submission)} is known, but with higher price - ignored")
     :ok
   end
 
