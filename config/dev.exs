@@ -1,5 +1,7 @@
 import Config
 
+config :logger, level: :debug
+
 config :logger,
   backends: [:console, Sentry.LoggerBackend]
 
