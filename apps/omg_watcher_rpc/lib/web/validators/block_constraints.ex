@@ -18,7 +18,6 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
   """
 
   use OMG.WatcherRPC.Web, :controller
-  alias OMG.Block
   alias OMG.WatcherRPC.Web.Validator.Helpers
 
   @doc """
@@ -32,20 +31,5 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
     ]
 
     Helpers.validate_constraints(params, constraints)
-  end
-
-  @doc """
-  Validates that a block submitted for validation is correctly formed.
-  """
-  @spec parse_to_validate(Block.t()) :: {:error, {:validation_error, binary, any}} | {:ok, Block.t()}
-  def parse_to_validate(block) do
-    with {:ok, hash} <- expect(block, "hash", :hash),
-         {:ok, transactions} <- expect(block, "transactions", list: &is_hex/1),
-         {:ok, number} <- expect(block, "number", :pos_integer),
-         do: {:ok, %Block{hash: hash, transactions: transactions, number: number}}
-  end
-
-  defp is_hex(original) do
-    expect(%{"hash" => original}, "hash", :hex)
   end
 end

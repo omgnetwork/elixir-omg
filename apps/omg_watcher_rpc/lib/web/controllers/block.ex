@@ -20,8 +20,6 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   use OMG.WatcherRPC.Web, :controller
 
   alias OMG.Block
-  alias OMG.Eth.Encoding
-  alias OMG.State.Transaction
   alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
   alias OMG.WatcherRPC.Web.Validator
 
@@ -51,7 +49,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   Executes stateful and stateless validation of a block.
   """
   def validate_block(conn, params) do
-    with {:ok, block} <- Validator.BlockConstraints.parse_to_validate(params),
+    with {:ok, block} <- Validator.BlockValidator.parse_to_validate(params),
          {:ok, _block} <- stateless_validate(block) do
       api_response(block, conn, :validate_block)
     end
@@ -59,47 +57,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
 
   @spec stateless_validate(Block.t()) :: any
   defp stateless_validate(block) do
-    with {:ok, _block} <- validate_merkle_root(block),
-         {:ok, block} <- verify_transactions(block),
-         do: {:ok, block}
   end
 
   @spec stateful_validate(Block.t()) :: any
   defp stateful_validate(_block) do
-  end
-
-  @doc """
-  Verifies that given Merkle root matches reconstructed Merkle root.
-  """
-  @spec validate_merkle_root(Block.t()) :: {:ok, Block.t()} | {:error, :mismatched_merkle_root}
-  def validate_merkle_root(block) do
-    %{hash: reconstructed_merkle_root_hash} =
-      block.transactions
-      |> Enum.map(&OMG.Eth.Encoding.from_hex/1)
-      |> Enum.map(fn tx ->
-        {:ok, recovered_tx} = OMG.State.Transaction.Recovered.recover_from(tx)
-        recovered_tx
-      end)
-      |> OMG.Block.hashed_txs_at(block.number)
-
-    case block.hash == reconstructed_merkle_root_hash do
-      true -> {:ok, block}
-      _ -> {:error, :mismatched_merkle_root}
-    end
-  end
-
-  @doc """
-  Verifies that transactions are correctly formed.
-  """
-  @spec verify_transactions(transactions :: list(Transaction.Recovered.t())) ::
-          {:ok, list(Transaction.Recovered.t())}
-          | {:error, Transaction.Recovered.recover_tx_error()}
-  def verify_transactions(transactions) do
-    Enum.reduce_while(transactions, {:ok, []}, fn tx, {:ok, already_recovered} ->
-      case tx |> Encoding.from_hex() |> Transaction.Recovered.recover_from() do
-        {:ok, recovered} -> {:cont, {:ok, already_recovered ++ [recovered]}}
-        error -> {:halt, error}
-      end
-    end)
   end
 end
