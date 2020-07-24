@@ -31,10 +31,16 @@ defmodule OMG.Watcher.API.Account do
 
     # PaymentExitInfo.all_exit_infos() takes a while.
     {:ok, standard_exits} = PaymentExitInfo.all_exit_infos()
-    active_standard_exiting_utxos = OMG.Watcher.ExitProcessor.Core.active_standard_exiting_utxos(standard_exits)
+    {:ok, in_flight_exits} = PaymentExitInfo.all_in_flight_exits_infos()
+
+    active_exiting_utxos =
+      MapSet.union(
+        OMG.Watcher.ExitProcessor.Core.active_standard_exiting_utxos(standard_exits),
+        OMG.Watcher.ExitProcessor.Core.active_in_flight_exiting_inputs(in_flight_exits)
+      )
 
     # active standard exiting utxos are excluded
-    filter_standard_exiting_utxos(standard_exitable_utxos, active_standard_exiting_utxos)
+    filter_standard_exiting_utxos(standard_exitable_utxos, active_exiting_utxos)
   end
 
   defp filter_standard_exiting_utxos(standard_exitable_utxos, active_standard_exiting_utxos) do

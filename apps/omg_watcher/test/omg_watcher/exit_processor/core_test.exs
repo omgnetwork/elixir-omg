@@ -24,6 +24,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   require Utxo
 
@@ -287,9 +288,51 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       db_exits = [{utxo_pos_active, active_exit}, {utxo_pos_inactive, inactive_exit}]
 
-      expected = MapSet.new([OMG.Utxo.position(active_blknum, active_txindex, active_txoutput)])
+      expected = MapSet.new([Utxo.position(active_blknum, active_txindex, active_txoutput)])
 
       assert expected == Core.active_standard_exiting_utxos(db_exits)
+    end
+  end
+
+  describe "active_in_flight_exiting_inputs" do
+    test "in-flight exit info db value is formed correctly" do
+      ife_exit_info = prepare_fake_ife_db_kv(true, [])
+
+      assert {<<1>>, %InFlightExitInfo{}} = InFlightExitInfo.from_db_kv({<<1>>, ife_exit_info})
+    end
+
+    test "returns a set of exiting utxo positions" do
+      expected_utxos = [Utxo.position(2001, 0, 0), Utxo.position(2002, 0, 0)]
+
+      db_exits = [
+        {<<1>>, prepare_fake_ife_db_kv(false, [Utxo.position(1001, 0, 0)])},
+        {<<2>>, prepare_fake_ife_db_kv(true, expected_utxos)}
+      ]
+
+      assert MapSet.new(expected_utxos) == Core.active_in_flight_exiting_inputs(db_exits)
+    end
+
+    defp prepare_fake_ife_db_kv(is_active, utxos_pos) do
+      raw_tx_map = %{tx_type: 1, inputs: [], outputs: [], metadata: <<0::256>>}
+      signed_tx_map = %{raw_tx: raw_tx_map, sigs: []}
+      utxo_pos = Utxo.position(0, 0, 0)
+
+      %{
+        tx: signed_tx_map,
+        exit_map: %{},
+        tx_pos: utxo_pos,
+        oldest_competitor: utxo_pos,
+        contract_id: <<1>>,
+        timestamp: 0,
+        eth_height: 100,
+        relevant_from_blknum: 0,
+        input_txs: [],
+        input_utxos_pos: [],
+        is_canonical: true,
+        is_active: true
+      }
+      |> Map.update!(:is_active, fn _ -> is_active end)
+      |> Map.update!(:input_utxos_pos, fn _ -> utxos_pos end)
     end
   end
 end
