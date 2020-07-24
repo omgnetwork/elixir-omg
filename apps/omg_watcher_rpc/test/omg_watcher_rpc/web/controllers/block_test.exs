@@ -20,11 +20,12 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   import OMG.WatcherInfo.Factory
 
-  alias Support.WatcherHelper
   alias OMG.Eth.Encoding
-  alias OMG.State.Transaction
   alias OMG.Merkle
+  alias OMG.State.Transaction
   alias OMG.TestHelper
+
+  alias Support.WatcherHelper
 
   @valid_block %{
     hash: "0x" <> String.duplicate("00", 32),

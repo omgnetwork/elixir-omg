@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
+  @moduledoc """
+  Operations related to block validation.
+  """
+
   use OMG.WatcherRPC.Web, :controller
   alias OMG.Block
   alias OMG.State.Transaction
