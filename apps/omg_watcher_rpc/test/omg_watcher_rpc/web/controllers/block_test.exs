@@ -16,6 +16,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
+  use OMG.WatcherRPC.Web, :controller
 
   import OMG.WatcherInfo.Factory
 
@@ -151,7 +152,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   describe "validate_block/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the error API response if hash is invalid" do
+    test "returns the error API response if a parameter is incorectly formed" do
       invalid_hash = "0x1234"
       invalid_params = Map.replace!(@valid_block, :hash, invalid_hash)
 
@@ -173,7 +174,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the error API response if the hash is mismatched" do
+    test "returns the expected error if the block hash does not match the reconstructed Merkle root" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
@@ -182,34 +183,25 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         |> Enum.map(fn tx -> tx.signed_tx_bytes end)
         |> Enum.map(&Encoding.to_hex/1)
 
-      invalid_merkle_root =
-        [recovered_tx_1]
-        |> Enum.map(&Transaction.raw_txbytes/1)
-        |> Merkle.hash()
-        |> Base.encode16(case: :lower)
+      invalid_merkle_root = "0x" <> String.duplicate("00", 32)
 
       params = %{
-        hash: "0x" <> invalid_merkle_root,
+        hash: invalid_merkle_root,
         number: 1000,
         transactions: signed_txbytes
       }
 
-      response = WatcherHelper.rpc_call("block.validate", params, 200)
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
-      assert response == %{
-               "data" => %{
-                 "code" => "block.validate:mismatched_merkle_root",
-                 "description" => "Block hash doesn't match with reconstructed merkle root.",
-                 "object" => "error"
-               },
-               "service_name" => "watcher_info",
-               "success" => false,
-               "version" => "1.0.3+3fae490"
+      assert data == %{
+               "code" => "block.validate:mismatched_merkle_root",
+               "description" => "Block hash doesn't match with reconstructed merkle root.",
+               "object" => "error"
              }
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the API response with the block" do
+    test "returns the block if it is valid" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
@@ -222,25 +214,23 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         [recovered_tx_1, recovered_tx_2]
         |> Enum.map(&Transaction.raw_txbytes/1)
         |> Merkle.hash()
-        |> Base.encode16(case: :lower)
+        |> Encoding.to_hex()
+
+      # Sanity check
+      assert {:ok, Encoding.from_hex(valid_merkle_root)} == expect(%{hash: valid_merkle_root}, :hash, :hash)
 
       params = %{
-        hash: "0x" <> valid_merkle_root,
+        hash: valid_merkle_root,
         number: 1000,
         transactions: signed_txbytes
       }
 
-      response = WatcherHelper.rpc_call("block.validate", params, 200)
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
-      assert response == %{
-               "data" => %{
-                 "hash" => params.hash,
-                 "number" => params.number,
-                 "transactions" => params.transactions
-               },
-               "service_name" => "watcher_info",
-               "success" => true,
-               "version" => "1.0.3+3fae490"
+      assert data == %{
+               "hash" => params.hash,
+               "number" => params.number,
+               "transactions" => params.transactions
              }
     end
   end
