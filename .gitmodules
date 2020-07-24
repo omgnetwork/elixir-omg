@@ -2,4 +2,3 @@
 	path = priv/cabbage
 	url = git@github.com:omgnetwork/specs.git
         branch = master
-        
