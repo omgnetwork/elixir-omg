@@ -119,7 +119,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:error, :block_mismatched_merkle_root} == BlockValidator.verify_merkle_root(block)
+      assert {:error, :invalid_merkle_root} == BlockValidator.verify_merkle_root(block)
     end
 
     test "accepts matching Merkle root hash" do
