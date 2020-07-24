@@ -16,7 +16,6 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
   use ExUnit.Case, async: true
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.Eth.Encoding
   alias OMG.Merkle
   alias OMG.State.Transaction
   alias OMG.TestHelper
@@ -85,15 +84,8 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       [_, inputs_valid, outputs_valid, _, _] = ExRLP.decode(txbytes_valid)
       [_, inputs_invalid, outputs_invalid, _, _] = ExRLP.decode(txbytes_invalid)
 
-      hash_valid =
-        [sigs_valid, @payment_tx_type, inputs_valid, outputs_valid, 0, <<0::256>>]
-        |> ExRLP.encode()
-        |> Encoding.to_hex()
-
-      hash_invalid =
-        [sigs_invalid, @payment_tx_type, inputs_invalid, outputs_invalid, 0, <<0::256>>]
-        |> ExRLP.encode()
-        |> Encoding.to_hex()
+      hash_valid = ExRLP.encode([sigs_valid, @payment_tx_type, inputs_valid, outputs_valid, 0, <<0::256>>])
+      hash_invalid = ExRLP.encode([sigs_invalid, @payment_tx_type, inputs_invalid, outputs_invalid, 0, <<0::256>>])
 
       assert {:error, :duplicate_inputs} ==
                BlockValidator.verify_transactions([hash_invalid, hash_valid])
@@ -101,22 +93,13 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
 
     test "accepts correctly formed transactions" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}, {2, 0, 0, @alice}], @eth, [{@bob, 10}])
-
       recovered_tx_2 = TestHelper.create_recovered([{3, 0, 0, @alice}, {4, 0, 0, @alice}], @eth, [{@bob, 10}])
 
-      signed_txbytes_1 =
-        recovered_tx_1
-        |> Map.get(:signed_tx_bytes)
-        |> Encoding.to_hex()
+      signed_txbytes_1 = recovered_tx_1.signed_tx_bytes
+      signed_txbytes_2 = recovered_tx_2.signed_tx_bytes
 
-      signed_txbytes_2 =
-        recovered_tx_2
-        |> Map.get(:signed_tx_bytes)
-        |> Encoding.to_hex()
-
-      {:ok, expected_1} = signed_txbytes_1 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
-
-      {:ok, expected_2} = signed_txbytes_2 |> Encoding.from_hex() |> Transaction.Recovered.recover_from()
+      {:ok, expected_1} = Transaction.Recovered.recover_from(signed_txbytes_1)
+      {:ok, expected_2} = Transaction.Recovered.recover_from(signed_txbytes_2)
 
       assert {:ok, [expected_1, expected_2]} ==
                BlockValidator.verify_transactions([signed_txbytes_1, signed_txbytes_2])
@@ -128,10 +111,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
-      signed_txbytes =
-        [recovered_tx_1, recovered_tx_2]
-        |> Enum.map(fn tx -> tx.signed_tx_bytes end)
-        |> Enum.map(&Encoding.to_hex/1)
+      signed_txbytes = Enum.map([recovered_tx_1, recovered_tx_2], & &1.signed_tx_bytes)
 
       block = %{
         hash: "0x0",
@@ -139,30 +119,27 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:error, :mismatched_merkle_root} == BlockValidator.validate_merkle_root(block)
+      assert {:error, :block_mismatched_merkle_root} == BlockValidator.verify_merkle_root(block)
     end
 
     test "accepts matching Merkle root hash" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
-      signed_txbytes =
-        [recovered_tx_1, recovered_tx_2]
-        |> Enum.map(fn tx -> tx.signed_tx_bytes end)
-        |> Enum.map(&Encoding.to_hex/1)
+      signed_txbytes = Enum.map([recovered_tx_1, recovered_tx_2], & &1.signed_tx_bytes)
 
-      merkle_root =
+      valid_merkle_root =
         [recovered_tx_1, recovered_tx_2]
         |> Enum.map(&Transaction.raw_txbytes/1)
         |> Merkle.hash()
 
       block = %{
-        hash: merkle_root,
+        hash: valid_merkle_root,
         number: 1000,
         transactions: signed_txbytes
       }
 
-      assert {:ok, block} = BlockValidator.validate_merkle_root(block)
+      assert {:ok, block} = BlockValidator.verify_merkle_root(block)
     end
   end
 end

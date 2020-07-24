@@ -32,11 +32,10 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
   @doc """
   Verifies that given Merkle root matches reconstructed Merkle root.
   """
-  @spec validate_merkle_root(Block.t()) :: {:ok, Block.t()} | {:error, :mismatched_merkle_root}
-  def validate_merkle_root(block) do
+  @spec verify_merkle_root(Block.t()) :: {:ok, Block.t()} | {:error, :mismatched_merkle_root}
+  def verify_merkle_root(block) do
     %{hash: reconstructed_merkle_root_hash} =
       block.transactions
-      |> Enum.map(&Encoding.from_hex/1)
       |> Enum.map(fn tx ->
         {:ok, recovered_tx} = Transaction.Recovered.recover_from(tx)
         recovered_tx
@@ -45,7 +44,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
 
     case block.hash == reconstructed_merkle_root_hash do
       true -> {:ok, block}
-      _ -> {:error, :mismatched_merkle_root}
+      _ -> {:error, :block_mismatched_merkle_root}
     end
   end
 
@@ -57,7 +56,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
           | {:error, Transaction.Recovered.recover_tx_error()}
   def verify_transactions(transactions) do
     Enum.reduce_while(transactions, {:ok, []}, fn tx, {:ok, already_recovered} ->
-      case tx |> Encoding.from_hex() |> Transaction.Recovered.recover_from() do
+      case Transaction.Recovered.recover_from(tx) do
         {:ok, recovered} -> {:cont, {:ok, already_recovered ++ [recovered]}}
         error -> {:halt, error}
       end
