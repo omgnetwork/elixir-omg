@@ -438,6 +438,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Pull Submodules"
+          command: |
+            git submodule init
+            git submodule update --remote
+      - run:
           name: Setup data dir
           command: |
             [ -d data ] || mkdir data && chmod 777 data
@@ -448,7 +453,7 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Print docker states
           command: |
@@ -531,6 +536,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Pull Submodules"
+          command: |
+            git submodule init
+            git submodule update --remote
+      - run:
           name: Setup data dir
           command: |
             [ -d data1 ] || mkdir data1 && chmod 777 data1
@@ -543,7 +553,7 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services_reorg || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make start_daemon_services_reorg-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Print docker states
           command: |
@@ -572,19 +582,23 @@ jobs:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Print watcher logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow watcher
+          command: make cabbage-reorg-watcher-logs
           background: true
       - run:
           name: Print watcher_info logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow watcher_info
+          command: make cabbage-reorg-watcher_info-logs
           background: true
       - run:
           name: Print childchain logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow childchain
+          command: make cabbage-reorg-childchain-logs
+          background: true
+      - run:
+          name: Print geth logs
+          command: make cabbage-reorg-geth-logs
           background: true
       - run:
           name: Print reorg logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow | grep "reorg"
+          command: make cabbage-reorgs-logs
           background: true
       - run:
           name: Run specs
@@ -603,6 +617,11 @@ jobs:
       TERM: xterm-256color
     steps:
       - checkout
+      - run:
+          name: "Pull Submodules"
+          command: |
+            git submodule init
+            git submodule update --remote
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
           name: Start geth, postgres and pull in blockchain snapshot
