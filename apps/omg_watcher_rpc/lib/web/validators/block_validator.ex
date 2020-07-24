@@ -15,7 +15,6 @@
 defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
   use OMG.WatcherRPC.Web, :controller
   alias OMG.Block
-  alias OMG.Eth.Encoding
   alias OMG.State.Transaction
 
   @doc """
@@ -44,7 +43,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
 
     case block.hash == reconstructed_merkle_root_hash do
       true -> {:ok, block}
-      _ -> {:error, :block_mismatched_merkle_root}
+      _ -> {:error, :invalid_merkle_root}
     end
   end
 

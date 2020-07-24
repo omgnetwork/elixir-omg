@@ -194,8 +194,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
       assert data == %{
-               "code" => "block.validate:mismatched_merkle_root",
-               "description" => "Block hash doesn't match with reconstructed merkle root.",
+               "code" => "block.validate:invalid_merkle_root",
+               "description" => "Block hash does not match reconstructed Merkle root.",
                "object" => "error"
              }
     end
