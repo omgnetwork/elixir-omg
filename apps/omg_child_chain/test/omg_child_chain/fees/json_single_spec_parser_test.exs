@@ -66,6 +66,22 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParserTest do
               }} == JSONSingleSpecParser.parse({@eth_hex, spec})
     end
 
+    test "returns ok when given decimal to pegged_amount" do
+      spec = Map.put(@valid_spec, "pegged_amount", 0.33)
+
+      assert {:ok,
+              %{
+                token: @eth,
+                amount: 1,
+                subunit_to_unit: 1_000_000_000_000_000_000,
+                pegged_amount: 0.33,
+                pegged_currency: "USD",
+                pegged_subunit_to_unit: 100,
+                updated_at: "2019-01-01T10:10:00+00:00" |> DateTime.from_iso8601() |> elem(1),
+                type: :fixed
+              }} == JSONSingleSpecParser.parse({@eth_hex, spec})
+    end
+
     test "returns an `invalid_pegged_fields` error when given a nil pegged_amount alone" do
       spec = Map.put(@valid_spec, "pegged_amount", nil)
 
@@ -82,6 +98,12 @@ defmodule OMG.ChildChain.Fees.JSONSingleSpecParserTest do
       spec = Map.put(@valid_spec, "pegged_subunit_to_unit", nil)
 
       assert {:error, :invalid_pegged_fields} == JSONSingleSpecParser.parse({@eth_hex, spec})
+    end
+
+    test "returns an `invalid_pegged_subunit_to_unit` error when given a decimal pegged_subunit_to_unit" do
+      spec = Map.put(@valid_spec, "pegged_subunit_to_unit", 0.33)
+
+      assert {:error, :invalid_pegged_subunit_to_unit} == JSONSingleSpecParser.parse({@eth_hex, spec})
     end
 
     test "returns an `invalid_fee_spec` error when given an invalid map" do
