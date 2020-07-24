@@ -1,0 +1,683 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Child chain API
+  description: |
+    This is the documentation for child chain API.
+    Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
+  contact:
+    name: OmiseGO
+    email: omisego@omisego.co
+  license:
+    name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
+    url: 'https://omisego.network/'
+tags:
+  - name: Block
+    description: Block related API.
+  - name: Transaction
+    description: Transaction related API.
+  - name: Fees
+    description: Fees related API.
+servers:
+  - url: 'http://localhost:9656/'
+paths:
+  /alarm.get:
+    get:
+      tags:
+        - Alarm
+      summary: 'Provides alarms related to system memory, cpu and storage and application specific alarms.'
+      description: |
+        **Note:** Service operator alarms.
+      operationId: alarm_get
+      responses:
+        '200':
+          description: System alarms
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            anyOf:
+                              - type: object
+                                properties:
+                                  ethereum_connection_error:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  invalid_fee_source:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  statsd_client_connection:
+                                    type: object
+                                    properties:
+                                      node:
+                                        type: string
+                                      reporter:
+                                        type: string
+                              - type: object
+                                properties:
+                                  statsd_client_connection:
+                                    type: array
+                                    items:
+                                      type: string
+                                    default: []
+                              - type: object
+                                properties:
+                                  disk_almost_full:
+                                    type: string
+                    example:
+                      data:
+                        - disk_almost_full: /dev/null
+                          ethereum_connection_error: {}
+                          ethereum_stalled_sync: {}
+                          system_memory_high_watermark: []
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /configuration.get:
+    get:
+      tags:
+        - Configuration
+      summary: Provides configuration values
+      description: |
+        **Note:** Configuration values.
+      operationId: configuration_get
+      responses:
+        '200':
+          description: Configuration response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            deposit_finality_margin:
+                              type: integer
+                              format: int256
+                            contract_semver:
+                              type: string
+                            network:
+                              type: string
+                    example:
+                      data:
+                        - deposit_finality_margin: 10
+                          contract_semver: 1.0.0.1+a1s29s8
+                          network: RINKEBY
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /transaction.submit:
+    post:
+      tags:
+        - Transaction
+      summary: This endpoint submits a signed transaction to the child chain.
+      description: |
+        Normally you should call the Watcher's Transaction - Submit instead of this. The Watcher's version performs various security and validation checks before submitting the transaction, so is much safer. However, if the Watcher is not available this version exists.
+      operationId: submit
+      requestBody:
+        description: Signed transaction RLP-encoded to bytes and HEX-encoded to string
+        required: true
+        content:
+          application/json:
+            schema:
+              title: TransactionSubmitBodySchema
+              type: object
+              properties:
+                transaction:
+                  type: string
+              required:
+                - transaction
+              example:
+                transaction: 0xf8d083015ba98080808080940000...
+      responses:
+        '200':
+          description: Transaction submission successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          blknum:
+                            type: integer
+                            format: int64
+                          txindex:
+                            type: integer
+                            format: int16
+                          txhash:
+                            type: string
+                    example:
+                      data:
+                        blknum: 123000
+                        txindex: 111
+                        txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /block.get:
+    post:
+      tags:
+        - Block
+      summary: This endpoint retrieves a specific block from child chain by its hash which was published on root chain.
+      operationId: block_get
+      requestBody:
+        description: HEX-encoded hash of the block
+        required: true
+        content:
+          application/json:
+            schema:
+              title: GetBlockBodySchema
+              type: object
+              properties:
+                hash:
+                  type: string
+              required:
+                - hash
+              example:
+                hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+      responses:
+        '200':
+          description: Block succcessful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          transactions:
+                            type: array
+                            items:
+                              type: string
+                          hash:
+                            type: string
+                          blknum:
+                            type: integer
+                            format: int64
+                    example:
+                      data:
+                        blknum: 123000
+                        hash: '0x2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f'
+                        transactions:
+                          - 0xf8d083015ba98080808080940000...
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
+  /fees.all:
+    post:
+      tags:
+        - Fees
+      summary: This endpoint retrieves the list of fee tokens currently supported by the childchain and the current amount needed to perform a transaction.
+      operationId: fees_all
+      requestBody:
+        description: 'An optional array of currencies to filter, raises an error if one of the currencies is not supported.'
+        required: false
+        content:
+          application/json:
+            schema:
+              title: FeesAllBodySchema
+              type: object
+              properties:
+                currencies:
+                  type: array
+                  items:
+                    type: string
+                tx_types:
+                  type: array
+                  items:
+                    type: integer
+              example:
+                currencies:
+                  - '0x0000000000000000000000000000000000000000'
+                tx_types:
+                  - 1
+      responses:
+        '200':
+          description: List of all supported fees response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              currency:
+                                type: string
+                              amount:
+                                type: integer
+                                format: int256
+                              subunit_to_unit:
+                                type: integer
+                                format: int256
+                              pegged_currency:
+                                type: string
+                              pegged_amount:
+                                type: integer
+                                format: int256
+                              pegged_subunit_to_unit:
+                                type: integer
+                                format: int256
+                              updated_at:
+                                type: string
+                                format: date-time
+                    example:
+                      data:
+                        '1':
+                          - currency: '0x0000000000000000000000000000000000000000'
+                            amount: 220000000000000
+                            subunit_to_unit: 1000000000000000000
+                            pegged_currency: USD
+                            pegged_amount: 4
+                            pegged_subunit_to_unit: 100
+                            updated_at: '2019-01-01T10:10:10+00:00'
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      service_name:
+                        type: string
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                    required:
+                      - version
+                      - success
+                      - data
+                      - service_name
+                    example:
+                      service_name: child_chain
+                      version: 1.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason

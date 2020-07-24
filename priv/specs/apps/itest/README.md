@@ -1,0 +1,1 @@
+Cucumber is non-toxic to rabbits, and most enjoy the taste. Rabbits can safely eat cucumber flesh, skin, and seeds. However, cucumber contains few nutrients and has high water content. It can cause diarrhea if eaten in excess.
