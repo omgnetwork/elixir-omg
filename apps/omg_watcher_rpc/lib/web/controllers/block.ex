@@ -62,8 +62,4 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
       {:ok, block}
     end
   end
-
-  @spec stateful_validate(Block.t()) :: any
-  defp stateful_validate(_block) do
-  end
 end
