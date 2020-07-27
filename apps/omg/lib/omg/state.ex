@@ -45,8 +45,6 @@ defmodule OMG.State do
 
   @type exec_error :: Validator.can_process_tx_error()
 
-  @timeout 10_000
-
   ### Client
 
   @doc """
@@ -67,7 +65,7 @@ defmodule OMG.State do
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}}
           | {:error, exec_error()}
   def exec(tx, input_fees) do
-    GenServer.call(__MODULE__, {:exec, tx, input_fees}, @timeout)
+    GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
   @doc """
@@ -80,7 +78,7 @@ defmodule OMG.State do
   """
   @spec close_block() :: {:ok, list(Core.db_update())}
   def close_block() do
-    GenServer.call(__MODULE__, :close_block, @timeout)
+    GenServer.call(__MODULE__, :close_block)
   end
 
   @doc """
@@ -104,7 +102,7 @@ defmodule OMG.State do
   def deposit([]), do: {:ok, []}
 
   def deposit(deposits) do
-    GenServer.call(__MODULE__, {:deposit, deposits}, @timeout)
+    GenServer.call(__MODULE__, {:deposit, deposits})
   end
 
   @doc """
@@ -121,7 +119,7 @@ defmodule OMG.State do
   def exit_utxos([]), do: {:ok, [], {[], []}}
 
   def exit_utxos(exiting_utxo_triggers) do
-    GenServer.call(__MODULE__, {:exit_utxos, exiting_utxo_triggers}, @timeout)
+    GenServer.call(__MODULE__, {:exit_utxos, exiting_utxo_triggers})
   end
 
   @doc """
@@ -129,7 +127,7 @@ defmodule OMG.State do
   """
   @spec utxo_exists?(Utxo.Position.t()) :: boolean()
   def utxo_exists?(utxo) do
-    GenServer.call(__MODULE__, {:utxo_exists, utxo}, @timeout)
+    GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
   @doc """
@@ -140,7 +138,7 @@ defmodule OMG.State do
   """
   @spec get_status() :: {non_neg_integer(), boolean()}
   def get_status() do
-    GenServer.call(__MODULE__, :get_status, @timeout)
+    GenServer.call(__MODULE__, :get_status)
   end
 
   ### Server
