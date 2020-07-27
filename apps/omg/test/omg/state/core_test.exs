@@ -470,18 +470,6 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "can spend after block is formed", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    next_block_height = @blknum2
-    {:ok, {_, _}, state} = form_block_check(state)
-
-    state
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 2}]), @fee)
-    |> success?
-    |> Core.exec(create_recovered([{next_block_height, 0, 0, bob}], @eth, [{bob, 6}]), @fee)
-    |> success?
-  end
-
-  @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block doesn't unspend", %{alice: alice, bob: bob, state_alice_deposit: state} do
     recovered = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 2}])
 
@@ -569,6 +557,23 @@ defmodule OMG.State.CoreTest do
     expected_block = empty_block(@blknum2)
 
     assert {:ok, {^expected_block, _}, _} = form_block_check(state)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "forming block emptis utxos memory cache", %{
+    alice: alice,
+    bob: bob,
+    state_alice_deposit: state
+  } do
+    state =
+      state
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 2}]), @fee)
+      |> success?
+
+    assert map_size(state.utxos) > 0
+
+    {:ok, {_, _}, state} = form_block_check(state)
+    assert map_size(state.utxos) == 0
   end
 
   @tag fixtures: [:state_empty]
@@ -953,12 +958,27 @@ defmodule OMG.State.CoreTest do
     end
 
     test "should create utxos from claimed fee", %{alice: alice, state: state, fee_claimer: fee_claimer} do
+      pre_state_utxo_db_updates = state.utxo_db_updates
       state = Core.claim_fees(state)
-      {:ok, _, state} = form_block_check(state)
+      post_state_utxo_db_updates = state.utxo_db_updates
 
-      state
-      |> Core.exec(create_recovered([{1000, 1, 0, fee_claimer}], @eth, [{alice, 2}]), :no_fees_required)
-      |> success?()
+      assert [
+               {
+                 :put,
+                 :utxo,
+                 {
+                   {:input_pointer, 1, {1000, 1, 0}},
+                   %{
+                     output: %{
+                       amount: 2,
+                       currency: @eth,
+                       output_type: 2,
+                       owner: fee_claimer
+                     }
+                   }
+                 }
+               }
+             ] = post_state_utxo_db_updates -- pre_state_utxo_db_updates
     end
 
     test "fee txs cannot be intermixed with payments", %{alice: alice, state: state, fees: fees} do

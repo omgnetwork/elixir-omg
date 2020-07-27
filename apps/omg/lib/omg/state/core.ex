@@ -257,6 +257,8 @@ defmodule OMG.State.Core do
       | tx_index: 0,
         height: state.height + state.child_block_interval,
         pending_txs: [],
+        # cleanup utxo cache on end of the life cycle of each block: https://github.com/omgnetwork/private-issues/issues/62
+        utxos: %{},
         utxo_db_updates: [],
         recently_spent: MapSet.new(),
         fees_paid: %{},
