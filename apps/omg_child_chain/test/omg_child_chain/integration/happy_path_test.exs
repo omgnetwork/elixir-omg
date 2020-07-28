@@ -210,7 +210,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(deposit_double_spend)
 
-    first_output_double_spend = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 7}])
+    first_output_double_spend = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 5}])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(first_output_double_spend)
 
     second_output_spend = OMG.TestHelper.create_encoded([{blknum, 0, 1, alice}], @eth, [{alice, 2}])
