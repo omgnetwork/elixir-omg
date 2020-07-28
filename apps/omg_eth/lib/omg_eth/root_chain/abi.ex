@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule OMG.Eth.RootChain.Abi do
   @moduledoc """
-  Functions that provide ethereum log decoding 
+  Functions that provide ethereum log decoding
   """
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain.AbiEventSelector
@@ -34,8 +34,10 @@ defmodule OMG.Eth.RootChain.Abi do
         _, acc -> acc
       end)
 
-    {function_spec, data} = ABI.find_and_decode(function_specs, enriched_data)
-    decode_function_call_result(function_spec, data)
+    case ABI.find_and_decode(function_specs, enriched_data) do
+      {:error, _} = e -> e
+      {function_spec, data} -> decode_function_call_result(function_spec, data)
+    end
   end
 
   def decode_log(log) do
