@@ -58,7 +58,7 @@ services:
     volumes:
       - ./data:/data
     healthcheck:
-      test: curl geth:8545
+      test: curl localhost:8545
       interval: 5s
       timeout: 3s
       retries: 5
@@ -117,11 +117,11 @@ services:
       - ./data:/data
       - ./priv/dev-artifacts:/dev-artifacts
     healthcheck:
-      test: curl childchain:9656
+      test: curl localhost:9656
       interval: 30s
-      timeout: 1s
+      timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     depends_on:
       nginx:
         condition: service_healthy
@@ -160,7 +160,7 @@ services:
     volumes:
       - ./data:/data
     healthcheck:
-      test: curl watcher:7434
+      test: curl localhost:7434
       interval: 30s
       timeout: 1s
       retries: 5
@@ -203,7 +203,7 @@ services:
     volumes:
       - ./data:/data
     healthcheck:
-      test: curl watcher_info:7534
+      test: curl localhost:7534
       interval: 30s
       timeout: 1s
       retries: 5

@@ -167,6 +167,43 @@ mix deps.get
 mix test
 ```
 
+## Running reorg cabbage tests
+
+Reorg tests test different assumptions against chain reorgs. They also use the same submodule as regular integration cabbage tests.
+
+Fetch submodule:
+```bash
+git submodule init
+git submodule update --remote
+```
+
+Create a directory for geth nodes:
+```bash
+mkdir data1 && chmod 777 data1 && mkdir data2 && chmod 777 data2 && mkdir data && chmod 777 data
+```
+
+Make services:
+```bash
+make docker-child_chain
+make docker-watcher
+make docker-watcher_info
+```
+
+Start geth nodes and postgres:
+```bash
+cd priv/cabbage
+make start_daemon_services_reorg-2
+```
+
+Build the integration tests project and run reorg tests:
+```bash
+cd priv/cabbage
+make install
+make generate_api_code
+mix deps.get
+REORG=true mix test --only reorg --trace
+```
+
 # Working with API Spec's
 
 This repo contains `gh-pages` branch intended to host [Swagger-based](https://docs.omg.network/elixir-omg/) API specification.
