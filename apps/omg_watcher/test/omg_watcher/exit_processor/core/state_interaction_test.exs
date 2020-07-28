@@ -179,55 +179,6 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert Utxo.position(1, 0, 0) in spends_to_get
   end
 
-  test "can work with State to exit utxos from in-flight transactions",
-       %{processor_empty: processor, state_empty: state, alice: alice} do
-    # canonical & included
-    ife_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}])
-    ife_id1 = 1
-    # non-canonical
-    ife_exit_tx2 = TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{alice, 19}])
-    tx_hash2 = State.Transaction.raw_txhash(ife_exit_tx2)
-    ife_id2 = 2
-
-    {:ok, {tx_hash1, _, _}, state} =
-      state
-      |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
-      |> State.Core.exec(ife_exit_tx1, @fee)
-
-    {:ok, {block, _}, state} = State.Core.form_block(state)
-
-    request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}
-
-    processor =
-      processor
-      |> start_ife_from(ife_exit_tx1, exit_id: ife_id1)
-      |> start_ife_from(ife_exit_tx2, exit_id: ife_id2)
-      |> piggyback_ife_from(tx_hash1, 0, :output)
-      |> piggyback_ife_from(tx_hash2, 0, :input)
-      |> Core.find_ifes_in_blocks(request)
-
-    finalizations = [
-      %{in_flight_exit_id: ife_id1, output_index: 0, omg_data: %{piggyback_type: :output}},
-      %{in_flight_exit_id: ife_id2, output_index: 0, omg_data: %{piggyback_type: :input}}
-    ]
-
-    ife_id1 = <<ife_id1::192>>
-    ife_id2 = <<ife_id2::192>>
-    ife_tx1_output_pos = Utxo.position(1000, 0, 0)
-    ife_tx2_input_pos = Utxo.position(2, 0, 0)
-
-    {:ok, %{^ife_id1 => exiting_positions1, ^ife_id2 => exiting_positions2},
-     [
-       {%{in_flight_exit_id: ^ife_id1}, [^ife_tx1_output_pos]},
-       {%{in_flight_exit_id: ^ife_id2}, [^ife_tx2_input_pos]}
-     ]} = Core.prepare_utxo_exits_for_in_flight_exit_finalizations(processor, finalizations)
-
-    assert {:ok,
-            {[{:delete, :utxo, _}, {:delete, :utxo, _}], {[Utxo.position(1000, 0, 0), Utxo.position(2, 0, 0)], []}},
-            _} = State.Core.exit_utxos(exiting_positions1 ++ exiting_positions2, state)
-  end
-
   test "tolerates piggybacked outputs exiting if they're concerning non-included IFE txs",
        %{processor_empty: processor, state_empty: state, alice: alice} do
     ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
