@@ -22,6 +22,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Event
   alias OMG.Eth.RootChain.Rpc
+  alias OMG.Eth.Tenderly.CallData
 
   @timeout 55_000
   @type result() :: {:ok, list(map())} | {:error, :check_range}
@@ -148,16 +149,34 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
 
       case Keyword.fetch!(event, :enrich) do
         true ->
-          {:ok, enriched_data} = rpc.get_call_data(decoded_log.root_chain_txhash)
-
-          enriched_data_decoded = enriched_data |> from_hex |> Abi.decode_function()
-          # TODO: if decode_function returns error try to parse from tenderly
-          Map.put(decoded_log, :call_data, enriched_data_decoded)
+          decode_call_data(decoded_log, rpc)
 
         _ ->
           decoded_log
       end
     end)
+  end
+
+  defp decode_call_data(decoded_log, rpc) do
+    {:ok, enriched_data} = rpc.get_call_data(decoded_log.root_chain_txhash)
+
+    enriched_data
+    |> from_hex
+    |> Abi.decode_function()
+    |> case do
+      {:error, reason} ->
+        _ = Logger.error("Failed to decode call data from #{enriched_data}, error=#{reason}")
+        get_call_data_from_tenderly(decoded_log)
+
+      enriched_data_decoded ->
+        Map.put(decoded_log, :call_data, enriched_data_decoded)
+    end
+  end
+
+  defp get_call_data_from_tenderly(decoded_log) do
+    {:ok, enriched_data} = CallData.get_call_data(decoded_log.root_chain_txhash)
+    enriched_data_decoded = enriched_data |> from_hex |> Abi.decode_function()
+    Map.put(decoded_log, :call_data, enriched_data_decoded)
   end
 
   defp store_logs(decoded_logs, from_block, to_block, state) do

@@ -38,4 +38,9 @@ defmodule OMG.Eth.Client do
       {:error, :econnrefused} -> {:error, :geth_not_listening}
     end
   end
+
+  def get_transaction_by_hash(tx_hash, client \\ Ethereumex.HttpClient) do
+    tx_hash_hex = Encoding.to_hex(tx_hash)
+    client.eth_get_transaction_by_hash(tx_hash_hex)
+  end
 end
