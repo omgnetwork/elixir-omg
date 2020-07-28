@@ -208,13 +208,20 @@ defmodule OMG.State do
     - returns the `db_updates` to be applied by the caller
   """
   def handle_call({:exit_utxos, exiting_utxo_triggers}, _from, state) do
+    Logger.warn("================ DEBUG 2=======================")
     exiting_utxos = Core.extract_exiting_utxo_positions(exiting_utxo_triggers, state)
 
     db_utxos = fetch_utxos_from_db(exiting_utxos, state)
     state = Core.with_utxos(state, db_utxos)
 
+    Logger.warn("exit_utxos exiting_utxo_triggers: #{inspect(exiting_utxo_triggers)}")
+    Logger.warn("exit_utxos db_utxos: #{inspect(db_utxos)}")
+    Logger.warn("exit_utxos state before Core.exit_utxos: #{inspect(state)}")
+
     {:ok, {db_updates, validities}, new_state} = Core.exit_utxos(exiting_utxos, state)
 
+    Logger.warn("exit_utxos state after Core.exit_utxos: #{inspect(new_state)}")
+    Logger.warn("================ DEBUG 2=======================")
     {:reply, {:ok, db_updates, validities}, new_state}
   end
 
@@ -261,14 +268,19 @@ defmodule OMG.State do
     - pushes the new block to subscribers of `"blocks"` internal event bus topic
   """
   def handle_cast(:form_block, state) do
+    Logger.warn("================ DEBUG :form_block=======================")
     _ = Logger.debug("Forming new block...")
     state = Core.claim_fees(state)
+    Logger.warn("utxos before forming block: #{inspect(state.utxos)}")
     {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = Core.form_block(state)
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
     # new block
+    Logger.warn("updating db: #{inspect(db_updates)}")
     :ok = DB.multi_update(db_updates)
+    Logger.warn("!!!db_updated!!")
+    Logger.warn("================ DEBUG :form_block=======================")
 
     :ok = publish_block_to_event_bus(block)
     {:noreply, new_state}
