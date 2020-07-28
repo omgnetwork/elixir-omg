@@ -145,8 +145,9 @@ defmodule OMG.ChildChain.SyncSupervisor do
   end
 
   defp exit_and_ignore_validities(exits) do
+    Logger.warn("================ DEBUG :exit_and_ignore_validities =======================")
+    Logger.warn("start State.exit_utxos(exits)...")
     {status, db_updates, _validities} = State.exit_utxos(exits)
-    Logger.warn("================ DEBUG =======================")
     Logger.warn("exit_utxos exits: #{inspect(exits)}")
     Logger.warn("exit_utxos db_updates: #{inspect(db_updates)}")
     Logger.warn("================ DEBUG =======================")

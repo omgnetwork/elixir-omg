@@ -208,20 +208,24 @@ defmodule OMG.State do
     - returns the `db_updates` to be applied by the caller
   """
   def handle_call({:exit_utxos, exiting_utxo_triggers}, _from, state) do
-    Logger.warn("================ DEBUG 2=======================")
+    Logger.warn("================ DEBUG :exit_utxos =======================")
     exiting_utxos = Core.extract_exiting_utxo_positions(exiting_utxo_triggers, state)
 
+    Logger.warn("start fetch_utxos_from_db....")
     db_utxos = fetch_utxos_from_db(exiting_utxos, state)
+    Logger.warn("fetch_utxos_from_db done....")
+
     state = Core.with_utxos(state, db_utxos)
 
     Logger.warn("exit_utxos exiting_utxo_triggers: #{inspect(exiting_utxo_triggers)}")
+    Logger.warn("exit_utxos exiting_utxos: #{inspect(exiting_utxos)}")
     Logger.warn("exit_utxos db_utxos: #{inspect(db_utxos)}")
     Logger.warn("exit_utxos state before Core.exit_utxos: #{inspect(state)}")
 
     {:ok, {db_updates, validities}, new_state} = Core.exit_utxos(exiting_utxos, state)
 
     Logger.warn("exit_utxos state after Core.exit_utxos: #{inspect(new_state)}")
-    Logger.warn("================ DEBUG 2=======================")
+    Logger.warn("================ DEBUG :exit_utxos DONE =======================")
     {:reply, {:ok, db_updates, validities}, new_state}
   end
 
@@ -297,12 +301,29 @@ defmodule OMG.State do
     utxo_pos_list
     |> Stream.reject(&Core.utxo_processed?(&1, state))
     |> Enum.map(&utxo_from_db/1)
+    |> (fn x ->
+          Logger.warn(">>>>>> after Enum.map: #{inspect(x)}")
+          x
+        end).()
     |> UtxoSet.init()
+    |> (fn x ->
+          Logger.warn(">>>>>> after UtxoSet.init: #{inspect(x)}")
+          x
+        end).()
   end
 
   defp utxo_from_db(input_pointer) do
     # `DB` query can return `:not_found` which is filtered out by following `is_input_pointer?`
-    with {:ok, utxo_kv} <- DB.utxo(Utxo.Position.to_input_db_key(input_pointer)),
-         do: utxo_kv
+    with {:ok, utxo_kv} <- DB.utxo(Utxo.Position.to_input_db_key(input_pointer)) do
+      Logger.warn(">>>>> utxo_from_db get utxo: #{inspect(utxo_kv)} >>>>>>>>>>>")
+      utxo_kv
+    else
+      result ->
+        Logger.warn(
+          ">>>>> utxo_from_db failed result: #{inspect(result)} with input_pointer: #{inspect(input_pointer)} >>>>>>>>>>>"
+        )
+
+        result
+    end
   end
 end
