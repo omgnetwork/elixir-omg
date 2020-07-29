@@ -190,26 +190,6 @@ defmodule OMG.Eth.RootChain.Fields do
     Map.delete(reduce_naming(data, contracts_naming), :output_tx_inclusion_proof)
   end
 
-  # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
-  def rename(data, %ABI.FunctionSelector{function: "startExit"}) do
-    contracts_naming = [
-      {"utxoPosToExit", :utxo_pos},
-      {"rlpOutputTxToContract", :output_tx},
-      {"outputTxToContractInclusionProof", :output_tx_inclusion_proof},
-      {"rlpInputCreationTx", :rlp_input_creation_tx},
-      {"inputCreationTxInclusionProof", :input_creation_tx_inclusion_proof},
-      {"utxoPosInput", :utxo_pos_input}
-    ]
-
-    # not used and discarded
-    Map.drop(reduce_naming(data, contracts_naming), [
-      :output_tx_inclusion_proof,
-      :rlp_input_creation_tx,
-      :input_creation_tx_inclusion_proof,
-      :utxo_pos_input
-    ])
-  end
-
   def rename(data, %ABI.FunctionSelector{function: "challengeInFlightExitNotCanonical"}) do
     contracts_naming = [
       {"competingTx", :competing_tx},
