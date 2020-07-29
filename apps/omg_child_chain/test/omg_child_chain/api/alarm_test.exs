@@ -28,6 +28,7 @@ defmodule OMG.ChildChain.API.AlarmTest do
 
   setup %{} do
     system_alarm = {:system_memory_high_watermark, []}
+    process_memory_high_watermark_alarm = {:process_memory_high_watermark, :c.pid(0, 250, 0)}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
     app_alarm = {:ethereum_connection_error, %{node: Node.self(), reporter: Reporter}}
 
@@ -35,11 +36,18 @@ defmodule OMG.ChildChain.API.AlarmTest do
       :alarm_handler.clear_alarm(app_alarm)
       :alarm_handler.clear_alarm(system_alarm)
       :alarm_handler.clear_alarm(system_disk_alarm)
+      :alarm_handler.clear_alarm(process_memory_high_watermark_alarm)
     end)
 
     all = :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
     :ok = Enum.each(all, &:alarm_handler.clear_alarm(&1))
-    %{system_alarm: system_alarm, system_disk_alarm: system_disk_alarm, app_alarm: app_alarm}
+
+    %{
+      system_alarm: system_alarm,
+      system_disk_alarm: system_disk_alarm,
+      app_alarm: app_alarm,
+      process_memory_high_watermark_alarm: process_memory_high_watermark_alarm
+    }
   end
 
   test "if alarms are returned when there are no alarms raised", _ do
@@ -51,14 +59,17 @@ defmodule OMG.ChildChain.API.AlarmTest do
   test "if alarms are returned when there are alarms raised", %{
     system_alarm: system_alarm,
     system_disk_alarm: system_disk_alarm,
-    app_alarm: app_alarm
+    app_alarm: app_alarm,
+    process_memory_high_watermark_alarm: process_memory_high_watermark_alarm
   } do
     :alarm_handler.set_alarm(system_alarm)
     :alarm_handler.set_alarm(app_alarm)
     :alarm_handler.set_alarm(system_disk_alarm)
+    :alarm_handler.set_alarm(process_memory_high_watermark_alarm)
 
     {:ok,
      [
+       ^process_memory_high_watermark_alarm,
        {{:disk_almost_full, "/dev/null"}, []},
        {:ethereum_connection_error, %{node: :nonode@nohost, reporter: Reporter}},
        {:system_memory_high_watermark, []}
