@@ -38,8 +38,8 @@ defmodule OMG.ChildChainRPC.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps() do
     [
-      {:phoenix, "~> 1.3"},
-      {:plug_cowboy, "~> 1.0"},
+      {:phoenix, "~> 1.5"},
+      {:plug_cowboy, "~> 2.3"},
       {:httpoison, "~> 1.6", override: true},
       {:cors_plug, "~> 2.0"},
       {:spandex_phoenix, "~> 0.4.1"},

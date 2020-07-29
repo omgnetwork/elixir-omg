@@ -30,5 +30,5 @@ defmodule OMG.Bus.MixProject do
   defp elixirc_paths(:dev), do: ["lib"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
 
-  defp deps(), do: [{:phoenix_pubsub, "~> 1.0"}]
+  defp deps(), do: [{:phoenix_pubsub, "~> 2.0"}]
 end

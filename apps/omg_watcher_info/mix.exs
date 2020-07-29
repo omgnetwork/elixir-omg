@@ -51,10 +51,10 @@ defmodule OMG.WatcherInfo.MixProject do
 
       # TEST ONLY
       # here only to leverage common test helpers and code
-      {:fake_server, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:fake_server, "~> 2.1", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test]},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},
-      {:phoenix, "~> 1.3", runtime: false},
+      {:phoenix, "~> 1.5", runtime: false},
       {:ex_machina, "~> 2.3", only: [:test], runtime: false}
     ]
   end
