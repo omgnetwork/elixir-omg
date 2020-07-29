@@ -148,6 +148,11 @@ defmodule OMG.State.Transaction.RecoveredTest do
                  ExRLP.encode([ExPlasma.payment_v1(), @payment_tx_type, inputs, outputs, 0, <<0::256>>])
                )
 
+      assert {:error, :malformed_witnesses} ==
+               Transaction.Recovered.recover_from(
+                 ExRLP.encode([[sigs], @payment_tx_type, inputs, outputs, 0, <<0::256>>])
+               )
+
       assert {:error, :malformed_inputs} =
                Transaction.Recovered.recover_from(ExRLP.encode([sigs, @payment_tx_type, 42, outputs, 0, <<0::256>>]))
 
