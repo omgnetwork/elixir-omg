@@ -25,7 +25,7 @@ defmodule OMG.Eth.Tenderly.CallData do
   @doc """
   Returns call data matching any of the functions that we are parsing call data from
   """
-  @spec get_call_data(binary(), module(), module()) :: {:ok, binary()} | :no_matching_function
+  @spec get_call_data(binary(), module(), module()) :: {:ok, binary()} | {:error, atom()}
   def get_call_data(root_chain_tx_hash, tenderly_client \\ Client, eth_client \\ OMG.Eth.Client) do
     {:ok, transaction} = eth_client.get_transaction_by_hash(root_chain_tx_hash)
     from = Map.fetch!(transaction, "from")
@@ -46,11 +46,15 @@ defmodule OMG.Eth.Tenderly.CallData do
       gas: gas
     }
 
-    {:ok, simulate_response} = tenderly_client.simulate_transaction(simulate_request)
+    case tenderly_client.simulate_transaction(simulate_request) do
+      {:ok, simulate_response} ->
+        @function_names
+        |> Enum.map(fn function_name -> get_call_data_for_function(function_name, simulate_response) end)
+        |> Enum.find({:error, :no_matching_function}, &match?({:ok, _}, &1))
 
-    @function_names
-    |> Enum.map(fn function_name -> get_call_data_for_function(function_name, simulate_response) end)
-    |> Enum.find(:no_matching_function, &match?({:ok, _}, &1))
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp get_call_data_for_function(function_name, simulate_response) do
@@ -63,7 +67,7 @@ defmodule OMG.Eth.Tenderly.CallData do
       |> Enum.find(fn %{"function_name" => fn_name} -> fn_name == function_name end)
 
     if call == nil do
-      :no_matching_function
+      {:error, :no_matching_function}
     else
       input = Map.get(call, "input")
       {:ok, input}

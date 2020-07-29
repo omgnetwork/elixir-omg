@@ -44,7 +44,11 @@ defmodule OMG.Eth.Tenderly.Client do
     options = get_tenderly_call_options()
 
     url
-    |> HTTPoison.post(body, [{"content-type", "application/json"}, {"x-access-key", access_key}], options)
+    |> HTTPoison.post(
+      body,
+      [{"Content-Type", "application/json"}, {"x-access-key", access_key}, {"Connection", "keep-alive"}],
+      options
+    )
     |> handle_response()
   end
 
