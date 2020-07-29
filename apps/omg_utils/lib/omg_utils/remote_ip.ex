@@ -11,32 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+defmodule OMG.Utils.RemoteIP do
+  @moduledoc """
+  This plug sets remote_ip from x-forwarded-for header.
+  """
+  import Plug.Conn
 
-defmodule OMG.WatcherRPC.Web.Endpoint do
-  use Phoenix.Endpoint, otp_app: :omg_watcher_rpc
-  use Sentry.Phoenix.Endpoint
+  def init(options), do: options
 
-  plug(OMG.Utils.RemoteIP)
-  plug(Plug.RequestId)
-  plug(Plug.Logger, log: :debug)
+  def call(conn, _opts) do
+    x_forwarded_for_ip = get_req_header(conn, "x-forwarded-for")
 
-  if code_reloading? do
-    plug(Phoenix.CodeReloader)
+    parse_and_set_ip(conn, x_forwarded_for_ip)
   end
 
-  plug(
-    Plug.Parsers,
-    parsers: [:json],
-    pass: [],
-    json_decoder: Jason
-  )
+  defp parse_and_set_ip(conn, [forwarded_ip]) when is_binary(forwarded_ip) do
+    case forwarded_ip |> String.to_charlist() |> :inet.parse_address() do
+      {:ok, ip} -> %{conn | remote_ip: ip}
+      _ -> conn
+    end
+  end
 
-  plug(Plug.MethodOverride)
-  plug(Plug.Head)
-
-  if Application.get_env(:omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint)[:enable_cors],
-    do: plug(CORSPlug)
-
-  plug(OMG.WatcherRPC.Web.Plugs.MethodParamFilter)
-  plug(OMG.WatcherRPC.Web.Router)
+  defp parse_and_set_ip(conn, _ip) do
+    conn
+  end
 end
