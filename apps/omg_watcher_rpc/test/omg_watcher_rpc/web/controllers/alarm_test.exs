@@ -41,6 +41,17 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
     assert [] == get("alarm.get")
   end
 
+  @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
+  test "sets remote ip from X-Forwarded-For header", _ do
+    response =
+      build_conn()
+      |> put_req_header("content-type", "application/json")
+      |> put_req_header("x-forwarded-for", "99.99.99.99")
+      |> get("alarm.get")
+
+    assert response.remote_ip == {99, 99, 99, 99}
+  end
+
   defp get(path) do
     response_body = rpc_call_get(path, 200)
     version = Map.get(response_body, "version")

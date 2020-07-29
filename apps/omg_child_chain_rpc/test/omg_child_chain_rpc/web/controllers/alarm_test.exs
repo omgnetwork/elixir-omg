@@ -15,8 +15,11 @@
 defmodule OMG.ChildChainRPC.Web.Controller.AlarmTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
+  use Phoenix.ConnTest
 
   alias OMG.ChildChainRPC.Web.TestHelper
+
+  @endpoint OMG.ChildChainRPC.Web.Endpoint
 
   setup do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
@@ -38,5 +41,16 @@ defmodule OMG.ChildChainRPC.Web.Controller.AlarmTest do
     response = TestHelper.rpc_call(:get, "alarm.get")
     version = Map.get(response, "version")
     %{"data" => [], "success" => true, "version" => ^version} = response
+  end
+
+  @tag fixtures: [:phoenix_sandbox]
+  test "sets remote ip from X-Forwarded-For header", _ do
+    response =
+      build_conn()
+      |> put_req_header("content-type", "application/json")
+      |> put_req_header("x-forwarded-for", "99.99.99.99")
+      |> get("alarm.get")
+
+    assert response.remote_ip == {99, 99, 99, 99}
   end
 end

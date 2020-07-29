@@ -38,6 +38,7 @@ defmodule OMG.WatcherRPC.Mixfile do
       {:spandex_phoenix, "~> 0.4.1"},
       {:spandex_datadog, "~> 0.4"},
       {:telemetry, "~> 0.4.1"},
+      {:remote_ip, "~> 0.2.0"},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
