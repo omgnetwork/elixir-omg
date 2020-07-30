@@ -26,13 +26,12 @@ defmodule OMG.Utils.RemoteIP do
   end
 
   defp parse_and_set_ip(conn, [forwarded_ips]) when is_binary(forwarded_ips) do
-    right_ip =
+    left_ip =
       forwarded_ips
       |> String.split(",")
-      |> Enum.reverse()
       |> List.first()
 
-    parse_ip(conn, right_ip)
+    parse_ip(conn, left_ip)
   end
 
   defp parse_and_set_ip(conn, _ip), do: conn
