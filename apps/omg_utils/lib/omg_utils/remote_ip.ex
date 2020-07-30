@@ -25,14 +25,30 @@ defmodule OMG.Utils.RemoteIP do
     parse_and_set_ip(conn, x_forwarded_for_ip)
   end
 
-  defp parse_and_set_ip(conn, [forwarded_ip]) when is_binary(forwarded_ip) do
-    case forwarded_ip |> String.to_charlist() |> :inet.parse_address() do
+  defp parse_and_set_ip(conn, [forwarded_ips]) when is_binary(forwarded_ips) do
+    right_ip =
+      forwarded_ips
+      |> String.split(",")
+      |> Enum.reverse()
+      |> List.first()
+
+    parse_ip(conn, right_ip)
+  end
+
+  defp parse_and_set_ip(conn, _ip), do: conn
+
+  defp parse_ip(conn, ip_string) when is_binary(ip_string) do
+    parsed_ip =
+      ip_string
+      |> String.trim()
+      |> String.to_charlist()
+      |> :inet.parse_address()
+
+    case parsed_ip do
       {:ok, ip} -> %{conn | remote_ip: ip}
       _ -> conn
     end
   end
 
-  defp parse_and_set_ip(conn, _ip) do
-    conn
-  end
+  defp parse_ip(conn, _), do: conn
 end

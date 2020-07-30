@@ -48,5 +48,17 @@ defmodule OMG.Utils.RemoteIPTest do
 
       assert is_nil(conn_with_remote_ip.remote_ip)
     end
+
+    test "sets the right-most ip address" do
+      conn = %Plug.Conn{
+        req_headers: [
+          {"x-forwarded-for", "99.99.99.99, 77.77.77.77"}
+        ]
+      }
+
+      conn_with_remote_ip = RemoteIP.call(conn, %{})
+
+      assert conn_with_remote_ip.remote_ip == {77, 77, 77, 77}
+    end
   end
 end
