@@ -53,4 +53,15 @@ defmodule OMG.ChildChainRPC.Web.Controller.AlarmTest do
 
     assert response.remote_ip == {99, 99, 99, 99}
   end
+
+  @tag fixtures: [:phoenix_sandbox]
+  test "sets the right most remote ip from X-Forwarded-For header", _ do
+    response =
+      build_conn()
+      |> put_req_header("content-type", "application/json")
+      |> put_req_header("x-forwarded-for", "99.99.99.99, 77.77.77.77")
+      |> get("alarm.get")
+
+    assert response.remote_ip == {77, 77, 77, 77}
+  end
 end
