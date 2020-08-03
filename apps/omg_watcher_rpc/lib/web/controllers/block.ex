@@ -56,9 +56,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   end
 
   @spec stateless_validate(Block.t()) :: any
-  defp stateless_validate(block) do
-    with {:ok, block} <- Validator.BlockValidator.verify_merkle_root(block),
-         {:ok, block} <- Validator.BlockValidator.verify_transactions(block.transactions) do
+  defp stateless_validate(submitted_block) do
+    with {:ok, recovered_transactions} <- Validator.BlockValidator.verify_transactions(submitted_block.transactions),
+         {:ok, block} <- Validator.BlockValidator.verify_merkle_root(submitted_block, recovered_transactions) do
       {:ok, block}
     end
   end

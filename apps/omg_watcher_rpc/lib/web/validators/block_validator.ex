@@ -19,12 +19,14 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
 
   use OMG.WatcherRPC.Web, :controller
   alias OMG.Block
+  alias OMG.Merkle
   alias OMG.State.Transaction
 
   @doc """
   Validates that a block submitted for validation is correctly formed.
   """
-  @spec parse_to_validate(Block.t()) :: {:error, {:validation_error, binary, any}} | {:ok, Block.t()}
+  @spec parse_to_validate(Block.t()) ::
+          {:error, {:validation_error, binary, any}} | {:ok, Block.t()}
   def parse_to_validate(block) do
     with {:ok, hash} <- expect(block, "hash", :hash),
          {:ok, transactions} <- expect(block, "transactions", list: &is_hex/1),
@@ -35,17 +37,15 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
   @doc """
   Verifies that given Merkle root matches reconstructed Merkle root.
   """
-  @spec verify_merkle_root(Block.t()) :: {:ok, Block.t()} | {:error, :mismatched_merkle_root}
-  def verify_merkle_root(block) do
-    %{hash: reconstructed_merkle_root_hash} =
-      block.transactions
-      |> Enum.map(fn tx ->
-        {:ok, recovered_tx} = Transaction.Recovered.recover_from(tx)
-        recovered_tx
-      end)
-      |> OMG.Block.hashed_txs_at(block.number)
+  @spec verify_merkle_root(Block.t(), list(Transaction.Recovered.t())) ::
+          {:ok, Block.t()} | {:error, :mismatched_merkle_root}
+  def verify_merkle_root(block, transactions) do
+    reconstructed_merkle_hash =
+      transactions
+      |> Enum.map(&Transaction.raw_txbytes/1)
+      |> Merkle.hash()
 
-    case block.hash == reconstructed_merkle_root_hash do
+    case block.hash == reconstructed_merkle_hash do
       true -> {:ok, block}
       _ -> {:error, :invalid_merkle_root}
     end

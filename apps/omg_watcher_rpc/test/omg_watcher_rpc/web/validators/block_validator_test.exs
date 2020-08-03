@@ -119,14 +119,15 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:error, :invalid_merkle_root} == BlockValidator.verify_merkle_root(block)
+      assert {:error, :invalid_merkle_root} ==
+               BlockValidator.verify_merkle_root(block, [recovered_tx_1, recovered_tx_2])
     end
 
     test "accepts matching Merkle root hash" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
-      signed_txbytes = Enum.map([recovered_tx_1, recovered_tx_2], & &1.signed_tx_bytes)
+      signed_txbytes = Enum.map([recovered_tx_1, recovered_tx_2], fn tx -> tx.signed_tx_bytes end)
 
       valid_merkle_root =
         [recovered_tx_1, recovered_tx_2]
@@ -139,7 +140,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:ok, block} = BlockValidator.verify_merkle_root(block)
+      assert {:ok, block} = BlockValidator.verify_merkle_root(block, [recovered_tx_1, recovered_tx_2])
     end
   end
 end
