@@ -138,6 +138,7 @@ defmodule OMG.ChildChain.Fees.FeedAdapterTest do
 end
 
 defmodule ResponseFactory do
+  @moduledoc false
   use FakeServer.ResponseFactory
 
   def json_rpc_response() do

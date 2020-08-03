@@ -38,11 +38,12 @@ defmodule OMG.Watcher.Integration.TestServer do
   end
 
   def make_response(data) when is_map(data) do
-    TestServerResponseFactory.build(:json_rpc, data: data, success: not Map.has_key?(data, :code))
+    WatcherTestServerResponseFactory.build(:json_rpc, data: data, success: not Map.has_key?(data, :code))
   end
 end
 
-defmodule TestServerResponseFactory do
+defmodule WatcherTestServerResponseFactory do
+  @moduledoc false
   use FakeServer.ResponseFactory
 
   def json_rpc_response() do

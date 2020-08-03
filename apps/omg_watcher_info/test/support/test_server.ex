@@ -80,6 +80,7 @@ defmodule OMG.WatcherInfo.TestServer do
 end
 
 defmodule TestServerResponseFactory do
+  @moduledoc false
   use FakeServer.ResponseFactory
 
   def json_rpc_response() do
