@@ -209,7 +209,6 @@ config :omg_watcher_rpc,
 # ]
 config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   render_errors: [view: OMG.WatcherRPC.Web.Views.Error, accepts: ~w(json)],
-  pubsub: [name: OMG.WatcherRPC.PubSub, adapter: Phoenix.PubSub.PG2],
   instrumenters: [SpandexPhoenix.Instrumenter],
   enable_cors: true,
   http: [:inet6, port: 7434, protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]],

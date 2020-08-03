@@ -31,7 +31,8 @@ defmodule OMG.Bus.PubSub do
   def child_spec(args \\ []) do
     args
     |> Keyword.put_new(:name, __MODULE__)
-    |> PubSub.PG2.child_spec()
+    |> Keyword.put_new(:adapter, PubSub.PG2)
+    |> PubSub.child_spec()
   end
 
   defmacro __using__(_) do
