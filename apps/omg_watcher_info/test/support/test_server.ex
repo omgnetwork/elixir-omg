@@ -12,65 +12,84 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# defmodule OMG.WatcherInfo.TestServer do
-#   @moduledoc """
-#   Helper functions to provide behavior to FakeServer without using FakeServer defined macros.
-#   For now it's strictly tied with child chain api and handles env variable changes
-#   """
+defmodule OMG.WatcherInfo.TestServer do
+  @moduledoc """
+  Helper functions to provide behavior to FakeServer without using FakeServer defined macros.
+  For now it's strictly tied with child chain api and handles env variable changes
+  """
 
-#   alias FakeServer.Agents.EnvAgent
-#   alias FakeServer.Env
-#   alias FakeServer.HTTP.Server
+  @doc """
+  Starts a mock server that will handle child chain requests
+  """
+  def start() do
+    server_id = random_atom()
+    {:ok, pid} = FakeServer.start(server_id)
 
-#   @doc """
-#   Starts a mock server that will handle child chain requests
-#   """
-#   def start() do
-#     {:ok, server_id, port} = Server.run()
-#     env = Env.new(port)
-#     EnvAgent.save_env(server_id, env)
+    real_addr = Application.fetch_env!(:omg_watcher_info, :child_chain_url)
+    {:ok, port} = FakeServer.port(server_id)
+    fake_addr = "http://localhost:#{port}"
 
-#     real_addr = Application.fetch_env!(:omg_watcher_info, :child_chain_url)
-#     fake_addr = "http://#{env.ip}:#{env.port}"
+    %{
+      real_addr: real_addr,
+      fake_addr: fake_addr,
+      server_id: server_id,
+      server_pid: pid
+    }
+  end
 
-#     %{
-#       real_addr: real_addr,
-#       fake_addr: fake_addr,
-#       server_id: server_id
-#     }
-#   end
+  @doc """
+  Stops a server and put back the original child chain address to the env.
+  """
+  def stop(%{real_addr: real_addr, server_id: server_id}) do
+    Application.put_env(:omg_watcher_info, :child_chain_url, real_addr)
+    FakeServer.stop(server_id)
+  end
 
-#   @doc """
-#   Stops a server and put back the original child chain address to the env.
-#   """
-#   def stop(%{real_addr: real_addr, server_id: server_id}) do
-#     Application.put_env(:omg_watcher_info, :child_chain_url, real_addr)
-#     :ok = Server.stop(server_id)
-#     EnvAgent.delete_env(server_id)
-#   end
+  @doc """
+  Configures route for fake server to respond for given path with given response
+  **Please note: **
+  When the route is configured with a list of FakeServer.HTTP.Responses, the server will respond with the first element
+  in the list and then remove it. This will be repeated for each request made for this route.
+  Use `fn req -> response end` when you need to return always the same or modified response on every request
 
-#   @doc """
-#   Configures route for fake server to respond for given path with given response
-#   **Please note: **
-#   When the route is configured with a list of FakeServer.HTTP.Responses, the server will respond with the first element
-#   in the list and then remove it. This will be repeated for each request made for this route.
-#   Use `fn req -> response end` when you need to return always the same or modified response on every request
+  Also first use of `with_response` changes configuration variable to child chain api to fake server, so invoke this
+  function when fake response is needed.
+  """
+  def with_response(response_block, %{fake_addr: fake_addr, server_pid: server_pid} = _context, path) do
+    Application.put_env(:omg_watcher_info, :child_chain_url, fake_addr)
 
-#   Also first use of `with_response` changes configuration variable to child chain api to fake server, so invoke this
-#   function when fake response is needed.
-#   """
-#   def with_response(response_block, %{fake_addr: fake_addr, server_id: server_id} = _context, path) do
-#     Application.put_env(:omg_watcher_info, :child_chain_url, fake_addr)
-#     env = EnvAgent.get_env(server_id)
-#     _ = EnvAgent.save_env(server_id, %FakeServer.Env{env | routes: [path | env.routes]})
-#     Server.add_response(server_id, path, response_block)
-#   end
+    FakeServer.put_route(server_pid, path, fn _ ->
+      response_block
+    end)
+  end
 
-#   def make_response(data) when is_map(data),
-#     do:
-#       FakeServer.HTTP.Response.ok(%{
-#         version: "1.0",
-#         success: not Map.has_key?(data, :code),
-#         data: data
-#       })
-# end
+  def make_response(data) when is_map(data) do
+    TestServerResponseFactory.build(:json_rpc, data: data, success: not Map.has_key?(data, :code))
+  end
+
+  defp random_atom() do
+    chars = String.split("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "")
+
+    1..10
+    |> Enum.reduce([], fn _i, acc ->
+      [Enum.random(chars) | acc]
+    end)
+    |> Enum.join("")
+    |> String.to_atom()
+  end
+end
+
+defmodule TestServerResponseFactory do
+  use FakeServer.ResponseFactory
+
+  def json_rpc_response() do
+    ok(
+      %{
+        version: "1.0",
+        success: true,
+        data: %{}
+      },
+      %{"Content-Type" => "application/json"}
+    )
+  end
+end
