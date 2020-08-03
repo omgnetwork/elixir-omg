@@ -12,85 +12,85 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
-  use ExUnitFixtures
-  use ExUnit.Case, async: true
-  use OMG.WatcherInfo.Fixtures
+# defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
+#   use ExUnitFixtures
+#   use ExUnit.Case, async: true
+#   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Eth
-  alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.WatcherInfo.OrderFeeFetcher
-  alias OMG.WatcherInfo.TestServer
-  alias OMG.WireFormatTypes
+#   alias OMG.Eth
+#   alias OMG.Utils.HttpRPC.Encoding
+#   alias OMG.WatcherInfo.OrderFeeFetcher
+#   alias OMG.WatcherInfo.TestServer
+#   alias OMG.WireFormatTypes
 
-  @eth Eth.zero_address()
-  @not_eth <<1::160>>
-  @tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
-  @str_tx_type Integer.to_string(@tx_type)
+#   @eth Eth.zero_address()
+#   @not_eth <<1::160>>
+#   @tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
+#   @str_tx_type Integer.to_string(@tx_type)
 
-  setup do
-    context = TestServer.start()
-    on_exit(fn -> TestServer.stop(context) end)
-    context
-  end
+#   setup do
+#     context = TestServer.start()
+#     on_exit(fn -> TestServer.stop(context) end)
+#     context
+#   end
 
-  describe "add_fee_to_order/2" do
-    test "adds the correct amount to the order", context do
-      prepare_test_server(context, %{
-        @str_tx_type => [
-          %{
-            "currency" => Encoding.to_hex(@eth),
-            "amount" => 2,
-            "subunit_to_unit" => 1_000_000_000_000_000_000,
-            "pegged_amount" => 4,
-            "pegged_currency" => "USD",
-            "pegged_subunit_to_unit" => 100,
-            "updated_at" => "2019-01-01T10:10:00+00:00"
-          }
-        ]
-      })
+#   describe "add_fee_to_order/2" do
+#     test "adds the correct amount to the order", context do
+#       prepare_test_server(context, %{
+#         @str_tx_type => [
+#           %{
+#             "currency" => Encoding.to_hex(@eth),
+#             "amount" => 2,
+#             "subunit_to_unit" => 1_000_000_000_000_000_000,
+#             "pegged_amount" => 4,
+#             "pegged_currency" => "USD",
+#             "pegged_subunit_to_unit" => 100,
+#             "updated_at" => "2019-01-01T10:10:00+00:00"
+#           }
+#         ]
+#       })
 
-      order = %{
-        fee: %{currency: @eth}
-      }
+#       order = %{
+#         fee: %{currency: @eth}
+#       }
 
-      assert OrderFeeFetcher.add_fee_to_order(order, context.fake_addr) ==
-               {:ok, Kernel.put_in(order, [:fee, :amount], 2)}
-    end
+#       assert OrderFeeFetcher.add_fee_to_order(order, context.fake_addr) ==
+#                {:ok, Kernel.put_in(order, [:fee, :amount], 2)}
+#     end
 
-    test "returns an `unexpected_fee_currency` error when the child chain returns an unexpected fee value", context do
-      prepare_test_server(context, %{
-        @str_tx_type => [
-          %{
-            "currency" => Encoding.to_hex(@not_eth),
-            "amount" => 2,
-            "subunit_to_unit" => 1_000_000_000_000_000_000,
-            "pegged_amount" => 4,
-            "pegged_currency" => "USD",
-            "pegged_subunit_to_unit" => 100,
-            "updated_at" => "2019-01-01T10:10:00+00:00"
-          }
-        ]
-      })
+#     test "returns an `unexpected_fee_currency` error when the child chain returns an unexpected fee value", context do
+#       prepare_test_server(context, %{
+#         @str_tx_type => [
+#           %{
+#             "currency" => Encoding.to_hex(@not_eth),
+#             "amount" => 2,
+#             "subunit_to_unit" => 1_000_000_000_000_000_000,
+#             "pegged_amount" => 4,
+#             "pegged_currency" => "USD",
+#             "pegged_subunit_to_unit" => 100,
+#             "updated_at" => "2019-01-01T10:10:00+00:00"
+#           }
+#         ]
+#       })
 
-      assert OrderFeeFetcher.add_fee_to_order(%{fee: %{currency: @eth}}, context.fake_addr) ==
-               {:error, :unexpected_fee_currency}
-    end
+#       assert OrderFeeFetcher.add_fee_to_order(%{fee: %{currency: @eth}}, context.fake_addr) ==
+#                {:error, :unexpected_fee_currency}
+#     end
 
-    test "forwards the childchain error", context do
-      prepare_test_server(context, %{
-        code: "fees.all:some_error",
-        description: "Some errors"
-      })
+#     test "forwards the childchain error", context do
+#       prepare_test_server(context, %{
+#         code: "fees.all:some_error",
+#         description: "Some errors"
+#       })
 
-      assert OrderFeeFetcher.add_fee_to_order(%{fee: %{currency: @eth}}, context.fake_addr) ==
-               {:error, {:client_error, %{"code" => "fees.all:some_error", "description" => "Some errors"}}}
-    end
-  end
+#       assert OrderFeeFetcher.add_fee_to_order(%{fee: %{currency: @eth}}, context.fake_addr) ==
+#                {:error, {:client_error, %{"code" => "fees.all:some_error", "description" => "Some errors"}}}
+#     end
+#   end
 
-  defp prepare_test_server(context, response) do
-    response
-    |> TestServer.make_response()
-    |> TestServer.with_response(context, "/fees.all")
-  end
-end
+#   defp prepare_test_server(context, response) do
+#     response
+#     |> TestServer.make_response()
+#     |> TestServer.with_response(context, "/fees.all")
+#   end
+# end
