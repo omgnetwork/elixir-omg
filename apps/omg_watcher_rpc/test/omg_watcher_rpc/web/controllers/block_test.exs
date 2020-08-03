@@ -24,6 +24,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   alias OMG.Merkle
   alias OMG.State.Transaction
   alias OMG.TestHelper
+  alias OMG.WireFormatTypes
 
   alias Support.WatcherHelper
 
@@ -35,6 +36,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   @eth OMG.Eth.zero_address()
   @alice OMG.TestHelper.generate_entity()
   @bob OMG.TestHelper.generate_entity()
+  @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   describe "get_block/2" do
     @tag fixtures: [:initial_blocks]
@@ -202,6 +204,54 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the expected error if the transactions are incorrectly formed" do
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+      input_3 = {3, 0, 0, @alice}
+
+      signed_valid_tx = TestHelper.create_signed([input_1, input_2], @eth, [{@bob, 10}])
+      signed_invalid_tx = TestHelper.create_signed([input_3, input_3], @eth, [{@bob, 10}])
+
+      %{sigs: sigs_valid} = signed_valid_tx
+      %{sigs: sigs_invalid} = signed_invalid_tx
+
+      txbytes_valid = Transaction.raw_txbytes(signed_valid_tx)
+      txbytes_invalid = Transaction.raw_txbytes(signed_invalid_tx)
+
+      [_, inputs_valid, outputs_valid, _, _] = ExRLP.decode(txbytes_valid)
+      [_, inputs_invalid, outputs_invalid, _, _] = ExRLP.decode(txbytes_invalid)
+
+      hash_valid =
+        [sigs_valid, @payment_tx_type, inputs_valid, outputs_valid, 0, <<0::256>>]
+        |> ExRLP.encode()
+        |> Encoding.to_hex()
+
+      hash_invalid =
+        [sigs_invalid, @payment_tx_type, inputs_invalid, outputs_invalid, 0, <<0::256>>]
+        |> ExRLP.encode()
+        |> Encoding.to_hex()
+
+      merkle_root = [hash_invalid, hash_valid] |> Merkle.hash() |> Encoding.to_hex()
+
+      params = %{
+        hash: merkle_root,
+        transactions: [hash_invalid, hash_valid],
+        number: 1000
+      }
+
+      # Sanity check
+      assert {:ok, Encoding.from_hex(merkle_root)} == expect(%{hash: merkle_root}, :hash, :hash)
+
+      %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
+
+      assert data == %{
+               "code" => "validate_block:duplicate_inputs",
+               "description" => nil,
+               "object" => "error"
+             }
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns the block if it is valid" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
@@ -217,6 +267,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         |> Merkle.hash()
         |> Encoding.to_hex()
 
+      # signed_txbytes |> IO.inspect(label: "signed tx bytes")
       # Sanity check
       assert {:ok, Encoding.from_hex(valid_merkle_root)} == expect(%{hash: valid_merkle_root}, :hash, :hash)
 
