@@ -295,12 +295,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "active_in_flight_exiting_inputs" do
-    test "in-flight exit info db value is formed correctly" do
-      ife_exit_info = prepare_fake_ife_db_kv(true, [])
-
-      assert {<<1>>, %InFlightExitInfo{}} = InFlightExitInfo.from_db_kv({<<1>>, ife_exit_info})
-    end
-
     test "returns a set of exiting utxo positions" do
       expected_utxos = [Utxo.position(2001, 0, 0), Utxo.position(2002, 0, 0)]
 
@@ -317,22 +311,28 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       signed_tx_map = %{raw_tx: raw_tx_map, sigs: []}
       utxo_pos = Utxo.position(0, 0, 0)
 
-      %{
-        tx: signed_tx_map,
-        exit_map: %{},
-        tx_pos: utxo_pos,
-        oldest_competitor: utxo_pos,
-        contract_id: <<1>>,
-        timestamp: 0,
-        eth_height: 100,
-        relevant_from_blknum: 0,
-        input_txs: [],
-        input_utxos_pos: [],
-        is_canonical: true,
-        is_active: true
-      }
-      |> Map.update!(:is_active, fn _ -> is_active end)
-      |> Map.update!(:input_utxos_pos, fn _ -> utxos_pos end)
+      db_value_map =
+        %{
+          tx: signed_tx_map,
+          exit_map: %{},
+          tx_pos: utxo_pos,
+          oldest_competitor: utxo_pos,
+          contract_id: <<1>>,
+          timestamp: 0,
+          eth_height: 100,
+          relevant_from_blknum: 0,
+          input_txs: [],
+          input_utxos_pos: [],
+          is_canonical: true,
+          is_active: true
+        }
+        |> Map.update!(:is_active, fn _ -> is_active end)
+        |> Map.update!(:input_utxos_pos, fn _ -> utxos_pos end)
+
+      # sanity check - we need above date to be parsed correctly
+      assert {<<1>>, %InFlightExitInfo{}} = InFlightExitInfo.from_db_kv({<<1>>, db_value_map})
+
+      db_value_map
     end
   end
 end
