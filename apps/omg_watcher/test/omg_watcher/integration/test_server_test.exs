@@ -12,33 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# defmodule OMG.Watcher.Integration.TestServerTest do
-#   use ExUnitFixtures
-#   use ExUnit.Case, async: false
+defmodule OMG.Watcher.Integration.TestServerTest do
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
 
-#   alias OMG.Utils.HttpRPC.Encoding
-#   alias OMG.Watcher.HttpRPC.Client
-#   alias OMG.Watcher.Integration.TestServer
+  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Watcher.HttpRPC.Client
+  alias OMG.Watcher.Integration.TestServer
 
-#   @expected_block_hash <<0::256>>
+  @expected_block_hash <<0::256>>
 
-#   describe "/block.get -" do
-#     @response TestServer.make_response(%{
-#                 blknum: 123_000,
-#                 hash: Encoding.to_hex(@expected_block_hash),
-#                 transactions: []
-#               })
+  describe "/block.get -" do
+    @response TestServer.make_response(%{
+                blknum: 123_000,
+                hash: Encoding.to_hex(@expected_block_hash),
+                transactions: []
+              })
 
-#     @tag fixtures: [:test_server]
-#     test "successful response is parsed to expected map", %{test_server: context} do
-#       TestServer.with_route(context, "/block.get", @response)
+    @tag fixtures: [:test_server]
+    test "successful response is parsed to expected map", %{test_server: context} do
+      TestServer.with_route(context, "/block.get", @response)
 
-#       assert {:ok,
-#               %{
-#                 transactions: [],
-#                 number: 123_000,
-#                 hash: @expected_block_hash
-#               }} == Client.get_block(@expected_block_hash, context.fake_addr)
-#     end
-#   end
-# end
+      assert {:ok,
+              %{
+                transactions: [],
+                number: 123_000,
+                hash: @expected_block_hash
+              }} == Client.get_block(@expected_block_hash, context.fake_addr)
+    end
+  end
+end

@@ -19,8 +19,6 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.Utils.LoggerExt
 
-  alias FakeServer.Agents.EnvAgent
-  alias FakeServer.HTTP.Server
   alias OMG.Eth
   alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
@@ -173,27 +171,37 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture test_server do
-    {:ok, server_id, port} = Server.run()
-    env = FakeServer.Env.new(port)
-
-    EnvAgent.save_env(server_id, env)
+    server_id = random_atom()
+    {:ok, pid} = FakeServer.start(server_id)
 
     real_addr = Application.fetch_env!(:omg_watcher, :child_chain_url)
     old_client_env = Application.fetch_env!(:omg_watcher, :child_chain_url)
-    fake_addr = "http://#{env.ip}:#{env.port}"
+    {:ok, port} = FakeServer.port(server_id)
+    fake_addr = "http://localhost:#{port}"
 
     on_exit(fn ->
       Application.put_env(:omg_watcher, :child_chain_url, old_client_env)
 
-      Server.stop(server_id)
-      EnvAgent.delete_env(server_id)
+      FakeServer.stop(server_id)
     end)
 
     %{
       real_addr: real_addr,
       fake_addr: fake_addr,
-      server_id: server_id
+      server_id: server_id,
+      server_pid: pid
     }
+  end
+
+  defp random_atom() do
+    chars = String.split("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "")
+
+    1..10
+    |> Enum.reduce([], fn _i, acc ->
+      [Enum.random(chars) | acc]
+    end)
+    |> Enum.join("")
+    |> String.to_atom()
   end
 
   defp wait_for_web(), do: wait_for_web(100)

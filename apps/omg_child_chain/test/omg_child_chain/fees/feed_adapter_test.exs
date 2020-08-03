@@ -18,9 +18,6 @@ defmodule OMG.ChildChain.Fees.FeedAdapterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  # alias FakeServer.Agents.EnvAgent
-  # alias FakeServer.Env
-  # alias FakeServer.HTTP.Server
   alias OMG.ChildChain.Fees.FeedAdapter
   alias OMG.ChildChain.Fees.JSONFeeParser
   alias OMG.Eth
