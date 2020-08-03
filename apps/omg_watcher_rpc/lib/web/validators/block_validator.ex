@@ -45,8 +45,8 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidator do
       |> Enum.map(&Transaction.raw_txbytes/1)
       |> Merkle.hash()
 
-    case block.hash == reconstructed_merkle_hash do
-      true -> {:ok, block}
+    case block.hash do
+      ^reconstructed_merkle_hash -> {:ok, block}
       _ -> {:error, :invalid_merkle_root}
     end
   end
