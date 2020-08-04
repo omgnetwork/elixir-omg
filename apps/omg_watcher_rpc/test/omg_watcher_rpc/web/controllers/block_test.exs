@@ -267,7 +267,6 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         |> Merkle.hash()
         |> Encoding.to_hex()
 
-      # signed_txbytes |> IO.inspect(label: "signed tx bytes")
       # Sanity check
       assert {:ok, Encoding.from_hex(valid_merkle_root)} == expect(%{hash: valid_merkle_root}, :hash, :hash)
 
