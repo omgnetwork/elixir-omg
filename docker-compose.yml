@@ -16,7 +16,7 @@ services:
       retries: 5
     networks:
       chain_net:
-        ipv4_address: 172.27.0.106
+        ipv4_address: 172.27.0.100
 
   geth:
     image: ethereum/client-go:v1.9.12
@@ -182,7 +182,7 @@ services:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.27.0.102:80
       - CHILD_CHAIN_URL=http://172.27.0.103:9656
-      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.106:5432/omisego_dev
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.100:5432/omisego_dev
       - PORT=7534
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
@@ -238,7 +238,7 @@ services:
       - RULES_FETCH_INTERVAL=20
       - RATES_FETCH_INTERVAL=20
       - GITHUB_FILENAME=fee_rules
-      - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.109:5432/feefeed
+      - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.106:5432/feefeed
       - SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
       - DATADOG_DISABLED=true
       - DATADOG_HOST="localhost"
