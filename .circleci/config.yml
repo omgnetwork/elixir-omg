@@ -446,6 +446,7 @@ jobs:
           name: Setup data dir
           command: |
             [ -d data ] || mkdir data && chmod 777 data
+      - run: printf "%s\\n" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
@@ -546,6 +547,7 @@ jobs:
             [ -d data1 ] || mkdir data1 && chmod 777 data1
             [ -d data2 ] || mkdir data2 && chmod 777 data2
             [ -d data ] || mkdir data && chmod 777 data
+      - run: printf "%s\\n" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
@@ -623,8 +625,9 @@ jobs:
             git submodule init
             git submodule update --remote
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - run: printf "%s\\n" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
       - run:
-          name: Start geth, postgres and pull in blockchain snapshot
+          name: Start geth, postgres, feefeed and pull in blockchain snapshot
           command: make start-services
           background: true
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
