@@ -24,11 +24,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use OMG.Fixtures
   use OMG.Watcher.Integration.Fixtures
   use Plug.Test
-  use Phoenix.ChannelTest
 
   require OMG.Utxo
 
   import ExUnit.CaptureLog, only: [capture_log: 1]
+  import Phoenix.ChannelTest
 
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter
