@@ -111,7 +111,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
-      signed_txbytes = Enum.map([recovered_tx_1, recovered_tx_2], & &1.signed_tx_bytes)
+      signed_txbytes = Enum.map([recovered_tx_1, recovered_tx_2], fn tx -> tx.signed_tx_bytes end)
 
       block = %{
         hash: "0x0",
