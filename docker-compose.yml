@@ -219,6 +219,8 @@ services:
         ipv4_address: 172.27.0.105
   postgres_feefeed:
     image: postgres:12.2-alpine
+    ports:
+      - "5432:5433"
     restart: always
     environment:
       POSTGRES_USER: feefeed
@@ -239,7 +241,7 @@ services:
       - RULES_FETCH_INTERVAL=20
       - RATES_FETCH_INTERVAL=20
       - GITHUB_FILENAME=fee_rules
-      - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.106:5432/feefeed
+      - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.106:5433/feefeed
       - SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
       - DATADOG_DISABLED=true
       - DATADOG_HOST="localhost"

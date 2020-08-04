@@ -427,7 +427,7 @@ docker-remote-childchain:
 ###
 start-services:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
-	docker-compose up geth nginx postgres
+	docker-compose up postgres_feefeed feefeed geth nginx postgres
 
 start-child_chain:
 	. ${OVERRIDING_VARIABLES} && \
