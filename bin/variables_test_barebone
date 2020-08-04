@@ -30,19 +30,6 @@ export DD_DISABLED=true
 export LOGGER_BACKEND=console
 export RELEASE_COOKIE=development
 export NODE_HOST=127.0.0.1
-# feefeed
-export GITHUB_TOKEN=""
-export GITHUB_ORGANISATION=omgnetwork
-export GITHUB_REPO=fee-rules-public
-export GITHUB_BRANCH=master
-export RULES_FETCH_INTERVAL=20
-export RATES_FETCH_INTERVAL=20
-export GITHUB_FILENAME=fee_rules
-export DATABASE_URL=postgresql://feefeed:feefeed@172.0.0.1:5433/feefeed
-export SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
-export DATADOG_DISABLED=true
-export DATADOG_HOST="localhost"
-export ETHEREUM_NODE_URL=http://172.0.0.1:80
 # expects it's executed from the root of the project
 FILE='./localchain_contract_addresses.env'
 while IFS= read -r line; do
