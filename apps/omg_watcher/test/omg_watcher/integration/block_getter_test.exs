@@ -28,7 +28,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   require OMG.Utxo
 
   import ExUnit.CaptureLog, only: [capture_log: 1]
-  import Phoenix.ChannelTest
 
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter
