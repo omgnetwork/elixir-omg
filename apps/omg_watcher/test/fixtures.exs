@@ -170,7 +170,7 @@ defmodule OMG.Watcher.Fixtures do
         :ok = Application.stop(app)
       end)
 
-      Process.sleep(1_000)
+      Process.sleep(5_000)
     end)
   end
 
