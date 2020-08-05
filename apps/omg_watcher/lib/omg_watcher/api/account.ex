@@ -18,6 +18,7 @@ defmodule OMG.Watcher.API.Account do
   """
 
   alias OMG.DB.Models.PaymentExitInfo
+  alias OMG.Utxo
   require OMG.Utxo
 
   @doc """
@@ -31,18 +32,24 @@ defmodule OMG.Watcher.API.Account do
 
     # PaymentExitInfo.all_exit_infos() takes a while.
     {:ok, standard_exits} = PaymentExitInfo.all_exit_infos()
-    active_standard_exiting_utxos = OMG.Watcher.ExitProcessor.Core.active_standard_exiting_utxos(standard_exits)
+    {:ok, in_flight_exits} = PaymentExitInfo.all_in_flight_exits_infos()
+
+    # See issue for more details: https://github.com/omgnetwork/private-issues/issues/41
+    active_exiting_utxos =
+      MapSet.union(
+        OMG.Watcher.ExitProcessor.Core.active_standard_exiting_utxos(standard_exits),
+        OMG.Watcher.ExitProcessor.Core.active_in_flight_exiting_inputs(in_flight_exits)
+      )
 
     # active standard exiting utxos are excluded
-    filter_standard_exiting_utxos(standard_exitable_utxos, active_standard_exiting_utxos)
+    filter_standard_exiting_utxos(standard_exitable_utxos, active_exiting_utxos)
   end
 
-  defp filter_standard_exiting_utxos(standard_exitable_utxos, active_standard_exiting_utxos) do
+  defp filter_standard_exiting_utxos(standard_exitable_utxos, active_exiting_utxos) do
     Enum.filter(
       standard_exitable_utxos,
       fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
-        exit_position = OMG.Utxo.position(blknum, txindex, oindex)
-        not MapSet.member?(active_standard_exiting_utxos, exit_position)
+        not MapSet.member?(active_exiting_utxos, Utxo.position(blknum, txindex, oindex))
       end
     )
   end
