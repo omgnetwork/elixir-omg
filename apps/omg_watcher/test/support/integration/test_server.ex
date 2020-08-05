@@ -32,9 +32,7 @@ defmodule OMG.Watcher.Integration.TestServer do
   def with_route(%{fake_addr: fake_addr, server_pid: server_pid, server_id: server_id} = _context, path, response_block) do
     Application.put_env(:omg_watcher, :child_chain_url, fake_addr)
 
-    FakeServer.put_route(server_pid, path, fn _ ->
-      response_block
-    end)
+    FakeServer.put_route(server_pid, path, response_block)
 
     {:ok, port} = FakeServer.port(server_id)
 

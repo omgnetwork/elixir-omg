@@ -19,6 +19,8 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   """
 
   alias OMG.Block
+  alias OMG.Utils.HttpRPC.Adapter
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Watcher.Integration.TestServer
 
@@ -26,14 +28,25 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   Adds a route to TestServer which responded with prepared bad block when asked for known hash
   all other requests are redirected to `real` Child Chain API
   """
-  def prepare_route_to_inject_bad_block(context, bad_block, _bad_block_hash) do
+  def prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash) do
     TestServer.with_route(
       context,
       "/block.get",
-      bad_block
-      |> Block.to_api_format()
-      |> Response.sanitize()
-      |> TestServer.make_response()
+      fn %{body: %{"hash" => req_hash}} ->
+        if {:ok, bad_block_hash} == Encoding.from_hex(req_hash) do
+          bad_block
+          |> Block.to_api_format()
+          |> Response.sanitize()
+          |> TestServer.make_response()
+        else
+          {:ok, block} =
+            %{hash: req_hash}
+            |> Adapter.rpc_post("block.get", context.real_addr)
+            |> Adapter.get_response_body()
+
+          TestServer.make_response(block)
+        end
+      end
     )
   end
 
