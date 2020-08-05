@@ -20,10 +20,13 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.DB
 
   require Transaction
   require Transaction.Payment
+
+  @type currency_t() :: Transaction.Payment.currency()
 
   @type payment_t() :: %{
           owner: Crypto.address_t() | nil,
@@ -62,6 +65,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
           | {:error, {:insufficient_funds, list(map())}}
           | {:error, :too_many_outputs}
           | {:error, :empty_transaction}
+
+  @type utxo_list_t() :: list(%DB.TxOutput{})
 
   @empty_metadata <<0::256>>
 
@@ -128,15 +133,20 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     Map.update(needed_funds, fee_currency, fee_amount, &(&1 + fee_amount))
   end
 
-  # See also comment to `select_utxo` function
-  defp funds_sufficient?(utxo_selection) do
+  @doc """
+  Checks if the result of `select_utxos/2` covers the amount(s) of the transaction order.
+  """
+  @spec funds_sufficient?(
+          list({currency :: currency_t(), {missing_amount :: non_neg_integer(), selected_utxos :: utxo_list_t()}})
+        ) :: {:ok, utxo_list_t()} | {:error, {:insufficient_funds, list(%{token: String.t(), missing: pos_integer()})}}
+  def funds_sufficient?(utxo_selection) do
     missing_funds =
       utxo_selection
-      |> Stream.filter(fn {_, {missing, _}} -> missing > 0 end)
-      |> Enum.map(fn {token, {missing, _}} -> %{token: OMG.Utils.HttpRPC.Encoding.to_hex(token), missing: missing} end)
+      |> Stream.filter(fn {_currency, {missing_amount, _selected_utxos}} -> missing_amount > 0 end)
+      |> Enum.map(fn {currency, {missing, _selected_utxos}} -> %{token: Encoding.to_hex(currency), missing: missing} end)
 
     if Enum.empty?(missing_funds),
-      do: {:ok, utxo_selection |> Enum.map(fn {token, {_, utxos}} -> {token, utxos} end)},
+      do: {:ok, utxo_selection |> Enum.map(fn {token, {_missing_amount, utxos}} -> {token, utxos} end)},
       else: {:error, {:insufficient_funds, missing_funds}}
   end
 
