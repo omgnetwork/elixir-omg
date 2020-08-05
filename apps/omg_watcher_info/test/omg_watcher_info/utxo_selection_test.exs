@@ -67,7 +67,6 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   end
 
   describe "needed_funds/2" do
-
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "returns a correct map when payment_currency != fee_currency", %{alice: alice} do
       payment_currency = @eth
@@ -87,9 +86,9 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       }
 
       assert %{
-        payment_currency => 1_000,
-        fee_currency => 2_000
-      } == UtxoSelection.needed_funds(payments, fee)
+               payment_currency => 1_000,
+               fee_currency => 2_000
+             } == UtxoSelection.needed_funds(payments, fee)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -110,8 +109,8 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       }
 
       assert %{
-        payment_currency => 3_000,
-      } == UtxoSelection.needed_funds(payments, fee)
+               payment_currency => 3_000
+             } == UtxoSelection.needed_funds(payments, fee)
     end
   end
 end
