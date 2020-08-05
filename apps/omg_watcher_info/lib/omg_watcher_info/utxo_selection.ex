@@ -30,12 +30,12 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
   @type payment_t() :: %{
           owner: Crypto.address_t() | nil,
-          currency: Transaction.Payment.currency(),
+          currency: currency_t(),
           amount: pos_integer()
         }
 
   @type fee_t() :: %{
-          currency: Transaction.Payment.currency(),
+          currency: currency_t(),
           amount: non_neg_integer()
         }
 
@@ -75,7 +75,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   If also provided with receiver's address, creates and encodes a transaction.
   TODO: seems unocovered by any tests
   """
-  @spec create_advice(%{Transaction.Payment.currency() => list(%DB.TxOutput{})}, order_t()) :: advice_t()
+  @spec create_advice(%{currency_t() => list(%DB.TxOutput{})}, order_t()) :: advice_t()
   def create_advice(utxos, %{owner: owner, payments: payments, fee: fee} = order) do
     needed_funds = needed_funds(payments, fee)
     token_utxo_selection = select_utxo(utxos, needed_funds)
@@ -97,10 +97,10 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   # We return {token, {change, [utxos for payment]}}, change > 0 means insufficient funds.
   # NOTE: order of Utxo list is implicitly assumed for the algorithm to work deterministically,
   # see: `OMG.WatcherInfo.DB.TxOutput.get_sorted_grouped_utxos`
-  @spec select_utxo(%{Transaction.Payment.currency() => list(%DB.TxOutput{})}, %{
-          Transaction.Payment.currency() => pos_integer()
+  @spec select_utxo(%{currency_t() => list(%DB.TxOutput{})}, %{
+          currency_t() => pos_integer()
         }) ::
-          list({Transaction.Payment.currency(), {integer, list(%DB.TxOutput{})}})
+          list({currency_t(), {integer, list(%DB.TxOutput{})}})
   defp select_utxo(utxos, needed_funds) do
     Enum.map(needed_funds, fn {token, need} ->
       token_utxos = Map.get(utxos, token, [])
@@ -120,8 +120,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   end
 
   # Sums up payments by token. Fee is included.
-  @spec needed_funds(list(payment_t()), %{amount: pos_integer(), currency: Transaction.Payment.currency()}) ::
-          %{Transaction.Payment.currency() => pos_integer()}
+  @spec needed_funds(list(payment_t()), %{amount: pos_integer(), currency: currency_t()}) ::
+          %{currency_t() => pos_integer()}
   def needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
     needed_funds =
       payments
@@ -131,7 +131,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       end)
       |> Map.new()
 
-    Map.update(needed_funds, fee_currency, fee_amount, &(&1 + fee_amount))
+    Map.update(needed_funds, fee_currency, fee_amount, fn amount -> amount + fee_amount end)
   end
 
   @doc """
