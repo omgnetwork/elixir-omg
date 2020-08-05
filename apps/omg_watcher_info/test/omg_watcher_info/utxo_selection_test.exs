@@ -20,31 +20,23 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.UtxoSelection
 
+  import OMG.WatcherInfo.Factory
+
   require Utxo
 
   @eth OMG.Eth.zero_address()
   @other_token <<127::160>>
-
-  @spec generate_utxos_map(pos_integer, Transaction.Payment.currency(), list({map, pos_integer})) :: %{
-          Transaction.Payment.currency() => list(%DB.TxOutput{})
-        }
-  defp generate_utxos_map(blknum, currency, funds) do
-    tx = OMG.TestHelper.create_recovered([], currency, funds)
-
-    utxos =
-      blknum
-      |> DB.TxOutput.create_outputs(0, tx.tx_hash, tx)
-      |> Enum.map(fn utxo -> struct(DB.TxOutput, utxo) end)
-
-    %{currency => utxos}
-  end
 
   describe "create_advice/2" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "returns {:ok, %{result: :complete}}", %{alice: alice, bob: bob} do
       amount_1 = 1000
       amount_2 = 2000
-      utxos = generate_utxos_map(10_000, @eth, [{alice, amount_1}, {alice, amount_2}])
+
+      _ = insert(:txoutput, amount: amount_1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: amount_2, currency: @eth, owner: alice.addr)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(alice.addr)
 
       order = %{
         owner: bob.addr,

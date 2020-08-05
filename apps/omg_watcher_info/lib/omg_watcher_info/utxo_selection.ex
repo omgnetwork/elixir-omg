@@ -115,7 +115,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   end
 
   # Sums up payments by token. Fee is included.
-  defp needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
+  @spec needed_funds(any, %{amount: any, currency: any}) :: map
+  def needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
     needed_funds =
       payments
       |> Enum.group_by(& &1.currency)
