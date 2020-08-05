@@ -179,6 +179,8 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, port} = FakeServer.port(server_id)
     fake_addr = "http://localhost:#{port}"
 
+    Application.put_env(:omg_watcher, :child_chain_url, fake_addr)
+
     on_exit(fn ->
       Application.put_env(:omg_watcher, :child_chain_url, old_client_env)
 

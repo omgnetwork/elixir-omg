@@ -32,23 +32,10 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
     TestServer.with_route(
       context,
       "/block.get",
-      fn %{body: params} ->
-        {:ok, %{"hash" => req_hash}} = Jason.decode(params)
-
-        if {:ok, bad_block_hash} == Encoding.from_hex(req_hash) do
-          bad_block
-          |> Block.to_api_format()
-          |> Response.sanitize()
-          |> TestServer.make_response()
-        else
-          {:ok, block} =
-            %{hash: req_hash}
-            |> Adapter.rpc_post("block.get", context.real_addr)
-            |> Adapter.get_response_body()
-
-          TestServer.make_response(block)
-        end
-      end
+      bad_block
+      |> Block.to_api_format()
+      |> Response.sanitize()
+      |> TestServer.make_response()
     )
   end
 
