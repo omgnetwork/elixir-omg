@@ -39,28 +39,30 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
     %{currency => utxos}
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
-  test "create_advice returns {:ok, %{result: :complete}}", %{alice: alice, bob: bob} do
-    amount_1 = 1000
-    amount_2 = 2000
-    utxos = generate_utxos_map(10_000, @eth, [{alice, amount_1}, {alice, amount_2}])
+  describe "create_advice/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "returns {:ok, %{result: :complete}}", %{alice: alice, bob: bob} do
+      amount_1 = 1000
+      amount_2 = 2000
+      utxos = generate_utxos_map(10_000, @eth, [{alice, amount_1}, {alice, amount_2}])
 
-    order = %{
-      owner: bob.addr,
-      payments: [
-        %{
-          owner: alice.addr,
+      order = %{
+        owner: bob.addr,
+        payments: [
+          %{
+            owner: alice.addr,
+            currency: @eth,
+            amount: 1000
+          }
+        ],
+        fee: %{
           currency: @eth,
           amount: 1000
-        }
-      ],
-      fee: %{
-        currency: @eth,
-        amount: 1000
-      },
-      metadata: nil
-    }
+        },
+        metadata: nil
+      }
 
-    assert {:ok, %{result: :complete}} = OMG.WatcherInfo.UtxoSelection.create_advice(utxos, order)
+      assert {:ok, %{result: :complete}} = OMG.WatcherInfo.UtxoSelection.create_advice(utxos, order)
+    end
   end
 end
