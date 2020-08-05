@@ -115,13 +115,14 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   end
 
   # Sums up payments by token. Fee is included.
-  @spec needed_funds(any, %{amount: any, currency: any}) :: map
+  @spec needed_funds(list(payment_t()), %{amount: pos_integer(), currency: Transaction.Payment.currency()}) ::
+          %{Transaction.Payment.currency() => pos_integer()}
   def needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
     needed_funds =
       payments
-      |> Enum.group_by(& &1.currency)
+      |> Enum.group_by(fn payment -> payment.currency end)
       |> Stream.map(fn {token, payment} ->
-        {token, payment |> Stream.map(& &1.amount) |> Enum.sum()}
+        {token, payment |> Stream.map(fn payment -> payment.amount end) |> Enum.sum()}
       end)
       |> Map.new()
 
