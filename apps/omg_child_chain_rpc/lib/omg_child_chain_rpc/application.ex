@@ -26,6 +26,7 @@ defmodule OMG.ChildChainRPC.Application do
     opts = [strategy: :one_for_one, name: OMG.ChildChainRPC.Supervisor]
 
     children = [{OMG.ChildChainRPC.Web.Endpoint, []}]
+    SpandexPhoenix.Telemetry.install()
 
     Supervisor.start_link(children, opts)
   end

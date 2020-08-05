@@ -28,6 +28,7 @@ defmodule OMG.ChildChainRPC.Web.Endpoint do
 
   plug(Plug.MethodOverride)
   plug(Plug.Head)
+  plug(Plug.Telemetry, event_prefix: [:phoenix, :endpoint])
 
   if Application.get_env(:omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)

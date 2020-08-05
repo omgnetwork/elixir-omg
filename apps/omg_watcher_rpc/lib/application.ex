@@ -39,6 +39,8 @@ defmodule OMG.WatcherRPC.Application do
       name: OMG.WatcherRPC.RootSupervisor
     ]
 
+    SpandexPhoenix.Telemetry.install()
+
     Supervisor.start_link(children, opts)
   end
 

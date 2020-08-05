@@ -38,7 +38,7 @@ defmodule OMG.Watcher.MixProject do
       # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from
       # the parent (main) mix.exs
       {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
-      {:spandex, "~> 2.4.3"},
+      {:spandex, "~> 3.0.2"},
 
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
