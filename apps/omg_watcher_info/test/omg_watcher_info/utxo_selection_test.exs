@@ -16,14 +16,14 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
-  import OMG.WatcherInfo.Factory
-
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.UtxoSelection
 
   require Utxo
 
   @eth OMG.Eth.zero_address()
+  @other_token <<127::160>>
 
   @spec generate_utxos_map(pos_integer, Transaction.Payment.currency(), list({map, pos_integer})) :: %{
           Transaction.Payment.currency() => list(%DB.TxOutput{})
@@ -62,7 +62,56 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         metadata: nil
       }
 
-      assert {:ok, %{result: :complete}} = OMG.WatcherInfo.UtxoSelection.create_advice(utxos, order)
+      assert {:ok, %{result: :complete}} = UtxoSelection.create_advice(utxos, order)
+    end
+  end
+
+  describe "needed_funds/2" do
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "returns a correct map when payment_currency != fee_currency", %{alice: alice} do
+      payment_currency = @eth
+      fee_currency = @other_token
+
+      payments = [
+        %{
+          owner: alice.addr,
+          currency: payment_currency,
+          amount: 1_000
+        }
+      ]
+
+      fee = %{
+        currency: fee_currency,
+        amount: 2_000
+      }
+
+      assert %{
+        payment_currency => 1_000,
+        fee_currency => 2_000
+      } == UtxoSelection.needed_funds(payments, fee)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "returns a correct map when payment_currency == fee_currency", %{alice: alice} do
+      payment_currency = @eth
+
+      payments = [
+        %{
+          owner: alice.addr,
+          currency: payment_currency,
+          amount: 1_000
+        }
+      ]
+
+      fee = %{
+        currency: payment_currency,
+        amount: 2_000
+      }
+
+      assert %{
+        payment_currency => 3_000,
+      } == UtxoSelection.needed_funds(payments, fee)
     end
   end
 end
