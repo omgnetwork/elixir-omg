@@ -200,6 +200,55 @@ defmodule OMG.ChildChain.EthereumEventAggregatorTest do
   end
 
   describe "api calls/2 calls/3 and store_logs/4" do
+    test "uses fallback call data provider when can't decode call data from primary source", %{
+      event_fetcher_name: event_fetcher_name,
+      table: table,
+      test: test_name
+    } do
+      defmodule test_name do
+        alias OMG.ChildChain.EthereumEventAggregatorTest
+
+        def get_ethereum_events(from_block, to_block, _signatures, _contracts) do
+          {:ok,
+           [
+             EthereumEventAggregatorTest.exit_started_log(to_block)
+           ]}
+        end
+
+        def get_call_data(_tx_hash) do
+          {:ok, EthereumEventAggregatorTest.unknown_log()}
+        end
+      end
+
+      defmodule CallDataFallback do
+        alias OMG.ChildChain.EthereumEventAggregatorTest
+
+        def get_call_data(_) do
+          {:ok, EthereumEventAggregatorTest.start_standard_exit_log()}
+        end
+      end
+
+      :sys.replace_state(event_fetcher_name, fn state -> Map.put(state, :rpc, test_name) end)
+
+      :sys.replace_state(event_fetcher_name, fn state ->
+        Map.put(state, :fallback_call_data_module, CallDataFallback)
+      end)
+
+      from_block = 1
+      to_block = 3
+
+      exit_started_log =
+        to_block
+        |> exit_started_log()
+        |> Abi.decode_log()
+        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
+
+      assert capture_log(fn ->
+               assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) ==
+                        {:ok, [exit_started_log]}
+             end) =~ "[error]"
+    end
+
     # We also assert if blocks that did NOT have any events get commited to ETS as empty.
     # This is important because we do not want to re-scan blocks for which we know contain nothing.
     test "if we get response for range and all events are commited to ETS", %{
@@ -531,6 +580,10 @@ defmodule OMG.ChildChain.EthereumEventAggregatorTest do
 
   def start_standard_exit_log() do
     "0x70e014620000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000001d1e4e4ea00000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000005df85b01c0f6f501f39408858124b3b880c68b360fd319cc61da27545e9a940000000000000000000000000000000000000000880de0b6b3a764000080a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200f39a869f62e75cf5f0bf914688a6b289caf2049435d8e68c5c5e6d05e44913f34ed5c02d6d48c8932486c99d3ad999e5d8949dc3be3b3058cc2979690c3e3a621c792b14bf66f82af36f00f5fba7014fa0c1e2ff3c7c273bfe523c1acf67dc3f5fa080a686a5a0d05c3d4822fd54d632dc9cc04b1616046eba2ce499eb9af79f5eb949690a0404abf4cebafc7cfffa382191b7dd9e7df778581e6fb78efab35fd364c9d5dadad4569b6dd47f7feabafa3571f842434425548335ac6e690dd07168d8bc5b77979c1a6702334f529f5783f79e942fd2cd03f6e55ac2cf496e849fde9c446fab46a8d27db1e3100f275a777d385b44e3cbc045cabac9da36cae040ad516082324c96127cf29f4535eb5b7ebacfe2a1d6d3aab8ec0483d32079a859ff70f9215970a8beebb1c164c474e82438174c8eeb6fbc8cb4594b88c9448f1d40b09beaecac5b45db6e41434a122b695c5a85862d8eae40b3268f6f37e414337be38eba7ab5bbf303d01f4b7ae07fd73edc2f3be05e43948a34418a3272509c43c2811a821e5c982ba51874ac7dc9dd79a80cc2f05f6f664c9dbb2e454435137da06ce44de45532a56a3a7007a2d0c6b435f726f95104bfa6e707046fc154bae91898d03a1a0ac6f9b45e471646e2555ac79e3fe87eb1781e26f20500240c379274fe91096e60d1545a8045571fdab9b530d0d6e7e8746e78bf9f20f4e86f06"
+  end
+
+  def unknown_log() do
+    "0xaaaaaaaa0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000001d1e4e4ea00000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000005df85b01c0f6f501f39408858124b3b880c68b360fd319cc61da27545e9a940000000000000000000000000000000000000000880de0b6b3a764000080a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200f39a869f62e75cf5f0bf914688a6b289caf2049435d8e68c5c5e6d05e44913f34ed5c02d6d48c8932486c99d3ad999e5d8949dc3be3b3058cc2979690c3e3a621c792b14bf66f82af36f00f5fba7014fa0c1e2ff3c7c273bfe523c1acf67dc3f5fa080a686a5a0d05c3d4822fd54d632dc9cc04b1616046eba2ce499eb9af79f5eb949690a0404abf4cebafc7cfffa382191b7dd9e7df778581e6fb78efab35fd364c9d5dadad4569b6dd47f7feabafa3571f842434425548335ac6e690dd07168d8bc5b77979c1a6702334f529f5783f79e942fd2cd03f6e55ac2cf496e849fde9c446fab46a8d27db1e3100f275a777d385b44e3cbc045cabac9da36cae040ad516082324c96127cf29f4535eb5b7ebacfe2a1d6d3aab8ec0483d32079a859ff70f9215970a8beebb1c164c474e82438174c8eeb6fbc8cb4594b88c9448f1d40b09beaecac5b45db6e41434a122b695c5a85862d8eae40b3268f6f37e414337be38eba7ab5bbf303d01f4b7ae07fd73edc2f3be05e43948a34418a3272509c43c2811a821e5c982ba51874ac7dc9dd79a80cc2f05f6f664c9dbb2e454435137da06ce44de45532a56a3a7007a2d0c6b435f726f95104bfa6e707046fc154bae91898d03a1a0ac6f9b45e471646e2555ac79e3fe87eb1781e26f20500240c379274fe91096e60d1545a8045571fdab9b530d0d6e7e8746e78bf9f20f4e86f06"
   end
 
   defp from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :lower)

@@ -22,7 +22,6 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Event
   alias OMG.Eth.RootChain.Rpc
-  alias OMG.Eth.Tenderly.CallData
 
   @timeout 55_000
   @type result() :: {:ok, list(map())} | {:error, :check_range}
@@ -71,6 +70,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
 
     ets_bucket = Keyword.fetch!(opts, :ets_bucket)
     rpc = Keyword.get(opts, :rpc, Rpc)
+    fallback_call_data_module = Keyword.get(opts, :fallback_call_data_module, OMG.Eth.Tenderly.CallData)
 
     {:ok,
      %{
@@ -80,7 +80,8 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
        event_signatures: events_signatures,
        events: events,
        contracts: contracts,
-       rpc: rpc
+       rpc: rpc,
+       fallback_call_data_module: fallback_call_data_module
      }}
   end
 
@@ -141,6 +142,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
   defp enrich_logs_with_call_data(decoded_logs, state) do
     events = state.events
     rpc = state.rpc
+    fallback_call_data_module = state.fallback_call_data_module
 
     Enum.map(decoded_logs, fn decoded_log ->
       decoded_log_signature = decoded_log.event_signature
@@ -149,7 +151,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
 
       case Keyword.fetch!(event, :enrich) do
         true ->
-          decode_call_data(decoded_log, rpc)
+          decode_call_data(decoded_log, rpc, fallback_call_data_module)
 
         _ ->
           decoded_log
@@ -157,7 +159,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
     end)
   end
 
-  defp decode_call_data(decoded_log, rpc) do
+  defp decode_call_data(decoded_log, rpc, fallback_call_data_module) do
     {:ok, enriched_data} = rpc.get_call_data(decoded_log.root_chain_txhash)
 
     enriched_data
@@ -166,15 +168,15 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
     |> case do
       {:error, reason} ->
         _ = Logger.error("Failed to decode call data from #{enriched_data}, error=#{reason}")
-        get_call_data_from_tenderly(decoded_log)
+        get_call_data_from_fallback(decoded_log, fallback_call_data_module)
 
       enriched_data_decoded ->
         Map.put(decoded_log, :call_data, enriched_data_decoded)
     end
   end
 
-  defp get_call_data_from_tenderly(decoded_log) do
-    {:ok, enriched_data} = CallData.get_call_data(decoded_log.root_chain_txhash)
+  defp get_call_data_from_fallback(decoded_log, fallback_call_data_module) do
+    {:ok, enriched_data} = fallback_call_data_module.get_call_data(decoded_log.root_chain_txhash)
     enriched_data_decoded = enriched_data |> from_hex |> Abi.decode_function()
     Map.put(decoded_log, :call_data, enriched_data_decoded)
   end
