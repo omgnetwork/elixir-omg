@@ -10,7 +10,6 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
 
 defmodule OMG.WatcherInfo.UtxoSelectionTest do
   use ExUnitFixtures
@@ -26,15 +25,27 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
   @eth OMG.Eth.zero_address()
 
+  @spec generate_utxos_map(pos_integer, Transaction.Payment.currency(), list({map, pos_integer})) :: %{
+          Transaction.Payment.currency() => list(%DB.TxOutput{})
+        }
+  defp generate_utxos_map(blknum, currency, funds) do
+    tx = OMG.TestHelper.create_recovered([], currency, funds)
+
+    utxos =
+      blknum
+      |> DB.TxOutput.create_outputs(0, tx.tx_hash, tx)
+      |> Enum.map(fn utxo -> struct(DB.TxOutput, utxo) end)
+
+    %{currency => utxos}
+  end
+
   @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
-  test "create_advice returns correctly", %{alice: alice, bob: bob} do
-    blknum = 11_000
+  test "create_advice returns {:ok, %{result: :complete}}", %{alice: alice, bob: bob} do
     amount_1 = 1000
     amount_2 = 2000
-    tx = OMG.TestHelper.create_recovered([], @eth, [{alice, amount_1}, {alice, amount_2}])
-    utxos = DB.TxOutput.create_outputs(blknum, 0, tx.tx_hash, tx)
+    utxos = generate_utxos_map(10_000, @eth, [{alice, amount_1}, {alice, amount_2}])
 
-    params = %{
+    order = %{
       owner: bob.addr,
       payments: [
         %{
@@ -50,11 +61,6 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       metadata: nil
     }
 
-    outputs = Enum.map(utxos, fn (utxo) -> struct(DB.TxOutput, utxo) end)
-
-    IO.inspect(outputs, label: "outputs")
-
-    result = OMG.WatcherInfo.UtxoSelection.create_advice(%{"#{<<0::160>>}" => outputs}, params)
-    # IO.inspect(result)
+    assert {:ok, %{result: :complete}} = OMG.WatcherInfo.UtxoSelection.create_advice(utxos, order)
   end
 end
