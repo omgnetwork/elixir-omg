@@ -166,7 +166,11 @@ defmodule OMG.Watcher.Fixtures do
 
       (started_apps ++ started_security_watcher ++ started_watcher_api)
       |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+      |> Enum.map(fn app ->
+        :ok = Application.stop(app)
+      end)
+
+      Process.sleep(1_000)
     end)
   end
 
