@@ -177,6 +177,7 @@ defmodule OMG.ChildChain.EthereumEventAggregator do
 
   defp get_call_data_from_fallback(decoded_log, fallback_call_data_module) do
     {:ok, enriched_data} = fallback_call_data_module.get_call_data(decoded_log.root_chain_txhash)
+    _ = Logger.info("Successfully decoded call data from fallback")
     enriched_data_decoded = enriched_data |> from_hex |> Abi.decode_function()
     Map.put(decoded_log, :call_data, enriched_data_decoded)
   end
