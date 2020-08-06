@@ -174,7 +174,6 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       assert [{@eth, {0, utxos}}] = UtxoSelection.select_utxo(utxos, needed_funds)
     end
 
-
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns positive variance if UTXOs don't cover `needed_funds`" do
       needed_funds = %{
