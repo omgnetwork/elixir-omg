@@ -74,8 +74,7 @@ defmodule OMG.Bus.PubSub do
       """
       def direct_local_broadcast(%Event{topic: topic, event: event, payload: payload})
           when is_atom(event) do
-        node_name = PubSub.node_name(OMG.Bus.PubSub)
-        PubSub.direct_broadcast(node_name, OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
+        PubSub.local_broadcast(OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
       end
     end
   end
