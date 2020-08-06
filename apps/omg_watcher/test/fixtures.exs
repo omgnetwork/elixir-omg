@@ -175,7 +175,7 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture test_server do
-    server_id = random_atom()
+    server_id = :watcher_test_server
     {:ok, pid} = FakeServer.start(server_id)
 
     real_addr = Application.fetch_env!(:omg_watcher, :child_chain_url)
@@ -195,17 +195,6 @@ defmodule OMG.Watcher.Fixtures do
       server_id: server_id,
       server_pid: pid
     }
-  end
-
-  defp random_atom() do
-    chars = String.split("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "")
-
-    1..10
-    |> Enum.reduce([], fn _i, acc ->
-      [Enum.random(chars) | acc]
-    end)
-    |> Enum.join("")
-    |> String.to_atom()
   end
 
   defp wait_for_web(), do: wait_for_web(100)

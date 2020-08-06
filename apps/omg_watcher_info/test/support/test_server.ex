@@ -22,7 +22,7 @@ defmodule OMG.WatcherInfo.TestServer do
   Starts a mock server that will handle child chain requests
   """
   def start() do
-    server_id = random_atom()
+    server_id = :watcher_info_test_server
     {:ok, pid} = FakeServer.start(server_id)
 
     real_addr = Application.fetch_env!(:omg_watcher_info, :child_chain_url)
@@ -65,17 +65,6 @@ defmodule OMG.WatcherInfo.TestServer do
 
   def make_response(data) when is_map(data) do
     TestServerResponseFactory.build(:json_rpc, data: data, success: not Map.has_key?(data, :code))
-  end
-
-  defp random_atom() do
-    chars = String.split("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "")
-
-    1..10
-    |> Enum.reduce([], fn _i, acc ->
-      [Enum.random(chars) | acc]
-    end)
-    |> Enum.join("")
-    |> String.to_atom()
   end
 end
 
