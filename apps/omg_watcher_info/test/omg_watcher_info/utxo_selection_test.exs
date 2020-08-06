@@ -145,4 +145,48 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
               ]} = UtxoSelection.funds_sufficient?(constructed_argument)
     end
   end
+
+  describe "select_utxo/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the expected utxos if UTXOs cover `needed_funds" do
+      needed_funds = %{
+        @eth => 2_000
+      }
+
+      _ = insert(:txoutput, amount: 1_200, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 1_000, currency: @eth, owner: @alice)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      assert [{@eth, {-200, utxos}}] = UtxoSelection.select_utxo(utxos, needed_funds)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the expected utxos if any of UTXOs exactly matched `needed_funds`" do
+      needed_funds = %{
+        @eth => 2_000
+      }
+
+      _ = insert(:txoutput, amount: 2_000, currency: @eth, owner: @alice)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      assert [{@eth, {0, utxos}}] = UtxoSelection.select_utxo(utxos, needed_funds)
+    end
+
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns positive variance if UTXOs don't cover `needed_funds`" do
+      needed_funds = %{
+        @eth => 2_000
+      }
+
+      _ = insert(:txoutput, amount: 500, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 500, currency: @eth, owner: @alice)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      assert [{@eth, {1_000, _utxos}}] = UtxoSelection.select_utxo(utxos, needed_funds)
+    end
+  end
 end
