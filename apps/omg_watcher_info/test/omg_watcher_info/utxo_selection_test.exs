@@ -126,23 +126,23 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
                    %{missing: variances[@other_token], token: Encoding.to_hex(@other_token)}
                  ]}}
     end
-  end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
-  test "should return the expected response if UTXOs cover the amount of the transaction order" do
-    variances = %{@eth => -5, @other_token => 0}
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "should return the expected response if UTXOs cover the amount of the transaction order" do
+      variances = %{@eth => -5, @other_token => 0}
 
-    _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-    _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
 
-    utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-    constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxos[ccy]}} end)
+      constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxos[ccy]}} end)
 
-    assert {:ok,
-            [
-              {@eth, [%DB.TxOutput{currency: @eth}]},
-              {@other_token, [%DB.TxOutput{currency: @other_token}]}
-            ]} = UtxoSelection.funds_sufficient?(constructed_argument)
+      assert {:ok,
+              [
+                {@eth, [%DB.TxOutput{currency: @eth}]},
+                {@other_token, [%DB.TxOutput{currency: @other_token}]}
+              ]} = UtxoSelection.funds_sufficient?(constructed_argument)
+    end
   end
 end
