@@ -18,6 +18,7 @@ defmodule OMG.ChildChainRPC.Web.Endpoint do
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
+  plug(Plug.Telemetry, event_prefix: [:childchain_rpc, :endpoint])
 
   plug(
     Plug.Parsers,
@@ -28,7 +29,6 @@ defmodule OMG.ChildChainRPC.Web.Endpoint do
 
   plug(Plug.MethodOverride)
   plug(Plug.Head)
-  plug(Plug.Telemetry, event_prefix: [:phoenix, :endpoint])
 
   if Application.get_env(:omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)

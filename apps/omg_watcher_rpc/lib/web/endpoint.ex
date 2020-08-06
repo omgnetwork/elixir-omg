@@ -18,6 +18,7 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
+  plug(Plug.Telemetry, event_prefix: [:watcher_rpc, :endpoint])
 
   if code_reloading? do
     plug(Phoenix.CodeReloader)
@@ -32,7 +33,6 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
 
   plug(Plug.MethodOverride)
   plug(Plug.Head)
-  plug(Plug.Telemetry, event_prefix: [:phoenix, :endpoint])
 
   if Application.get_env(:omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)

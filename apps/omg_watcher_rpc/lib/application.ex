@@ -25,6 +25,13 @@ defmodule OMG.WatcherRPC.Application do
 
   def start_root_supervisor() do
     # root supervisor must stop whenever any of its children supervisors goes down (children carry the load of restarts)
+
+    _ =
+      SpandexPhoenix.Telemetry.install(
+        endpoint_telemetry_prefix: [:watcher_rpc, :endpoint],
+        tracer: OMG.WatcherRPC.Tracer
+      )
+
     children = [
       %{
         id: OMG.WatcherRPC.Web.Endpoint,
@@ -38,8 +45,6 @@ defmodule OMG.WatcherRPC.Application do
       # whenever any of supervisor's children goes down, so it does
       name: OMG.WatcherRPC.RootSupervisor
     ]
-
-    SpandexPhoenix.Telemetry.install()
 
     Supervisor.start_link(children, opts)
   end
