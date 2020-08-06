@@ -92,16 +92,15 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end
   end
 
-  # Given available Utxo set and needed amount, we try to find an Utxo which fully satisfies the payment (without
-  # the change). If this fails, we start to collect Utxos (starting from largest amount) which will cover the payment.
-  # We return {token, {change, [utxos for payment]}}, change > 0 means insufficient funds.
-  # NOTE: order of Utxo list is implicitly assumed for the algorithm to work deterministically,
-  # see: `OMG.WatcherInfo.DB.TxOutput.get_sorted_grouped_utxos`
-  @spec select_utxo(%{currency_t() => list(%DB.TxOutput{})}, %{
-          currency_t() => pos_integer()
-        }) ::
-          list({currency_t(), {integer, list(%DB.TxOutput{})}})
-  defp select_utxo(utxos, needed_funds) do
+  @doc """
+  Given the available set of UTXOs and the needed amount by currency, tries to find a UTXO that satisfies the payment with no change.
+  If this fails, starts to collect UTXOs (starting from the largest amount) until the payment is covered.
+  Returns {currency, { variance, [utxos] }}. A `variance` greater than zero means insufficient funds.
+  The ordering of UTXOs in descending order of amount is implicitly assumed for this algorithm to work deterministically.
+  """
+  @spec select_utxo(%{currency_t() => utxo_list_t()}, %{currency_t() => pos_integer()}) ::
+          list({currency_t(), {integer, utxo_list_t()}})
+  def select_utxo(utxos, needed_funds) do
     Enum.map(needed_funds, fn {token, need} ->
       token_utxos = Map.get(utxos, token, [])
 
@@ -119,7 +118,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end)
   end
 
-  # Sums up payments by token. Fee is included.
+  @doc """
+  Sums up payable amount by token, including the fee.
+  """
   @spec needed_funds(list(payment_t()), %{amount: pos_integer(), currency: currency_t()}) ::
           %{currency_t() => pos_integer()}
   def needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
@@ -137,13 +138,12 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   @doc """
   Checks if the result of `select_utxos/2` covers the amount(s) of the transaction order.
   """
-  @spec funds_sufficient?(
-          list({currency :: currency_t(), {missing_amount :: non_neg_integer(), selected_utxos :: utxo_list_t()}})
-        ) :: {:ok, utxo_list_t()} | {:error, {:insufficient_funds, list(%{token: String.t(), missing: pos_integer()})}}
+  @spec funds_sufficient?(list({currency :: currency_t(), {variance :: integer(), selected_utxos :: utxo_list_t()}})) ::
+          {:ok, utxo_list_t()} | {:error, {:insufficient_funds, list(%{token: String.t(), missing: pos_integer()})}}
   def funds_sufficient?(utxo_selection) do
     missing_funds =
       utxo_selection
-      |> Stream.filter(fn {_currency, {missing_amount, _selected_utxos}} -> missing_amount > 0 end)
+      |> Stream.filter(fn {_currency, {variance, _selected_utxos}} -> variance > 0 end)
       |> Enum.map(fn {currency, {missing, _selected_utxos}} -> %{token: Encoding.to_hex(currency), missing: missing} end)
 
     if Enum.empty?(missing_funds),
