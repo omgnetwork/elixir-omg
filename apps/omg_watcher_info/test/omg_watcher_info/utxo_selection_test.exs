@@ -25,25 +25,27 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
   require Utxo
 
+  @alice <<27::160>>
+  @bob <<28::160>>
   @eth OMG.Eth.zero_address()
   @other_token <<127::160>>
 
   describe "create_advice/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
-    test "returns {:ok, %{result: :complete}}", %{alice: alice, bob: bob} do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns {:ok, %{result: :complete}}" do
       amount_1 = 1000
       amount_2 = 2000
 
-      _ = insert(:txoutput, amount: amount_1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: amount_2, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: amount_1, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: amount_2, currency: @eth, owner: @alice)
 
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(alice.addr)
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
       order = %{
-        owner: bob.addr,
+        owner: @bob,
         payments: [
           %{
-            owner: alice.addr,
+            owner: @alice,
             currency: @eth,
             amount: 1000
           }
@@ -60,14 +62,14 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   end
 
   describe "needed_funds/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "returns a correct map when payment_currency != fee_currency", %{alice: alice} do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a correct map when payment_currency != fee_currency" do
       payment_currency = @eth
       fee_currency = @other_token
 
       payments = [
         %{
-          owner: alice.addr,
+          owner: @alice,
           currency: payment_currency,
           amount: 1_000
         }
@@ -84,13 +86,13 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
              } == UtxoSelection.needed_funds(payments, fee)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "returns a correct map when payment_currency == fee_currency", %{alice: alice} do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns a correct map when payment_currency == fee_currency" do
       payment_currency = @eth
 
       payments = [
         %{
-          owner: alice.addr,
+          owner: @alice,
           currency: payment_currency,
           amount: 1_000
         }
@@ -128,18 +130,19 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "should return the expected response if UTXOs cover the amount of the transaction order" do
-    alice = <<27::160>>
-
     variances = %{@eth => -5, @other_token => 0}
 
-    _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice)
-    _ = insert(:txoutput, amount: 100, currency: @other_token, owner: alice)
+    _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+    _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
 
-    utxos = DB.TxOutput.get_sorted_grouped_utxos(alice)
+    utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
     constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxos[ccy]}} end)
 
-    assert {:ok, [{@eth, [%DB.TxOutput{currency: @eth}]}, {@other_token, [%DB.TxOutput{currency: @other_token}]}]} =
-             UtxoSelection.funds_sufficient?(constructed_argument)
+    assert {:ok,
+            [
+              {@eth, [%DB.TxOutput{currency: @eth}]},
+              {@other_token, [%DB.TxOutput{currency: @other_token}]}
+            ]} = UtxoSelection.funds_sufficient?(constructed_argument)
   end
 end
