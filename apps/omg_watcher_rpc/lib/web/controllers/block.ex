@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.Block
+  alias OMG.Watcher
   alias OMG.WatcherInfo.API.Block, as: InfoApiBlock
   alias OMG.WatcherRPC.Web.Validator
 
@@ -49,17 +49,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   Executes stateful and stateless validation of a block.
   """
   def validate_block(conn, params) do
-    with {:ok, block} <- Validator.BlockValidator.parse_to_validate(params),
-         {:ok, _block} <- stateless_validate(block) do
+    with {:ok, block} <- Validator.BlockConstraints.parse_to_validate(params),
+         {:ok, _block} <- Watcher.BlockValidator.stateless_validate(block) do
       api_response(block, conn, :validate_block)
-    end
-  end
-
-  @spec stateless_validate(Block.t()) :: any
-  defp stateless_validate(submitted_block) do
-    with {:ok, recovered_transactions} <- Validator.BlockValidator.verify_transactions(submitted_block.transactions),
-         {:ok, block} <- Validator.BlockValidator.verify_merkle_root(submitted_block, recovered_transactions) do
-      {:ok, block}
     end
   end
 end
