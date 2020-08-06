@@ -16,6 +16,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
+  alias OMG.Eth.Encoding
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.UtxoSelection
@@ -104,5 +105,41 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
                payment_currency => 3_000
              } == UtxoSelection.needed_funds(payments, fee)
     end
+  end
+
+  describe "funds_sufficient/1" do
+    test "should return the expected error if UTXOs do not cover the amount of the transaction order" do
+      variances = %{@eth => 5, @other_token => 10}
+
+      # UTXO list is empty for simplicty as the error response does not need it.
+      utxo_list = []
+
+      constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxo_list}} end)
+
+      assert UtxoSelection.funds_sufficient?(constructed_argument) ==
+               {:error,
+                {:insufficient_funds,
+                 [
+                   %{missing: variances[@eth], token: Encoding.to_hex(@eth)},
+                   %{missing: variances[@other_token], token: Encoding.to_hex(@other_token)}
+                 ]}}
+    end
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "should return the expected response if UTXOs cover the amount of the transaction order" do
+    alice = <<27::160>>
+
+    variances = %{@eth => -5, @other_token => 0}
+
+    _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice)
+    _ = insert(:txoutput, amount: 100, currency: @other_token, owner: alice)
+
+    utxos = DB.TxOutput.get_sorted_grouped_utxos(alice)
+
+    constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxos[ccy]}} end)
+
+    assert {:ok, [{@eth, [%DB.TxOutput{currency: @eth}]}, {@other_token, [%DB.TxOutput{currency: @other_token}]}]} =
+             UtxoSelection.funds_sufficient?(constructed_argument)
   end
 end
