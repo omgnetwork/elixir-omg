@@ -104,13 +104,3 @@ defmodule OMG.Status.Alert.Alarm do
     end
   end
 end
-
-defimpl Jason.Encoder, for: PID do
-  alias Jason.Encode
-
-  def encode(pid, opts) do
-    pid
-    |> inspect()
-    |> Encode.string(opts)
-  end
-end

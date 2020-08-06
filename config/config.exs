@@ -149,7 +149,8 @@ config :vmstats,
 # Disable :os_mon's system_memory_high_watermark in favor of our own OMG.Status.Monitor.SystemMemory
 # See http://erlang.org/pipermail/erlang-questions/2006-September/023144.html
 config :os_mon,
-  system_memory_high_watermark: 1.00
+  system_memory_high_watermark: 1.00,
+  process_memory_high_watermark: 1.00
 
 config :omg_watcher, child_chain_url: "http://localhost:9656"
 

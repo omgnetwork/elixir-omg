@@ -20,7 +20,6 @@ defmodule OMG.Watcher.API.AlarmTest do
   setup %{} do
     {:ok, apps} = Application.ensure_all_started(:omg_status)
     system_alarm = {:system_memory_high_watermark, []}
-    process_memory_high_watermark_alarm = {:process_memory_high_watermark, :c.pid(0, 250, 0)}
     system_disk_alarm = {{:disk_almost_full, "/dev/null"}, []}
     app_alarm = {:ethereum_connection_error, %{node: Node.self(), reporter: Reporter}}
 
@@ -28,12 +27,7 @@ defmodule OMG.Watcher.API.AlarmTest do
       apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     end)
 
-    %{
-      system_alarm: system_alarm,
-      system_disk_alarm: system_disk_alarm,
-      app_alarm: app_alarm,
-      process_memory_high_watermark_alarm: process_memory_high_watermark_alarm
-    }
+    %{system_alarm: system_alarm, system_disk_alarm: system_disk_alarm, app_alarm: app_alarm}
   end
 
   test "if alarms are returned when there are no alarms raised", _ do
@@ -44,16 +38,13 @@ defmodule OMG.Watcher.API.AlarmTest do
   test "if alarms are returned when there are alarms raised", %{
     system_alarm: system_alarm,
     system_disk_alarm: system_disk_alarm,
-    app_alarm: app_alarm,
-    process_memory_high_watermark_alarm: process_memory_high_watermark_alarm
+    app_alarm: app_alarm
   } do
     :ok = :alarm_handler.set_alarm(system_alarm)
     :ok = :alarm_handler.set_alarm(app_alarm)
     :ok = :alarm_handler.set_alarm(system_disk_alarm)
-    :ok = :alarm_handler.set_alarm(process_memory_high_watermark_alarm)
 
     find_alarms = [
-      process_memory_high_watermark_alarm,
       {{:disk_almost_full, "/dev/null"}, []},
       {:ethereum_connection_error, %{node: Node.self(), reporter: Reporter}},
       {:system_memory_high_watermark, []}

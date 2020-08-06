@@ -41,14 +41,6 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
     assert [] == get("alarm.get")
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
-  test "correctly serializes pid", _ do
-    process_memory_high_watermark_alarm = {:process_memory_high_watermark, :c.pid(0, 250, 0)}
-    :ok = :alarm_handler.set_alarm(process_memory_high_watermark_alarm)
-
-    assert [%{"process_memory_high_watermark" => "#PID<0.250.0>"}] == get("alarm.get")
-  end
-
   defp get(path) do
     response_body = rpc_call_get(path, 200)
     version = Map.get(response_body, "version")
