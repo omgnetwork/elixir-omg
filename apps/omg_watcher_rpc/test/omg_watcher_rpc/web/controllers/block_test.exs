@@ -197,9 +197,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
       assert data == %{
-               "code" => "block.validate:invalid_merkle_root",
-               "description" => "Block hash does not match reconstructed Merkle root.",
-               "object" => "error"
+               "valid" => false,
+               "error" => "invalid_merkle_root"
              }
     end
 
@@ -245,9 +244,8 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
       %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
       assert data == %{
-               "code" => "validate_block:duplicate_inputs",
-               "description" => nil,
-               "object" => "error"
+               "error" => "duplicate_inputs",
+               "valid" => false
              }
     end
 
@@ -278,11 +276,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
-      assert data == %{
-               "hash" => params.hash,
-               "number" => params.number,
-               "transactions" => params.transactions
-             }
+      assert data == %{"valid" => true}
     end
   end
 end

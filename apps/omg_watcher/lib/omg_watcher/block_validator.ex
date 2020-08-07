@@ -26,11 +26,11 @@ defmodule OMG.Watcher.BlockValidator do
   - Verifies that transactions are correctly formed.
   - Verifies that given Merkle root matches reconstructed Merkle root.
   """
-  @spec stateless_validate(Block.t()) :: {:ok, Block.t()} | {:error, atom()}
+  @spec stateless_validate(Block.t()) :: {:ok, boolean()} | {:error, atom()}
   def stateless_validate(submitted_block) do
     with {:ok, recovered_transactions} <- verify_transactions(submitted_block.transactions),
-         {:ok, block} <- verify_merkle_root(submitted_block, recovered_transactions) do
-      {:ok, block}
+         {:ok, _block} <- verify_merkle_root(submitted_block, recovered_transactions) do
+      {:ok, true}
     end
   end
 

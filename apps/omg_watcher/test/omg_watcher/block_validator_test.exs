@@ -83,7 +83,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: [signed_txbytes_1, signed_txbytes_2]
       }
 
-      assert {:ok, block} == BlockValidator.stateless_validate(block)
+      assert {:ok, true} == BlockValidator.stateless_validate(block)
     end
 
     test "returns error for non-matching Merkle root hash" do
@@ -118,7 +118,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:ok, block} = BlockValidator.stateless_validate(block)
+      assert {:ok, true} = BlockValidator.stateless_validate(block)
     end
   end
 end

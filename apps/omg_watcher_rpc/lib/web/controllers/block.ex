@@ -49,9 +49,14 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   Executes stateful and stateless validation of a block.
   """
   def validate_block(conn, params) do
-    with {:ok, block} <- Validator.BlockConstraints.parse_to_validate(params),
-         {:ok, _block} <- Watcher.BlockValidator.stateless_validate(block) do
-      api_response(block, conn, :validate_block)
+    with {:ok, block} <- Validator.BlockConstraints.parse_to_validate(params) do
+      case Watcher.BlockValidator.stateless_validate(block) do
+        {:ok, true} ->
+          api_response(%{valid: true}, conn, :validate_block)
+
+        {:error, reason} ->
+          api_response(%{valid: false, error: reason}, conn, :validate_block)
+      end
     end
   end
 end
