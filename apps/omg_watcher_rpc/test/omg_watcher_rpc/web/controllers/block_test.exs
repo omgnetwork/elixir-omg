@@ -231,7 +231,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
         |> ExRLP.encode()
         |> Encoding.to_hex()
 
-      merkle_root = [hash_invalid, hash_valid] |> Merkle.hash() |> Encoding.to_hex()
+      merkle_root = [txbytes_invalid, txbytes_valid] |> Merkle.hash() |> Encoding.to_hex()
 
       params = %{
         hash: merkle_root,
