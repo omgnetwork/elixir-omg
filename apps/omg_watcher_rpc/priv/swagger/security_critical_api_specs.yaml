@@ -946,7 +946,7 @@ paths:
                   - 0xf852c003eeed02eb94916f3753bd53e124d6d565ef1701...
       responses:
         '200':
-          description: Successful block validation response
+          description: Successful response to calling /block.validate
           content:
             application/json:
               schema:
@@ -977,21 +977,15 @@ paths:
                       data:
                         type: object
                         properties:
-                          number:
-                            type: integer
-                          hash:
+                          valid:
+                            type: boolean
+                          error:
                             type: string
-                          transactions:
-                            type: array
-                            items:
-                              type: string
+                            nullable: true
                     example:
                       data:
-                        number: 1000
-                        hash: 0xf8d083015ba98080808080940000...
-                        transactions:
-                          - 0xf8c0f843b841fc6dbf49a4baa783ec576291f6083be5ea...
-                          - 0xf852c003eeed02eb94916f3753bd53e124d6d565ef1701...
+                        valid: false
+                        error: invalid_merkle_root
         '500':
           description: Returns an internal server error
           content:

@@ -1,5 +1,5 @@
 BlockValidateResponse:
-  description: Successful block validation response
+  description: Successful response to calling /block.validate
   content:
     application/json:
       schema:
