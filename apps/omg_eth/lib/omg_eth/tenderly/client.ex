@@ -20,6 +20,9 @@ defmodule OMG.Eth.Tenderly.Client do
   @default_recv_timeout 20_000
 
   defmodule SimulateRequest do
+    @moduledoc """
+    Wrapper for arguments used in Tenderly simulate API call
+    """
     @enforce_keys [:from, :to, :input, :value, :block_number, :transaction_index, :gas]
     defstruct [:from, :to, :input, :value, :block_number, :transaction_index, :gas]
 

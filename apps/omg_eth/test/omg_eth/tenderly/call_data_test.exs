@@ -17,8 +17,8 @@ defmodule OMG.Eth.Tenderly.CallDataTest do
   use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
   alias ExVCR.Config
-  alias OMG.Eth.Tenderly.Client
   alias OMG.Eth.Tenderly.CallData
+  alias OMG.Eth.Tenderly.Client
 
   @tx_hash "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
 
