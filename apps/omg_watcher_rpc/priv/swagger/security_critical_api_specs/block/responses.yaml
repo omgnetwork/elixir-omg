@@ -1,0 +1,6 @@
+BlockValidateResponse:
+  description: Successful block validation response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/BlockValidateResponseSchema'

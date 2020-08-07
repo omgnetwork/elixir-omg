@@ -1,0 +1,12 @@
+BlockValidateSchema:
+  type: object
+  properties:
+    number:
+      type: integer
+    hash:
+      type: string
+    transactions:
+      type: array
+      items:
+        type: string
+       

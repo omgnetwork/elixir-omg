@@ -1,0 +1,13 @@
+BlockValidateResponseSchema:
+  allOf:
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/BlockValidateSchema'
+    example:
+      data:
+        number: 1000
+        hash: '0xf8d083015ba98080808080940000...'
+        transactions: ["0xf8c0f843b841fc6dbf49a4baa783ec576291f6083be5ea...", "0xf852c003eeed02eb94916f3753bd53e124d6d565ef1701..." ]

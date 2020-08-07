@@ -1,0 +1,15 @@
+block.validate:
+  post:
+    tags:
+      - Block
+    summary: Verifies the stateless validity of a block. 
+    description: > 
+      Validates that the given transactions are correctly formed, and that the given hash corresponds to the reconstructed Merkle root hash.
+    operationId: validate
+    requestBody:
+      $ref: 'request_bodies.yaml#/BlockValidateBodySchema'
+    responses:
+      200:
+        $ref: 'responses.yaml#/BlockValidateResponse'
+      500:
+        $ref: '../responses.yaml#/InternalServerError'
