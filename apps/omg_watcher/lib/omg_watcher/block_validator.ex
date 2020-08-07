@@ -22,7 +22,9 @@ defmodule OMG.Watcher.BlockValidator do
   alias OMG.State.Transaction
 
   @doc """
-  Executes stateless validation of a submitted block.
+  Executes stateless validation of a submitted block:
+  - Verifies that transactions are correctly formed.
+  - Verifies that given Merkle root matches reconstructed Merkle root.
   """
   @spec stateless_validate(Block.t()) :: {:ok, Block.t()} | {:error, atom()}
   def stateless_validate(submitted_block) do
@@ -32,12 +34,9 @@ defmodule OMG.Watcher.BlockValidator do
     end
   end
 
-  @doc """
-  Verifies that given Merkle root matches reconstructed Merkle root.
-  """
   @spec verify_merkle_root(Block.t(), list(Transaction.Recovered.t())) ::
           {:ok, Block.t()} | {:error, :mismatched_merkle_root}
-  def verify_merkle_root(block, transactions) do
+  defp verify_merkle_root(block, transactions) do
     reconstructed_merkle_hash =
       transactions
       |> Enum.map(&Transaction.raw_txbytes/1)
@@ -49,13 +48,10 @@ defmodule OMG.Watcher.BlockValidator do
     end
   end
 
-  @doc """
-  Verifies that transactions are correctly formed.
-  """
   @spec verify_transactions(transactions :: list(Transaction.Recovered.t())) ::
           {:ok, list(Transaction.Recovered.t())}
           | {:error, Transaction.Recovered.recover_tx_error()}
-  def verify_transactions(transactions) do
+  defp verify_transactions(transactions) do
     transactions
     |> Enum.reverse()
     |> Enum.reduce_while({:ok, []}, fn tx, {:ok, already_recovered} ->

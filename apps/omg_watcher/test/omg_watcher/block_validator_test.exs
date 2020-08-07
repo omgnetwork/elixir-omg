@@ -26,8 +26,8 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
   @eth OMG.Eth.zero_address()
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
-  describe "verify_transactions/1" do
-    test "returns error if a transaction is not correctly formed (duplicate inputs in this example)" do
+  describe "stateless_validate/1" do
+    test "returns error if a transaction is not correctly formed (e.g. duplicate inputs)" do
       input_1 = {1, 0, 0, @alice}
       input_2 = {2, 0, 0, @alice}
       input_3 = {3, 0, 0, @alice}
@@ -45,10 +45,24 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       [_, inputs_invalid, outputs_invalid, _, _] = ExRLP.decode(txbytes_invalid)
 
       hash_valid = ExRLP.encode([sigs_valid, @payment_tx_type, inputs_valid, outputs_valid, 0, <<0::256>>])
-      hash_invalid = ExRLP.encode([sigs_invalid, @payment_tx_type, inputs_invalid, outputs_invalid, 0, <<0::256>>])
 
-      assert {:error, :duplicate_inputs} ==
-               BlockValidator.verify_transactions([hash_invalid, hash_valid])
+      hash_invalid =
+        ExRLP.encode([
+          sigs_invalid,
+          @payment_tx_type,
+          inputs_invalid,
+          outputs_invalid,
+          0,
+          <<0::256>>
+        ])
+
+      block = %{
+        hash: Merkle.hash([txbytes_valid, txbytes_invalid]),
+        number: 1000,
+        transactions: [hash_invalid, hash_valid]
+      }
+
+      assert {:error, :duplicate_inputs} == BlockValidator.stateless_validate(block)
     end
 
     test "accepts correctly formed transactions" do
@@ -58,15 +72,20 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       signed_txbytes_1 = recovered_tx_1.signed_tx_bytes
       signed_txbytes_2 = recovered_tx_2.signed_tx_bytes
 
-      {:ok, expected_1} = Transaction.Recovered.recover_from(signed_txbytes_1)
-      {:ok, expected_2} = Transaction.Recovered.recover_from(signed_txbytes_2)
+      merkle_root =
+        [recovered_tx_1, recovered_tx_2]
+        |> Enum.map(&Transaction.raw_txbytes/1)
+        |> Merkle.hash()
 
-      assert {:ok, [expected_1, expected_2]} ==
-               BlockValidator.verify_transactions([signed_txbytes_1, signed_txbytes_2])
+      block = %{
+        hash: merkle_root,
+        number: 1000,
+        transactions: [signed_txbytes_1, signed_txbytes_2]
+      }
+
+      assert {:ok, block} == BlockValidator.stateless_validate(block)
     end
-  end
 
-  describe "verify_merkle_root/1" do
     test "returns error for non-matching Merkle root hash" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
@@ -79,8 +98,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:error, :invalid_merkle_root} ==
-               BlockValidator.verify_merkle_root(block, [recovered_tx_1, recovered_tx_2])
+      assert {:error, :invalid_merkle_root} == BlockValidator.stateless_validate(block)
     end
 
     test "accepts matching Merkle root hash" do
@@ -100,7 +118,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:ok, block} = BlockValidator.verify_merkle_root(block, [recovered_tx_1, recovered_tx_2])
+      assert {:ok, block} = BlockValidator.stateless_validate(block)
     end
   end
 end
