@@ -138,8 +138,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   @doc """
   Checks if the result of `select_utxos/2` covers the amount(s) of the transaction order.
   """
-  @spec funds_sufficient?(list({currency :: currency_t(), {variance :: integer(), selected_utxos :: utxo_list_t()}})) ::
-          {:ok, utxo_list_t()} | {:error, {:insufficient_funds, list(%{token: String.t(), missing: pos_integer()})}}
+  @spec funds_sufficient?([{currency :: currency_t(), {variance :: integer(), selected_utxos :: utxo_list_t()}}]) ::
+          {:ok, [{currency_t(), utxo_list_t()}]}
+          | {:error, {:insufficient_funds, [%{token: String.t(), missing: pos_integer()}]}}
   def funds_sufficient?(utxo_selection) do
     missing_funds =
       utxo_selection
