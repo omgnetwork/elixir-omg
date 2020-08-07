@@ -276,7 +276,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
-      assert data == %{"valid" => true}
+      assert data == %{"valid" => true, "error" => nil}
     end
   end
 end
