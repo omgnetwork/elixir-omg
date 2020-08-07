@@ -187,7 +187,15 @@ config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   connect_timeout: 180_000,
   url: "postgres://omisego_dev:omisego_dev@localhost/omisego_dev",
   migration_timestamps: [type: :timestamptz],
-  telemetry_prefix: [:omg, :watcher_info, :db, :repo]
+  telemetry_prefix: [:omg, :watcher_info, :db, :repo],
+  # Establish a maximum of `:pool_size` DB connections. Wait at most `:queue_target` for a connection.
+  # If all connections checked out during a `:queue_interval` takes more than `:queue_target`,
+  # then we double the `:queue_target`. If checking out connections take longer than the new target,
+  # then we start dropping messages.
+  # See: https://hexdocs.pm/db_connection/DBConnection.html#start_link/2-queue-config
+  pool_size: 10,
+  queue_target: 50,
+  queue_interval: 1000
 
 config :omg_watcher_info, OMG.WatcherInfo.Tracer,
   service: :ecto,
