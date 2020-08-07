@@ -40,7 +40,6 @@ defmodule OMG.ChildChainRPC.Web do
       alias OMG.ChildChainRPC.Web.Router.Helpers, as: Routes
 
       action_fallback(OMG.ChildChainRPC.Web.Controller.Fallback)
-      use SpandexPhoenix, tracer: OMG.ChildChainRPC.Tracer
 
       @doc """
       Passes result to the render process when successful or returns error result unchanged.
