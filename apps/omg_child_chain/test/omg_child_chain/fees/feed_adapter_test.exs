@@ -18,9 +18,6 @@ defmodule OMG.ChildChain.Fees.FeedAdapterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias FakeServer.Agents.EnvAgent
-  alias FakeServer.Env
-  alias FakeServer.HTTP.Server
   alias OMG.ChildChain.Fees.FeedAdapter
   alias OMG.ChildChain.Fees.JSONFeeParser
   alias OMG.Eth
@@ -109,14 +106,6 @@ defmodule OMG.ChildChain.Fees.FeedAdapterTest do
   defp get_current_fee_specs(),
     do: :current_fee_specs |> Agent.get(& &1) |> parse_specs()
 
-  defp make_response(data) do
-    Jason.encode!(%{
-      version: "1.0",
-      success: true,
-      data: data
-    })
-  end
-
   defp update_feed_price(amount) do
     Agent.update(:current_fee_specs, fn _ -> make_fee_specs(amount) end)
     {:ok, fees} = get_current_fee_specs()
@@ -128,26 +117,38 @@ defmodule OMG.ChildChain.Fees.FeedAdapterTest do
     Agent.start(fn -> nil end, name: :current_fee_specs)
 
     path = "/fees"
-    {:ok, @server_id, port} = Server.run(%{id: @server_id})
-    env = %FakeServer.Env{Env.new(port) | routes: [path]}
-    EnvAgent.save_env(@server_id, env)
+    {:ok, pid} = FakeServer.start(@server_id)
 
-    Server.add_response(@server_id, path, fn _ ->
-      headers = %{"content-type" => "application/json"}
+    :ok =
+      FakeServer.put_route(pid, path, fn _ ->
+        fees = Agent.get(:current_fee_specs, & &1)
 
-      :current_fee_specs
-      |> Agent.get(& &1)
-      |> make_response()
-      |> FakeServer.HTTP.Response.ok(headers)
-    end)
+        ResponseFactory.build(:json_rpc, data: fees)
+      end)
 
+    {:ok, port} = FakeServer.port(@server_id)
     {update_feed_price(initial_price), port}
   end
 
   defp fees_all_endpoint_teardown() do
-    :ok = Server.stop(@server_id)
-    EnvAgent.delete_env(@server_id)
+    FakeServer.stop(@server_id)
 
     Agent.stop(:current_fee_specs)
+  end
+end
+
+defmodule ResponseFactory do
+  @moduledoc false
+  use FakeServer.ResponseFactory
+
+  def json_rpc_response() do
+    ok(
+      %{
+        version: "1.0",
+        success: true,
+        data: %{}
+      },
+      %{"Content-Type" => "application/json"}
+    )
   end
 end

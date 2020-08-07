@@ -23,6 +23,12 @@ defmodule OMG.ChildChainRPC.Application do
   def start(_type, _args) do
     _ = Logger.info("Started application #{__MODULE__}")
 
+    _ =
+      SpandexPhoenix.Telemetry.install(
+        endpoint_telemetry_prefix: [:childchain_rpc, :endpoint],
+        tracer: OMG.ChildChainRPC.Tracer
+      )
+
     opts = [strategy: :one_for_one, name: OMG.ChildChainRPC.Supervisor]
 
     children = [{OMG.ChildChainRPC.Web.Endpoint, []}]

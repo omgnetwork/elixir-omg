@@ -39,7 +39,6 @@ defmodule OMG.WatcherRPC.Web do
       import OMG.Utils.HttpRPC.Validator.Base
 
       action_fallback(OMG.WatcherRPC.Web.Controller.Fallback)
-      use SpandexPhoenix, tracer: OMG.WatcherRPC.Tracer
 
       @doc """
       Passes result to the render process when successful or returns error result unchanged.

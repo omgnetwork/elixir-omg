@@ -24,7 +24,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use OMG.Fixtures
   use OMG.Watcher.Integration.Fixtures
   use Plug.Test
-  use Phoenix.ChannelTest
 
   require OMG.Utxo
 
