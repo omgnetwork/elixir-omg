@@ -16,6 +16,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
   @moduledoc """
   Operations related to block.
   """
+  require Logger
 
   use OMG.WatcherRPC.Web, :controller
 
@@ -52,10 +53,11 @@ defmodule OMG.WatcherRPC.Web.Controller.Block do
     with {:ok, block} <- Validator.BlockConstraints.parse_to_validate(params) do
       case Watcher.BlockValidator.stateless_validate(block) do
         {:ok, true} ->
-          api_response(%{valid: true, error: nil}, conn, :validate_block)
+          api_response(%{valid: true}, conn, :validate_block)
 
         {:error, reason} ->
-          api_response(%{valid: false, error: reason}, conn, :validate_block)
+          Logger.info("Block #{block.number} is invalid due to #{reason}")
+          api_response(%{valid: false}, conn, :validate_block)
       end
     end
   end

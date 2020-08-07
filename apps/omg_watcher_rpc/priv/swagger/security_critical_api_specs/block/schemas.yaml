@@ -3,7 +3,3 @@ BlockValidateSchema:
   properties:
     valid:
       type: boolean
-    error:
-      type: string
-      nullable: true
-

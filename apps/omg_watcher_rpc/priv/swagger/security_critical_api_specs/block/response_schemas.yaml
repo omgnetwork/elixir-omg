@@ -9,4 +9,3 @@ BlockValidateResponseSchema:
     example:
       data:
         valid: false
-        error: invalid_merkle_root

@@ -979,13 +979,9 @@ paths:
                         properties:
                           valid:
                             type: boolean
-                          error:
-                            type: string
-                            nullable: true
                     example:
                       data:
                         valid: false
-                        error: invalid_merkle_root
         '500':
           description: Returns an internal server error
           content:

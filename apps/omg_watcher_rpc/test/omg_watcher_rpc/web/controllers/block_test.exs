@@ -196,10 +196,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
-      assert data == %{
-               "valid" => false,
-               "error" => "invalid_merkle_root"
-             }
+      assert data == %{"valid" => false}
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -243,10 +240,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
-      assert data == %{
-               "error" => "duplicate_inputs",
-               "valid" => false
-             }
+      assert data == %{"valid" => false}
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -276,7 +270,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
       %{"data" => data} = WatcherHelper.rpc_call("block.validate", params, 200)
 
-      assert data == %{"valid" => true, "error" => nil}
+      assert data == %{"valid" => true}
     end
   end
 end
