@@ -41,7 +41,7 @@ defmodule OMG.WatcherInfo.MixProject do
       # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from
       # the parent (main) mix.exs
       {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
-      {:spandex, "~> 2.4.3"},
+      {:spandex, "~> 3.0.2"},
       {:jason, "~> 1.0"},
 
       # UMBRELLA
@@ -51,10 +51,11 @@ defmodule OMG.WatcherInfo.MixProject do
 
       # TEST ONLY
       # here only to leverage common test helpers and code
-      {:fake_server, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:fake_server, "~> 2.1", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test]},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},
-      {:phoenix, "~> 1.3", runtime: false},
+      {:phoenix, "~> 1.5", runtime: false},
+      {:poison, "~> 4.0"},
       {:ex_machina, "~> 2.3", only: [:test], runtime: false}
     ]
   end

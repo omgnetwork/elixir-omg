@@ -67,7 +67,6 @@ config :omg_child_chain, OMG.ChildChain.Tracer,
 # ]
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   render_errors: [view: OMG.ChildChainRPC.Web.Views.Error, accepts: ~w(json)],
-  instrumenters: [SpandexPhoenix.Instrumenter],
   enable_cors: true,
   http: [:inet6, port: 9656, protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]],
   url: [host: "cc.example.com", port: 80],
@@ -149,7 +148,8 @@ config :vmstats,
 # Disable :os_mon's system_memory_high_watermark in favor of our own OMG.Status.Monitor.SystemMemory
 # See http://erlang.org/pipermail/erlang-questions/2006-September/023144.html
 config :os_mon,
-  system_memory_high_watermark: 1.00
+  system_memory_high_watermark: 1.00,
+  process_memory_high_watermark: 1.00
 
 config :omg_watcher, child_chain_url: "http://localhost:9656"
 
@@ -209,8 +209,6 @@ config :omg_watcher_rpc,
 # ]
 config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   render_errors: [view: OMG.WatcherRPC.Web.Views.Error, accepts: ~w(json)],
-  pubsub: [name: OMG.WatcherRPC.PubSub, adapter: Phoenix.PubSub.PG2],
-  instrumenters: [SpandexPhoenix.Instrumenter],
   enable_cors: true,
   http: [:inet6, port: 7434, protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]],
   url: [host: "w.example.com", port: 80],

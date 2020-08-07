@@ -32,7 +32,7 @@ defmodule OMG.ChildChain.MixProject do
 
   defp deps() do
     [
-      {:fake_server, "~> 1.5", only: [:test], runtime: false},
+      {:fake_server, "~> 2.1", only: [:test], runtime: false},
       {:telemetry, "~> 0.4.1"},
       #
       {:omg_bus, in_umbrella: true},

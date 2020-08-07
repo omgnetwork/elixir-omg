@@ -36,7 +36,7 @@ defmodule OMG.Status.Mixfile do
       {:telemetry, "~> 0.4.1"},
       {:sentry, "~> 7.0"},
       {:statix, git: "https://github.com/omisego/statix.git", branch: "otp-21.3.8.4-support-global-tag-patch"},
-      {:spandex_datadog, "~> 0.4"},
+      {:spandex_datadog, "~> 1.0"},
       {:decorator, "~> 1.2"},
       {:vmstats, "~> 2.3", runtime: false},
       {:ink, "~> 1.1"},
