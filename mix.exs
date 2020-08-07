@@ -159,7 +159,7 @@ defmodule OMG.Umbrella.MixProject do
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
       {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
-      {:spandex, "~> 2.4.3"}
+      {:spandex, "~> 3.0.2"}
     ]
   end
 

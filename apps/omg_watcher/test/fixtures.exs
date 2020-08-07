@@ -19,8 +19,6 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.Utils.LoggerExt
 
-  alias FakeServer.Agents.EnvAgent
-  alias FakeServer.HTTP.Server
   alias OMG.Eth
   alias OMG.Status.Alert.Alarm
   alias OMG.TestHelper
@@ -168,31 +166,34 @@ defmodule OMG.Watcher.Fixtures do
 
       (started_apps ++ started_security_watcher ++ started_watcher_api)
       |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+      |> Enum.map(fn app ->
+        :ok = Application.stop(app)
+      end)
+
+      Process.sleep(5_000)
     end)
   end
 
   deffixture test_server do
-    {:ok, server_id, port} = Server.run()
-    env = FakeServer.Env.new(port)
-
-    EnvAgent.save_env(server_id, env)
+    server_id = :watcher_test_server
+    {:ok, pid} = FakeServer.start(server_id)
 
     real_addr = Application.fetch_env!(:omg_watcher, :child_chain_url)
     old_client_env = Application.fetch_env!(:omg_watcher, :child_chain_url)
-    fake_addr = "http://#{env.ip}:#{env.port}"
+    {:ok, port} = FakeServer.port(server_id)
+    fake_addr = "http://localhost:#{port}"
 
     on_exit(fn ->
       Application.put_env(:omg_watcher, :child_chain_url, old_client_env)
 
-      Server.stop(server_id)
-      EnvAgent.delete_env(server_id)
+      FakeServer.stop(server_id)
     end)
 
     %{
       real_addr: real_addr,
       fake_addr: fake_addr,
-      server_id: server_id
+      server_id: server_id,
+      server_pid: pid
     }
   end
 

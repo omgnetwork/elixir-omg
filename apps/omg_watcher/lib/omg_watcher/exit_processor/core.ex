@@ -582,6 +582,18 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> MapSet.new()
   end
 
+  @doc """
+  Returns a set of input's utxo positions for in-flight exiting transactions
+  """
+  @spec active_in_flight_exiting_inputs(list(map)) :: MapSet.t(Utxo.Position.t())
+  def active_in_flight_exiting_inputs(db_exits) do
+    db_exits
+    |> Stream.map(&InFlightExitInfo.from_db_kv/1)
+    |> Stream.filter(fn {_, exit_info} -> exit_info.is_active end)
+    |> Enum.flat_map(fn {_, exit_info} -> exit_info.input_utxos_pos end)
+    |> MapSet.new()
+  end
+
   defp prepare_in_flight_exit({txhash, ife_info}) do
     %{tx: tx, eth_height: eth_height} = ife_info
 
