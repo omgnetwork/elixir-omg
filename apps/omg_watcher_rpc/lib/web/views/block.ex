@@ -34,4 +34,10 @@ defmodule OMG.WatcherRPC.Web.View.Block do
     |> Response.serialize_page(data_paging)
     |> WatcherRPCResponse.add_app_infos()
   end
+
+  def render("validate_block.json", %{response: block}) do
+    block
+    |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
+  end
 end

@@ -1,0 +1,11 @@
+BlockValidateResponseSchema:
+  allOf:
+  - $ref: '../response_schemas.yaml#/WatcherBaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/BlockValidateSchema'
+    example:
+      data:
+        valid: false

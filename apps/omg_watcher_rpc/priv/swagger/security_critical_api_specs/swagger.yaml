@@ -25,6 +25,8 @@ tags:
       url: "https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events"
   - name: Account
     description: Account related API.
+  - name: Block
+    description: Block-related API
   - name: UTXO
     description: UTXO related API.
   - name: Transaction
@@ -41,6 +43,8 @@ paths:
     $ref: 'status/paths.yaml#/status.get'
   /account.get_exitable_utxos:
     $ref: 'account/paths.yaml#/account.get_exitable_utxos'
+  /block.validate:
+    $ref: 'block/paths.yaml#/block.validate'
   /utxo.get_challenge_data:
     $ref: 'utxo/paths.yaml#/utxo.get_challenge_data'
   /utxo.get_exit_data:
