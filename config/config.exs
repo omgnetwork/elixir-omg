@@ -68,7 +68,11 @@ config :omg_child_chain, OMG.ChildChain.Tracer,
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
   render_errors: [view: OMG.ChildChainRPC.Web.Views.Error, accepts: ~w(json)],
   enable_cors: true,
-  http: [:inet6, port: 9656, protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]],
+  http: [
+    :inet6,
+    port: 9656,
+    protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192, linger_timeout: 5_000]
+  ],
   url: [host: "cc.example.com", port: 80],
   code_reloader: false
 
@@ -210,7 +214,11 @@ config :omg_watcher_rpc,
 config :omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint,
   render_errors: [view: OMG.WatcherRPC.Web.Views.Error, accepts: ~w(json)],
   enable_cors: true,
-  http: [:inet6, port: 7434, protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]],
+  http: [
+    :inet6,
+    port: 7434,
+    protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192, linger_timeout: 5_000]
+  ],
   url: [host: "w.example.com", port: 80],
   code_reloader: false
 
