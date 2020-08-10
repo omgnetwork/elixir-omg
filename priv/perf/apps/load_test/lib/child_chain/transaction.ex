@@ -57,6 +57,26 @@ defmodule LoadTest.ChildChain.Transaction do
     spend_utxo(utxo, amount, fee, signer, receiver, Encoding.to_binary(currency), retries)
   end
 
+  @doc """
+  Send transaction to be singed by a key managed by Ethereum node, geth or parity.
+  For geth, account must be unlocked externally.
+  If using parity, account passphrase must be provided directly or via config.
+  """
+  @spec contract_transact(<<_::160>>, <<_::160>>, binary, [any]) :: {:ok, <<_::256>>} | {:error, any}
+  def contract_transact(from, to, signature, args, opts \\ []) do
+    data = encode_tx_data(signature, args)
+
+    txmap =
+      %{from: Encoding.to_hex(from), to: Encoding.to_hex(to), data: data}
+      |> Map.merge(Map.new(opts))
+      |> encode_all_integer_opts()
+
+    case Ethereumex.HttpClient.eth_send_transaction(txmap) do
+      {:ok, receipt_enc} -> {:ok, Encoding.from_hex(receipt_enc)}
+      other -> other
+    end
+  end
+
   defp do_spend(_input, _output, change_amount, _currency, _signer, _retries) when change_amount < 0 do
     :error_insufficient_funds
   end
@@ -146,5 +166,17 @@ defmodule LoadTest.ChildChain.Transaction do
     }
 
     Api.Transaction.submit(Connection.client(), body)
+  end
+
+  defp encode_tx_data(signature, args) do
+    signature
+    |> ABI.encode(args)
+    |> Encoding.to_hex()
+  end
+
+  defp encode_all_integer_opts(opts) do
+    opts
+    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
+    |> Enum.into(opts, fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 end
