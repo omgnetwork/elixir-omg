@@ -92,6 +92,22 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end
   end
 
+  @spec add_merge_utxos(any, any) :: any
+  def add_merge_utxos(selected_utxos, utxos) do
+    total_utxos = selected_utxos
+      |> Stream.map(fn {_, utxos} -> length(utxos) end)
+      |> Enum.sum()
+
+    do_add_merge_utxos(total_utxos, selected_utxos, utxos)
+  end
+
+  defp do_add_merge_utxos(Transaction.Payment.max_inputs(), selected_utxos, _utxos), do: selected_utxos
+  defp do_add_merge_utxos(number_of_inputs, selected_utxos, [utxo | utxos]) do
+    merge_utxos = Map.put(selected_utxos, utxo.currency, selected_utxos[utxo.currency] ++ [utxo])
+
+    do_add_merge_utxos(number_of_inputs + 1, merge_utxos, utxos)
+  end
+
   @doc """
   Given the available set of UTXOs and the needed amount by currency, tries to find a UTXO that satisfies the payment with no change.
   If this fails, starts to collect UTXOs (starting from the largest amount) until the payment is covered.
