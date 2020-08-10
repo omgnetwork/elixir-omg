@@ -188,4 +188,28 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       assert [{@eth, {1_000, _utxos}}] = UtxoSelection.select_utxo(utxos, needed_funds)
     end
   end
+
+  describe "add_merge_utxos/2" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns expected utxos when have 2 eth, 2 other and there're 1 eth and 1 other in the inputs" do
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 200, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
+      _ = insert(:txoutput, amount: 200, currency: @other_token, owner: @alice)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      [input_1, merge_1] = Map.get(utxos, @eth)
+      [input_2, merge_2] = Map.get(utxos, @other_token)
+
+      inputs = %{
+        @eth => [input_1],
+        @other_token => [input_2]
+      }
+
+      assert %{
+        @eth => [input_1, merge_1],
+        @other_token => [input_2, merge_2]
+      } = UtxoSelection.add_merge_utxos(inputs, [merge_1, merge_2])
+    end
+  end
 end
