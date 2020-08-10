@@ -31,7 +31,8 @@ defmodule OMG.Bus.PubSub do
   def child_spec(args \\ []) do
     args
     |> Keyword.put_new(:name, __MODULE__)
-    |> PubSub.PG2.child_spec()
+    |> Keyword.put_new(:adapter, PubSub.PG2)
+    |> PubSub.child_spec()
   end
 
   defmacro __using__(_) do
@@ -73,8 +74,7 @@ defmodule OMG.Bus.PubSub do
       """
       def direct_local_broadcast(%Event{topic: topic, event: event, payload: payload})
           when is_atom(event) do
-        node_name = PubSub.node_name(OMG.Bus.PubSub)
-        PubSub.direct_broadcast(node_name, OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
+        PubSub.local_broadcast(OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
       end
     end
   end
