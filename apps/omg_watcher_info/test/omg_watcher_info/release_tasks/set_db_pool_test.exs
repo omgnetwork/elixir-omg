@@ -50,7 +50,9 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDbPoolTest do
     end
 
     test "fails if WATCHER_INFO_DB_POOL_QUEUE_TARGET_MS is not a valid stringified integer" do
-      assert catch_error(load_and_fetch("WATCHER_INFO_DB_POOL_QUEUE_TARGET_MS", "not integer", :queue_target)) == :badarg
+      assert catch_error(load_and_fetch("WATCHER_INFO_DB_POOL_QUEUE_TARGET_MS", "not integer", :queue_target)) ==
+               :badarg
+
       :ok = System.delete_env("WATCHER_INFO_DB_POOL_QUEUE_TARGET_MS")
     end
   end
@@ -68,7 +70,9 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDbPoolTest do
     end
 
     test "fails if WATCHER_INFO_DB_POOL_QUEUE_INTERVAL_MS is not a valid stringified integer" do
-      assert catch_error(load_and_fetch("WATCHER_INFO_DB_POOL_QUEUE_INTERVAL_MS", "not integer", :queue_interval)) == :badarg
+      assert catch_error(load_and_fetch("WATCHER_INFO_DB_POOL_QUEUE_INTERVAL_MS", "not integer", :queue_interval)) ==
+               :badarg
+
       :ok = System.delete_env("WATCHER_INFO_DB_POOL_QUEUE_INTERVAL_MS")
     end
   end
