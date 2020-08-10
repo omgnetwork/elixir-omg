@@ -94,6 +94,7 @@ defmodule OMG.Umbrella.MixProject do
             {OMG.Watcher.ReleaseTasks.SetTracer, []},
             {OMG.Watcher.ReleaseTasks.SetApplication, [release: :watcher_info, current_version: current_version()]},
             {OMG.WatcherInfo.ReleaseTasks.SetDB, []},
+            {OMG.WatcherInfo.ReleaseTasks.SetDbPool, []},
             {OMG.WatcherInfo.ReleaseTasks.SetTracer, []}
           ]
         ],
