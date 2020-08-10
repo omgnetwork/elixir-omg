@@ -207,9 +207,37 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       }
 
       assert %{
-        @eth => [input_1, merge_1],
-        @other_token => [input_2, merge_2]
-      } = UtxoSelection.add_merge_utxos(inputs, [merge_1, merge_2])
+               @eth => [input_1, merge_1],
+               @other_token => [input_2, merge_2]
+             } = UtxoSelection.add_merge_utxos(inputs, [merge_1, merge_2])
+    end
+  end
+
+  describe "prioritize_merge_utxos" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns the same currencies as inputs without utxos which are already included in inputs" do
+      token_a = <<65::160>>
+      token_b = <<66::160>>
+      token_c = <<67::160>>
+
+      _ = insert(:txoutput, amount: 100, currency: token_a, owner: @alice)
+      _ = insert(:txoutput, amount: 200, currency: token_a, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: token_b, owner: @alice)
+      _ = insert(:txoutput, amount: 200, currency: token_b, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: token_c, owner: @alice)
+      _ = insert(:txoutput, amount: 200, currency: token_c, owner: @alice)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      [utxo_a_1, utxo_a_2] = utxos[token_a]
+      [utxo_b_1, utxo_b_2] = utxos[token_b]
+
+      inputs = %{
+        token_a => [utxo_a_1],
+        token_b => [utxo_b_1],
+      }
+
+      assert [utxo_a_2, utxo_b_2] == UtxoSelection.prioritize_merge_utxos(inputs, utxos)
     end
   end
 end
