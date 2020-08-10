@@ -92,9 +92,25 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end
   end
 
+  def prioritize_merge_utxos(selected_utxos, utxos) do
+    selected_currencies = Map.keys(selected_utxos)
+
+    selected_utxos_hashes =
+      Enum.map(selected_utxos, fn {_currency, utxos} -> utxos end)
+      |> List.flatten()
+      |> Enum.map(fn utxo -> utxo.child_chain_utxohash end)
+
+    selected_currencies
+    |> Enum.map(fn currency -> utxos[currency] end)
+    |> Enum.sort_by(&length/1, :desc)
+    |> List.flatten()
+    |> Enum.filter(fn utxo -> !Enum.member?(selected_utxos_hashes, utxo.child_chain_utxohash) end)
+  end
+
   @spec add_merge_utxos(any, any) :: any
   def add_merge_utxos(selected_utxos, utxos) do
-    total_utxos = selected_utxos
+    total_utxos =
+      selected_utxos
       |> Stream.map(fn {_, utxos} -> length(utxos) end)
       |> Enum.sum()
 
@@ -102,6 +118,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   end
 
   defp do_add_merge_utxos(Transaction.Payment.max_inputs(), selected_utxos, _utxos), do: selected_utxos
+
   defp do_add_merge_utxos(number_of_inputs, selected_utxos, [utxo | utxos]) do
     merge_utxos = Map.put(selected_utxos, utxo.currency, selected_utxos[utxo.currency] ++ [utxo])
 
