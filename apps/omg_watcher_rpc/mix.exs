@@ -32,11 +32,12 @@ defmodule OMG.WatcherRPC.Mixfile do
 
   defp deps() do
     [
-      {:phoenix, "~> 1.3"},
-      {:plug_cowboy, "~> 1.0"},
+      {:phoenix, "~> 1.5"},
+      {:poison, "~> 4.0"},
+      {:plug_cowboy, "~> 2.3"},
       {:cors_plug, "~> 2.0"},
-      {:spandex_phoenix, "~> 0.4.1"},
-      {:spandex_datadog, "~> 0.4"},
+      {:spandex_phoenix, "~> 1.0"},
+      {:spandex_datadog, "~> 1.0"},
       {:telemetry, "~> 0.4.1"},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},

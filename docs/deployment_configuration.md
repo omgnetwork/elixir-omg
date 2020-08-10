@@ -39,6 +39,9 @@
 ***Watcher Info only***
 
 - "DATABASE_URL" - Postgres address *mandatory*
+- "WATCHER_INFO_DB_POOL_SIZE" - The size of the database connection pool. Defaults to `10`.
+- "WATCHER_INFO_DB_POOL_QUEUE_TARGET_MS" - The maximum time to wait for a DB connection in milliseconds. Defaults to `50`.
+- "WATCHER_INFO_DB_POOL_QUEUE_INTERVAL_MS" - The interval in milliseconds to determine whether the queue target period above has been exceeded. Defaults to `1000`.
 
 ***Erlang VM configuration***
 
