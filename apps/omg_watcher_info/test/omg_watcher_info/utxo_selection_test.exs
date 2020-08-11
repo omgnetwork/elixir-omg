@@ -189,13 +189,67 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
     end
   end
 
-  describe "add_merge_utxos/2" do
+  describe "add_utxos_for_stealth_merge/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns expected utxos when have 2 eth, 2 other and there're 1 eth and 1 other in the inputs" do
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 200, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
-      _ = insert(:txoutput, amount: 200, currency: @other_token, owner: @alice)
+    test "returns selected UTXOs with no additions if the maximum has already been selected" do
+      for _i <- 1..5 do
+        _ = insert(:txoutput, owner: @alice)
+      end
+
+      [not_included | included] =
+        @alice
+        |> DB.TxOutput.get_sorted_grouped_utxos()
+        |> Map.get(@eth)
+
+      inputs = %{
+        @eth => included
+      }
+
+      assert UtxoSelection.add_merge_utxos(inputs, [not_included]) == inputs
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns selected UTXOs with no additions if no other UTXOs are available" do
+      for _i <- 1..4 do
+        _ = insert(:txoutput, owner: @alice)
+      end
+
+      inputs = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      other_available = []
+
+      assert UtxoSelection.add_merge_utxos(inputs, other_available) == inputs
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "adds UTXOs until the limit is reached in the case of one currency" do
+      for _i <- 1..5 do
+        _ = insert(:txoutput, owner: @alice)
+      end
+
+      [included | available] =
+        @alice
+        |> DB.TxOutput.get_sorted_grouped_utxos()
+        |> Map.get(@eth)
+
+      [available_1, available_2, available_3 | _not_for_inclusion] = available
+
+      inputs = %{
+        @eth => [included]
+      }
+
+      expected = %{
+        @eth => [available_3, available_2, available_1, included]
+      }
+
+      assert UtxoSelection.add_merge_utxos(inputs, available) == expected
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "adds UTXOs until the limit is reached in the case of multiple currencies" do
+      _ = insert(:txoutput, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, currency: @other_token, owner: @alice)
+      _ = insert(:txoutput, currency: @other_token, owner: @alice)
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
       [input_1, merge_1] = Map.get(utxos, @eth)

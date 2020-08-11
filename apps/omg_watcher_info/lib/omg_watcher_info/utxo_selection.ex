@@ -114,8 +114,13 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     Enum.reduce(utxos_by_currency, 0, fn {_currency, utxos}, acc -> length(utxos) + acc end)
   end
 
-  @spec add_merge_utxos(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: %{currency_t() => utxo_list_t()}
-  def add_merge_utxos(selected_utxos, available_utxos) do
+  @doc """
+  Given a map of UTXOs sufficient for the transaction and a set of available UTXOs,
+  adds UTXOs to the transaction for "stealth merge" until the limit is reached or
+  no UTXOs are available. Returns an updated map of UTXOs for the transaction.
+  """
+  @spec add_utxos_for_stealth_merge(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: %{currency_t() => utxo_list_t()}
+  def add_utxos_for_stealth_merge(selected_utxos, available_utxos) do
     cond do
       get_number_of_utxos(selected_utxos) == Transaction.Payment.max_inputs() ->
         selected_utxos
@@ -128,7 +133,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
         selected_utxos
         |> Map.update!(priority_utxo.currency, fn current_utxos -> [priority_utxo | current_utxos] end)
-        |> add_merge_utxos(remaining_available_utxos)
+        |> add_utxos_for_stealth_merge(remaining_available_utxos)
     end
   end
 
