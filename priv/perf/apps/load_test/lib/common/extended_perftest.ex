@@ -19,13 +19,12 @@ defmodule LoadTest.Common.ExtendedPerftest do
   See `OMG.Performance` for configuration within the `iex` shell using `Performance.init()`
   """
 
-  use OMG.Utils.LoggerExt
-
   alias OMG.TestHelper
   alias OMG.Utxo
   alias Support.Integration.DepositHelper
 
   require Utxo
+  require Logger
 
   @make_deposit_timeout 600_000
 

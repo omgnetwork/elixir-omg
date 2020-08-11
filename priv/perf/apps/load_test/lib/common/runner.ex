@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.Runner do
+defmodule LoadTest.Runner do
   @moduledoc """
   Orchestration and running tests
   """
 
-  use OMG.Utils.LoggerExt
+  require Logger
 
   @doc """
   Kicks off the sending of the transactions, with or without profiling depending on the `profile` arg
@@ -32,7 +32,7 @@ defmodule OMG.Performance.Runner do
     {duration, _result} =
       :timer.tc(fn ->
         # fire async transaction senders
-        manager = OMG.Performance.SenderManager.start_link_all_senders(ntx_to_send, utxos, opts)
+        manager = LoadTest.SenderManager.start_link_all_senders(ntx_to_send, utxos, opts)
 
         # Wait all senders do their job, checker will stop when it happens and stops itself
         wait_for(manager)

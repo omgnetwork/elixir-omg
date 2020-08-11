@@ -18,11 +18,8 @@ defmodule OMG.Performance.SenderManager do
   """
 
   use GenServer
-  use OMG.Utils.LoggerExt
 
-  alias OMG.Utxo
-
-  require Utxo
+  require Logger
 
   def sender_stats(new_stats) do
     GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
@@ -53,14 +50,13 @@ defmodule OMG.Performance.SenderManager do
       utxos
       |> Enum.with_index(1)
       |> Enum.map(fn {utxo, seqnum} ->
-        {:ok, pid} = OMG.Performance.SenderServer.start_link({seqnum, utxo, ntx_to_send, opts})
+        {:ok, pid} = LoadTest.SenderServer.start_link({seqnum, utxo, ntx_to_send, opts})
         {seqnum, pid}
       end)
 
     initial_blknums =
-      utxos
-      |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-        Utxo.position(blknum, _txindex, _oindex) = Utxo.Position.decode!(utxo_pos)
+      Enum.map(utxos, fn %{utxo_pos: utxo_pos} ->
+        {:ok, %ExPlasma.Utxo{blknum: blknum}} = ExPlasma.Utxo.new(utxo_pos)
         blknum
       end)
 

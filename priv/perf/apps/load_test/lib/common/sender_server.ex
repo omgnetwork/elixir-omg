@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.SenderServer do
+defmodule LoadTest.SenderServer do
   @moduledoc """
   The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
@@ -27,9 +27,7 @@ defmodule OMG.Performance.SenderServer do
   alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.TestHelper
-  alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
-  require Utxo
 
   @eth OMG.Eth.zero_address()
 
@@ -216,7 +214,7 @@ defmodule OMG.Performance.SenderServer do
   #   Generates module's initial state
   @spec init_state(pos_integer(), map(), pos_integer(), keyword()) :: __MODULE__.state()
   defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send, opts) do
-    Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(utxo_pos)
+    {:ok, %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex}} = ExPlasma.Utxo.new(utxo_pos)
 
     %__MODULE__{
       seqnum: seqnum,
