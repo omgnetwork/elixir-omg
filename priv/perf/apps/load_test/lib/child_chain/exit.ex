@@ -4,12 +4,10 @@ defmodule LoadTest.ChildChain.Exit do
   """
 
   alias ExPlasma.Encoding
+  alias LoadTest.ChildChain.Transaction
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Crypto
 
-  # safe, reasonable amount, equal to the testnet block gas limit
-  @lots_of_gas 5_712_388
-  @gas_price 1_000_000_000
   @gas_start_exit 400_000
   @gas_challenge_exit 300_000
   @standard_exit_bond 14_000_000_000_000_000
@@ -40,8 +38,8 @@ defmodule LoadTest.ChildChain.Exit do
     Ethereum.contract_transact(from, contract, signature, args, opts)
   end
 
-  defp tx_defaults() do
-    Enum.map([value: 0, gasPrice: @gas_price, gas: @lots_of_gas], fn {k, v} -> {k, Encoding.to_hex(v)} end)
+  def tx_defaults() do
+    Transaction.tx_default()
   end
 
   defp contract_address_payment_exit_game() do

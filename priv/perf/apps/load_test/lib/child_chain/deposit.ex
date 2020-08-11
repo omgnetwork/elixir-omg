@@ -21,7 +21,9 @@ defmodule LoadTest.ChildChain.Deposit do
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction.Deposit
   alias ExPlasma.Utxo
+  alias LoadTest.ChildChain.Transaction
   alias LoadTest.Ethereum
+
   alias LoadTest.Ethereum.Account
 
   @eth <<0::160>>
@@ -47,6 +49,12 @@ defmodule LoadTest.ChildChain.Deposit do
     {:ok, {deposit_blknum, eth_blknum}} = send_deposit(deposit, depositor, amount, currency, gas_price)
     :ok = wait_deposit_finality(eth_blknum, deposit_finality_margin)
     Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
+  end
+
+  def approve_token(from, spender, amount, token, opts \\ []) do
+    opts = Transaction.tx_defaults() |> Keyword.put(:gas, 80_000) |> Keyword.merge(opts)
+
+    Ethereum.contract_transact(from, token, "approve(address,uint256)", [spender, amount], opts)
   end
 
   defp send_deposit(deposit, account, value, @eth, gas_price) do

@@ -20,10 +20,8 @@ defmodule LoadTest.Common.ExtendedPerftest do
   """
 
   alias OMG.TestHelper
-  alias OMG.Utxo
   alias Support.Integration.DepositHelper
 
-  require Utxo
   require Logger
 
   @make_deposit_timeout 600_000
@@ -66,13 +64,13 @@ defmodule LoadTest.Common.ExtendedPerftest do
 
     utxos = create_deposits(spenders, ntx_to_send)
 
-    OMG.Performance.Runner.run(ntx_to_send, utxos, opts, false)
+    LoadTest.Runner.run(ntx_to_send, utxos, opts, false)
   end
 
   @spec create_deposits(list(TestHelper.entity()), pos_integer()) :: list()
   defp create_deposits(spenders, ntx_to_send) do
     Enum.map(make_deposits(ntx_to_send * 2, spenders), fn {:ok, owner, blknum, amount} ->
-      utxo_pos = Utxo.Position.encode(Utxo.position(blknum, 0, 0))
+      utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: 0, oindex: 0})
       %{owner: owner, utxo_pos: utxo_pos, amount: amount}
     end)
   end

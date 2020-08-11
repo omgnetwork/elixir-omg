@@ -22,14 +22,15 @@ defmodule LoadTest.SenderServer do
   @fees_amount 1
 
   use GenServer
-  use OMG.Utils.LoggerExt
 
   alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Watcher.HttpRPC.Client
 
-  @eth OMG.Eth.zero_address()
+  require Logger
+
+  @eth <<0::160>>
 
   defmodule LastTx do
     @moduledoc """

@@ -25,6 +25,9 @@ defmodule LoadTest.ChildChain.Transaction do
   alias LoadTest.Connection.ChildChain, as: Connection
 
   @retry_interval 1_000
+  # safe, reasonable amount, equal to the testnet block gas limit
+  @lots_of_gas 5_712_388
+  @gas_price 1_000_000_000
 
   @doc """
   Spends a utxo.
@@ -51,6 +54,10 @@ defmodule LoadTest.ChildChain.Transaction do
     change_amount = utxo.amount - amount - fee
     receiver_output = %Utxo{owner: receiver.addr, currency: currency, amount: amount}
     do_spend(utxo, receiver_output, change_amount, currency, signer, retries)
+  end
+
+  defp tx_defaults() do
+    Enum.map([value: 0, gasPrice: @gas_price, gas: @lots_of_gas], fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 
   def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries) do
