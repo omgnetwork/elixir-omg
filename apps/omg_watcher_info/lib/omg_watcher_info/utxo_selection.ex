@@ -96,7 +96,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     selected_currencies = Map.keys(selected_utxos)
 
     selected_utxos_hashes =
-      Enum.map(selected_utxos, fn {_currency, utxos} -> utxos end)
+      selected_utxos
+      |> Enum.map(fn {_currency, utxos} -> utxos end)
       |> List.flatten()
       |> Enum.map(fn utxo -> utxo.child_chain_utxohash end)
 
