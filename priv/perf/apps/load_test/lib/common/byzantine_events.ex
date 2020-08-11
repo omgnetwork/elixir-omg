@@ -40,8 +40,6 @@ defmodule LoadTest.Common.ByzantineEvents do
 
   alias LoadTest.ChildChain.Exit
   alias LoadTest.Ethereum.Sync
-  alias OMG.Performance.HttpRPC.WatcherClient
-  alias WatcherSecurityCriticalAPI.Api
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
@@ -67,11 +65,14 @@ defmodule LoadTest.Common.ByzantineEvents do
   """
   @spec get_many_standard_exits(list(pos_integer())) :: list(map())
   def get_many_standard_exits(exit_positions) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-
     exit_positions
     |> Enum.shuffle()
-    |> Enum.map(&WatcherClient.get_exit_data(&1, watcher_url))
+    |> Enum.map(fn encoded_position ->
+      WatcherSecurityCriticalAPI.Api.Status.utxo_get_exit_data(
+        LoadTest.Connection.WatcherSecurity.client(),
+        %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema{utxo_pos: encoded_position}
+      )
+    end)
     |> only_successes()
   end
 
@@ -111,11 +112,14 @@ defmodule LoadTest.Common.ByzantineEvents do
   """
   @spec get_many_se_challenges(list(pos_integer())) :: list(map())
   def get_many_se_challenges(positions) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-
     positions
     |> Enum.shuffle()
-    |> Enum.map(&WatcherClient.get_exit_challenge(&1, watcher_url))
+    |> Enum.map(fn position ->
+      WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_challenge_data(
+        LoadTest.Connection.WatcherSecurity.client(),
+        %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema{utxo_pos: position}
+      )
+    end)
     |> only_successes()
   end
 
@@ -157,8 +161,8 @@ defmodule LoadTest.Common.ByzantineEvents do
   """
   @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-    {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
+    params = %WatcherInfoAPI.Model.AddressBodySchema1{address: address}
+    {:ok, utxos} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(WatcherInfo.new(), params)
     utxo_positions = Enum.map(utxos, & &1.utxo_pos)
 
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
@@ -174,9 +178,8 @@ defmodule LoadTest.Common.ByzantineEvents do
   @spec watcher_synchronize(keyword()) :: :ok
   def watcher_synchronize(opts \\ []) do
     root_chain_height = Keyword.get(opts, :root_chain_height, nil)
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
     _ = Logger.info("Waiting for the watcher to synchronize")
-    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height, watcher_url) end, 1_000)
+    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height) end, 1_000)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
@@ -189,8 +192,9 @@ defmodule LoadTest.Common.ByzantineEvents do
   """
   @spec get_byzantine_events() :: list(map())
   def get_byzantine_events() do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-    {:ok, status_response} = WatcherClient.get_status(watcher_url)
+    {:ok, status_response} =
+      WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
+
     status_response[:byzantine_events]
   end
 
@@ -224,7 +228,7 @@ defmodule LoadTest.Common.ByzantineEvents do
 
   # This function is prepared to be called in `Sync`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
-  defp watcher_synchronized?(root_chain_height, watcher_url) do
+  defp watcher_synchronized?(root_chain_height) do
     {:ok, response} = WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
 
     with true <- watcher_synchronized_to_mined_block?(status),
