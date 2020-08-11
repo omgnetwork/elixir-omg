@@ -92,6 +92,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end
   end
 
+  @spec prioritize_merge_utxos(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: utxo_list_t()
   def prioritize_merge_utxos(selected_utxos, utxos) do
     selected_utxos_hashes =
       selected_utxos
@@ -107,22 +108,27 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     |> Enum.filter(fn utxo -> !Enum.member?(selected_utxos_hashes, utxo.child_chain_utxohash) end)
   end
 
-  @spec add_merge_utxos(any, any) :: any
-  def add_merge_utxos(selected_utxos, utxos) do
-    total_utxos =
-      selected_utxos
-      |> Stream.map(fn {_, utxos} -> length(utxos) end)
-      |> Enum.sum()
-
-    do_add_merge_utxos(total_utxos, selected_utxos, utxos)
+  @spec get_number_of_utxos(%{currency_t() => utxo_list_t()}) :: integer()
+  def get_number_of_utxos(utxos_by_currency) do
+    Enum.reduce(utxos_by_currency, 0, fn {_currency, utxos}, acc -> length(utxos) + acc end)
   end
 
-  defp do_add_merge_utxos(Transaction.Payment.max_inputs(), selected_utxos, _utxos), do: selected_utxos
+  @spec add_merge_utxos(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: %{currency_t() => utxo_list_t()}
+  def add_merge_utxos(selected_utxos, available_utxos) do
+    cond do
+      get_number_of_utxos(selected_utxos) == Transaction.Payment.max_inputs() ->
+        selected_utxos
 
-  defp do_add_merge_utxos(number_of_inputs, selected_utxos, [utxo | utxos]) do
-    merge_utxos = Map.put(selected_utxos, utxo.currency, selected_utxos[utxo.currency] ++ [utxo])
+      Enum.empty?(available_utxos) ->
+        selected_utxos
 
-    do_add_merge_utxos(number_of_inputs + 1, merge_utxos, utxos)
+      true ->
+        [priority_utxo | remaining_available_utxos] = available_utxos
+
+        selected_utxos
+        |> Map.update!(priority_utxo.currency, fn current_utxos -> [priority_utxo | current_utxos] end)
+        |> add_merge_utxos(remaining_available_utxos)
+    end
   end
 
   @doc """
@@ -141,8 +147,11 @@ defmodule OMG.WatcherInfo.UtxoSelection do
        case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
          nil ->
            Enum.reduce_while(token_utxos, {need, []}, fn
-             _, {need, acc} when need <= 0 -> {:halt, {need, acc}}
-             %DB.TxOutput{amount: amount} = utxo, {need, acc} -> {:cont, {need - amount, [utxo | acc]}}
+             _, {need, acc} when need <= 0 ->
+               {:halt, {need, acc}}
+
+             %DB.TxOutput{amount: amount} = utxo, {need, acc} ->
+               {:cont, {need - amount, [utxo | acc]}}
            end)
 
          utxo ->
@@ -171,25 +180,38 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   @doc """
   Checks if the result of `select_utxos/2` covers the amount(s) of the transaction order.
   """
-  @spec funds_sufficient?([{currency :: currency_t(), {variance :: integer(), selected_utxos :: utxo_list_t()}}]) ::
+  @spec funds_sufficient?([
+          {currency :: currency_t(), {variance :: integer(), selected_utxos :: utxo_list_t()}}
+        ]) ::
           {:ok, [{currency_t(), utxo_list_t()}]}
           | {:error, {:insufficient_funds, [%{token: String.t(), missing: pos_integer()}]}}
   def funds_sufficient?(utxo_selection) do
     missing_funds =
       utxo_selection
       |> Stream.filter(fn {_currency, {variance, _selected_utxos}} -> variance > 0 end)
-      |> Enum.map(fn {currency, {missing, _selected_utxos}} -> %{token: Encoding.to_hex(currency), missing: missing} end)
+      |> Enum.map(fn {currency, {missing, _selected_utxos}} ->
+        %{token: Encoding.to_hex(currency), missing: missing}
+      end)
 
     if Enum.empty?(missing_funds),
       do: {:ok, utxo_selection |> Enum.map(fn {token, {_missing_amount, utxos}} -> {token, utxos} end)},
       else: {:error, {:insufficient_funds, missing_funds}}
   end
 
-  defp create_transaction(utxos_per_token, %{owner: owner, payments: payments, metadata: metadata, fee: fee}) do
+  defp create_transaction(utxos_per_token, %{
+         owner: owner,
+         payments: payments,
+         metadata: metadata,
+         fee: fee
+       }) do
     rests =
       utxos_per_token
       |> Stream.map(fn {token, utxos} ->
-        outputs = [fee | payments] |> Stream.filter(&(&1.currency == token)) |> Stream.map(& &1.amount) |> Enum.sum()
+        outputs =
+          [fee | payments]
+          |> Stream.filter(&(&1.currency == token))
+          |> Stream.map(& &1.amount)
+          |> Enum.sum()
 
         inputs = utxos |> Stream.map(& &1.amount) |> Enum.sum()
         %{amount: inputs - outputs, owner: owner, currency: token}
@@ -268,7 +290,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
          do: TypedDataHash.hash_struct(tx)
   end
 
-  defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}
+  defp respond({:ok, transaction}, result),
+    do: {:ok, %{result: result, transactions: [transaction]}}
 
   defp respond(transactions, result) when is_list(transactions),
     do: {:ok, %{result: result, transactions: transactions}}

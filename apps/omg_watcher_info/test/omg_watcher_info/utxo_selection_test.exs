@@ -234,7 +234,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       inputs = %{
         token_a => [utxo_a_1],
-        token_b => [utxo_b_1],
+        token_b => [utxo_b_1]
       }
 
       assert [utxo_a_2, utxo_b_2] == UtxoSelection.prioritize_merge_utxos(inputs, utxos)
