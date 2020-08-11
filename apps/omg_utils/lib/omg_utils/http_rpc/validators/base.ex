@@ -142,7 +142,7 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
 
   @spec min_length({any(), list()}, non_neg_integer()) :: {any(), list()}
   def min_length({_, [_ | _]} = err, _len), do: err
-  def min_length({list, []}, len) when is_list(list) and length(list) > len, do: {list, []}
+  def min_length({list, []}, len) when is_list(list) and length(list) >= len, do: {list, []}
   def min_length({val, []}, len), do: {val, min_length: len}
 
   @spec greater({any(), list()}, integer()) :: {any(), list()}

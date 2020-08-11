@@ -17,7 +17,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
   Validates `/transaction.merge` parameters
   """
 
-  alias OMG.Utils.HttpRPC.Validator.Base
+  import OMG.Utils.HttpRPC.Validator.Base
 
   @doc """
   Parses and validates request body
@@ -52,9 +52,9 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
     end
   end
 
+  def parse(_), do: {:error, :invalid_param_given}
+
   defp to_utxo_pos(utxo_pos_string) do
     expect(%{"utxo_pos" => utxo_pos_string}, "utxo_pos", :non_neg_integer)
   end
-
-  def parse(_), do: {:error, :invalid_param_given}
 end

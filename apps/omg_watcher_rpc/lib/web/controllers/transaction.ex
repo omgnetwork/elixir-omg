@@ -102,7 +102,6 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   def merge(conn, params) do
     with {:ok, constraints} <- Validator.MergeConstraints.parse(params) do
       constraints
-      |> constraints # do stuff
       |> api_response(conn, :merge)
     end
   end
