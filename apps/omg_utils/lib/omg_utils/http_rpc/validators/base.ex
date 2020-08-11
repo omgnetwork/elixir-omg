@@ -26,6 +26,7 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   # IMPORTANT: Alias can use already defined validators, not other aliases (no backtracking)
   @aliases %{
     address: [:hex, length: 20],
+    currency: [:hex, length: 20],
     hash: [:hex, length: 32],
     signature: [:hex, length: 65],
     pos_integer: [:integer, greater: 0],
@@ -138,6 +139,11 @@ defmodule OMG.Utils.HttpRPC.Validator.Base do
   def max_length({_, [_ | _]} = err, _len), do: err
   def max_length({list, []}, len) when is_list(list) and length(list) <= len, do: {list, []}
   def max_length({val, []}, len), do: {val, max_length: len}
+
+  @spec min_length({any(), list()}, non_neg_integer()) :: {any(), list()}
+  def min_length({_, [_ | _]} = err, _len), do: err
+  def min_length({list, []}, len) when is_list(list) and length(list) > len, do: {list, []}
+  def min_length({val, []}, len), do: {val, min_length: len}
 
   @spec greater({any(), list()}, integer()) :: {any(), list()}
   def greater({_, [_ | _]} = err, _b), do: err
