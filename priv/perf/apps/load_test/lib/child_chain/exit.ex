@@ -4,7 +4,7 @@ defmodule LoadTest.ChildChain.Exit do
   """
 
   alias ExPlasma.Encoding
-  alias LoadTest.ChildChain.Transaction
+  alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Crypto
 
   # safe, reasonable amount, equal to the testnet block gas limit
@@ -20,7 +20,7 @@ defmodule LoadTest.ChildChain.Exit do
       |> Keyword.put(:gas, @gas_start_exit)
       |> Keyword.put(:value, @standard_exit_bond)
 
-    Transaction.contract_transact(
+    Ethereum.contract_transact(
       from,
       contract_address_payment_exit_game(),
       "startStandardExit((uint256,bytes,bytes))",
@@ -37,7 +37,7 @@ defmodule LoadTest.ChildChain.Exit do
     signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes32))"
     args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, sender_data}]
 
-    Transaction.contract_transact(from, contract, signature, args, opts)
+    Ethereum.contract_transact(from, contract, signature, args, opts)
   end
 
   defp tx_defaults() do

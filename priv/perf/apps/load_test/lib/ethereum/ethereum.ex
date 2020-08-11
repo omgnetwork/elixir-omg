@@ -30,6 +30,26 @@ defmodule LoadTest.Ethereum do
   @type hash_t() :: <<_::256>>
 
   @doc """
+  Send transaction to be singed by a key managed by Ethereum node, geth or parity.
+  For geth, account must be unlocked externally.
+  If using parity, account passphrase must be provided directly or via config.
+  """
+  @spec contract_transact(<<_::160>>, <<_::160>>, binary, [any]) :: {:ok, <<_::256>>} | {:error, any}
+  def contract_transact(from, to, signature, args, opts \\ []) do
+    data = encode_tx_data(signature, args)
+
+    txmap =
+      %{from: Encoding.to_hex(from), to: Encoding.to_hex(to), data: data}
+      |> Map.merge(Map.new(opts))
+      |> encode_all_integer_opts()
+
+    case Ethereumex.HttpClient.eth_send_transaction(txmap) do
+      {:ok, receipt_enc} -> {:ok, Encoding.from_hex(receipt_enc)}
+      other -> other
+    end
+  end
+
+  @doc """
   Waits until transaction is mined
   Returns transaction receipt updated with Ethereum block number in which the transaction was mined
   """

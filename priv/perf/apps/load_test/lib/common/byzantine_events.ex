@@ -41,6 +41,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   alias LoadTest.ChildChain.Exit
   alias LoadTest.Ethereum.Sync
   alias OMG.Performance.HttpRPC.WatcherClient
+  alias WatcherSecurityCriticalAPI.Api
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
@@ -224,7 +225,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   # This function is prepared to be called in `Sync`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
   defp watcher_synchronized?(root_chain_height, watcher_url) do
-    {:ok, status} = WatcherClient.get_status(watcher_url)
+    {:ok, response} = WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
 
     with true <- watcher_synchronized_to_mined_block?(status),
          true <- root_chain_synced?(root_chain_height, status) do
