@@ -44,7 +44,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
   end
 
   def parse(%{"utxo_positions" => _utxo_positions} = params) do
-    with {:ok, utxo_positions} <- expect(params, "utxo_positions", [list: &to_utxo_pos/1, min_length: 2]) do
+    with {:ok, utxo_positions} <- expect(params, "utxo_positions", [list: &to_utxo_pos/1, min_length: 2, max_length: 4]) do
       {:ok,
       %{
         utxo_positions: utxo_positions
@@ -52,7 +52,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
     end
   end
 
-  def parse(_), do: {:error, :invalid_param_given}
+  def parse(_), do: {:error, :operation_bad_request}
 
   defp to_utxo_pos(utxo_pos_string) do
     expect(%{"utxo_pos" => utxo_pos_string}, "utxo_pos", :non_neg_integer)
