@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.ExtendedPerftest do
+defmodule LoadTest.Common.ExtendedPerftest do
   @moduledoc """
   This performance test allows to send out many transactions to a child chain instance of choice.
 

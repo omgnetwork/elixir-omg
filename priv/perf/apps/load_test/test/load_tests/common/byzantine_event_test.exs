@@ -16,13 +16,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
   @moduledoc """
   Simple smoke testing of the performance test
   """
-
-  use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.ChildChain.Integration.Fixtures
-  use OMG.Watcher.Fixtures
-
-  use OMG.Performance
 
   @moduletag :integration
   @moduletag timeout: 180_000
@@ -36,19 +30,13 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     _ = String.to_atom("last_seen_eth_block_number")
     _ = String.to_atom("last_seen_eth_block_timestamp")
     _ = String.to_atom("last_validated_child_block_timestamp")
-    :ok
-  end
 
-  # NOTE: still bound to fixtures :(, because of the child chain setup, but this will go eventually, so leaving as is
-  deffixture perf_test(contract) do
-    _ = contract
     :ok = Performance.init()
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     {:ok, %{destdir: destdir}}
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of response when asking for exit data", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of response when asking for exit data", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
@@ -61,8 +49,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     ByzantineEvents.get_many_standard_exits(utxos)
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many valid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of status.get under many valid SEs", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
@@ -81,8 +68,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     assert ByzantineEvents.get_byzantine_events("invalid_exit") == []
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many valid/invalid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of status.get under many valid/invalid SEs", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
@@ -101,8 +87,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) >= @take
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of challenging", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of challenging", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
@@ -127,8 +112,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     assert Enum.count(challenge_responses) >= @take
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many challenged SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of status.get under many challenged SEs", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 

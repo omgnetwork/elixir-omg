@@ -16,17 +16,10 @@ defmodule LoadTest.Common.Generators do
   @moduledoc """
   Provides helper functions to generate bundles of various useful entities for performance tests
   """
-  require OMG.Utxo
 
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
-
-  alias OMG.Eth.Configuration
-  alias OMG.Eth.RootChain
   alias OMG.State.Transaction
-  alias OMG.Utxo
-  alias OMG.Watcher.HttpRPC.Client
-  alias Support.DevHelper
 
   @generate_user_timeout 600_000
 
@@ -37,10 +30,10 @@ defmodule LoadTest.Common.Generators do
     - :faucet - the address to send the test ETH from, assumed to be unlocked and have the necessary funds
     - :initial_funds_wei - the amount of test ETH that will be granted to every generated user
   """
-  @spec generate_users(non_neg_integer, [Keyword.t()]) :: [OMG.TestHelper.entity()]
-  def generate_users(size, opts \\ []) do
+  @spec generate_users(non_neg_integer) :: [OMG.TestHelper.entity()]
+  def generate_users(size) do
     1..size
-    |> Task.async_stream(fn _ -> generate_user(opts) end, timeout: @generate_user_timeout)
+    |> Task.async_stream(fn _ -> generate_user() end, timeout: @generate_user_timeout)
     |> Enum.map(fn {:ok, result} -> result end)
   end
 
@@ -73,7 +66,7 @@ defmodule LoadTest.Common.Generators do
     )
   end
 
-  defp generate_user(opts) do
+  defp generate_user() do
     user = Account.new()
 
     {:ok, _} = Ethereum.fund_address_from_default_faucet(user, [])
@@ -104,8 +97,7 @@ defmodule LoadTest.Common.Generators do
     |> Enum.filter(&(is_nil(filtered_address) || &1.owner == filtered_address))
     |> Enum.with_index()
     |> Enum.map(fn {_, oindex} ->
-      utxo_pos = Utxo.position(blknum, txindex, oindex)
-      Utxo.Position.encode(utxo_pos)
+      ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     end)
   end
 
