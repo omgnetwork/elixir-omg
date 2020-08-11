@@ -114,7 +114,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp get_external_data(contract_address, signature, args) do
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
+    data = signature |> ABI.encode(args) |> Encoding.to_hex()
+
+    {:ok, data} = Ethereumex.HttpClient.eth_call(%{to: contract_address, data: data})
+
     Abi.decode_function(data, signature)
   end
 end

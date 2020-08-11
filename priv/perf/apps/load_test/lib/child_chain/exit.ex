@@ -30,7 +30,7 @@ defmodule LoadTest.ChildChain.Exit do
   end
 
   def challenge_exit(exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, from) do
-    opts = Keyword.put(@tx_defaults, :gas, @gas_challenge_exit)
+    opts = Keyword.put(tx_defaults(), :gas, @gas_challenge_exit)
     sender_data = Crypto.hash(from)
 
     contract = contract_address_payment_exit_game()

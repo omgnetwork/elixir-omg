@@ -161,7 +161,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   """
   @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
-    params = %WatcherInfoAPI.Model.AddressBodySchema1{address: address}
+    params = %WatcherInfoAPI.Model.AddressBodySchema1{address: addr}
     {:ok, utxos} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(WatcherInfo.new(), params)
     utxo_positions = Enum.map(utxos, & &1.utxo_pos)
 
@@ -229,7 +229,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   # This function is prepared to be called in `Sync`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
   defp watcher_synchronized?(root_chain_height) do
-    {:ok, response} = WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
+    {:ok, status} = WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
 
     with true <- watcher_synchronized_to_mined_block?(status),
          true <- root_chain_synced?(root_chain_height, status) do

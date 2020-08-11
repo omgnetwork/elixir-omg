@@ -75,6 +75,15 @@ defmodule LoadTest.Ethereum do
     transact_sync(tx_fund)
   end
 
+  def block_hash(mined_num) do
+    contract_address = Application.get_env!(:load_test, :contract_address_plasma_framework)
+
+    %{"block_hash" => block_hash, "block_timestamp" => block_timestamp} =
+      get_external_data(contract_address, "blocks(uint256)", [mined_num])
+
+    {block_hash, block_timestamp}
+  end
+
   def send_raw_transaction(txmap, sender) do
     nonce = NonceTracker.get_next_nonce(sender.addr)
 
@@ -98,6 +107,14 @@ defmodule LoadTest.Ethereum do
     Encoding.to_int(nonce)
   end
 
+  defp get_external_data(address, signature, params) do
+    data = signature |> ABI.encode(params) |> Encoding.to_hex()
+
+    {:ok, data} = Ethereumex.HttpClient.eth_call(%{to: address, data: data})
+
+    Abi.decode_function(data, signature)
+  end
+
   defp send_transaction(txmap), do: Ethereumex.HttpClient.eth_send_transaction(txmap)
 
   defp eth_receipt(txhash, timeout) do
@@ -111,5 +128,17 @@ defmodule LoadTest.Ethereum do
     end
 
     Sync.repeat_until_success(f, timeout)
+  end
+
+  defp encode_tx_data(signature, args) do
+    signature
+    |> ABI.encode(args)
+    |> Encoding.to_hex()
+  end
+
+  defp encode_all_integer_opts(opts) do
+    opts
+    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
+    |> Enum.into(opts, fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 end

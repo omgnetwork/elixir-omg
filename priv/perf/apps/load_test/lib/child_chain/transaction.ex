@@ -147,16 +147,4 @@ defmodule LoadTest.ChildChain.Transaction do
 
     Api.Transaction.submit(Connection.client(), body)
   end
-
-  defp encode_tx_data(signature, args) do
-    signature
-    |> ABI.encode(args)
-    |> Encoding.to_hex()
-  end
-
-  defp encode_all_integer_opts(opts) do
-    opts
-    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
-    |> Enum.into(opts, fn {k, v} -> {k, Encoding.to_hex(v)} end)
-  end
 end

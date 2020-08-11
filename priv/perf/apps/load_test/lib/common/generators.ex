@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.Generators do
+defmodule LoadTest.Common.Generators do
   @moduledoc """
   Provides helper functions to generate bundles of various useful entities for performance tests
   """
   require OMG.Utxo
 
+  alias LoadTest.Ethereum
+  alias LoadTest.Ethereum.Account
+
   alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain
-
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.HttpRPC.Client
@@ -62,8 +64,8 @@ defmodule OMG.Performance.Generators do
 
   @spec stream_blocks() :: [OMG.Block.t()]
   defp stream_blocks() do
-    child_chain_url = OMG.Watcher.Configuration.child_chain_url()
-    interval = Configuration.child_block_interval()
+    child_chain_url = Application.fetch_env!(:load_test, :child_chain_url)
+    interval = Application.fetch_env!(:load_test, :child_block_interval)
 
     Stream.map(
       Stream.iterate(1, &(&1 + 1)),
@@ -72,13 +74,15 @@ defmodule OMG.Performance.Generators do
   end
 
   defp generate_user(opts) do
-    user = OMG.TestHelper.generate_entity()
-    {:ok, _user} = DevHelper.import_unlock_fund(user, opts)
+    user = Account.new()
+
+    {:ok, _} = Ethereum.fund_address_from_default_faucet(user, [])
+
     user
   end
 
   defp get_block!(blknum, child_chain_url) do
-    {block_hash, _} = RootChain.blocks(blknum)
+    {block_hash, _} = Ethereum.blocks(blknum)
     {:ok, block} = poll_get_block(block_hash, child_chain_url)
     block
   end
@@ -112,7 +116,10 @@ defmodule OMG.Performance.Generators do
   defp poll_get_block(block_hash, child_chain_url, 0), do: Client.get_block(block_hash, child_chain_url)
 
   defp poll_get_block(block_hash, child_chain_url, retry) do
-    case Client.get_block(block_hash, child_chain_url) do
+    case ChildChainAPI.Api.Block.block_get(
+           LoadTest.Connection.ChildChain.client(),
+           %ChildChainAPI.Model.GetBlockBodySchema{hash: block_hash}
+         ) do
       {:ok, _block} = result ->
         result
 
