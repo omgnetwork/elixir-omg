@@ -75,7 +75,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   If also provided with receiver's address, creates and encodes a transaction.
   TODO: seems unocovered by any tests
   """
-  @spec create_advice(%{currency_t() => list(%DB.TxOutput{})}, order_t()) :: advice_t()
+  @spec create_advice(%{currency_t() => utxo_list_t()}, order_t()) :: advice_t()
   def create_advice(utxos, %{owner: owner, payments: payments, fee: fee} = order) do
     needed_funds = needed_funds(payments, fee)
     token_utxo_selection = select_utxo(utxos, needed_funds)
@@ -86,13 +86,15 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         |> Stream.map(fn {_, utxos} -> length(utxos) end)
         |> Enum.sum()
 
+      merge_utxos = prioritize_merge_utxos(funds, utxos)
+
       if utxo_count <= Transaction.Payment.max_inputs(),
-        do: create_transaction(funds, order) |> respond(:complete),
+        do: funds |> add_merge_utxos(merge_utxos) |> create_transaction(order) |> respond(:complete),
         else: create_merge(owner, funds) |> respond(:intermediate)
     end
   end
 
-  @spec prioritize_merge_utxos(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: utxo_list_t()
+  # @spec prioritize_merge_utxos(list({currency_t(), utxo_list_t()}), %{currency_t() => utxo_list_t()}) :: utxo_list_t()
   def prioritize_merge_utxos(selected_utxos, utxos) do
     selected_utxos_hashes =
       selected_utxos
@@ -101,8 +103,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       |> Enum.map(fn utxo -> utxo.child_chain_utxohash end)
 
     selected_utxos
-    |> Map.keys()
-    |> Enum.map(fn currency -> utxos[currency] end)
+    |> Enum.map(fn {currency, _utxos} -> utxos[currency] end)
     |> Enum.sort_by(&length/1, :desc)
     |> List.flatten()
     |> Enum.filter(fn utxo -> !Enum.member?(selected_utxos_hashes, utxo.child_chain_utxohash) end)
@@ -113,7 +114,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     Enum.reduce(utxos_by_currency, 0, fn {_currency, utxos}, acc -> length(utxos) + acc end)
   end
 
-  @spec add_merge_utxos(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: %{currency_t() => utxo_list_t()}
+  @spec add_merge_utxos(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: %{
+          currency_t() => utxo_list_t()
+        }
   def add_merge_utxos(selected_utxos, available_utxos) do
     cond do
       get_number_of_utxos(selected_utxos) == Transaction.Payment.max_inputs() ->
@@ -126,7 +129,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         [priority_utxo | remaining_available_utxos] = available_utxos
 
         selected_utxos
-        |> Map.update!(priority_utxo.currency, fn current_utxos -> [priority_utxo | current_utxos] end)
+        |> Map.update!(priority_utxo.currency, fn current_utxos ->
+          [priority_utxo | current_utxos]
+        end)
         |> add_merge_utxos(remaining_available_utxos)
     end
   end
@@ -194,7 +199,12 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       end)
 
     if Enum.empty?(missing_funds),
-      do: {:ok, utxo_selection |> Enum.map(fn {token, {_missing_amount, utxos}} -> {token, utxos} end)},
+      do:
+        {:ok,
+         utxo_selection
+         |> Enum.reduce(%{}, fn {token, {_missing_amount, utxos}}, acc ->
+           Map.put(acc, token, utxos)
+         end)},
       else: {:error, {:insufficient_funds, missing_funds}}
   end
 
