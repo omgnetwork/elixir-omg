@@ -93,15 +93,14 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   end
 
   def prioritize_merge_utxos(selected_utxos, utxos) do
-    selected_currencies = Map.keys(selected_utxos)
-
     selected_utxos_hashes =
       selected_utxos
       |> Enum.map(fn {_currency, utxos} -> utxos end)
       |> List.flatten()
       |> Enum.map(fn utxo -> utxo.child_chain_utxohash end)
 
-    selected_currencies
+    selected_utxos
+    |> Map.keys()
     |> Enum.map(fn currency -> utxos[currency] end)
     |> Enum.sort_by(&length/1, :desc)
     |> List.flatten()

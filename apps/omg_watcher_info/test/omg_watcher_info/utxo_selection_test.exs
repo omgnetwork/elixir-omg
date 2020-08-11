@@ -215,7 +215,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
   describe "prioritize_merge_utxos" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the same currencies as inputs without utxos which are already included in inputs" do
+    test "returns the same currencies as inputs but excluding utxos used by inputs" do
       token_a = <<65::160>>
       token_b = <<66::160>>
       token_c = <<67::160>>
