@@ -58,18 +58,6 @@ defmodule OMG.Bus.PubSub do
       end
 
       @doc """
-      Broadcast a message with a prefix indicating that it is originating from the internal event bus
-
-      Handle the message in the receiving process by e.g.
-      ```
-      def handle_info({:internal_bus_event, :some_event, my_payload}, state)
-      ```
-      """
-      def broadcast(%Event{topic: topic, event: event, payload: payload}) when is_atom(event) do
-        PubSub.broadcast(OMG.Bus.PubSub, topic, {:internal_event_bus, event, payload})
-      end
-
-      @doc """
       Same as `broadcast/1`, but performed on the local node
       """
       def direct_local_broadcast(%Event{topic: topic, event: event, payload: payload})
