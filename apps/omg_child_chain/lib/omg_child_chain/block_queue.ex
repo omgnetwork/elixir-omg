@@ -187,7 +187,7 @@ defmodule OMG.ChildChain.BlockQueue do
   """
   def handle_info({:internal_event_bus, :enqueue_block, %Block{} = block}, state) do
     {:ok, parent_height} = EthereumHeight.get()
-    state1 = Core.enqueue_block(state, block.hash, block.number, parent_height)
+    state1 = %Core{} = Core.enqueue_block(state, block.hash, block.number, parent_height)
     _ = Logger.info("Enqueuing block num '#{inspect(block.number)}', hash '#{inspect(Encoding.to_hex(block.hash))}'")
 
     submit_blocks(state1)

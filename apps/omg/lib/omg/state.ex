@@ -270,7 +270,7 @@ defmodule OMG.State do
     # new block
     :ok = DB.multi_update(db_updates)
 
-    :ok = publish_block_to_event_bus(block)
+    # :ok = publish_block_to_event_bus(block)
     {:noreply, new_state}
   end
 
