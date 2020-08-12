@@ -245,9 +245,9 @@ defmodule OMG.State do
   Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
   """
   def handle_call(:close_block, _from, state) do
-    {:ok, {block, db_updates}, new_state} = Core.form_block(state)
+    {:ok, {_block, db_updates}, new_state} = Core.form_block(state)
 
-    :ok = publish_block_to_event_bus(block)
+    #:ok = publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -263,7 +263,7 @@ defmodule OMG.State do
   def handle_cast(:form_block, state) do
     _ = Logger.debug("Forming new block...")
     state = Core.claim_fees(state)
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = Core.form_block(state)
+    {:ok, {%Block{number: blknum}, db_updates}, new_state} = Core.form_block(state)
     _ = Logger.debug("Formed new block ##{blknum}")
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
@@ -274,11 +274,11 @@ defmodule OMG.State do
     {:noreply, new_state}
   end
 
-  defp publish_block_to_event_bus(block) do
-    {:child_chain, "blocks"}
-    |> OMG.Bus.Event.new(:enqueue_block, block)
-    |> OMG.Bus.direct_local_broadcast()
-  end
+  # defp publish_block_to_event_bus(block) do
+  #   {:child_chain, "blocks"}
+  #   |> OMG.Bus.Event.new(:enqueue_block, block)
+  #   |> OMG.Bus.direct_local_broadcast()
+  # end
 
   @spec fetch_utxos_from_db(list(OMG.Utxo.Position.t()), Core.t()) :: UtxoSet.t()
   defp fetch_utxos_from_db(utxo_pos_list, state) do

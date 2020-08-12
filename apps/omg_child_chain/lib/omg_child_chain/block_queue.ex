@@ -41,7 +41,6 @@ defmodule OMG.ChildChain.BlockQueue do
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.Block
   alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.Core
   alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
@@ -140,7 +139,7 @@ defmodule OMG.ChildChain.BlockQueue do
     {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
     # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
-    :ok = OMG.Bus.subscribe({:child_chain, "blocks"}, link: true)
+    :ok = OMG.Bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
     metrics_collection_interval = Keyword.fetch!(args, :metrics_collection_interval)
     {:ok, _} = :timer.send_interval(metrics_collection_interval, self(), :send_metrics)
 
@@ -185,12 +184,26 @@ defmodule OMG.ChildChain.BlockQueue do
   Lines up a new block for submission. Presumably `OMG.State.form_block` wrote to the `:internal_event_bus` having
   formed a new child chain block.
   """
-  def handle_info({:internal_event_bus, :enqueue_block, %Block{} = block}, state) do
-    {:ok, parent_height} = EthereumHeight.get()
-    state1 = %Core{} = Core.enqueue_block(state, block.hash, block.number, parent_height)
-    _ = Logger.info("Enqueuing block num '#{inspect(block.number)}', hash '#{inspect(Encoding.to_hex(block.hash))}'")
+  def handle_info({:internal_event_bus, :ethereum_new_height, _new_height}, state) do
+    # {:ok, parent_height} = EthereumHeight.get()
+    # state1 = Core.enqueue_block(state, block.hash, block.number, parent_height)
+    # _ = Logger.info("Enqueuing block num '#{inspect(block.number)}', hash '#{inspect(Encoding.to_hex(block.hash))}'")
 
-    submit_blocks(state1)
+    # submit_blocks(state1)
+    mined_num = RootChain.get_mined_child_block()
+    {top_mined_hash, _} = RootChain.blocks(mined_num)
+    {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
+
+    range =
+      Core.child_block_nums_to_init_with(
+        mined_num,
+        stored_child_top_num,
+        state.child_block_interval,
+        state.finality_threshold
+      )
+
+    {:ok, known_hashes} = OMG.DB.block_hashes(range)
+    {:ok, state1} = Core.enqueue_existing_blocks(state, top_mined_hash, known_hashes)
     {:noreply, state1}
   end
 

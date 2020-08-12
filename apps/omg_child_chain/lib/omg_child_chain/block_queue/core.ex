@@ -552,17 +552,17 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   # NOTE: handles both the case when there aren't any hashes in database and there are
   @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [{pos_integer(), BlockQueue.hash()}]) ::
           {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
-  defp enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
+  def enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
     # we start a fresh queue from db and fresh contract
     {:ok, %{state | formed_child_block_num: 0}}
   end
 
-  defp enqueue_existing_blocks(_state, _top_mined_hash, [] = _known_hashes) do
+  def enqueue_existing_blocks(_state, _top_mined_hash, [] = _known_hashes) do
     # something's wrong - no hashes in db and top_mined hash isn't a zero hash as required
     {:error, :contract_ahead_of_db}
   end
 
-  defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
+  def enqueue_existing_blocks(state, top_mined_hash, hashes) do
     with :ok <- block_number_and_hash_valid?(top_mined_hash, state.mined_child_block_num, hashes) do
       {mined_blocks, fresh_blocks} = split_existing_blocks(state, hashes)
 

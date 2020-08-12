@@ -76,6 +76,3 @@ localchain_contract_addresses.env
 # IntelliJ files
 .idea/
 *.iml
-
-#vs code
-.tool_versions
