@@ -203,7 +203,8 @@ defmodule OMG.ChildChain.BlockQueue do
       )
 
     {:ok, known_hashes} = OMG.DB.block_hashes(range)
-    {:ok, state1} = Core.enqueue_existing_blocks(state, top_mined_hash, known_hashes)
+
+    {:ok, state1} = Core.enqueue_existing_blocks(state, top_mined_hash, Enum.zip(range, known_hashes))
     {:noreply, state1}
   end
 

@@ -247,7 +247,7 @@ defmodule OMG.State do
   def handle_call(:close_block, _from, state) do
     {:ok, {_block, db_updates}, new_state} = Core.form_block(state)
 
-    #:ok = publish_block_to_event_bus(block)
+    # :ok = publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
   end
 
