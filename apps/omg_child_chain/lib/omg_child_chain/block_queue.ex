@@ -46,6 +46,7 @@ defmodule OMG.ChildChain.BlockQueue do
   alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
   alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
+  alias OMG.DB
   alias OMG.Eth
   alias OMG.Eth.Client
   alias OMG.Eth.Encoding
@@ -86,7 +87,7 @@ defmodule OMG.ChildChain.BlockQueue do
     {:ok, parent_height} = EthereumHeight.get()
     mined_num = RootChain.get_mined_child_block()
     {top_mined_hash, _} = RootChain.blocks(mined_num)
-    {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
+    {:ok, stored_child_top_num} = DB.get_single_value(:child_top_block_number)
 
     _ =
       Logger.info(
@@ -98,7 +99,7 @@ defmodule OMG.ChildChain.BlockQueue do
     range =
       Core.child_block_nums_to_init_with(mined_num, stored_child_top_num, child_block_interval, finality_threshold)
 
-    {:ok, known_hashes} = OMG.DB.block_hashes(range)
+    {:ok, known_hashes} = DB.block_hashes(range)
 
     _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
@@ -181,18 +182,12 @@ defmodule OMG.ChildChain.BlockQueue do
   end
 
   @doc """
-  Lines up a new block for submission. Presumably `OMG.State.form_block` wrote to the `:internal_event_bus` having
-  formed a new child chain block.
+  Lines up a new block for submission.
   """
   def handle_info({:internal_event_bus, :ethereum_new_height, _new_height}, state) do
-    # {:ok, parent_height} = EthereumHeight.get()
-    # state1 = Core.enqueue_block(state, block.hash, block.number, parent_height)
-    # _ = Logger.info("Enqueuing block num '#{inspect(block.number)}', hash '#{inspect(Encoding.to_hex(block.hash))}'")
-
-    # submit_blocks(state1)
     mined_num = RootChain.get_mined_child_block()
     {top_mined_hash, _} = RootChain.blocks(mined_num)
-    {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
+    {:ok, stored_child_top_num} = DB.get_single_value(:child_top_block_number)
 
     range =
       Core.child_block_nums_to_init_with(
@@ -202,7 +197,7 @@ defmodule OMG.ChildChain.BlockQueue do
         state.finality_threshold
       )
 
-    {:ok, known_hashes} = OMG.DB.block_hashes(range)
+    {:ok, known_hashes} = DB.block_hashes(range)
 
     {:ok, state1} = Core.enqueue_existing_blocks(state, top_mined_hash, Enum.zip(range, known_hashes))
     {:noreply, state1}

@@ -246,8 +246,6 @@ defmodule OMG.State do
   """
   def handle_call(:close_block, _from, state) do
     {:ok, {_block, db_updates}, new_state} = Core.form_block(state)
-
-    # :ok = publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -270,15 +268,8 @@ defmodule OMG.State do
     # new block
     :ok = DB.multi_update(db_updates)
 
-    # :ok = publish_block_to_event_bus(block)
     {:noreply, new_state}
   end
-
-  # defp publish_block_to_event_bus(block) do
-  #   {:child_chain, "blocks"}
-  #   |> OMG.Bus.Event.new(:enqueue_block, block)
-  #   |> OMG.Bus.direct_local_broadcast()
-  # end
 
   @spec fetch_utxos_from_db(list(OMG.Utxo.Position.t()), Core.t()) :: UtxoSet.t()
   defp fetch_utxos_from_db(utxo_pos_list, state) do

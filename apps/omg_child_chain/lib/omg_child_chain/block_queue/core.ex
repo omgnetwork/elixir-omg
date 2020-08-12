@@ -360,6 +360,51 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     :ok
   end
 
+  # When restarting, we don't actually know what was the state of submission process to Ethereum.
+  # Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
+  # To properly restart the process we get last blocks known to DB and split them into mined
+  # blocks (might still need tracking!) and blocks not yet submitted.
+
+  # NOTE: handles both the case when there aren't any hashes in database and there are
+  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [{pos_integer(), BlockQueue.hash()}]) ::
+          {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
+  def enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
+    # we start a fresh queue from db and fresh contract
+    {:ok, %{state | formed_child_block_num: 0}}
+  end
+
+  def enqueue_existing_blocks(_state, _top_mined_hash, [] = _known_hashes) do
+    # something's wrong - no hashes in db and top_mined hash isn't a zero hash as required
+    {:error, :contract_ahead_of_db}
+  end
+
+  def enqueue_existing_blocks(state, top_mined_hash, hashes) do
+    with :ok <- block_number_and_hash_valid?(top_mined_hash, state.mined_child_block_num, hashes) do
+      {mined_blocks, fresh_blocks} = split_existing_blocks(state, hashes)
+
+      mined_submissions =
+        for {num, hash} <- mined_blocks do
+          {num,
+           %BlockSubmission{
+             num: num,
+             hash: hash,
+             nonce: calc_nonce(num, state.child_block_interval)
+           }}
+        end
+        |> Map.new()
+
+      state = %{
+        state
+        | formed_child_block_num: state.mined_child_block_num,
+          blocks: mined_submissions
+      }
+
+      _ = Logger.info("Loaded with #{inspect(mined_blocks)} mined and #{inspect(fresh_blocks)} enqueued")
+
+      {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> do_enqueue_block(acc, hash, state.parent_height) end)}
+    end
+  end
+
   #
   # Private functions
   #
@@ -542,51 +587,6 @@ defmodule OMG.ChildChain.BlockQueue.Core do
 
   defp calc_nonce(height, interval) do
     trunc(height / interval)
-  end
-
-  # When restarting, we don't actually know what was the state of submission process to Ethereum.
-  # Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
-  # To properly restart the process we get last blocks known to DB and split them into mined
-  # blocks (might still need tracking!) and blocks not yet submitted.
-
-  # NOTE: handles both the case when there aren't any hashes in database and there are
-  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [{pos_integer(), BlockQueue.hash()}]) ::
-          {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
-  def enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
-    # we start a fresh queue from db and fresh contract
-    {:ok, %{state | formed_child_block_num: 0}}
-  end
-
-  def enqueue_existing_blocks(_state, _top_mined_hash, [] = _known_hashes) do
-    # something's wrong - no hashes in db and top_mined hash isn't a zero hash as required
-    {:error, :contract_ahead_of_db}
-  end
-
-  def enqueue_existing_blocks(state, top_mined_hash, hashes) do
-    with :ok <- block_number_and_hash_valid?(top_mined_hash, state.mined_child_block_num, hashes) do
-      {mined_blocks, fresh_blocks} = split_existing_blocks(state, hashes)
-
-      mined_submissions =
-        for {num, hash} <- mined_blocks do
-          {num,
-           %BlockSubmission{
-             num: num,
-             hash: hash,
-             nonce: calc_nonce(num, state.child_block_interval)
-           }}
-        end
-        |> Map.new()
-
-      state = %{
-        state
-        | formed_child_block_num: state.mined_child_block_num,
-          blocks: mined_submissions
-      }
-
-      _ = Logger.info("Loaded with #{inspect(mined_blocks)} mined and #{inspect(fresh_blocks)} enqueued")
-
-      {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> do_enqueue_block(acc, hash, state.parent_height) end)}
-    end
   end
 
   # splits into ones that are before top_mined_hash and those after
