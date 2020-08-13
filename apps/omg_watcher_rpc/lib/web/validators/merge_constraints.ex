@@ -57,9 +57,12 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
 
   defp validate_utxos(utxos) do
     Enum.reduce_while(utxos, {:ok, []}, fn utxo, {:ok, acc} ->
-      with {:ok, _amount} <- expect(utxo, "amount", :pos_integer),
+      with {:ok, _blknum} <- expect(utxo, "blknum", :pos_integer),
+        {:ok, _txindex} <- expect(utxo, "txindex", :pos_integer),
+        {:ok, _oindex} <- expect(utxo, "oindex", :pos_integer),
+        {:ok, _owner} <- expect(utxo, "owner", :address),
         {:ok, _currency} <- expect(utxo, "currency", :currency),
-        {:ok, _owner} <- expect(utxo, "owner", :address) do
+        {:ok, _amount} <- expect(utxo, "amount", :pos_integer) do
         {:cont, {:ok, [utxo | acc]}}
       else
         error -> {:halt, error}

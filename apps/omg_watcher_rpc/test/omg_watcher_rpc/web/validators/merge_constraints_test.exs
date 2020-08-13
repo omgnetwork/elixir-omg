@@ -20,6 +20,14 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
 
   @eth Encoding.to_hex(OMG.Eth.zero_address())
   @fake_address_hex_string "0x7977fe798feef376b74b6c1c5ebce8a2ccf02afd"
+  @utxo %{
+    "blknum" => 1,
+    "txindex" => 1,
+    "oindex" => 1,
+    "owner" => @fake_address_hex_string,
+    "currency" => @eth,
+    "amount" => 1
+  }
 
   describe "parse/1" do
     test "fails if no match of params" do
@@ -108,31 +116,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
       assert MergeConstraints.parse(request_data) == {:error, {:validation_error, "utxo_positions.utxo_pos", :integer}}
     end
 
-    test "returns utxos constraints when minimum required utxo data is available" do
-      request_data = %{
-        "utxos" => [
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 1,
-            "foo" => "bar"
-          },
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 2,
-            "baz" => 123
-          },
-        ]
-      }
-
-      {:ok, constraints} = MergeConstraints.parse(request_data)
-      assert constraints == %{
-        utxos: request_data["utxos"]
-      }
-    end
-
-    test "returns utxos constraints when given more than 2 and less than 5 correctly formed utxos" do
+    test "fails utxos constraints when missing required utxo data" do
       request_data = %{
         "utxos" => [
           %{
@@ -145,12 +129,15 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
             "currency" => @eth,
             "amount" => 2
           },
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 3
-          }
         ]
+      }
+
+      assert MergeConstraints.parse(request_data) == {:error, {:validation_error, "blknum", :integer}}
+    end
+
+    test "returns utxos constraints when given more than 2 and less than 5 correctly formed utxos" do
+      request_data = %{
+        "utxos" => [@utxo, @utxo, @utxo]
       }
 
       {:ok, constraints} = MergeConstraints.parse(request_data)
@@ -161,33 +148,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
 
     test "fails utxos constraints when given more than 4 positions" do
       request_data = %{
-        "utxos" => [
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 1
-          },
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 2
-          },
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 3
-          },
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 4
-          },
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 5
-          }
-        ]
+        "utxos" => [@utxo, @utxo, @utxo, @utxo, @utxo]
       }
 
       assert MergeConstraints.parse(request_data) == {:error, {:validation_error, "utxos", {:max_length, 4}}}
@@ -195,13 +156,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
 
     test "fails utxos constraints when given only 1 utxo" do
       request_data = %{
-        "utxos" => [
-          %{
-            "owner" => @fake_address_hex_string,
-            "currency" => @eth,
-            "amount" => 1
-          }
-        ]
+        "utxos" => [@utxo]
       }
 
       assert MergeConstraints.parse(request_data) == {:error, {:validation_error, "utxos", {:min_length, 2}}}
