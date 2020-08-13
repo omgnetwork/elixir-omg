@@ -59,6 +59,39 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       assert {:ok, %{result: :complete}} = UtxoSelection.create_advice(utxos, order)
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns inputs correctly when there're 2 inputs and have 2 mergable utxos" do
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 200, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
+      _ = insert(:txoutput, amount: 200, currency: @other_token, owner: @alice)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      eth_utxos = utxos[@eth]
+      other_token_utxos = utxos[@other_token]
+
+      order = %{
+        owner: @bob,
+        payments: [
+          %{
+            owner: @alice,
+            currency: @eth,
+            amount: 100
+          }
+        ],
+        fee: %{
+          currency: @other_token,
+          amount: 100
+        },
+        metadata: nil
+      }
+
+      assert {:ok, %{result: :complete, transactions: [transaction]}} =
+               UtxoSelection.create_advice(utxos, order)
+
+      assert eth_utxos ++ other_token_utxos == transaction.inputs
+    end
   end
 
   describe "needed_funds/2" do
@@ -116,7 +149,8 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       # UTXO list is empty for simplicty as the error response does not need it.
       utxo_list = []
 
-      constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxo_list}} end)
+      constructed_argument =
+        Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxo_list}} end)
 
       assert UtxoSelection.funds_sufficient?(constructed_argument) ==
                {:error,
@@ -134,15 +168,19 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
 
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      %{@eth => [eth_utxo], @other_token => [other_token_utxo]} =
+        DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-      constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxos[ccy]}} end)
+      constructed_argument = [
+        {@eth, {variances[@eth], [eth_utxo]}},
+        {@other_token, {variances[@other_token], [other_token_utxo]}}
+      ]
 
       assert {:ok,
-              [
-                {@eth, [%DB.TxOutput{currency: @eth}]},
-                {@other_token, [%DB.TxOutput{currency: @other_token}]}
-              ]} = UtxoSelection.funds_sufficient?(constructed_argument)
+              %{
+                @eth => [eth_utxo],
+                @other_token => [other_token_utxo]
+              }} = UtxoSelection.funds_sufficient?(constructed_argument)
     end
   end
 
@@ -205,7 +243,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         @eth => included
       }
 
-      assert UtxoSelection.add_merge_utxos(inputs, [not_included]) == inputs
+      assert UtxoSelection.add_utxos_for_stealth_merge(inputs, [not_included]) == inputs
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -217,7 +255,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       inputs = DB.TxOutput.get_sorted_grouped_utxos(@alice)
       other_available = []
 
-      assert UtxoSelection.add_merge_utxos(inputs, other_available) == inputs
+      assert UtxoSelection.add_utxos_for_stealth_merge(inputs, other_available) == inputs
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -241,7 +279,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         @eth => [available_3, available_2, available_1, included]
       }
 
-      assert UtxoSelection.add_merge_utxos(inputs, available) == expected
+      assert UtxoSelection.add_utxos_for_stealth_merge(inputs, available) == expected
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -263,13 +301,13 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       assert %{
                @eth => [input_1, merge_1],
                @other_token => [input_2, merge_2]
-             } = UtxoSelection.add_merge_utxos(inputs, [merge_1, merge_2])
+             } = UtxoSelection.add_utxos_for_stealth_merge(inputs, [merge_1, merge_2])
     end
   end
 
   describe "prioritize_merge_utxos" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the same currencies as inputs without utxos which are already included in inputs" do
+    test "returns the same currencies as inputs but excluding utxos used by inputs" do
       token_a = <<65::160>>
       token_b = <<66::160>>
       token_c = <<67::160>>
