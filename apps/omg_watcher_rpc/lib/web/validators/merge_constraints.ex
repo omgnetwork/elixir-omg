@@ -35,10 +35,11 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
   end
 
   def parse(%{"utxos" => _utxos} = params) do
-    with {:ok, utxos} <- expect(params, "utxos", :utxos) do
+    with {:ok, utxos} <- expect(params, "utxos", [:list, min_length: 2, max_length: 4]),
+        {:ok, validated_utxos} <- validate_utxos(params["utxos"]) do
       {:ok,
       %{
-        utxos: utxos
+        utxos: Enum.reverse(validated_utxos)
       }}
     end
   end
@@ -53,6 +54,18 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
   end
 
   def parse(_), do: {:error, :operation_bad_request}
+
+  defp validate_utxos(utxos) do
+    Enum.reduce_while(utxos, {:ok, []}, fn utxo, {:ok, acc} ->
+      with {:ok, _amount} <- expect(utxo, "amount", :pos_integer),
+        {:ok, _currency} <- expect(utxo, "currency", :currency),
+        {:ok, _owner} <- expect(utxo, "owner", :address) do
+        {:cont, {:ok, [utxo | acc]}}
+      else
+        error -> {:halt, error}
+      end
+    end)
+  end
 
   defp to_utxo_pos(utxo_pos_string) do
     expect(%{"utxo_pos" => utxo_pos_string}, "utxo_pos", :non_neg_integer)
