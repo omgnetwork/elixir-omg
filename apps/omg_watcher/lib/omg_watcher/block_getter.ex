@@ -136,6 +136,7 @@ defmodule OMG.Watcher.BlockGetter do
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
+        # consumed by watcher info and applied to PG
         :ok =
           {:child_chain, "block.get"}
           |> OMG.Bus.Event.new(:block_received, block_application)
@@ -355,6 +356,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   defp update_status(%Core{} = state), do: Status.update(Core.chain_ok(state))
 
+  # used for datadog
   defp publish_events([%{event_signature: event_signature} | _] = data) do
     # event signature is string with a method name with arguments,
     # for example: BlockSubmitted(uint256)

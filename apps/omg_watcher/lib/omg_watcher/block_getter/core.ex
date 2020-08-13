@@ -247,29 +247,19 @@ defmodule OMG.Watcher.BlockGetter.Core do
    The number of expected block is limited by maximum_number_of_pending_blocks.
   """
   @spec get_numbers_of_blocks_to_download(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}, list(non_neg_integer)}
-  def get_numbers_of_blocks_to_download(
-        %__MODULE__{
-          unapplied_blocks: unapplied_blocks,
-          num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
-          number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
-          potential_block_withholdings: potential_block_withholdings,
-          config: config,
-          chain_status: :ok
-        } = state,
-        next_child
-      ) do
-    first_block_number = num_of_highest_block_being_downloaded + config.block_interval
+  def get_numbers_of_blocks_to_download(%__MODULE__{chain_status: :ok} = state, next_child) do
+    first_block_number = state.num_of_highest_block_being_downloaded + state.config.block_interval
 
-    number_of_empty_slots = config.maximum_number_of_pending_blocks - number_of_blocks_being_downloaded
+    number_of_empty_slots = state.config.maximum_number_of_pending_blocks - state.number_of_blocks_being_downloaded
 
     potential_block_withholding_numbers =
-      potential_block_withholdings
+      state.potential_block_withholdings
       |> Enum.filter(fn {_, %PotentialWithholding{downloading: downloading}} -> !downloading end)
       |> Enum.map(fn {key, __} -> key end)
 
     potential_next_block_numbers =
       first_block_number
-      |> Stream.iterate(&(&1 + config.block_interval))
+      |> Stream.iterate(&(&1 + state.config.block_interval))
       |> Stream.take_while(&(&1 < next_child))
       |> Enum.to_list()
 
@@ -278,8 +268,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
         number_of_empty_slots,
         max(
           0,
-          config.maximum_number_of_unapplied_blocks - number_of_blocks_being_downloaded -
-            Kernel.map_size(unapplied_blocks)
+          state.config.maximum_number_of_unapplied_blocks - state.number_of_blocks_being_downloaded -
+            Kernel.map_size(state.unapplied_blocks)
         )
       )
 
@@ -288,21 +278,21 @@ defmodule OMG.Watcher.BlockGetter.Core do
       |> Enum.take(number_of_blocks_to_download)
 
     [num_of_highest_block_being_downloaded | _] =
-      ([num_of_highest_block_being_downloaded] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
+      ([state.num_of_highest_block_being_downloaded] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
 
     _ = log_downloading_blocks(next_child, blocks_numbers)
 
     update_for_witholding =
-      potential_block_withholdings
+      state.potential_block_withholdings
       |> Map.take(blocks_numbers)
       |> Enum.map(fn {key, value} -> {key, Map.put(value, :downloading, true)} end)
       |> Map.new()
 
     {%{
        state
-       | number_of_blocks_being_downloaded: length(blocks_numbers) + number_of_blocks_being_downloaded,
+       | number_of_blocks_being_downloaded: length(blocks_numbers) + state.number_of_blocks_being_downloaded,
          num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
-         potential_block_withholdings: Map.merge(potential_block_withholdings, update_for_witholding)
+         potential_block_withholdings: Map.merge(state.potential_block_withholdings, update_for_witholding)
      }, blocks_numbers}
   end
 
@@ -372,23 +362,17 @@ defmodule OMG.Watcher.BlockGetter.Core do
         ) ::
           {:ok | {:error, block_error()}, %__MODULE__{}}
           | {:error, :duplicate | :unexpected_block}
-  def handle_downloaded_block(
-        %__MODULE__{
-          number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
-          potential_block_withholdings: potential_block_withholdings
-        } = state,
-        response
-      ) do
+  def handle_downloaded_block(state, response) do
     blknum = get_blknum(response)
 
     # if there was a potential withholding registered - mark it as non-downloading. Otherwise noop
     potential_block_withholdings =
-      case potential_block_withholdings[blknum] do
+      case state.potential_block_withholdings[blknum] do
         nil ->
-          potential_block_withholdings
+          state.potential_block_withholdings
 
         potential_block_withholding ->
-          Map.put(potential_block_withholdings, blknum, %PotentialWithholding{
+          Map.put(state.potential_block_withholdings, blknum, %PotentialWithholding{
             potential_block_withholding
             | downloading: false
           })
@@ -396,7 +380,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
     state = %{
       state
-      | number_of_blocks_being_downloaded: number_of_blocks_being_downloaded - 1,
+      | number_of_blocks_being_downloaded: state.number_of_blocks_being_downloaded - 1,
         potential_block_withholdings: potential_block_withholdings
     }
 
