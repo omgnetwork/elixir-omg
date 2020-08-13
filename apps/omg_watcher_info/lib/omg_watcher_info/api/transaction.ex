@@ -92,6 +92,27 @@ defmodule OMG.WatcherInfo.API.Transaction do
       %{advice | transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
 
+  @spec merge(map()) :: UtxoSelection.advice_t()
+  def merge(%{address: address, currency: currency} = _constraints) do
+    # if address/currency, fetch from db lowest value utxos and create tx
+    merge_inputs = DB.TxOutput.get_sorted_grouped_utxos(address)
+      |> Map.get(currency)
+      |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
+      |> Enum.slice(0, 4)
+    IO.inspect(merge_inputs)
+    # create merge with utxos
+  end
+
+  def merge(%{utxo_positions: utxo_positions} = _constraints) do
+    # if utxo positions array, fetch from db using utxo pos
+    # create merge with utxos
+  end
+
+  def merge(%{utxos: _utxos} = _constraints) do
+    # if utxo object array, create tx
+    # create merge with utxos
+  end
+
   defp add_type_specs(%{inputs: inputs, outputs: outputs, metadata: metadata}) do
     alias OMG.TypedDataHash
 

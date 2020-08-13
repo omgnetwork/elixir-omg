@@ -35,7 +35,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
   end
 
   def parse(%{"utxos" => _utxos} = params) do
-    with {:ok, utxos} <- expect(params, "utxos", [:list, min_length: 2, max_length: 4]),
+    with {:ok, _utxos} <- expect(params, "utxos", [:list, min_length: 2, max_length: 4]),
         {:ok, validated_utxos} <- validate_utxos(params["utxos"]) do
       {:ok,
       %{
