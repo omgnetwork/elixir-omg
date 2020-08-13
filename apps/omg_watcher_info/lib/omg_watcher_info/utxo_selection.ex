@@ -89,24 +89,46 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       merge_utxos = prioritize_merge_utxos(funds, utxos)
 
       if utxo_count <= Transaction.Payment.max_inputs(),
-        do: funds |> add_utxos_for_stealth_merge(merge_utxos) |> create_transaction(order) |> respond(:complete),
+        do:
+          funds
+          |> add_utxos_for_stealth_merge(merge_utxos)
+          |> create_transaction(order)
+          |> respond(:complete),
         else: create_merge(owner, funds) |> respond(:intermediate)
     end
   end
 
-  # @spec prioritize_merge_utxos(list({currency_t(), utxo_list_t()}), %{currency_t() => utxo_list_t()}) :: utxo_list_t()
+  @doc """
+  Defines and prioritises available UTXOs for stealth merge based on the available and selected sets.
+  - Excludes currenices not already used in the transaction and UTXOs in the selected set.
+  - Prioritises currencies that have the largest number of UTXOs
+  - Sorts by ascending order of UTXO value within the currency groupings ("dust first").
+  """
+  @spec prioritize_merge_utxos(list({currency_t(), utxo_list_t()}), %{
+          currency_t() => utxo_list_t()
+        }) :: utxo_list_t()
   def prioritize_merge_utxos(selected_utxos, utxos) do
-    selected_utxos_hashes =
+    selected_utxo_hashes =
       selected_utxos
-      |> Enum.map(fn {_currency, utxos} -> utxos end)
-      |> List.flatten()
-      |> Enum.map(fn utxo -> utxo.child_chain_utxohash end)
+      |> Enum.reduce([], fn {_ccy, utxos}, acc -> Enum.concat(acc, utxos) end)
+      |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
 
     selected_utxos
-    |> Enum.map(fn {currency, _utxos} -> utxos[currency] end)
+    |> Enum.map(fn {ccy, _utxos} ->
+      utxos[ccy]
+      |> filter_unselected(selected_utxo_hashes)
+      |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
+    end)
     |> Enum.sort_by(&length/1, :desc)
+    |> Enum.map(fn ccy_group -> Enum.slice(ccy_group, 0, 3) end)
     |> List.flatten()
-    |> Enum.filter(fn utxo -> !Enum.member?(selected_utxos_hashes, utxo.child_chain_utxohash) end)
+  end
+
+  @spec filter_unselected(utxo_list_t(), %{currency_t() => boolean()}) :: utxo_list_t()
+  defp filter_unselected(available_utxos, selected_utxo_hashes) do
+    Enum.filter(available_utxos, fn utxo ->
+      !Map.has_key?(selected_utxo_hashes, utxo.child_chain_utxohash)
+    end)
   end
 
   @spec get_number_of_utxos(%{currency_t() => utxo_list_t()}) :: integer()
@@ -120,7 +142,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   no UTXOs are available. Agnostic to the priority ordering of available UTXOs.
   Returns an updated map of UTXOs for the transaction.
   """
-  @spec add_utxos_for_stealth_merge(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: %{currency_t() => utxo_list_t()}
+  @spec add_utxos_for_stealth_merge(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: %{
+          currency_t() => utxo_list_t()
+        }
   def add_utxos_for_stealth_merge(selected_utxos, available_utxos) do
     cond do
       get_number_of_utxos(selected_utxos) == Transaction.Payment.max_inputs() ->
@@ -133,7 +157,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         [priority_utxo | remaining_available_utxos] = available_utxos
 
         selected_utxos
-        |> Map.update!(priority_utxo.currency, fn current_utxos -> [priority_utxo | current_utxos] end)
+        |> Map.update!(priority_utxo.currency, fn current_utxos ->
+          [priority_utxo | current_utxos]
+        end)
         |> add_utxos_for_stealth_merge(remaining_available_utxos)
     end
   end

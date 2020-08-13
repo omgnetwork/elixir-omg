@@ -87,8 +87,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         metadata: nil
       }
 
-      assert {:ok, %{result: :complete, transactions: [transaction]}} =
-               UtxoSelection.create_advice(utxos, order)
+      assert {:ok, %{result: :complete, transactions: [transaction]}} = UtxoSelection.create_advice(utxos, order)
 
       assert eth_utxos ++ other_token_utxos == transaction.inputs
     end
@@ -149,8 +148,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       # UTXO list is empty for simplicty as the error response does not need it.
       utxo_list = []
 
-      constructed_argument =
-        Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxo_list}} end)
+      constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxo_list}} end)
 
       assert UtxoSelection.funds_sufficient?(constructed_argument) ==
                {:error,
@@ -168,8 +166,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
 
-      %{@eth => [eth_utxo], @other_token => [other_token_utxo]} =
-        DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      %{@eth => [eth_utxo], @other_token => [other_token_utxo]} = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
       constructed_argument = [
         {@eth, {variances[@eth], [eth_utxo]}},
@@ -305,31 +302,165 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
     end
   end
 
-  describe "prioritize_merge_utxos" do
+  describe "prioritize_merge_utxos/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the same currencies as inputs but excluding utxos used by inputs" do
+    test "returns only UTXOs that have not already been selected for the transaction" do
+      _ = insert(:txoutput, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, currency: @eth, owner: @alice)
+
+      %{
+        @eth => [selected_eth | available_eth]
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      inputs = %{
+        @eth => [selected_eth]
+      }
+
+      result = UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+
+      assert result == available_eth
+      assert Enum.member?(result, selected_eth) == false
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns UTXOs only for currencies already in the transaction" do
       token_a = <<65::160>>
       token_b = <<66::160>>
       token_c = <<67::160>>
 
-      _ = insert(:txoutput, amount: 100, currency: token_a, owner: @alice)
-      _ = insert(:txoutput, amount: 200, currency: token_a, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: token_b, owner: @alice)
-      _ = insert(:txoutput, amount: 200, currency: token_b, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: token_c, owner: @alice)
-      _ = insert(:txoutput, amount: 200, currency: token_c, owner: @alice)
+      _ = insert(:txoutput, currency: token_a, owner: @alice)
+      _ = insert(:txoutput, currency: token_a, owner: @alice)
+      _ = insert(:txoutput, currency: token_b, owner: @alice)
+      _ = insert(:txoutput, currency: token_b, owner: @alice)
+      _ = insert(:txoutput, currency: token_c, owner: @alice)
+      _ = insert(:txoutput, currency: token_c, owner: @alice)
 
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
-
-      [utxo_a_1, utxo_a_2] = utxos[token_a]
-      [utxo_b_1, utxo_b_2] = utxos[token_b]
+      %{
+        ^token_a => [utxo_a_1, utxo_a_2],
+        ^token_b => [utxo_b_1, utxo_b_2],
+        ^token_c => [_, _]
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
       inputs = %{
         token_a => [utxo_a_1],
         token_b => [utxo_b_1]
       }
 
-      assert [utxo_a_2, utxo_b_2] == UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+      result = UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+
+      assert result == [utxo_a_2, utxo_b_2]
+      assert Enum.find(result, fn utxo -> utxo.currency == token_c end) == nil
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "orders UTXOs by currency in descending order of set size" do
+      token_a = <<65::160>>
+      token_b = <<66::160>>
+      token_c = <<67::160>>
+
+      for _i <- 1..4 do
+        _ = insert(:txoutput, currency: token_a, owner: @alice)
+      end
+
+      for _i <- 1..3 do
+        _ = insert(:txoutput, currency: token_b, owner: @alice)
+      end
+
+      for _i <- 1..2 do
+        _ = insert(:txoutput, currency: token_c, owner: @alice)
+      end
+
+      %{
+        ^token_a => [selected_a | available_a],
+        ^token_b => [selected_b | available_b],
+        ^token_c => [selected_c | available_c]
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      inputs = %{
+        token_a => [selected_a],
+        token_b => [selected_b],
+        token_c => [selected_c]
+      }
+
+      result = UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+
+      assert result == available_a ++ available_b ++ available_c
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "orders UTXOs by currency in descending order of set size, excluding already selected UTXOs" do
+      token_a = <<65::160>>
+      token_b = <<66::160>>
+
+      for _i <- 1..3 do
+        _ = insert(:txoutput, currency: token_a, owner: @alice)
+        _ = insert(:txoutput, currency: token_b, owner: @alice)
+      end
+
+      %{
+        ^token_a => [a_1, a_2, a_3],
+        ^token_b => [b_1, b_2, b_3]
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      inputs = %{
+        token_a => [a_1, a_2],
+        token_b => [b_1]
+      }
+
+      assert UtxoSelection.prioritize_merge_utxos(inputs, utxos) == [b_2, b_3, a_3]
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "within the currency grouping, orders UTXOs in asdending order of value ('dust first')" do
+      token_a = <<65::160>>
+      token_b = <<66::160>>
+
+      _ = insert(:txoutput, amount: 10, currency: token_a, owner: @alice)
+      _ = insert(:txoutput, amount: 30, currency: token_b, owner: @alice)
+      _ = insert(:txoutput, amount: 20, currency: token_a, owner: @alice)
+      _ = insert(:txoutput, amount: 40, currency: token_b, owner: @alice)
+      _ = insert(:txoutput, amount: 40, currency: token_a, owner: @alice)
+      _ = insert(:txoutput, amount: 20, currency: token_b, owner: @alice)
+      _ = insert(:txoutput, amount: 30, currency: token_a, owner: @alice)
+      _ = insert(:txoutput, amount: 10, currency: token_b, owner: @alice)
+
+      %{
+        ^token_a => [a_1 | available_a],
+        ^token_b => [b_1, b_2 | available_b]
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      inputs = %{
+        token_a => [a_1],
+        token_b => [b_1, b_2]
+      }
+
+      sorted_available_a = Enum.sort_by(available_a, fn utxo -> utxo.amount end, :asc)
+      sorted_available_b = Enum.sort_by(available_b, fn utxo -> utxo.amount end, :asc)
+
+      assert UtxoSelection.prioritize_merge_utxos(inputs, utxos) == Enum.concat(sorted_available_a, sorted_available_b)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns no more than 3 UTXOs per currency grouping" do
+      for _i <- 1..5 do
+        _ = insert(:txoutput, currency: @eth, owner: @alice)
+      end
+
+      %{
+        @eth => [eth_1 | available_eth]
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      assert length(available_eth) > 3
+
+      inputs = %{
+        @eth => [eth_1]
+      }
+
+      assert UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+             |> Enum.filter(fn utxo -> utxo.currency == @eth end)
+             |> length() == 3
     end
   end
 end
