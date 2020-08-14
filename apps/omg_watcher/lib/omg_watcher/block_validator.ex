@@ -90,22 +90,24 @@ defmodule OMG.Watcher.BlockValidator do
 
   @spec verify_no_duplicate_inputs([Transaction.Recovered.t()]) :: {:ok, map()}
   defp(verify_no_duplicate_inputs(transactions)) do
-    transactions
-    |> Enum.reduce_while({:ok, %{}}, fn tx, {:ok, input_set} ->
-      inputs =
-        tx
-        |> Map.get(:signed_tx)
-        |> Map.get(:raw_tx)
-        |> Map.get(:inputs)
+    Enum.reduce_while(transactions, {:ok, %{}}, fn tx, {:ok, input_set} ->
+      tx
+      |> Map.get(:signed_tx)
+      |> Map.get(:raw_tx)
+      |> Map.get(:inputs)
+      |> scan_for_duplicates({:cont, {:ok, input_set}})
+    end)
+  end
 
-      Enum.reduce_while(inputs, {:cont, {:ok, input_set}}, fn input, {:cont, {:ok, input_set}} ->
-        input_position = Utxo.Position.encode(input)
+  # Nested reducer executing duplicate verification logic for `verify_no_duplicate_inputs/1`
+  defp scan_for_duplicates(tx_input_set, {:cont, {:ok, input_set}}) do
+    Enum.reduce_while(tx_input_set, {:cont, {:ok, input_set}}, fn input, {:cont, {:ok, input_set}} ->
+      input_position = Utxo.Position.encode(input)
 
-        case Map.has_key?(input_set, input_position) do
-          true -> {:halt, {:halt, {:error, :block_duplicate_inputs}}}
-          false -> {:cont, {:cont, {:ok, Map.put(input_set, input_position, true)}}}
-        end
-      end)
+      case Map.has_key?(input_set, input_position) do
+        true -> {:halt, {:halt, {:error, :block_duplicate_inputs}}}
+        false -> {:cont, {:cont, {:ok, Map.put(input_set, input_position, true)}}}
+      end
     end)
   end
 end
