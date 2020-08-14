@@ -51,6 +51,19 @@ defmodule LoadTest.ChildChain.Deposit do
     Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
   end
 
+  def deposit_to_child_chain(to, value, token_addr) do
+    contract_addr = Application.fetch_env!(:load_test, :erc20_vault_address)
+
+    {:ok, _} = to |> approve_token(contract_addr, value, token_addr) |> Ethereum.transact_sync!()
+
+    {:ok, receipt} =
+      encode_payment_transaction([], [{to, token_addr, value}])
+      |> deposit_transaction_from(to)
+      |> Ethereum.transact_sync!()
+
+    process_deposit(receipt)
+  end
+
   def approve_token(from, spender, amount, token, opts \\ []) do
     opts = Transaction.tx_defaults() |> Keyword.put(:gas, 80_000) |> Keyword.merge(opts)
 
@@ -119,5 +132,43 @@ defmodule LoadTest.ChildChain.Deposit do
     }
 
     Ethereum.send_raw_transaction(tx, account)
+  end
+
+  defp encode_payment_transaction(inputs, outputs, metadata \\ <<0::256>>) do
+    ExRLP.encode([
+      1,
+      inputs
+      |> Enum.map(fn {blknum, txindex, oindex} ->
+        %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex} |> ExPlasma.Utxo.to_rlp()
+      end),
+      outputs
+      |> Enum.map(fn {owner, currency, amount} ->
+        [1, [owner, currency, amount]]
+      end),
+      0,
+      metadata
+    ])
+  end
+
+  defp deposit_transaction_from(tx, from) do
+    opts = Keyword.put(Transaction.tx_defaults(), :gas, 250_000)
+
+    address = Application.fetch_env!(:load_test, :erc20_vault_address)
+
+    Ethereum.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
+  end
+
+  defp deposit_blknum_from_receipt(%{"logs" => logs}) do
+    topic =
+      "DepositCreated(address,uint256,address,uint256)"
+      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+      |> to_hex()
+
+    [%{blknum: deposit_blknum}] =
+      logs
+      |> Enum.filter(&(topic in &1["topics"]))
+      |> Enum.map(&Abi.decode_log/1)
+
+    deposit_blknum
   end
 end
