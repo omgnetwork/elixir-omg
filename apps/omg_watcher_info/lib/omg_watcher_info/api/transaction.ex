@@ -99,7 +99,9 @@ defmodule OMG.WatcherInfo.API.Transaction do
       |> Map.get(currency)
       |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
       |> Enum.slice(0, 4)
+
     IO.inspect(merge_inputs)
+
     # create merge with utxos
   end
 

@@ -21,24 +21,21 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
 
   import OMG.WatcherInfo.Factory
 
+  @owner <<1::160>>
+  @currency_1 <<2::160>>
+  @currency_2 <<3::160>>
+
   describe "merge/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "merge with address and currency" do
-      owner = <<1::160>>
+    test "merge with address and currency merges correctly" do
+      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 5)
+      _ = insert(:txoutput, currency: @currency_2, owner: @owner, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 2)
+      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 1)
 
-      deposit_1 = with_deposit(build(:txoutput, %{owner: owner}))
-      output_1 = build(:txoutput, %{owner: owner})
-      output_2 = build(:txoutput, %{owner: owner})
-
-      IO.inspect(output_1)
-      IO.inspect(output_2)
-
-      transaction =
-        insert(:transaction)
-        |> with_inputs([deposit_1])
-        |> with_outputs([output_1])
-
-      # result = Transaction.merge(%{address: , currency: })
+      result = Transaction.merge(%{address: @owner, currency: @currency_1})
 
       assert 1 == 1
     end
