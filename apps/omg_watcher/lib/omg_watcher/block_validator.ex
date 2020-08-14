@@ -55,7 +55,7 @@ defmodule OMG.Watcher.BlockValidator do
     end
   end
 
-  @spec verify_transactions(transactions :: list(Transaction.Signed.txbytes())) ::
+  @spec verify_transactions(transactions :: list(Transaction.Signed.tx_bytes())) ::
           {:ok, list(Transaction.Recovered.t())}
           | {:error, Transaction.Recovered.recover_tx_error()}
   defp verify_transactions(transactions) do
