@@ -75,8 +75,10 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   If also provided with receiver's address, creates and encodes a transaction.
   TODO: seems unocovered by any tests
   """
-  @spec create_advice(%{currency_t() => utxo_list_t()}, order_t()) :: advice_t()
-  def create_advice(utxos, %{owner: owner, payments: payments, fee: fee} = order) do
+  @spec create_advice(%{currency_t() => utxo_list_t()}, order_t()) :: %{
+    currency_t() => utxo_list_t()
+  }
+  def create_advice(utxos, %{payments: payments, fee: fee}) do
     needed_funds = needed_funds(payments, fee)
     token_utxo_selection = select_utxo(utxos, needed_funds)
 
@@ -88,13 +90,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
       merge_utxos = prioritize_merge_utxos(funds, utxos)
 
-      if utxo_count <= Transaction.Payment.max_inputs(),
-        do:
-          funds
-          |> add_utxos_for_stealth_merge(merge_utxos)
-          |> create_transaction(order)
-          |> respond(:complete),
-        else: create_merge(owner, funds) |> respond(:intermediate)
+      if utxo_count <= Transaction.Payment.max_inputs() do
+        add_utxos_for_stealth_merge(funds, merge_utxos)
+      end
     end
   end
 
@@ -235,104 +233,4 @@ defmodule OMG.WatcherInfo.UtxoSelection do
          end)},
       else: {:error, {:insufficient_funds, missing_funds}}
   end
-
-  defp create_transaction(utxos_per_token, %{
-         owner: owner,
-         payments: payments,
-         metadata: metadata,
-         fee: fee
-       }) do
-    rests =
-      utxos_per_token
-      |> Stream.map(fn {token, utxos} ->
-        outputs =
-          [fee | payments]
-          |> Stream.filter(&(&1.currency == token))
-          |> Stream.map(& &1.amount)
-          |> Enum.sum()
-
-        inputs = utxos |> Stream.map(& &1.amount) |> Enum.sum()
-        %{amount: inputs - outputs, owner: owner, currency: token}
-      end)
-      |> Enum.filter(&(&1.amount > 0))
-
-    outputs = payments ++ rests
-
-    inputs =
-      utxos_per_token
-      |> Enum.map(fn {_, utxos} -> utxos end)
-      |> List.flatten()
-
-    cond do
-      Enum.count(outputs) > Transaction.Payment.max_outputs() ->
-        {:error, :too_many_outputs}
-
-      Enum.empty?(inputs) ->
-        {:error, :empty_transaction}
-
-      true ->
-        raw_tx = create_raw_transaction(inputs, outputs, metadata)
-
-        {:ok,
-         %{
-           inputs: inputs,
-           outputs: outputs,
-           fee: fee,
-           metadata: metadata,
-           txbytes: create_txbytes(raw_tx),
-           sign_hash: compute_sign_hash(raw_tx)
-         }}
-    end
-  end
-
-  defp create_merge(owner, utxos_per_token) do
-    utxos_per_token
-    |> Enum.map(fn {token, utxos} ->
-      Stream.chunk_every(utxos, Transaction.Payment.max_outputs())
-      |> Enum.map(fn
-        [_single_input] ->
-          # merge not needed
-          []
-
-        inputs ->
-          create_transaction([{token, inputs}], %{
-            fee: %{amount: 0, currency: token},
-            metadata: @empty_metadata,
-            owner: owner,
-            payments: []
-          })
-      end)
-    end)
-    |> List.flatten()
-    |> Enum.map(fn {:ok, tx} -> tx end)
-  end
-
-  defp create_raw_transaction(inputs, outputs, metadata) do
-    if Enum.any?(outputs, &(&1.owner == nil)),
-      do: nil,
-      else:
-        Transaction.Payment.new(
-          inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
-          outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
-          metadata || @empty_metadata
-        )
-  end
-
-  defp create_txbytes(tx) do
-    with tx when not is_nil(tx) <- tx,
-         do: Transaction.raw_txbytes(tx)
-  end
-
-  defp compute_sign_hash(tx) do
-    with tx when not is_nil(tx) <- tx,
-         do: TypedDataHash.hash_struct(tx)
-  end
-
-  defp respond({:ok, transaction}, result),
-    do: {:ok, %{result: result, transactions: [transaction]}}
-
-  defp respond(transactions, result) when is_list(transactions),
-    do: {:ok, %{result: result, transactions: transactions}}
-
-  defp respond(error, _), do: error
 end

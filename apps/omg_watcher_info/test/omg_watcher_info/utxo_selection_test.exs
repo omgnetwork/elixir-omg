@@ -41,6 +41,10 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
+      %{
+        @eth => [utxo_1, utxo_2]
+      } = utxos
+
       order = %{
         owner: @bob,
         payments: [
@@ -57,7 +61,9 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         metadata: nil
       }
 
-      assert {:ok, %{result: :complete}} = UtxoSelection.create_advice(utxos, order)
+      assert %{
+               @eth => [utxo_2, utxo_1]
+             } == UtxoSelection.create_advice(utxos, order)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -87,9 +93,10 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         metadata: nil
       }
 
-      assert {:ok, %{result: :complete, transactions: [transaction]}} = UtxoSelection.create_advice(utxos, order)
-
-      assert eth_utxos ++ other_token_utxos == transaction.inputs
+      assert %{
+        @eth => eth_utxos,
+        @other_token => other_token_utxos
+      } == UtxoSelection.create_advice(utxos, order)
     end
   end
 

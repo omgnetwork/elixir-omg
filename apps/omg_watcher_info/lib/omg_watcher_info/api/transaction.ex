@@ -23,7 +23,9 @@ defmodule OMG.WatcherInfo.API.Transaction do
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.UtxoSelection
+
   require Utxo
+  require Transaction.Payment
 
   @default_transactions_limit 200
   @empty_metadata <<0::256>>
@@ -79,8 +81,11 @@ defmodule OMG.WatcherInfo.API.Transaction do
   """
   @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
   def create(order) do
-    utxos = DB.TxOutput.get_sorted_grouped_utxos(order.owner)
-    UtxoSelection.create_advice(utxos, order)
+    order.owner
+    |> DB.TxOutput.get_sorted_grouped_utxos()
+    |> UtxoSelection.create_advice(order)
+    |> create_transaction(order)
+    |> respond(:complete)
   end
 
   @spec include_typed_data(UtxoSelection.advice_t()) :: UtxoSelection.advice_t()
@@ -128,4 +133,82 @@ defmodule OMG.WatcherInfo.API.Transaction do
     |> Stream.concat(Stream.repeatedly(empty_gen))
     |> (&Enum.zip([:output0, :output1, :output2, :output3], &1)).()
   end
+
+  defp create_transaction(utxos_per_token, %{
+         owner: owner,
+         payments: payments,
+         metadata: metadata,
+         fee: fee
+       }) do
+    rests =
+      utxos_per_token
+      |> Stream.map(fn {token, utxos} ->
+        outputs =
+          [fee | payments]
+          |> Stream.filter(&(&1.currency == token))
+          |> Stream.map(& &1.amount)
+          |> Enum.sum()
+
+        inputs = utxos |> Stream.map(& &1.amount) |> Enum.sum()
+        %{amount: inputs - outputs, owner: owner, currency: token}
+      end)
+      |> Enum.filter(&(&1.amount > 0))
+
+    outputs = payments ++ rests
+
+    inputs =
+      utxos_per_token
+      |> Enum.map(fn {_, utxos} -> utxos end)
+      |> List.flatten()
+
+    cond do
+      Enum.count(outputs) > Transaction.Payment.max_outputs() ->
+        {:error, :too_many_outputs}
+
+      Enum.empty?(inputs) ->
+        {:error, :empty_transaction}
+
+      true ->
+        raw_tx = create_raw_transaction(inputs, outputs, metadata)
+
+        {:ok,
+         %{
+           inputs: inputs,
+           outputs: outputs,
+           fee: fee,
+           metadata: metadata,
+           txbytes: create_txbytes(raw_tx),
+           sign_hash: compute_sign_hash(raw_tx)
+         }}
+    end
+  end
+
+  defp create_raw_transaction(inputs, outputs, metadata) do
+    if Enum.any?(outputs, &(&1.owner == nil)),
+      do: nil,
+      else:
+        Transaction.Payment.new(
+          inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
+          outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
+          metadata || @empty_metadata
+        )
+  end
+
+  defp create_txbytes(tx) do
+    with tx when not is_nil(tx) <- tx,
+         do: Transaction.raw_txbytes(tx)
+  end
+
+  defp compute_sign_hash(tx) do
+    with tx when not is_nil(tx) <- tx,
+         do: TypedDataHash.hash_struct(tx)
+  end
+
+  defp respond({:ok, transaction}, result),
+    do: {:ok, %{result: result, transactions: [transaction]}}
+
+  defp respond(transactions, result) when is_list(transactions),
+    do: {:ok, %{result: result, transactions: transactions}}
+
+  defp respond(error, _), do: error
 end
