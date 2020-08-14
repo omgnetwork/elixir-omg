@@ -25,6 +25,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
   @bob TestHelper.generate_entity()
   @eth OMG.Eth.zero_address()
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+  @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()
 
   describe "stateless_validate/1" do
     test "returns error if a transaction is not correctly formed (e.g. duplicate inputs)" do
@@ -119,6 +120,46 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       }
 
       assert {:ok, true} = BlockValidator.stateless_validate(block)
+    end
+
+    test "rejects a block with fewer than two transactions or more transactions than the defined limit" do
+      oversize_block = %{
+        hash: "0x0",
+        number: 1000,
+        transactions: List.duplicate("0x0", @transaction_upper_limit + 1)
+      }
+
+      undersize_block = %{
+        hash: "0x0",
+        number: 1000,
+        transactions: ["0x0"]
+      }
+
+      assert {:error, :transactions_exceed_block_limit} = BlockValidator.stateless_validate(oversize_block)
+      assert {:error, :transactions_below_block_minimum} = BlockValidator.stateless_validate(undersize_block)
+    end
+
+    test "rejects a block that uses the same input in different transactions" do
+      duplicate_input = {1, 0, 0, @alice}
+
+      recovered_tx_1 = TestHelper.create_recovered([duplicate_input], @eth, [{@bob, 10}])
+      recovered_tx_2 = TestHelper.create_recovered([duplicate_input], @eth, [{@bob, 10}])
+
+      signed_txbytes_1 = recovered_tx_1.signed_tx_bytes
+      signed_txbytes_2 = recovered_tx_2.signed_tx_bytes
+
+      merkle_root =
+        [recovered_tx_1, recovered_tx_2]
+        |> Enum.map(&Transaction.raw_txbytes/1)
+        |> Merkle.hash()
+
+      block = %{
+        hash: merkle_root,
+        number: 1000,
+        transactions: [signed_txbytes_1, signed_txbytes_2]
+      }
+
+      assert {:error, :block_duplicate_inputs} == BlockValidator.stateless_validate(block)
     end
   end
 end
