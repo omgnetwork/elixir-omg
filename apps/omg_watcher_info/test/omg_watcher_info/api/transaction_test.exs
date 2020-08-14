@@ -27,7 +27,7 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
 
   describe "merge/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "merge with address and currency merges correctly" do
+    test "merge with address and currency does so correctly" do
       _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 5)
       _ = insert(:txoutput, currency: @currency_2, owner: @owner, amount: 1)
       _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 2)
@@ -36,7 +36,7 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 1)
 
       result = Transaction.merge(%{address: @owner, currency: @currency_1})
-
+      IO.inspect(result)
       assert 1 == 1
     end
   end

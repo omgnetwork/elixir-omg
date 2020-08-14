@@ -100,9 +100,8 @@ defmodule OMG.WatcherInfo.API.Transaction do
       |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
       |> Enum.slice(0, 4)
 
-    IO.inspect(merge_inputs)
-
     # create merge with utxos
+    form_merge_transaction(merge_inputs)
   end
 
   def merge(%{utxo_positions: utxo_positions} = _constraints) do
@@ -113,6 +112,19 @@ defmodule OMG.WatcherInfo.API.Transaction do
   def merge(%{utxos: _utxos} = _constraints) do
     # if utxo object array, create tx
     # create merge with utxos
+  end
+
+  defp form_merge_transaction(inputs) do
+    output_amount = Enum.reduce(inputs, 0, fn(input, total) ->
+      input.amount + total
+    end)
+
+    IO.inspect(output_amount)
+
+    add_type_specs(%{
+      inputs: inputs,
+      outputs: []
+    })
   end
 
   defp add_type_specs(%{inputs: inputs, outputs: outputs, metadata: metadata}) do
