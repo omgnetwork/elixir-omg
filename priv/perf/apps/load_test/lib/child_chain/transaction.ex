@@ -56,12 +56,12 @@ defmodule LoadTest.ChildChain.Transaction do
     do_spend(utxo, receiver_output, change_amount, currency, signer, retries)
   end
 
-  defp tx_defaults() do
-    Enum.map([value: 0, gasPrice: @gas_price, gas: @lots_of_gas], fn {k, v} -> {k, Encoding.to_hex(v)} end)
-  end
-
   def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries) do
     spend_utxo(utxo, amount, fee, signer, receiver, Encoding.to_binary(currency), retries)
+  end
+
+  def tx_defaults() do
+    Enum.map([value: 0, gasPrice: @gas_price, gas: @lots_of_gas], fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 
   defp do_spend(_input, _output, change_amount, _currency, _signer, _retries) when change_amount < 0 do

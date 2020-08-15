@@ -21,6 +21,7 @@ defmodule LoadTest.ChildChain.Deposit do
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction.Deposit
   alias ExPlasma.Utxo
+  alias LoadTest.ChildChain.Abi
   alias LoadTest.ChildChain.Transaction
   alias LoadTest.Ethereum
 
@@ -68,6 +69,20 @@ defmodule LoadTest.ChildChain.Deposit do
     opts = Transaction.tx_defaults() |> Keyword.put(:gas, 80_000) |> Keyword.merge(opts)
 
     Ethereum.contract_transact(from, token, "approve(address,uint256)", [spender, amount], opts)
+  end
+
+  defp process_deposit(%{"blockNumber" => deposit_eth_height} = receipt) do
+    _ = wait_deposit_recognized(deposit_eth_height)
+
+    deposit_blknum_from_receipt(receipt)
+  end
+
+  defp wait_deposit_recognized(deposit_eth_height) do
+    post_event_block_finality = deposit_eth_height + Application.fetch_env!(:load_test, :deposit_finality_margin)
+    {:ok, _} = Ethereum.wait_for_root_chain_block(post_event_block_finality + 1)
+    # sleeping until the deposit is spendable
+    Process.sleep(800 * 2)
+    :ok
   end
 
   defp send_deposit(deposit, account, value, @eth, gas_price) do
@@ -153,7 +168,7 @@ defmodule LoadTest.ChildChain.Deposit do
   defp deposit_transaction_from(tx, from) do
     opts = Keyword.put(Transaction.tx_defaults(), :gas, 250_000)
 
-    address = Application.fetch_env!(:load_test, :erc20_vault_address)
+    contract = Application.fetch_env!(:load_test, :erc20_vault_address)
 
     Ethereum.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
   end
@@ -162,7 +177,7 @@ defmodule LoadTest.ChildChain.Deposit do
     topic =
       "DepositCreated(address,uint256,address,uint256)"
       |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
-      |> to_hex()
+      |> Encoding.to_hex()
 
     [%{blknum: deposit_blknum}] =
       logs

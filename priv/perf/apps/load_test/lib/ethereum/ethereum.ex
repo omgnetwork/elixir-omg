@@ -107,6 +107,23 @@ defmodule LoadTest.Ethereum do
     Encoding.to_int(nonce)
   end
 
+  def wait_for_root_chain_block(awaited_eth_height, timeout \\ 600_000) do
+    f = fn ->
+      {:ok, eth_height} =
+        case Ethereumex.HttpClient.eth_block_number() do
+          {:ok, height_hex} ->
+            {:ok, Encoding.int_from_hex(height_hex)}
+
+          other ->
+            other
+        end
+
+      if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
+    end
+
+    Sync.repeat_until_success(f, timeout)
+  end
+
   defp get_external_data(address, signature, params) do
     data = signature |> ABI.encode(params) |> Encoding.to_hex()
 

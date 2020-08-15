@@ -15,10 +15,7 @@
 defmodule LoadTest.ChildChain.Abi do
   alias ExPlasma.Encoding
   alias LoadTest.ChildChain.Abi.AbiEventSelector
-  alias LoadTest.ChildChain.Abi.AbiFunctionSelector
   alias LoadTest.ChildChain.Abi.Fields
-
-  alias OMG.Eth.RootChain.Fields
 
   def decode_log(log) do
     event_specs =
@@ -31,10 +28,10 @@ defmodule LoadTest.ChildChain.Abi do
     topics =
       Enum.map(log["topics"], fn
         nil -> nil
-        topic -> Encoding.from_hex(topic)
+        topic -> Encoding.to_binary(topic)
       end)
 
-    data = Encoding.from_hex(log["data"])
+    data = Encoding.to_binary(log["data"])
 
     {event_spec, data} =
       ABI.Event.find_and_decode(
@@ -50,5 +47,18 @@ defmodule LoadTest.ChildChain.Abi do
     |> Enum.into(%{}, fn {key, _type, _indexed, value} -> {key, value} end)
     |> Fields.rename(event_spec)
     |> common_parse_event(log)
+  end
+
+  def common_parse_event(
+        result,
+        %{"blockNumber" => eth_height, "transactionHash" => root_chain_txhash, "logIndex" => log_index} = event
+      ) do
+    # NOTE: we're using `put_new` here, because `merge` would allow us to overwrite data fields in case of conflict
+    result
+    |> Map.put_new(:eth_height, Encoding.to_int(eth_height))
+    |> Map.put_new(:root_chain_txhash, Encoding.to_binary(root_chain_txhash))
+    |> Map.put_new(:log_index, Encoding.to_int(log_index))
+    # just copy `event_signature` over, if it's present (could use tidying up)
+    |> Map.put_new(:event_signature, event[:event_signature])
   end
 end
