@@ -40,10 +40,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         }
 
   @type order_t() :: %{
-          owner: Crypto.address_t(),
           payments: nonempty_list(payment_t()),
-          fee: fee_t(),
-          metadata: binary() | nil
+          fee: fee_t()
         }
 
   @type transaction_t() :: %{
@@ -68,16 +66,14 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
   @type utxo_list_t() :: list(%DB.TxOutput{})
 
-  @empty_metadata <<0::256>>
-
   @doc """
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   TODO: seems unocovered by any tests
   """
   @spec create_advice(%{currency_t() => utxo_list_t()}, order_t()) :: %{
-    currency_t() => utxo_list_t()
-  }
+          currency_t() => utxo_list_t()
+        }
   def create_advice(utxos, %{payments: payments, fee: fee}) do
     needed_funds = needed_funds(payments, fee)
     token_utxo_selection = select_utxo(utxos, needed_funds)
