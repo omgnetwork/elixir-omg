@@ -52,6 +52,17 @@ defmodule LoadTest.ChildChain.Deposit do
     Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
   end
 
+  def deposit_to_child_chain(to, value, address \\ <<0::160>>)
+
+  def deposit_to_child_chain(to, value, address) do
+    {:ok, receipt} =
+      encode_payment_transaction([], [{to, address, value}])
+      |> deposit_transaction(value, to)
+      |> Ethereum.transact_sync!()
+
+    process_deposit(receipt)
+  end
+
   def deposit_to_child_chain(to, value, token_addr) do
     contract_addr = Application.fetch_env!(:load_test, :erc20_vault_address)
 
@@ -163,6 +174,14 @@ defmodule LoadTest.ChildChain.Deposit do
       0,
       metadata
     ])
+  end
+
+  defp deposit_transaction(tx, value, from) do
+    opts = Transaction.tx_defaults() |> Keyword.put(:gas, 180_000) |> Keyword.put(:value, value)
+
+    contract = Application.fetch_env!(:load_test, :eth_vault_address)
+
+    Ethereum.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
   end
 
   defp deposit_transaction_from(tx, from) do

@@ -19,8 +19,7 @@ defmodule LoadTest.Common.ExtendedPerftest do
   See `OMG.Performance` for configuration within the `iex` shell using `Performance.init()`
   """
 
-  alias OMG.TestHelper
-  alias Support.Integration.DepositHelper
+  alias LoadTest.ChildChain.Deposit
 
   require Logger
 
@@ -77,7 +76,7 @@ defmodule LoadTest.Common.ExtendedPerftest do
 
   defp make_deposits(value, accounts) do
     depositing_f = fn account ->
-      deposit_blknum = DepositHelper.deposit_to_child_chain(account.addr, value)
+      deposit_blknum = Deposit.deposit_to_child_chain(account.addr, value)
       {:ok, account, deposit_blknum, value}
     end
 

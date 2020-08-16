@@ -94,7 +94,7 @@ defmodule LoadTest.Performance do
 
   ## Examples
 
-    iex> use OMG.Performance
+    iex> use LoadTest.Performance
     iex> timeit 1+2
     3
   """
