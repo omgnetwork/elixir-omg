@@ -774,7 +774,7 @@ jobs:
     environment:
       CHART_NAME: childchain
       HELM_CHART_REPO: helm-development
-      GITHUB_API_TOKEN: HOUSE_KEEPER_BOT_TOKEN
+      # GITHUB_API_TOKEN: ${HOUSE_KEEPER_BOT_TOKEN}
     steps:
       - checkout
       - run: sh .circleci/ci_increase_chart_version.sh
