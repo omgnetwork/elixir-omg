@@ -770,9 +770,28 @@ jobs:
   increase_chart_version_childchain:
     docker:
       - image: cimg/base:2020.01
-      # image: ubuntu-1604:201903-01
     environment:
       CHART_NAME: childchain
+      HELM_CHART_REPO: helm-development-boolafish-playground
+    steps:
+      - checkout
+      - run: sh .circleci/ci_increase_chart_version.sh
+
+  increase_chart_version_watcher:
+    docker:
+      - image: cimg/base:2020.01
+    environment:
+      CHART_NAME: watcher
+      HELM_CHART_REPO: helm-development-boolafish-playground
+    steps:
+      - checkout
+      - run: sh .circleci/ci_increase_chart_version.sh
+
+  increase_chart_version_watcher_info:
+    docker:
+      - image: cimg/base:2020.01
+    environment:
+      CHART_NAME: watcher-info
       HELM_CHART_REPO: helm-development-boolafish-playground
     steps:
       - checkout
@@ -987,6 +1006,13 @@ workflows:
             tags:
               only:
                 - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - increase_chart_version_watcher:
+        # requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          filters: *only_release_tag
+
+      - increase_chart_version_watcher_info:
+        # requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          filters: *only_release_tag
       # Release deploy to development in case of master branch.
       # - deploy_child_chain:
       #     requires: [publish_child_chain, publish_watcher, publish_watcher_info]
