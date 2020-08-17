@@ -38,6 +38,7 @@ defmodule LoadTest.Common.ByzantineEvents do
 
   require Logger
 
+  alias ExPlasma.Encoding
   alias LoadTest.ChildChain.Exit
   alias LoadTest.Ethereum.Sync
 
@@ -161,12 +162,17 @@ defmodule LoadTest.Common.ByzantineEvents do
   """
   @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
-    params = %WatcherInfoAPI.Model.AddressBodySchema1{address: addr}
+    params = %WatcherInfoAPI.Model.AddressBodySchema1{address: Encoding.to_hex(addr)}
 
-    {:ok, utxos} =
-      WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(LoadTest.Connection.WatcherInfo, params)
+    {:ok, utxos_response} =
+      WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(
+        LoadTest.Connection.WatcherSecurity.client(),
+        params
+      )
 
-    utxo_positions = Enum.map(utxos, & &1.utxo_pos)
+    utxos = Jason.decode!(utxos_response.body)["data"]
+
+    utxo_positions = Enum.map(utxos, & &1["utxo_pos"])
 
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
   end
@@ -182,7 +188,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   def watcher_synchronize(opts \\ []) do
     root_chain_height = Keyword.get(opts, :root_chain_height, nil)
     _ = Logger.info("Waiting for the watcher to synchronize")
-    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height) end, 1_000)
+    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height) end, 100_000)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
@@ -232,9 +238,12 @@ defmodule LoadTest.Common.ByzantineEvents do
   # This function is prepared to be called in `Sync`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
   defp watcher_synchronized?(root_chain_height) do
-    {:ok, status} = WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
+    {:ok, status_response} =
+      WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
 
-    with true <- watcher_synchronized_to_mined_block?(status),
+    status = Jason.decode!(status_response.body)["data"]
+
+    with :ok <- watcher_synchronized_to_mined_block?(status),
          true <- root_chain_synced?(root_chain_height, status) do
       :ok
     else
@@ -246,13 +255,13 @@ defmodule LoadTest.Common.ByzantineEvents do
 
   defp root_chain_synced?(root_chain_height, status) do
     status
-    |> Access.get(:services_synced_heights)
+    |> Map.get("services_synced_heights")
     |> Enum.all?(&(&1["height"] >= root_chain_height))
   end
 
   defp watcher_synchronized_to_mined_block?(%{
-         last_mined_child_block_number: last_mined_child_block_number,
-         last_validated_child_block_number: last_validated_child_block_number
+         "last_mined_child_block_number" => last_mined_child_block_number,
+         "last_validated_child_block_number" => last_validated_child_block_number
        })
        when last_mined_child_block_number == last_validated_child_block_number and
               last_mined_child_block_number > 0 do
