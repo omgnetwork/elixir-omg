@@ -68,9 +68,9 @@ defmodule LoadTest.Common.ByzantineEvents do
     exit_positions
     |> Enum.shuffle()
     |> Enum.map(fn encoded_position ->
-      WatcherSecurityCriticalAPI.Api.Status.utxo_get_exit_data(
+      WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_exit_data(
         LoadTest.Connection.WatcherSecurity.client(),
-        %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema{utxo_pos: encoded_position}
+        %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1{utxo_pos: encoded_position}
       )
     end)
     |> only_successes()
@@ -162,7 +162,10 @@ defmodule LoadTest.Common.ByzantineEvents do
   @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
     params = %WatcherInfoAPI.Model.AddressBodySchema1{address: addr}
-    {:ok, utxos} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(WatcherInfo.new(), params)
+
+    {:ok, utxos} =
+      WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(LoadTest.Connection.WatcherInfo, params)
+
     utxo_positions = Enum.map(utxos, & &1.utxo_pos)
 
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
@@ -218,7 +221,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   defp map_contract_transaction(enumberable, transaction_function) do
     enumberable
     |> Enum.map(transaction_function)
-    |> Task.async_stream(&Support.DevHelper.transact_sync!(&1, timeout: :infinity),
+    |> Task.async_stream(&Sync.repeat_until_success(&1, timeout: :infinity),
       timeout: :infinity,
       max_concurrency: 10_000
     )

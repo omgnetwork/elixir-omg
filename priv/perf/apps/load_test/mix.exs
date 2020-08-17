@@ -35,6 +35,7 @@ defmodule LoadTest.MixProject do
       {:tesla, "~> 1.3.0"},
       {:httpoison, "~> 1.6.2", override: true},
       {:ex_plasma, git: "https://github.com/omisego/ex_plasma.git", override: true},
+      {:telemetry, "~> 0.4.1"},
 
       # Better adapter for tesla
       {:hackney, "~> 1.15.2"},
