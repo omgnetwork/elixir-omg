@@ -148,9 +148,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
   end
 
   @spec trigger_alarm(alarm :: module(), alarm_raised :: boolean(), stalled_blocks :: [blknum()]) :: :ok
-  defp trigger_alarm(_alarm_module, false, []), do: :ok
-
-  defp trigger_alarm(alarm_module, false, _stalled_blocks) do
+  defp trigger_alarm(alarm_module, false, stalled_blocks) when length(stalled_blocks) >= 1 do
     alarm_module.set(alarm_module.block_submit_stalled(__MODULE__))
   end
 
@@ -158,7 +156,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
     alarm_module.clear(alarm_module.block_submit_stalled(__MODULE__))
   end
 
-  defp trigger_alarm(_alarm_module, true, _stalled_blocks), do: :ok
+  defp trigger_alarm(_alarm_module, _alarm_raised, _stalled_blocks), do: :ok
 
   #
   # Logging
