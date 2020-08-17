@@ -982,7 +982,12 @@ workflows:
       #     filters: *master_and_version_branches_and_all_tags
       - increase_chart_version_childchain:
         # requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-        filters: *master_and_version_branches_and_all_tags
+          filters: &only_release_tag
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
       # Release deploy to development in case of master branch.
       # - deploy_child_chain:
       #     requires: [publish_child_chain, publish_watcher, publish_watcher_info]
