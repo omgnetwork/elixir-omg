@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.SenderManager do
+defmodule LoadTest.Common.SenderManager do
   @moduledoc """
   Registry-kind module that creates and starts sender processes and waits until all are done
   """
@@ -50,7 +50,7 @@ defmodule OMG.Performance.SenderManager do
       utxos
       |> Enum.with_index(1)
       |> Enum.map(fn {utxo, seqnum} ->
-        {:ok, pid} = LoadTest.SenderServer.start_link({seqnum, utxo, ntx_to_send, opts})
+        {:ok, pid} = LoadTest.Common.SenderServer.start_link({seqnum, utxo, ntx_to_send, opts})
         {seqnum, pid}
       end)
 

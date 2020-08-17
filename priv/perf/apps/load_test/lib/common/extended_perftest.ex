@@ -63,7 +63,7 @@ defmodule LoadTest.Common.ExtendedPerftest do
 
     utxos = create_deposits(spenders, ntx_to_send)
 
-    LoadTest.Runner.run(ntx_to_send, utxos, opts, false)
+    LoadTest.Common.Runner.run(ntx_to_send, utxos, opts, false)
   end
 
   @spec create_deposits(list(TestHelper.entity()), pos_integer()) :: list()

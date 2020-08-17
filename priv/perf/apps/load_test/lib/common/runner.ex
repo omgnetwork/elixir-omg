@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Runner do
+defmodule LoadTest.Common.Runner do
   @moduledoc """
   Orchestration and running tests
   """
@@ -32,7 +32,7 @@ defmodule LoadTest.Runner do
     {duration, _result} =
       :timer.tc(fn ->
         # fire async transaction senders
-        manager = LoadTest.SenderManager.start_link_all_senders(ntx_to_send, utxos, opts)
+        manager = LoadTest.Common.SenderManager.start_link_all_senders(ntx_to_send, utxos, opts)
 
         # Wait all senders do their job, checker will stop when it happens and stops itself
         wait_for(manager)
