@@ -20,9 +20,9 @@ defmodule LoadTest.Performance do
   defmacro __using__(_opt) do
     quote do
       alias LoadTest.Performance
-      alias LoadTest.Performance.ByzantineEvents
-      alias LoadTest.Performance.ExtendedPerftest
-      alias LoadTest.Performance.Generators
+      alias LoadTest.Common.ExtendedPerftest
+      alias LoadTest.Common.ByzantineEvents
+      alias LoadTest.Common.Generators
 
       import Performance, only: [timeit: 1]
       require Performance

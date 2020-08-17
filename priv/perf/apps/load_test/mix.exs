@@ -30,6 +30,7 @@ defmodule LoadTest.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:briefly, "~> 0.3"},
       {:chaperon, "~> 0.3.1"},
       {:tesla, "~> 1.3.0"},
       {:httpoison, "~> 1.6.2", override: true},

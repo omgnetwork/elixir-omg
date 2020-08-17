@@ -17,6 +17,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
   Simple smoke testing of the performance test
   """
   use ExUnit.Case, async: false
+  use LoadTest.Performance
 
   @moduletag :integration
   @moduletag timeout: 180_000
@@ -40,8 +41,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -53,8 +53,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -72,8 +71,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -91,8 +89,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -116,8 +113,7 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 

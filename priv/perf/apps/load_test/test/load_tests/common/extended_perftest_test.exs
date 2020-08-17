@@ -24,14 +24,14 @@ defmodule LoadTest.Common.ExtendedPerftestTest do
   @moduletag :common
 
   @tag timeout: 120_000
-  test "Smoke test - run start_extended_perf and see if it doesn't crash", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "Smoke test - run start_extended_perf and see if it doesn't crash" do
     :ok = Performance.init()
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     # 3000 txs sending 1 each, plus 1 for fees
     ntxs = 3000
     senders = Generators.generate_users(2)
 
-    assert :ok = Performance.ExtendedPerftest.start(ntxs, senders, destdir: destdir)
+    assert :ok = ExtendedPerftest.start(ntxs, senders, destdir: destdir)
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * length(senders))

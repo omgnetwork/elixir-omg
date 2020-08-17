@@ -67,7 +67,7 @@ defmodule LoadTest.Common.Generators do
   end
 
   defp generate_user() do
-    user = Account.new()
+    {:ok, user} = Account.new()
 
     {:ok, _} = Ethereum.fund_address_from_default_faucet(user, [])
 

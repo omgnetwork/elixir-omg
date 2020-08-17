@@ -58,7 +58,7 @@ defmodule LoadTest.ChildChain.Deposit do
     {:ok, receipt} =
       encode_payment_transaction([], [{to, address, value}])
       |> deposit_transaction(value, to)
-      |> Ethereum.transact_sync!()
+      |> Ethereum.transact_sync()
 
     process_deposit(receipt)
   end
@@ -66,12 +66,12 @@ defmodule LoadTest.ChildChain.Deposit do
   def deposit_to_child_chain(to, value, token_addr) do
     contract_addr = Application.fetch_env!(:load_test, :erc20_vault_address)
 
-    {:ok, _} = to |> approve_token(contract_addr, value, token_addr) |> Ethereum.transact_sync!()
+    {:ok, _} = to |> approve_token(contract_addr, value, token_addr) |> Ethereum.transact_sync()
 
     {:ok, receipt} =
       encode_payment_transaction([], [{to, token_addr, value}])
       |> deposit_transaction_from(to)
-      |> Ethereum.transact_sync!()
+      |> Ethereum.transact_sync()
 
     process_deposit(receipt)
   end

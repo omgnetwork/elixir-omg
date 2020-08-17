@@ -39,12 +39,12 @@ defmodule LoadTest.ChildChain.Exit do
   end
 
   def tx_defaults() do
-    Transaction.tx_default()
+    Transaction.tx_defaults()
   end
 
   defp contract_address_payment_exit_game() do
     :load_test
     |> Application.fetch_env!(:contract_address_payment_exit_game)
-    |> Encoding.from_hex()
+    |> Encoding.to_binary()
   end
 end
