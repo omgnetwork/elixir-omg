@@ -79,7 +79,3 @@ localchain_contract_addresses.env
 
 #vs code
 .tool_versions
-
-# asdf version
-.tool-versions
-

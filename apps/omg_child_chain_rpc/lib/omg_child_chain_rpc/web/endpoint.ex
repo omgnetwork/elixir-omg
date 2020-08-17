@@ -18,6 +18,7 @@ defmodule OMG.ChildChainRPC.Web.Endpoint do
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
+  plug(Plug.Telemetry, event_prefix: [:childchain_rpc, :endpoint])
 
   plug(
     Plug.Parsers,

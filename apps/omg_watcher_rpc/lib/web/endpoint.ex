@@ -18,6 +18,7 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
+  plug(Plug.Telemetry, event_prefix: [:watcher_rpc, :endpoint])
 
   if code_reloading? do
     plug(Phoenix.CodeReloader)

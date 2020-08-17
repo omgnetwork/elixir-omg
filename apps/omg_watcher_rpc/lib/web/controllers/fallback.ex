@@ -69,6 +69,10 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       code: "transaction.create:self_transaction_not_supported",
       description: "This endpoint cannot be used to create merge or split transactions."
     },
+    invalid_merkle_root: %{
+      code: "block.validate:invalid_merkle_root",
+      description: "Block hash does not match reconstructed Merkle root."
+    },
     missing_signature: %{
       code: "submit_typed:missing_signature",
       description:

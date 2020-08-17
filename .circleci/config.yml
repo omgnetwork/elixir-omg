@@ -99,10 +99,7 @@ jobs:
           source ~/.bash_profile
           asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
           asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
-          asdf install erlang 22.3
-          asdf install elixir 1.10.2
-          asdf global elixir 1.10.2
-          asdf global erlang 22.3
+          asdf install
       - run: make init_test
       - run:
           command: ./bin/setup
@@ -441,6 +438,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Pull Submodules"
+          command: |
+            git submodule init
+            git submodule update --remote
+      - run:
           name: Setup data dir
           command: |
             [ -d data ] || mkdir data && chmod 777 data
@@ -451,7 +453,7 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Print docker states
           command: |
@@ -467,10 +469,7 @@ jobs:
             source $BASH_ENV
             asdf plugin-add erlang || asdf plugin-update erlang
             asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install erlang 22.3
-            asdf install elixir 1.10.2
-            asdf global elixir 1.10.2
-            asdf global erlang 22.3
+            asdf install
           no_output_timeout: 2400
       - save_cache:
           key: v2-asdf-install
@@ -537,6 +536,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Pull Submodules"
+          command: |
+            git submodule init
+            git submodule update --remote
+      - run:
           name: Setup data dir
           command: |
             [ -d data1 ] || mkdir data1 && chmod 777 data1
@@ -549,7 +553,7 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/cabbage
-            make start_daemon_services_reorg || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make start_daemon_services_reorg-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Print docker states
           command: |
@@ -565,10 +569,7 @@ jobs:
             source $BASH_ENV
             asdf plugin-add erlang || asdf plugin-update erlang
             asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install erlang 22.3
-            asdf install elixir 1.10.2
-            asdf global elixir 1.10.2
-            asdf global erlang 22.3
+            asdf install
           no_output_timeout: 2400
       - save_cache:
           key: v2-asdf-install
@@ -581,19 +582,23 @@ jobs:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
           name: Print watcher logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow watcher
+          command: make cabbage-reorg-watcher-logs
           background: true
       - run:
           name: Print watcher_info logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow watcher_info
+          command: make cabbage-reorg-watcher_info-logs
           background: true
       - run:
           name: Print childchain logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow childchain
+          command: make cabbage-reorg-childchain-logs
+          background: true
+      - run:
+          name: Print geth logs
+          command: make cabbage-reorg-geth-logs
           background: true
       - run:
           name: Print reorg logs
-          command: docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-reorg.yml -f ./priv/cabbage/docker-compose-cabbage.yml logs --follow | grep "reorg"
+          command: make cabbage-reorgs-logs
           background: true
       - run:
           name: Run specs
@@ -612,6 +617,11 @@ jobs:
       TERM: xterm-256color
     steps:
       - checkout
+      - run:
+          name: "Pull Submodules"
+          command: |
+            git submodule init
+            git submodule update --remote
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - run:
           name: Start geth, postgres and pull in blockchain snapshot
@@ -628,10 +638,7 @@ jobs:
             source $BASH_ENV
             asdf plugin-add erlang || asdf plugin-update erlang
             asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install erlang 22.3
-            asdf install elixir 1.10.2
-            asdf global elixir 1.10.2
-            asdf global erlang 22.3
+            asdf install
           no_output_timeout: 2400
       - save_cache:
           key: v2-asdf-install

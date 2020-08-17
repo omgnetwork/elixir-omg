@@ -2,7 +2,7 @@
 
 The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
-[![Build Status](https://circleci.com/gh/omgnetwork/elixir-omg.svg?style=svg)](https://circleci.com/gh/omgnetwork/elixir-omg) [![Coverage Status](https://coveralls.io/repos/github/omisego/elixir-omg/badge.svg?branch=master)](https://coveralls.io/github/omisego/elixir-omg?branch=master) 
+[![Build Status](https://circleci.com/gh/omgnetwork/elixir-omg.svg?style=svg)](https://circleci.com/gh/omgnetwork/elixir-omg) [![Coverage Status](https://coveralls.io/repos/github/omisego/elixir-omg/badge.svg?branch=master)](https://coveralls.io/github/omisego/elixir-omg?branch=master)
 
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
 
@@ -116,6 +116,92 @@ For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/
 To run a development `iex` REPL with all code loaded:
 ```bash
 MIX_ENV=test iex -S mix run --no-start
+```
+
+## Running integration cabbage tests
+
+Integration tests are written using the [`cabbage`](https://github.com/cabbage-ex/cabbage) library and they are located in a separated repo - [specs](https://github.com/omgnetwork/specs). This repo is added to `elixir-omg` as a git submodule. So to fetch them run:
+```bash
+git submodule init
+git submodule update --remote
+```
+
+Create a directory for geth:
+```bash
+mkdir data && chmod 777 data
+```
+
+Make services:
+```bash
+make docker-child_chain
+make docker-watcher
+make docker-watcher_info
+```
+
+Start geth and postgres:
+```bash
+cd priv/cabbage
+make start_daemon_services-2
+```
+
+If the above command fails with the message similar to:
+```
+Creating network "omisego_chain_net" with driver "bridge"
+ERROR: Pool overlaps with other one on this address space
+```
+
+try the following remedy and retry:
+```bash
+make stop_daemon_services
+rm -rf ../../data/*
+docker network prune
+```
+
+
+Build the integration tests project and run tests:
+```bash
+cd priv/cabbage
+make install
+make generate_api_code
+mix deps.get
+mix test
+```
+
+## Running reorg cabbage tests
+
+Reorg tests test different assumptions against chain reorgs. They also use the same submodule as regular integration cabbage tests.
+
+Fetch submodule:
+```bash
+git submodule init
+git submodule update --remote
+```
+
+Create a directory for geth nodes:
+```bash
+mkdir data1 && chmod 777 data1 && mkdir data2 && chmod 777 data2 && mkdir data && chmod 777 data
+```
+
+Make services:
+```bash
+make docker-child_chain
+make docker-watcher
+make docker-watcher_info
+```
+
+Start geth nodes and postgres:
+```bash
+cd priv/cabbage
+make start_daemon_services_reorg-2
+```
+
+Build the integration tests project and run reorg tests:
+```bash
+cd priv/cabbage
+make install
+make generate_api_code
+mix deps.get
+REORG=true mix test --only reorg --trace
 ```
 
 # Working with API Spec's

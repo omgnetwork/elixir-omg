@@ -11,8 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule Itest do
-  @moduledoc """
-  Documentation for itest.
-  """
+
+defmodule OMG.State.Transaction.WitnessTest do
+  @moduledoc false
+
+  use ExUnit.Case, async: true
+
+  alias OMG.State.Transaction.Witness
+
+  describe "valid?/1" do
+    test "returns true when is binary and 65 bytes long" do
+      assert Witness.valid?(<<0::520>>)
+    end
+
+    test "returns false when not a binary" do
+      refute Witness.valid?([<<0>>])
+    end
+
+    test "returns false when not 65 bytes long" do
+      refute Witness.valid?(<<0>>)
+    end
+  end
 end
