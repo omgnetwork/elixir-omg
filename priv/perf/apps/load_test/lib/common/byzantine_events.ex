@@ -40,6 +40,7 @@ defmodule LoadTest.Common.ByzantineEvents do
 
   alias ExPlasma.Encoding
   alias LoadTest.ChildChain.Exit
+  alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Sync
 
   @doc """
@@ -69,10 +70,15 @@ defmodule LoadTest.Common.ByzantineEvents do
     exit_positions
     |> Enum.shuffle()
     |> Enum.map(fn encoded_position ->
-      WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_exit_data(
-        LoadTest.Connection.WatcherSecurity.client(),
-        %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1{utxo_pos: encoded_position}
-      )
+      case WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_exit_data(
+             LoadTest.Connection.WatcherSecurity.client(),
+             %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1{
+               utxo_pos: encoded_position
+             }
+           ) do
+        {:ok, response} -> {:ok, Jason.decode!(response.body)["data"]}
+        other -> other
+      end
     end)
     |> only_successes()
   end
@@ -89,9 +95,9 @@ defmodule LoadTest.Common.ByzantineEvents do
   def start_many_exits(exit_datas, owner_address) do
     map_contract_transaction(exit_datas, fn composed_exit ->
       Exit.start_exit(
-        composed_exit.utxo_pos,
-        composed_exit.txbytes,
-        composed_exit.proof,
+        composed_exit["utxo_pos"],
+        composed_exit["txbytes"],
+        composed_exit["proof"],
         owner_address
       )
     end)
@@ -204,7 +210,9 @@ defmodule LoadTest.Common.ByzantineEvents do
     {:ok, status_response} =
       WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
 
-    status_response[:byzantine_events]
+    status = Jason.decode!(status_response.body)["data"]
+
+    status["byzantine_events"]
   end
 
   @doc """
@@ -227,7 +235,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   defp map_contract_transaction(enumberable, transaction_function) do
     enumberable
     |> Enum.map(transaction_function)
-    |> Task.async_stream(&Sync.repeat_until_success(&1, timeout: :infinity),
+    |> Task.async_stream(&Ethereum.transact_sync(&1, 100_000),
       timeout: :infinity,
       max_concurrency: 10_000
     )

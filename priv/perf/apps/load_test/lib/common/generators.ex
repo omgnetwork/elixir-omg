@@ -77,7 +77,7 @@ defmodule LoadTest.Common.Generators do
   end
 
   defp get_block!(blknum, child_chain_url) do
-    {block_hash, _} = Ethereum.blocks(blknum)
+    {block_hash, _} = Ethereum.block_hash(blknum)
     {:ok, block} = poll_get_block(block_hash, child_chain_url)
     block
   end

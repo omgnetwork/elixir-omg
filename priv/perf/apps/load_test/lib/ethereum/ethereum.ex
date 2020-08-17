@@ -19,6 +19,7 @@ defmodule LoadTest.Ethereum do
   require Logger
 
   alias ExPlasma.Encoding
+  alias LoadTest.ChildChain.Abi
   alias LoadTest.Ethereum.NonceTracker
   alias LoadTest.Ethereum.Sync
   alias LoadTest.Ethereum.Transaction
@@ -84,7 +85,7 @@ defmodule LoadTest.Ethereum do
   end
 
   def block_hash(mined_num) do
-    contract_address = Application.get_env!(:load_test, :contract_address_plasma_framework)
+    contract_address = Application.fetch_env!(:load_test, :contract_address_plasma_framework)
 
     %{"block_hash" => block_hash, "block_timestamp" => block_timestamp} =
       get_external_data(contract_address, "blocks(uint256)", [mined_num])
