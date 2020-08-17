@@ -768,13 +768,12 @@ jobs:
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
   increase_chart_version_childchain:
-    machine:
-      # image: cimg/base:2020.01
-      image: ubuntu-1604:201903-01
+    docker:
+      - image: cimg/base:2020.01
+      # image: ubuntu-1604:201903-01
     environment:
       CHART_NAME: childchain
-      HELM_CHART_REPO: helm-development
-      # GITHUB_API_TOKEN: ${HOUSE_KEEPER_BOT_TOKEN}
+      HELM_CHART_REPO: helm-development-boolafish-playground
     steps:
       - checkout
       - run: sh .circleci/ci_increase_chart_version.sh
