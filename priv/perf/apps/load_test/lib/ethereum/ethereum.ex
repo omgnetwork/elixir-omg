@@ -44,7 +44,7 @@ defmodule LoadTest.Ethereum do
       |> encode_all_integer_opts()
 
     case Ethereumex.HttpClient.eth_send_transaction(txmap) do
-      {:ok, receipt_enc} -> {:ok, Encoding.from_hex(receipt_enc)}
+      {:ok, receipt_enc} -> {:ok, Encoding.to_binary(receipt_enc)}
       other -> other
     end
   end
@@ -57,6 +57,14 @@ defmodule LoadTest.Ethereum do
   def transact_sync(txhash, timeout \\ @about_4_blocks_time) do
     {:ok, %{"status" => "0x1"} = receipt} = eth_receipt(txhash, timeout)
     {:ok, Map.update!(receipt, "blockNumber", &Encoding.to_int(&1))}
+  end
+
+  def create_account_from_secret(secret, passphrase) do
+    Ethereumex.HttpClient.request("personal_importRawKey", [Base.encode16(secret), passphrase], [])
+  end
+
+  def unlock_account(addr, passphrase) do
+    Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], [])
   end
 
   def fund_address_from_default_faucet(account, opts) do
@@ -112,7 +120,7 @@ defmodule LoadTest.Ethereum do
       {:ok, eth_height} =
         case Ethereumex.HttpClient.eth_block_number() do
           {:ok, height_hex} ->
-            {:ok, Encoding.int_from_hex(height_hex)}
+            {:ok, Encoding.to_int(height_hex)}
 
           other ->
             other

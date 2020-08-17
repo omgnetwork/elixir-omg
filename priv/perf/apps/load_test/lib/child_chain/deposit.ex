@@ -179,9 +179,11 @@ defmodule LoadTest.ChildChain.Deposit do
   defp deposit_transaction(tx, value, from) do
     opts = Transaction.tx_defaults() |> Keyword.put(:gas, 180_000) |> Keyword.put(:value, value)
 
-    contract = Application.fetch_env!(:load_test, :eth_vault_address)
+    contract = :load_test |> Application.fetch_env!(:eth_vault_address) |> Encoding.to_binary()
 
-    Ethereum.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
+    {:ok, transaction_hash} = Ethereum.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
+
+    Encoding.to_hex(transaction_hash)
   end
 
   defp deposit_transaction_from(tx, from) do
@@ -189,7 +191,9 @@ defmodule LoadTest.ChildChain.Deposit do
 
     contract = Application.fetch_env!(:load_test, :erc20_vault_address)
 
-    Ethereum.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
+    {:ok, transaction_hash} = Ethereum.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
+
+    Encoding.to_hex(transaction_hash)
   end
 
   defp deposit_blknum_from_receipt(%{"logs" => logs}) do

@@ -69,6 +69,8 @@ defmodule LoadTest.Common.Generators do
   defp generate_user() do
     {:ok, user} = Account.new()
 
+    {:ok, address} = Ethereum.create_account_from_secret(user.priv, "pass")
+    {:ok, _} = Ethereum.unlock_account(address, "pass")
     {:ok, _} = Ethereum.fund_address_from_default_faucet(user, [])
 
     user
