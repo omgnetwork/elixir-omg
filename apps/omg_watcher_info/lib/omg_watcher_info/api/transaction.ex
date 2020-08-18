@@ -38,6 +38,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
              transactions: nonempty_list(UtxoSelection.transaction_t())
            }}
           | {:error, {:insufficient_funds, list(map())}}
+          | {:error, :too_many_inputs}
           | {:error, :too_many_outputs}
           | {:error, :empty_transaction}
 

@@ -57,6 +57,10 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       code: "transaction.create:insufficient_funds",
       description: "Account balance is too low to satisfy the payment."
     },
+    too_many_inputs: %{
+      code: "transaction.create:too_many_inputs",
+      description: "Total number of payments + change + fees exceed maximum allowed inputs."
+    },
     too_many_outputs: %{
       code: "transaction.create:too_many_outputs",
       description: "Total number of payments + change + fees exceed maximum allowed outputs."

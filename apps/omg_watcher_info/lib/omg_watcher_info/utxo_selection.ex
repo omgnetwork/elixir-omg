@@ -55,7 +55,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
           typed_data: TypedDataHash.Types.typedDataSignRequest_t()
         }
 
-  @type advice_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}}
+  @type advice_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
 
   @type utxos_map_t() :: %{currency_t() => utxo_list_t()}
 
@@ -80,9 +80,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
       merge_utxos = prioritize_merge_utxos(funds, utxos)
 
-      if utxo_count <= Transaction.Payment.max_inputs() do
-        add_utxos_for_stealth_merge(funds, merge_utxos)
-      end
+      if utxo_count <= Transaction.Payment.max_inputs(),
+      do: add_utxos_for_stealth_merge(funds, merge_utxos),
+      else: {:error, :too_many_inputs}
     end
   end
 

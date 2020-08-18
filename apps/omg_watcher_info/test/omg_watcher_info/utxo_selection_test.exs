@@ -128,6 +128,34 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       assert {:error, {:insufficient_funds, [%{missing: 100, token: "0x000000000000000000000000000000000000007f"}]}} ==
                UtxoSelection.create_advice(utxos, order)
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns error when too many inputs to satisfy payments and fee" do
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      order = %{
+        owner: @bob,
+        payments: [
+          %{
+            owner: @alice,
+            currency: @eth,
+            amount: 400
+          }
+        ],
+        fee: %{
+          currency: @eth,
+          amount: 100
+        },
+        metadata: nil
+      }
+
+      assert {:error, :too_many_inputs} == UtxoSelection.create_advice(utxos, order)
+    end
   end
 
   describe "needed_funds/2" do
