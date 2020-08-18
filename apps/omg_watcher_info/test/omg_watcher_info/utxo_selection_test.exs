@@ -32,7 +32,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
   describe "create_advice/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns {:ok, %{result: :complete}}" do
+    test "returns inputs satisfy payments and fee" do
       amount_1 = 1000
       amount_2 = 2000
 
@@ -94,9 +94,39 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       }
 
       assert %{
-        @eth => eth_utxos,
-        @other_token => other_token_utxos
-      } == UtxoSelection.create_advice(utxos, order)
+               @eth => eth_utxos,
+               @other_token => other_token_utxos
+             } == UtxoSelection.create_advice(utxos, order)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns error when insufficient balance" do
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      order = %{
+        owner: @bob,
+        payments: [
+          %{
+            owner: @alice,
+            currency: @eth,
+            amount: 400
+          }
+        ],
+        fee: %{
+          currency: @other_token,
+          amount: 100
+        },
+        metadata: nil
+      }
+
+      assert {:error, {:insufficient_funds, [%{missing: 100, token: "0x000000000000000000000000000000000000007f"}]}} ==
+               UtxoSelection.create_advice(utxos, order)
     end
   end
 
