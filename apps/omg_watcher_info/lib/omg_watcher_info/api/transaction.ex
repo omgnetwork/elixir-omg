@@ -23,12 +23,23 @@ defmodule OMG.WatcherInfo.API.Transaction do
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.UtxoSelection
+  alias OMG.TypedDataHash
 
   require Utxo
   require Transaction.Payment
 
   @default_transactions_limit 200
   @empty_metadata <<0::256>>
+
+  @type create_t() ::
+          {:ok,
+           %{
+             result: :complete | :intermediate,
+             transactions: nonempty_list(UtxoSelection.transaction_t())
+           }}
+          | {:error, {:insufficient_funds, list(map())}}
+          | {:error, :too_many_outputs}
+          | {:error, :empty_transaction}
 
   @doc """
   Retrieves a specific transaction by id
@@ -79,13 +90,21 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
-  @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
+  @spec create(UtxoSelection.order_t()) :: create_t()
   def create(order) do
-    order.owner
-    |> DB.TxOutput.get_sorted_grouped_utxos()
-    |> UtxoSelection.create_advice(order)
-    |> create_transaction(order)
-    |> respond(:complete)
+    case order.owner
+         |> DB.TxOutput.get_sorted_grouped_utxos()
+         |> UtxoSelection.create_advice(order) do
+      {:error, reason} ->
+        {:error, reason}
+
+      result ->
+        result
+        |> create_transaction(order)
+        |> respond(:complete)
+    end
+
+    # IO.inspect(result)
   end
 
   @spec include_typed_data(UtxoSelection.advice_t()) :: UtxoSelection.advice_t()
