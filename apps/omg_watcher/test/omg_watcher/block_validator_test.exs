@@ -23,8 +23,12 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
 
   @alice TestHelper.generate_entity()
   @bob TestHelper.generate_entity()
+
   @eth OMG.Eth.zero_address()
+
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+
+  @fee_claimer %{addr: OMG.Configuration.fee_claimer_address()}
   @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()
 
   describe "stateless_validate/1" do
@@ -68,6 +72,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
 
     test "accepts correctly formed transactions" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}, {2, 0, 0, @alice}], @eth, [{@bob, 10}])
+
       recovered_tx_2 = TestHelper.create_recovered([{3, 0, 0, @alice}, {4, 0, 0, @alice}], @eth, [{@bob, 10}])
 
       signed_txbytes_1 = recovered_tx_1.signed_tx_bytes
@@ -132,11 +137,12 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       undersize_block = %{
         hash: "0x0",
         number: 1000,
-        transactions: ["0x0"]
+        transactions: []
       }
 
       assert {:error, :transactions_exceed_block_limit} = BlockValidator.stateless_validate(oversize_block)
-      assert {:error, :transactions_below_block_minimum} = BlockValidator.stateless_validate(undersize_block)
+
+      assert {:error, :empty_block} = BlockValidator.stateless_validate(undersize_block)
     end
 
     test "rejects a block that uses the same input in different transactions" do
@@ -161,5 +167,174 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
 
       assert {:error, :block_duplicate_inputs} == BlockValidator.stateless_validate(block)
     end
+  end
+
+  describe "stateless_validate/1 (fee validation)" do
+    test "rejects a block if there are multiple fee transactions of the same currency" do
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+
+      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}, {@fee_claimer, 1}])
+      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}, {@fee_claimer, 1}])
+      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 1)
+      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 1)
+
+      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2], fn tx -> tx.signed_tx_bytes end)
+
+      block = %{
+        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2]),
+        number: 1000,
+        transactions: signed_txbytes
+      }
+
+      assert {:error, :excess_fee_transactions_in_block} = BlockValidator.stateless_validate(block)
+    end
+
+    test "rejects a block if fee transactions are not at the tail of the transactions' list (one fee currency)" do
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+
+      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}, {@fee_claimer, 1}])
+      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}, {@fee_claimer, 1}])
+      fee_tx = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 5)
+
+      invalid_ordered_transactions = [payment_tx_1, fee_tx, payment_tx_2]
+      signed_txbytes = Enum.map(invalid_ordered_transactions, fn tx -> tx.signed_tx_bytes end)
+
+      block = %{
+        hash: derive_merkle_root(invalid_ordered_transactions),
+        number: 1000,
+        transactions: signed_txbytes
+      }
+
+      assert {:error, :unexpected_transaction_type_at_fee_index} = BlockValidator.stateless_validate(block)
+    end
+
+    test "rejects a block if fee transactions are not at the tail of the transactions' list (two fee currencies)" do
+      ccy_1 = @eth
+      ccy_2 = <<1::160>>
+
+      ccy_1_fee = 1
+      ccy_2_fee = 1
+
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+
+      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}, {@fee_claimer, ccy_1_fee}])
+
+      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}, {@fee_claimer, ccy_2_fee}])
+
+      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_1, ccy_1_fee)
+      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_2, ccy_2_fee)
+
+      invalid_ordered_transactions = [payment_tx_1, fee_tx_1, payment_tx_2, fee_tx_2]
+      signed_txbytes = Enum.map(invalid_ordered_transactions, fn tx -> tx.signed_tx_bytes end)
+
+      block = %{
+        hash: derive_merkle_root(invalid_ordered_transactions),
+        number: 1000,
+        transactions: signed_txbytes
+      }
+
+      assert {:error, :unexpected_transaction_type_at_fee_index} = BlockValidator.stateless_validate(block)
+    end
+
+    test "rejects a block if the fee transaction amount differs from the amount reconstructed from all fee outputs (one fee currency)" do
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+
+      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}, {@fee_claimer, 1}])
+      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}, {@fee_claimer, 1}])
+
+      fee_tx = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 5)
+
+      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx], fn tx -> tx.signed_tx_bytes end)
+
+      block = %{
+        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx]),
+        number: 1000,
+        transactions: signed_txbytes
+      }
+
+      assert {:error, :unexpected_fee_transaction_amount} = BlockValidator.stateless_validate(block)
+    end
+
+    test "rejects a block if the fee transaction amount differs from the amount reconstructed from all fee outputs (two fee currencies)" do
+      ccy_1 = @eth
+      ccy_2 = <<1::160>>
+
+      ccy_1_fee = 1
+      ccy_2_fee = 1
+
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+
+      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}, {@fee_claimer, ccy_1_fee}])
+
+      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}, {@fee_claimer, ccy_2_fee}])
+
+      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_1, ccy_1_fee)
+      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_2, ccy_2_fee + 5)
+
+      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2], fn tx -> tx.signed_tx_bytes end)
+
+      block = %{
+        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2]),
+        number: 1000,
+        transactions: signed_txbytes
+      }
+
+      assert {:error, :unexpected_fee_transaction_amount} = BlockValidator.stateless_validate(block)
+    end
+
+    test "accepts a block with the correct number of fee transactions, correctly calculated and placed (one fee currency)" do
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+
+      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}, {@fee_claimer, 1}])
+      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}, {@fee_claimer, 1}])
+
+      fee_tx = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 2)
+
+      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx], fn tx -> tx.signed_tx_bytes end)
+
+      block = %{
+        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx]),
+        number: 1000,
+        transactions: signed_txbytes
+      }
+
+      assert {:ok, true} = BlockValidator.stateless_validate(block)
+    end
+
+    test "accepts a block with the correct number of fee transactions, correctly calculated and placed (two fee currencies)" do
+      ccy_1 = @eth
+      ccy_2 = <<1::160>>
+
+      input_1 = {1, 0, 0, @alice}
+      input_2 = {2, 0, 0, @alice}
+
+      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}, {@fee_claimer, 1}])
+
+      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}, {@fee_claimer, 1}])
+
+      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_1, 1)
+      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_2, 1)
+
+      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2], fn tx -> tx.signed_tx_bytes end)
+
+      block = %{
+        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2]),
+        number: 1000,
+        transactions: signed_txbytes
+      }
+
+      assert {:ok, true} = BlockValidator.stateless_validate(block)
+    end
+  end
+
+  @spec derive_merkle_root([Transaction.Recovered.t()]) :: binary()
+  defp(derive_merkle_root(transactions)) do
+    transactions |> Enum.map(&Transaction.raw_txbytes/1) |> Merkle.hash()
   end
 end
