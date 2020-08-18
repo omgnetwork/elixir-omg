@@ -19,7 +19,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.TypedDataHash
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.DB
 
@@ -40,7 +39,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         }
 
   @type order_t() :: %{
+          owner: Crypto.address_t(),
           payments: nonempty_list(payment_t()),
+          metadata: binary() | nil,
           fee: fee_t()
         }
 
@@ -54,15 +55,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
           typed_data: TypedDataHash.Types.typedDataSignRequest_t()
         }
 
-  @type advice_t() ::
-          {:ok,
-           %{
-             result: :complete | :intermediate,
-             transactions: nonempty_list(transaction_t())
-           }}
-          | {:error, {:insufficient_funds, list(map())}}
-          | {:error, :too_many_outputs}
-          | {:error, :empty_transaction}
+  @type advice_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}}
+
+  @type utxos_map_t() :: %{currency_t() => utxo_list_t()}
 
   @type utxo_list_t() :: list(%DB.TxOutput{})
 
@@ -71,11 +66,12 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   If also provided with receiver's address, creates and encodes a transaction.
   TODO: seems unocovered by any tests
   """
-  @spec create_advice(%{currency_t() => utxo_list_t()}, order_t()) :: %{
-          currency_t() => utxo_list_t()
-        }
+  @spec create_advice(utxos_map_t(), order_t()) :: advice_t()
   def create_advice(utxos, %{payments: payments, fee: fee}) do
     needed_funds = needed_funds(payments, fee)
+
+    IO.inspect(needed_funds)
+
     token_utxo_selection = select_utxo(utxos, needed_funds)
 
     with {:ok, funds} <- funds_sufficient?(token_utxo_selection) do
@@ -98,9 +94,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   - Prioritises currencies that have the largest number of UTXOs
   - Sorts by ascending order of UTXO value within the currency groupings ("dust first").
   """
-  @spec prioritize_merge_utxos(list({currency_t(), utxo_list_t()}), %{
-          currency_t() => utxo_list_t()
-        }) :: utxo_list_t()
+  @spec prioritize_merge_utxos(list({currency_t(), utxo_list_t()}), utxos_map_t()) :: utxo_list_t()
   def prioritize_merge_utxos(selected_utxos, utxos) do
     selected_utxo_hashes =
       selected_utxos
@@ -125,7 +119,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end)
   end
 
-  @spec get_number_of_utxos(%{currency_t() => utxo_list_t()}) :: integer()
+  @spec get_number_of_utxos(utxos_map_t()) :: integer()
   defp get_number_of_utxos(utxos_by_currency) do
     Enum.reduce(utxos_by_currency, 0, fn {_currency, utxos}, acc -> length(utxos) + acc end)
   end
@@ -136,9 +130,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   no UTXOs are available. Agnostic to the priority ordering of available UTXOs.
   Returns an updated map of UTXOs for the transaction.
   """
-  @spec add_utxos_for_stealth_merge(%{currency_t() => utxo_list_t()}, utxo_list_t()) :: %{
-          currency_t() => utxo_list_t()
-        }
+  @spec add_utxos_for_stealth_merge(utxos_map_t(), utxo_list_t()) :: utxos_map_t()
   def add_utxos_for_stealth_merge(selected_utxos, available_utxos) do
     cond do
       get_number_of_utxos(selected_utxos) == Transaction.Payment.max_inputs() ->
@@ -164,7 +156,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   Returns {currency, { variance, [utxos] }}. A `variance` greater than zero means insufficient funds.
   The ordering of UTXOs in descending order of amount is implicitly assumed for this algorithm to work deterministically.
   """
-  @spec select_utxo(%{currency_t() => utxo_list_t()}, %{currency_t() => pos_integer()}) ::
+  @spec select_utxo(utxos_map_t(), %{currency_t() => pos_integer()}) ::
           list({currency_t(), {integer, utxo_list_t()}})
   def select_utxo(utxos, needed_funds) do
     Enum.map(needed_funds, fn {token, need} ->
