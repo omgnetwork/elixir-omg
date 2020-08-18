@@ -1030,7 +1030,6 @@ workflows:
       - increase_chart_version_watcher:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
           filters: *only_release_tag
-
       - increase_chart_version_watcher_info:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
           filters: *only_release_tag
