@@ -70,8 +70,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   def create_advice(utxos, %{payments: payments, fee: fee}) do
     needed_funds = needed_funds(payments, fee)
 
-    IO.inspect(needed_funds)
-
     token_utxo_selection = select_utxo(utxos, needed_funds)
 
     with {:ok, funds} <- funds_sufficient?(token_utxo_selection) do
@@ -101,15 +99,21 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       |> Enum.reduce([], fn {_ccy, utxos}, acc -> Enum.concat(acc, utxos) end)
       |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
 
-    selected_utxos
-    |> Enum.map(fn {ccy, _utxos} ->
-      utxos[ccy]
-      |> filter_unselected(selected_utxo_hashes)
-      |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
-    end)
-    |> Enum.sort_by(&length/1, :desc)
-    |> Enum.map(fn ccy_group -> Enum.slice(ccy_group, 0, 3) end)
-    |> List.flatten()
+    case selected_utxo_hashes |> Map.keys() |> length() do
+      0 ->
+        []
+
+      _ ->
+        selected_utxos
+        |> Enum.map(fn {ccy, _utxos} ->
+          utxos[ccy]
+          |> filter_unselected(selected_utxo_hashes)
+          |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
+        end)
+        |> Enum.sort_by(&length/1, :desc)
+        |> Enum.map(fn ccy_group -> Enum.slice(ccy_group, 0, 3) end)
+        |> List.flatten()
+    end
   end
 
   @spec filter_unselected(utxo_list_t(), %{currency_t() => boolean()}) :: utxo_list_t()
