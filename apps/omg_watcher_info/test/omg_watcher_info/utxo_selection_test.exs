@@ -499,5 +499,15 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
              |> Enum.filter(fn utxo -> utxo.currency == @eth end)
              |> length() == 3
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns empty list when original utxos are empty" do
+      _ = insert(:txoutput, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, currency: @eth, owner: @alice)
+
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      assert [] == UtxoSelection.prioritize_merge_utxos(%{}, utxos)
+    end
   end
 end
