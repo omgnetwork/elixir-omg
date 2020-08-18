@@ -1296,7 +1296,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :more_utxos]
-    test "returns an error when requester is equal to all the ouputs owner", %{alice: alice} do
+    test "returns an error when requester is equal to all the outputs owner", %{alice: alice} do
       params = %{
         "owner" => Encoding.to_hex(alice.addr),
         "payments" => [
