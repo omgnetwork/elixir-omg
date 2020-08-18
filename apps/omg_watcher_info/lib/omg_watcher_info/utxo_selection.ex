@@ -64,7 +64,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   @doc """
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
-  TODO: seems unocovered by any tests
   """
   @spec create_advice(utxos_map_t(), order_t()) :: advice_t()
   def create_advice(utxos, %{payments: payments, fee: fee}) do
