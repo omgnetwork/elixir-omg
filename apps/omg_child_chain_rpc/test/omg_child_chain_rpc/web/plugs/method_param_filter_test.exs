@@ -32,13 +32,19 @@ defmodule OMG.ChildChainRPC.Web.Plugs.MethodParamFilterTest do
 
   test "filters body params for GET" do
     conn =
-      :get
-      |> conn("/some_endpoint?foo=bar", %{"foo_1" => "bar_1"})
-      |> Plug.Parsers.call({[:json], [], nil, false})
-      |> MethodParamFilter.call([])
+      MethodParamFilter.call(
+        %Plug.Conn{body_params: %{"foo_1" => "bar_1"}, query_params: %{"foo" => "bar"}, method: "GET"},
+        []
+      )
 
     assert conn.body_params == %{}
     assert conn.query_params == %{"foo" => "bar"}
     assert conn.params == %{"foo" => "bar"}
+  end
+
+  test "returns original conn for other methods" do
+    original_conn = conn(:put, "/some_endpoint?foo=bar", %{"foo_1" => "bar_1"})
+
+    assert MethodParamFilter.call(original_conn, []) == original_conn
   end
 end

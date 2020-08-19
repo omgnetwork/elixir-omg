@@ -1,5 +1,43 @@
 # Changelog
 
+## [v1.0.3](https://github.com/omisego/elixir-omg/releases/tag/v1.0.3)
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v1.0.2...v1.0.3).
+
+#### APIs
+- [Changed] Update request body swagger for /transaction.all (#1609)
+
+#### Core
+- [Fix] Ensure margin is working for reorg protection on childchain (#1622)
+- [Fix] Handle "transaction underpriced" and other unknown server error responses (#1617)
+- [Fix] Get call_data from liquidity contract and rename it (#1635)
+- [Changed] Integrate spandex ecto (#1602)
+
+#### Miscellaneous
+- [Changed] Load test with erc20 token (#1577)
+- [Changed] Auto PR with Auto merge for syncing master-v2 (#1604)
+- [Changed] Add reorged docker compose for cabbage test (#1579)
+
+## [v1.0.2](https://github.com/omisego/elixir-omg/releases/tag/v1.0.2)
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [full changelog](https://github.com/omisego/elixir-omg/compare/v1.0.1...v1.0.2).
+
+#### APIs
+- [Changed] Add Transaction filter by end_datetime (#1595)
+
+#### Core
+- [Changed] Install telemetry handler for authority balance (#1567)
+- [Changed] Add block processing queue to watcher info (#1560)
+- [Changed] async stream + timeout (#1593)
+
+#### Miscellaneous
+- [Changed] Update README.md for re-branding (#1564)
+- [Changed] Add watcher and watcher-info release artifacts in CI (#1597)
+- [Fixed] Use fixed version of ex_abi (#1519)
+- [Fixed] Error attempting to log txhash in binary (#1532)
+- [Fixed] Minor fixes (#1584)
+
+
 ## [v1.0.1](https://github.com/omisego/elixir-omg/releases/tag/v1.0.1)
 
 Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).

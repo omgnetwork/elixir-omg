@@ -147,6 +147,15 @@ defmodule OMG.ChildChain.BlockQueue.BlockSubmission do
     :ok
   end
 
+  # Fallback for unknown server errors: https://eth.wiki/json-rpc/json-rpc-error-codes-improvement-proposal
+  # Only server errors are handled as they are the only set of errors that we have no control of.
+  # Returns `:ok` so that BlockQueue can continue and do a retry, similar to a low replacement price error.
+  def process_result(submission, {:error, %{"code" => code} = error}, _newest_mined_blknum)
+      when code >= -32_099 and code <= -32_000 do
+    _ = Logger.error("Submission #{inspect(submission)} resulted in an unknown server error: #{inspect(error)}.")
+    :ok
+  end
+
   defp log_ganache_nonce_too_low(error) do
     # runtime sanity check if we're actually running `ganache`, if we aren't and we're here, we must crash
     :ganache = Application.fetch_env!(:omg_eth, :eth_node)

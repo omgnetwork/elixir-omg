@@ -26,49 +26,59 @@ defmodule LoadTest.Scenario.CreateUtxos do
   alias Chaperon.Session
   alias ExPlasma.Utxo
 
-  @eth <<0::160>>
   @spawned_outputs_per_transaction 3
 
   @spec run(Session.t()) :: Session.t()
   def run(session) do
-    fee_wei = Application.fetch_env!(:load_test, :fee_wei)
-    session = Session.assign(session, fee_wei: fee_wei)
+    fee_amount = Application.fetch_env!(:load_test, :fee_amount)
+    session = Session.assign(session, fee_amount: fee_amount)
+    test_currency = Application.fetch_env!(:load_test, :test_currency)
+    session = Session.assign(session, test_currency: test_currency)
 
     sender = config(session, [:sender])
     utxos_to_create_per_session = config(session, [:utxos_to_create_per_session])
     number_of_transactions = div(utxos_to_create_per_session, 3)
 
     transactions_per_session = config(session, [:transactions_per_session])
-    min_final_change = transactions_per_session * fee_wei + 1
+    min_final_change = transactions_per_session * fee_amount + 1
 
-    amount_per_utxo = get_amount_per_created_utxo(fee_wei)
-    initial_funds = number_of_transactions * fee_wei + utxos_to_create_per_session * amount_per_utxo + min_final_change
+    amount_per_utxo = get_amount_per_created_utxo(fee_amount)
+
+    initial_funds =
+      number_of_transactions * fee_amount + utxos_to_create_per_session * amount_per_utxo + min_final_change
 
     session
     |> run_scenario(LoadTest.Scenario.FundAccount, %{
       account: sender,
-      initial_funds: initial_funds
+      initial_funds: initial_funds,
+      test_currency: test_currency
     })
     |> repeat(:submit_transaction, [sender], number_of_transactions)
   end
 
   def submit_transaction(session, sender) do
-    {inputs, outputs} = create_transaction(sender, session.assigned.utxo, session.assigned.fee_wei)
+    {inputs, outputs} =
+      create_transaction(
+        sender,
+        session.assigned.utxo,
+        session.assigned.test_currency,
+        session.assigned.fee_amount
+      )
 
     new_outputs = LoadTest.ChildChain.Transaction.submit_tx(inputs, outputs, [sender])
 
     Session.assign(session, utxo: List.last(new_outputs))
   end
 
-  defp create_transaction(sender, input, fee_wei) do
-    amount_per_utxo = get_amount_per_created_utxo(fee_wei)
-    change = input.amount - @spawned_outputs_per_transaction * amount_per_utxo - fee_wei
+  defp create_transaction(sender, input, currency, fee_amount) do
+    amount_per_utxo = get_amount_per_created_utxo(fee_amount)
+    change = input.amount - @spawned_outputs_per_transaction * amount_per_utxo - fee_amount
 
-    created_output = %Utxo{owner: sender.addr, currency: @eth, amount: amount_per_utxo}
-    change_output = %Utxo{owner: sender.addr, currency: @eth, amount: change}
+    created_output = %Utxo{owner: sender.addr, currency: currency, amount: amount_per_utxo}
+    change_output = %Utxo{owner: sender.addr, currency: currency, amount: change}
 
     {[input], List.duplicate(created_output, @spawned_outputs_per_transaction) ++ [change_output]}
   end
 
-  defp get_amount_per_created_utxo(fee_wei), do: fee_wei + 2
+  defp get_amount_per_created_utxo(fee_amount), do: fee_amount + 2
 end

@@ -14,6 +14,9 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.106
 
   geth:
     image: ethereum/client-go:v1.9.12
@@ -47,18 +50,39 @@ services:
             --mine \
             --allow-insecure-unlock
     ports:
-      - "8545:8545"
-      - "8546:8546"
+      - "8555:8545"
+      - "8556:8546"
     expose:
       - "8546"
       - "8545"
     volumes:
       - ./data:/data
     healthcheck:
-      test: curl geth:8545
+      test: curl localhost:8545
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.101
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 8545:80
+      - 8546:81
+      - 443:443
+    healthcheck:
+      test: curl nginx:80
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.102
 
   childchain:
     image: omisego/child_chain:latest
@@ -68,7 +92,7 @@ services:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - ETHEREUM_RPC_URL=http://geth:8545
+      - ETHEREUM_RPC_URL=http://172.27.0.102:80
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
       - DD_DISABLED=true
@@ -77,6 +101,8 @@ services:
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
       - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
       - FEE_ADAPTER=file
+      - STORED_FEE_UPDATE_INTERVAL_MINUTES=1
+      - FEE_CHANGE_TOLERANCE_PERCENT=1
       - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
       - FEE_BUFFER_DURATION_MS=30000
       - LOGGER_BACKEND=console
@@ -91,14 +117,17 @@ services:
       - ./data:/data
       - ./priv/dev-artifacts:/dev-artifacts
     healthcheck:
-      test: curl childchain:9656
+      test: curl localhost:9656
       interval: 30s
-      timeout: 1s
+      timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     depends_on:
-      geth:
+      nginx:
         condition: service_healthy
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.103
 
   watcher:
     image: omisego/watcher:latest
@@ -108,8 +137,8 @@ services:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - ETHEREUM_RPC_URL=http://geth:8545
-      - CHILD_CHAIN_URL=http://childchain:9656
+      - ETHEREUM_RPC_URL=http://172.27.0.102:80
+      - CHILD_CHAIN_URL=http://172.27.0.103:9656
       - PORT=7434
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
@@ -131,7 +160,7 @@ services:
     volumes:
       - ./data:/data
     healthcheck:
-      test: curl watcher:7434
+      test: curl localhost:7434
       interval: 30s
       timeout: 1s
       retries: 5
@@ -139,6 +168,9 @@ services:
     depends_on:
       childchain:
         condition: service_healthy
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.104
 
   watcher_info:
     image: omisego/watcher_info:latest
@@ -148,9 +180,9 @@ services:
       - ./localchain_contract_addresses.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - ETHEREUM_RPC_URL=http://geth:8545
-      - CHILD_CHAIN_URL=http://childchain:9656
-      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@postgres:5432/omisego_dev
+      - ETHEREUM_RPC_URL=http://172.27.0.102:80
+      - CHILD_CHAIN_URL=http://172.27.0.103:9656
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.106:5432/omisego_dev
       - PORT=7534
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
@@ -171,7 +203,7 @@ services:
     volumes:
       - ./data:/data
     healthcheck:
-      test: curl watcher_info:7534
+      test: curl localhost:7534
       interval: 30s
       timeout: 1s
       retries: 5
@@ -181,3 +213,13 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.105
+
+networks:
+  chain_net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.27.0.0/24
