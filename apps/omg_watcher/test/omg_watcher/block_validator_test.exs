@@ -224,33 +224,6 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
 
       assert {:error, :unexpected_transaction_type_at_fee_index} = BlockValidator.stateless_validate(block)
     end
-
-    test "rejects a block if a fee transaction output is owned by an address other than the fee claimer's" do
-      ccy_1 = @eth
-      ccy_2 = <<1::160>>
-
-      ccy_1_fee = 1
-      ccy_2_fee = 1
-
-      input_1 = {1, 0, 0, @alice}
-      input_2 = {2, 0, 0, @alice}
-
-      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}])
-      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}])
-
-      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer, ccy_1, ccy_1_fee)
-      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @bob.addr, ccy_2, ccy_2_fee)
-
-      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2], fn tx -> tx.signed_tx_bytes end)
-
-      block = %{
-        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2]),
-        number: 1000,
-        transactions: signed_txbytes
-      }
-
-      assert {:error, :invalid_fee_output_owner} = BlockValidator.stateless_validate(block)
-    end
   end
 
   @spec derive_merkle_root([Transaction.Recovered.t()]) :: binary()

@@ -19,12 +19,10 @@ defmodule OMG.Watcher.BlockValidator do
 
   alias OMG.Block
   alias OMG.Merkle
-  alias OMG.Output
   alias OMG.State.Transaction
   alias OMG.Utxo
 
   @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()
-  @fee_claimer_address OMG.Configuration.fee_claimer_address()
 
   @doc """
   Executes stateless validation of a submitted block:
@@ -93,7 +91,7 @@ defmodule OMG.Watcher.BlockValidator do
   end
 
   @spec verify_no_duplicate_inputs([Transaction.Recovered.t()]) :: {:ok, map()}
-  defp(verify_no_duplicate_inputs(transactions)) do
+  defp verify_no_duplicate_inputs(transactions) do
     Enum.reduce_while(transactions, {:ok, %{}}, fn tx, {:ok, input_set} ->
       tx
       |> Map.get(:signed_tx)
@@ -121,23 +119,10 @@ defmodule OMG.Watcher.BlockValidator do
   defp verify_fee_transactions(transactions) do
     identified_fee_transactions = Enum.filter(transactions, &is_fee/1)
 
-    with :ok <- expected_fee_claimer_address(identified_fee_transactions),
-         :ok <- expected_index(transactions, identified_fee_transactions),
+    with :ok <- expected_index(transactions, identified_fee_transactions),
          :ok <- unique_fee_transaction_per_currency(identified_fee_transactions) do
       {:ok, identified_fee_transactions}
     end
-  end
-
-  @spec expected_fee_claimer_address([Transaction.Recovered.t()]) :: :ok | {:error, atom()}
-  defp expected_fee_claimer_address(identified_fee_transactions) do
-    Enum.reduce_while(identified_fee_transactions, :ok, fn fee_transaction, _acc ->
-      %Output{owner: output_owner} = get_fee_output(fee_transaction)
-
-      case output_owner do
-        @fee_claimer_address -> {:cont, :ok}
-        _ -> {:halt, {:error, :invalid_fee_output_owner}}
-      end
-    end)
   end
 
   @spec expected_index([Transaction.Recovered.t()], [Transaction.Recovered.t()]) :: :ok | {:error, atom()}
