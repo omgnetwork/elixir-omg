@@ -20,7 +20,7 @@ defmodule OMG.Watcher.BlockValidator do
   alias OMG.Block
   alias OMG.Merkle
   alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Utxo.Position
 
   @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()
 
@@ -37,7 +37,7 @@ defmodule OMG.Watcher.BlockValidator do
     with :ok <- number_of_transactions_within_limit(submitted_block.transactions),
          {:ok, recovered_transactions} <- verify_transactions(submitted_block.transactions),
          {:ok, _fee_transactions} <- verify_fee_transactions(recovered_transactions),
-         {:ok, _inputs} <- verify_no_duplicate_inputs(recovered_transactions),
+         {:ok, _inputs} <- verify_no_duplicate_inputs(recovered_transactions, %{}),
          {:ok, _block} <- verify_merkle_root(submitted_block, recovered_transactions) do
       {:ok, true}
     end
@@ -74,45 +74,31 @@ defmodule OMG.Watcher.BlockValidator do
     end)
   end
 
-  @spec number_of_transactions_within_limit([Transaction.Signed.tx_bytes()]) ::
-          :ok | {:error, atom()}
-  defp number_of_transactions_within_limit(transactions) do
-    case length(transactions) do
-      # A block with a merge transaction only would have no fee transaction.
-      0 ->
-        {:error, :empty_block}
+  @spec number_of_transactions_within_limit([Transaction.Signed.tx_bytes()]) :: :ok | {:error, atom()}
+  defp number_of_transactions_within_limit(transactions) when length(transactions) == 0, do: {:error, :empty_block}
 
-      n when n > @transaction_upper_limit ->
-        {:error, :transactions_exceed_block_limit}
+  defp number_of_transactions_within_limit(transactions) when length(transactions) > @transaction_upper_limit do
+    {:error, :transactions_exceed_block_limit}
+  end
 
-      _ ->
-        :ok
+  defp number_of_transactions_within_limit(_transactions), do: :ok
+
+  @spec verify_no_duplicate_inputs([Transaction.Recovered.t()], map()) :: {:ok, map()}
+  defp verify_no_duplicate_inputs([], input_set), do: {:ok, input_set}
+
+  defp verify_no_duplicate_inputs([transaction | rest], input_set) do
+    current_input_positions = transaction |> Transaction.get_inputs() |> Enum.map(&Position.encode/1)
+
+    current_input_positions
+    |> Enum.any?(fn input_position -> Map.has_key?(input_set, input_position) end)
+    |> case do
+      true ->
+        {:error, :block_duplicate_inputs}
+
+      false ->
+        new_input_set = current_input_positions |> Map.new(fn pos -> {pos, true} end) |> Map.merge(input_set)
+        verify_no_duplicate_inputs(rest, new_input_set)
     end
-  end
-
-  @spec verify_no_duplicate_inputs([Transaction.Recovered.t()]) :: {:ok, map()}
-  defp verify_no_duplicate_inputs(transactions) do
-    Enum.reduce_while(transactions, {:ok, %{}}, fn tx, {:ok, input_set} ->
-      tx
-      |> Map.get(:signed_tx)
-      |> Map.get(:raw_tx)
-      |> Map.get(:inputs, [])
-      # Setting an empty array as default because fee transactions will not have an `input` key.
-      |> scan_for_duplicates({:cont, {:ok, input_set}})
-    end)
-  end
-
-  # Nested reducer executing duplicate verification logic for `verify_no_duplicate_inputs/1`
-  @spec scan_for_duplicates(Transaction.Recovered.t(), {:cont, {:ok, map()}}) :: {:cont, {:ok, map()}}
-  defp scan_for_duplicates(tx_input_set, {:cont, {:ok, input_set}}) do
-    Enum.reduce_while(tx_input_set, {:cont, {:ok, input_set}}, fn input, {:cont, {:ok, input_set}} ->
-      input_position = Utxo.Position.encode(input)
-
-      case Map.has_key?(input_set, input_position) do
-        true -> {:halt, {:halt, {:error, :block_duplicate_inputs}}}
-        false -> {:cont, {:cont, {:ok, Map.put(input_set, input_position, true)}}}
-      end
-    end)
   end
 
   @spec verify_fee_transactions([Transaction.Recovered.t()]) :: {:ok, [Transaction.Recovered.t()]} | {:error, atom()}
@@ -152,14 +138,6 @@ defmodule OMG.Watcher.BlockValidator do
   defp is_fee(_), do: false
 
   defp get_fee_output(fee_transaction) do
-    case fee_transaction do
-      %Transaction.Recovered{
-        signed_tx: %Transaction.Signed{raw_tx: %Transaction.Fee{outputs: [fee_output]}}
-      } ->
-        fee_output
-
-      _ ->
-        {:error, :malformed_fee_transaction}
-    end
+    fee_transaction |> Transaction.get_outputs() |> Enum.at(0)
   end
 end
