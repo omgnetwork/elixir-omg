@@ -28,7 +28,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
 
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
-  @fee_claimer %{addr: OMG.Configuration.fee_claimer_address()}
+  @fee_claimer OMG.Configuration.fee_claimer_address()
   @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()
 
   describe "stateless_validate/1" do
@@ -78,13 +78,8 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       signed_txbytes_1 = recovered_tx_1.signed_tx_bytes
       signed_txbytes_2 = recovered_tx_2.signed_tx_bytes
 
-      merkle_root =
-        [recovered_tx_1, recovered_tx_2]
-        |> Enum.map(&Transaction.raw_txbytes/1)
-        |> Merkle.hash()
-
       block = %{
-        hash: merkle_root,
+        hash: derive_merkle_root([recovered_tx_1, recovered_tx_2]),
         number: 1000,
         transactions: [signed_txbytes_1, signed_txbytes_2]
       }
@@ -113,10 +108,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
 
       signed_txbytes = Enum.map([recovered_tx_1, recovered_tx_2], fn tx -> tx.signed_tx_bytes end)
 
-      valid_merkle_root =
-        [recovered_tx_1, recovered_tx_2]
-        |> Enum.map(&Transaction.raw_txbytes/1)
-        |> Merkle.hash()
+      valid_merkle_root = derive_merkle_root([recovered_tx_1, recovered_tx_2])
 
       block = %{
         hash: valid_merkle_root,
@@ -154,13 +146,8 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       signed_txbytes_1 = recovered_tx_1.signed_tx_bytes
       signed_txbytes_2 = recovered_tx_2.signed_tx_bytes
 
-      merkle_root =
-        [recovered_tx_1, recovered_tx_2]
-        |> Enum.map(&Transaction.raw_txbytes/1)
-        |> Merkle.hash()
-
       block = %{
-        hash: merkle_root,
+        hash: derive_merkle_root([recovered_tx_1, recovered_tx_2]),
         number: 1000,
         transactions: [signed_txbytes_1, signed_txbytes_2]
       }
@@ -174,10 +161,10 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       input_1 = {1, 0, 0, @alice}
       input_2 = {2, 0, 0, @alice}
 
-      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}, {@fee_claimer, 1}])
-      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}, {@fee_claimer, 1}])
-      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 1)
-      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 1)
+      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}])
+      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}])
+      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer, @eth, 1)
+      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer, @eth, 1)
 
       signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2], fn tx -> tx.signed_tx_bytes end)
 
@@ -187,16 +174,16 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:error, :excess_fee_transactions_in_block} = BlockValidator.stateless_validate(block)
+      assert {:error, :duplicate_fee_transaction_for_ccy} = BlockValidator.stateless_validate(block)
     end
 
     test "rejects a block if fee transactions are not at the tail of the transactions' list (one fee currency)" do
       input_1 = {1, 0, 0, @alice}
       input_2 = {2, 0, 0, @alice}
 
-      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}, {@fee_claimer, 1}])
-      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}, {@fee_claimer, 1}])
-      fee_tx = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 5)
+      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}])
+      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}])
+      fee_tx = TestHelper.create_recovered_fee_tx(1, @fee_claimer, @eth, 5)
 
       invalid_ordered_transactions = [payment_tx_1, fee_tx, payment_tx_2]
       signed_txbytes = Enum.map(invalid_ordered_transactions, fn tx -> tx.signed_tx_bytes end)
@@ -220,12 +207,11 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       input_1 = {1, 0, 0, @alice}
       input_2 = {2, 0, 0, @alice}
 
-      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}, {@fee_claimer, ccy_1_fee}])
+      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}])
+      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}])
 
-      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}, {@fee_claimer, ccy_2_fee}])
-
-      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_1, ccy_1_fee)
-      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_2, ccy_2_fee)
+      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer, ccy_1, ccy_1_fee)
+      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer, ccy_2, ccy_2_fee)
 
       invalid_ordered_transactions = [payment_tx_1, fee_tx_1, payment_tx_2, fee_tx_2]
       signed_txbytes = Enum.map(invalid_ordered_transactions, fn tx -> tx.signed_tx_bytes end)
@@ -239,27 +225,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       assert {:error, :unexpected_transaction_type_at_fee_index} = BlockValidator.stateless_validate(block)
     end
 
-    test "rejects a block if the fee transaction amount differs from the amount reconstructed from all fee outputs (one fee currency)" do
-      input_1 = {1, 0, 0, @alice}
-      input_2 = {2, 0, 0, @alice}
-
-      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}, {@fee_claimer, 1}])
-      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}, {@fee_claimer, 1}])
-
-      fee_tx = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 5)
-
-      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx], fn tx -> tx.signed_tx_bytes end)
-
-      block = %{
-        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx]),
-        number: 1000,
-        transactions: signed_txbytes
-      }
-
-      assert {:error, :unexpected_fee_transaction_amount} = BlockValidator.stateless_validate(block)
-    end
-
-    test "rejects a block if the fee transaction amount differs from the amount reconstructed from all fee outputs (two fee currencies)" do
+    test "rejects a block if a fee transaction output is owned by an address other than the fee claimer's" do
       ccy_1 = @eth
       ccy_2 = <<1::160>>
 
@@ -269,57 +235,11 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       input_1 = {1, 0, 0, @alice}
       input_2 = {2, 0, 0, @alice}
 
-      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}, {@fee_claimer, ccy_1_fee}])
+      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}])
+      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}])
 
-      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}, {@fee_claimer, ccy_2_fee}])
-
-      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_1, ccy_1_fee)
-      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_2, ccy_2_fee + 5)
-
-      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2], fn tx -> tx.signed_tx_bytes end)
-
-      block = %{
-        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2]),
-        number: 1000,
-        transactions: signed_txbytes
-      }
-
-      assert {:error, :unexpected_fee_transaction_amount} = BlockValidator.stateless_validate(block)
-    end
-
-    test "accepts a block with the correct number of fee transactions, correctly calculated and placed (one fee currency)" do
-      input_1 = {1, 0, 0, @alice}
-      input_2 = {2, 0, 0, @alice}
-
-      payment_tx_1 = TestHelper.create_recovered([input_1], @eth, [{@bob, 10}, {@fee_claimer, 1}])
-      payment_tx_2 = TestHelper.create_recovered([input_2], @eth, [{@bob, 10}, {@fee_claimer, 1}])
-
-      fee_tx = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, @eth, 2)
-
-      signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx], fn tx -> tx.signed_tx_bytes end)
-
-      block = %{
-        hash: derive_merkle_root([payment_tx_1, payment_tx_2, fee_tx]),
-        number: 1000,
-        transactions: signed_txbytes
-      }
-
-      assert {:ok, true} = BlockValidator.stateless_validate(block)
-    end
-
-    test "accepts a block with the correct number of fee transactions, correctly calculated and placed (two fee currencies)" do
-      ccy_1 = @eth
-      ccy_2 = <<1::160>>
-
-      input_1 = {1, 0, 0, @alice}
-      input_2 = {2, 0, 0, @alice}
-
-      payment_tx_1 = TestHelper.create_recovered([input_1], ccy_1, [{@bob, 10}, {@fee_claimer, 1}])
-
-      payment_tx_2 = TestHelper.create_recovered([input_2], ccy_2, [{@bob, 10}, {@fee_claimer, 1}])
-
-      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_1, 1)
-      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @fee_claimer.addr, ccy_2, 1)
+      fee_tx_1 = TestHelper.create_recovered_fee_tx(1, @fee_claimer, ccy_1, ccy_1_fee)
+      fee_tx_2 = TestHelper.create_recovered_fee_tx(1, @bob.addr, ccy_2, ccy_2_fee)
 
       signed_txbytes = Enum.map([payment_tx_1, payment_tx_2, fee_tx_1, fee_tx_2], fn tx -> tx.signed_tx_bytes end)
 
@@ -329,7 +249,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
         transactions: signed_txbytes
       }
 
-      assert {:ok, true} = BlockValidator.stateless_validate(block)
+      assert {:error, :invalid_fee_output_owner} = BlockValidator.stateless_validate(block)
     end
   end
 

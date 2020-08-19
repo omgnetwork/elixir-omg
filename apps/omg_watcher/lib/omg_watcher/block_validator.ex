@@ -119,81 +119,45 @@ defmodule OMG.Watcher.BlockValidator do
 
   @spec verify_fee_transactions([Transaction.Recovered.t()]) :: {:ok, [Transaction.Recovered.t()]} | {:error, atom()}
   defp verify_fee_transactions(transactions) do
-    {identified_fee_transactions, expected_fees_by_ccy} = scan_for_block_fee_information(transactions)
+    identified_fee_transactions = Enum.filter(transactions, &is_fee/1)
 
-    with :ok <- expected_number(identified_fee_transactions, expected_fees_by_ccy),
+    with :ok <- expected_fee_claimer_address(identified_fee_transactions),
          :ok <- expected_index(transactions, identified_fee_transactions),
-         :ok <- expected_amounts(identified_fee_transactions, expected_fees_by_ccy) do
+         :ok <- unique_fee_transaction_per_currency(identified_fee_transactions) do
       {:ok, identified_fee_transactions}
     end
   end
 
-  @spec expected_number([Transaction.Recovered.t()], %{binary() => integer()}) :: :ok | {:error, atom()}
-  defp expected_number(identified_fee_transactions, expected_fees_by_ccy) do
-    expected_number_of_fee_transactions = expected_fees_by_ccy |> Map.keys() |> length
+  @spec expected_fee_claimer_address([Transaction.Recovered.t()]) :: :ok | {:error, atom()}
+  defp expected_fee_claimer_address(identified_fee_transactions) do
+    Enum.reduce_while(identified_fee_transactions, :ok, fn fee_transaction, _acc ->
+      %Output{owner: output_owner} = get_fee_output(fee_transaction)
 
-    case length(identified_fee_transactions) do
-      ^expected_number_of_fee_transactions ->
-        :ok
-
-      n when n < expected_number_of_fee_transactions ->
-        {:error, :missing_fee_transactions_in_block}
-
-      n when n > expected_number_of_fee_transactions ->
-        {:error, :excess_fee_transactions_in_block}
-    end
+      case output_owner do
+        @fee_claimer_address -> {:cont, :ok}
+        _ -> {:halt, {:error, :invalid_fee_output_owner}}
+      end
+    end)
   end
 
   @spec expected_index([Transaction.Recovered.t()], [Transaction.Recovered.t()]) :: :ok | {:error, atom()}
   defp expected_index(transactions, identified_fee_transactions) do
-    tail =
-      Enum.slice(
-        transactions,
-        -length(identified_fee_transactions),
-        length(identified_fee_transactions)
-      )
+    number_of_fee_txs = length(identified_fee_transactions)
+    tail = Enum.slice(transactions, -number_of_fee_txs, number_of_fee_txs)
 
-    case Enum.reverse(identified_fee_transactions) do
+    case identified_fee_transactions do
       ^tail -> :ok
       _ -> {:error, :unexpected_transaction_type_at_fee_index}
     end
   end
 
-  @spec expected_amounts([Transaction.Recovered.t()], %{binary() => integer()}) :: :ok | {:error, atom()}
-  defp expected_amounts(identified_fee_transactions, expected_fees_by_ccy) do
-    Enum.reduce_while(identified_fee_transactions, :ok, fn fee_transaction, _acc ->
-      %Output{currency: currency, amount: amount} = get_fee_output(fee_transaction)
-
-      case expected_fees_by_ccy[currency] do
-        ^amount -> {:cont, :ok}
-        _ -> {:halt, {:error, :unexpected_fee_transaction_amount}}
-      end
-    end)
-  end
-
-  @spec scan_for_block_fee_information([Transaction.Recovered.t()]) ::
-          {[Transaction.Recovered.t()], %{binary() => integer()}}
-  def scan_for_block_fee_information(transactions) do
-    Enum.reduce(transactions, {[], %{}}, fn transaction, acc -> extract_info_for_block_fee_scan(transaction, acc) end)
-  end
-
-  # Callback function executing logic in reducer for `scan_block_for_fee_information/1`
-  defp extract_info_for_block_fee_scan(transaction, {fee_transactions, expected_fees_by_ccy} = acc) do
-    case is_fee(transaction) do
-      true ->
-        {[transaction | fee_transactions], expected_fees_by_ccy}
-
-      false ->
-        case find_fee_output(transaction) do
-          nil ->
-            acc
-
-          %Output{currency: currency, amount: o_amount} ->
-            {
-              fee_transactions,
-              Map.update(expected_fees_by_ccy, currency, o_amount, fn acc_ccy_amount -> acc_ccy_amount + o_amount end)
-            }
-        end
+  @spec unique_fee_transaction_per_currency([Transaction.Recovered.t()]) :: :ok | {:error, atom()}
+  defp unique_fee_transaction_per_currency(identified_fee_transactions) do
+    identified_fee_transactions
+    |> Enum.uniq_by(fn fee_transaction -> fee_transaction |> get_fee_output() |> Map.get(:currency) end)
+    |> case do
+      ^identified_fee_transactions -> :ok
+      _ -> {:error, :duplicate_fee_transaction_for_ccy}
     end
   end
 
@@ -212,14 +176,5 @@ defmodule OMG.Watcher.BlockValidator do
       _ ->
         {:error, :malformed_fee_transaction}
     end
-  end
-
-  @spec find_fee_output(Transaction.Recovered.t()) :: Output.t() | nil
-  defp find_fee_output(transaction) do
-    transaction
-    |> Map.get(:signed_tx)
-    |> Map.get(:raw_tx)
-    |> Map.get(:outputs)
-    |> Enum.find(fn output -> output.owner == @fee_claimer_address end)
   end
 end
