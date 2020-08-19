@@ -19,55 +19,62 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
 
   import OMG.Utils.HttpRPC.Validator.Base
 
+  alias OMG.State.Transaction
+  alias OMG.WatcherRPC.Web.Validator.Helpers
+
+  require OMG.State.Transaction.Payment
+
+  @max_inputs Transaction.Payment.max_inputs()
+
+  defp get_constraints(params) do
+    case params do
+      %{"address" => _, "currency" => _} ->
+        [
+          {"address", [:address], :address},
+          {"currency", [:currency], :currency}
+        ]
+
+      %{"utxos" => _} ->
+        [{"utxos", [min_length: 2, max_length: @max_inputs, list: &validate_utxo/1], :utxos}]
+
+      %{"utxo_positions" => _} ->
+        [{"utxo_positions", [min_length: 2, max_length: @max_inputs, list: &to_utxo_pos/1], :utxo_positions}]
+
+      _ ->
+        {:error, :operation_bad_request}
+    end
+  end
+
   @doc """
-  Parses and validates request body
+  Parses and validates request body for `/transaction.merge`
   """
   @spec parse(map()) :: {:ok, map()} | Base.validation_error_t()
-  def parse(%{"address" => _address, "currency" => _currency} = params) do
-    with {:ok, address} <- expect(params, "address", :address),
-        {:ok, currency} <- expect(params, "currency", :currency) do
-      {:ok,
-      %{
-        address: address,
-        currency: currency
-      }}
+  def parse(params) do
+    case get_constraints(params) do
+      {:error, error} ->
+        {:error, error}
+
+      constraints ->
+        validate_params(params, constraints)
     end
   end
 
-  def parse(%{"utxos" => _utxos} = params) do
-    with {:ok, _utxos} <- expect(params, "utxos", [:list, min_length: 2, max_length: 4]),
-        {:ok, validated_utxos} <- validate_utxos(params["utxos"]) do
-      {:ok,
-      %{
-        utxos: Enum.reverse(validated_utxos)
-      }}
+  defp validate_params(params, constraints) do
+    case Helpers.validate_constraints(params, constraints) do
+      {:ok, result} -> {:ok, Map.new(result)}
+      error -> error
     end
   end
 
-  def parse(%{"utxo_positions" => _utxo_positions} = params) do
-    with {:ok, utxo_positions} <- expect(params, "utxo_positions", [list: &to_utxo_pos/1, min_length: 2, max_length: 4]) do
-      {:ok,
-      %{
-        utxo_positions: utxo_positions
-      }}
+  defp validate_utxo(utxo) do
+    with {:ok, _blknum} <- expect(utxo, "blknum", :pos_integer),
+         {:ok, _txindex} <- expect(utxo, "txindex", :pos_integer),
+         {:ok, _oindex} <- expect(utxo, "oindex", :pos_integer),
+         {:ok, _owner} <- expect(utxo, "owner", :address),
+         {:ok, _currency} <- expect(utxo, "currency", :currency),
+         {:ok, _amount} <- expect(utxo, "amount", :pos_integer) do
+      {:ok, utxo}
     end
-  end
-
-  def parse(_), do: {:error, :operation_bad_request}
-
-  defp validate_utxos(utxos) do
-    Enum.reduce_while(utxos, {:ok, []}, fn utxo, {:ok, acc} ->
-      with {:ok, _blknum} <- expect(utxo, "blknum", :pos_integer),
-        {:ok, _txindex} <- expect(utxo, "txindex", :pos_integer),
-        {:ok, _oindex} <- expect(utxo, "oindex", :pos_integer),
-        {:ok, _owner} <- expect(utxo, "owner", :address),
-        {:ok, _currency} <- expect(utxo, "currency", :currency),
-        {:ok, _amount} <- expect(utxo, "amount", :pos_integer) do
-        {:cont, {:ok, [utxo | acc]}}
-      else
-        error -> {:halt, error}
-      end
-    end)
   end
 
   defp to_utxo_pos(utxo_pos_string) do
