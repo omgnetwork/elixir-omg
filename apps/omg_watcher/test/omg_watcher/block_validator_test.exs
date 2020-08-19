@@ -28,7 +28,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
 
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
-  @fee_claimer OMG.Configuration.fee_claimer_address()
+  @fee_claimer <<27::160>>
   @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()
 
   describe "stateless_validate/1" do
