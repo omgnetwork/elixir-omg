@@ -17,6 +17,7 @@ defmodule LoadTest.Common.Generators do
   Provides helper functions to generate bundles of various useful entities for performance tests
   """
 
+  alias ExPlasma.Encoding
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
   alias OMG.State.Transaction
@@ -83,10 +84,10 @@ defmodule LoadTest.Common.Generators do
   end
 
   defp to_utxo_position_list(block, opts) do
-    block.transactions
+    block["transactions"]
     |> Stream.with_index()
     |> Stream.flat_map(fn {tx, index} ->
-      transaction_to_output_positions(tx, block.number, index, opts)
+      transaction_to_output_positions(tx, block["number"], index, opts)
     end)
   end
 
@@ -107,15 +108,13 @@ defmodule LoadTest.Common.Generators do
     poll_get_block(block_hash, child_chain_url, 50)
   end
 
-  defp poll_get_block(block_hash, child_chain_url, 0), do: Client.get_block(block_hash, child_chain_url)
-
   defp poll_get_block(block_hash, child_chain_url, retry) do
     case ChildChainAPI.Api.Block.block_get(
            LoadTest.Connection.ChildChain.client(),
-           %ChildChainAPI.Model.GetBlockBodySchema{hash: block_hash}
+           %ChildChainAPI.Model.GetBlockBodySchema{hash: Encoding.to_hex(block_hash)}
          ) do
-      {:ok, _block} = result ->
-        result
+      {:ok, block_response} ->
+        {:ok, Jason.decode!(block_response.body)["data"]}
 
       _ ->
         Process.sleep(10)

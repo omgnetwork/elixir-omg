@@ -44,7 +44,7 @@ defmodule OMG.Performance.Fixtures do
 
     Enum.each(db_out, &log_output("db_init_watcher", &1))
 
-    watcher_mix_cmd = "mix xomg.watcher.start 2>&1"
+    watcher_mix_cmd = "mix xomg.watcher.start --db #{db_path} 2>&1"
 
     Logger.info("Starting watcher")
 

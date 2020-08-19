@@ -14,192 +14,236 @@
 
 defmodule LoadTest.ChildChain.Abi.AbiFunctionSelector do
   @moduledoc """
-  We define Solidity Event selectors that help us decode returned values from function calls.
-  Function names are to be used as inputs to Event Fetcher.
-  Function names describe the type of the event Event Fetcher will retrieve.
+
+  We define Solidity Function selectors that help us decode returned values from function calls
   """
-
-  @spec exit_started() :: ABI.FunctionSelector.t()
-  def exit_started() do
+  # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
+  def start_exit() do
     %ABI.FunctionSelector{
-      function: "ExitStarted",
-      input_names: ["owner", "exitId"],
-      inputs_indexed: [true, false],
-      method_id: <<221, 111, 117, 92>>,
+      function: "startExit",
+      input_names: [
+        "utxoPosToExit",
+        "rlpOutputTxToContract",
+        "outputTxToContractInclusionProof",
+        "rlpInputCreationTx",
+        "inputCreationTxInclusionProof",
+        "utxoPosInput"
+      ],
+      inputs_indexed: nil,
+      method_id: <<191, 31, 49, 109>>,
       returns: [],
-      type: :event,
-      types: [:address, {:uint, 160}]
+      type: :function,
+      types: [{:uint, 256}, :bytes, :bytes, :bytes, :bytes, {:uint, 256}]
     }
   end
 
-  @spec in_flight_exit_started() :: ABI.FunctionSelector.t()
-  def in_flight_exit_started() do
+  def start_standard_exit() do
     %ABI.FunctionSelector{
-      function: "InFlightExitStarted",
-      input_names: ["initiator", "txHash"],
-      inputs_indexed: [true, true],
-      method_id: <<213, 241, 254, 157>>,
+      function: "startStandardExit",
+      input_names: ["utxoPos", "rlpOutputTx", "outputTxInclusionProof"],
+      inputs_indexed: nil,
+      method_id: <<112, 224, 20, 98>>,
       returns: [],
-      type: :event,
-      types: [:address, {:bytes, 32}]
+      type: :function,
+      types: [tuple: [{:uint, 256}, :bytes, :bytes]]
     }
   end
 
-  @spec in_flight_exit_challenged() :: ABI.FunctionSelector.t()
-  def in_flight_exit_challenged() do
+  def challenge_in_flight_exit_not_canonical() do
     %ABI.FunctionSelector{
-      function: "InFlightExitChallenged",
-      input_names: ["challenger", "txHash", "challengeTxPosition"],
-      inputs_indexed: [true, true, false],
-      method_id: <<104, 116, 1, 150>>,
+      function: "challengeInFlightExitNotCanonical",
+      input_names: [
+        "inputTx",
+        "inputUtxoPos",
+        "inFlightTx",
+        "inFlightTxInputIndex",
+        "competingTx",
+        "competingTxInputIndex",
+        "competingTxPos",
+        "competingTxInclusionProof",
+        "competingTxWitness"
+      ],
+      inputs_indexed: [true, true, true, true, true, true, true, true, true],
+      method_id: <<232, 54, 34, 152>>,
       returns: [],
-      type: :event,
-      types: [:address, {:bytes, 32}, {:uint, 256}]
+      type: :function,
+      types: [
+        tuple: [
+          :bytes,
+          {:uint, 256},
+          :bytes,
+          {:uint, 16},
+          :bytes,
+          {:uint, 16},
+          {:uint, 256},
+          :bytes,
+          :bytes
+        ]
+      ]
     }
   end
 
-  @spec deposit_created() :: ABI.FunctionSelector.t()
-  def deposit_created() do
+  def start_in_flight_exit() do
     %ABI.FunctionSelector{
-      function: "DepositCreated",
-      input_names: ["depositor", "blknum", "token", "amount"],
-      inputs_indexed: [true, true, true, false],
-      method_id: <<24, 86, 145, 34>>,
+      function: "startInFlightExit",
+      input_names: ["inFlightTx", "inputTxs", "inputUtxosPos", "inputTxsInclusionProofs", "inFlightTxWitnesses"],
+      inputs_indexed: nil,
+      method_id: <<90, 82, 133, 20>>,
       returns: [],
-      type: :event,
-      types: [:address, {:uint, 256}, :address, {:uint, 256}]
+      type: :function,
+      types: [
+        tuple: [
+          :bytes,
+          {:array, :bytes},
+          {:array, {:uint, 256}},
+          {:array, :bytes},
+          {:array, :bytes}
+        ]
+      ]
     }
   end
 
-  @spec in_flight_exit_input_piggybacked() :: ABI.FunctionSelector.t()
-  def in_flight_exit_input_piggybacked() do
+  # min_exit_period/0, get_version/0, exit_games/0, vaults/0 are
+  # victims of unfortinate bug: https://github.com/poanetwork/ex_abi/issues/25
+  # All these selectors were intially pulled in with
+  # `ABI.parse_specification(contract_abi_json_decoded,include_events?: true)`
+  # and later modified so that `types` hold what `returns` should have because of
+  # issue 25.
+  # the commented properties of the struct is what it was generated,
+  # the new types were added to mitigate the bug.
+  def min_exit_period() do
     %ABI.FunctionSelector{
-      function: "InFlightExitInputPiggybacked",
-      input_names: ["exitTarget", "txHash", "inputIndex"],
-      inputs_indexed: [true, true, false],
-      method_id: <<169, 60, 14, 155>>,
-      returns: [],
-      type: :event,
-      types: [:address, {:bytes, 32}, {:uint, 16}]
-    }
-  end
-
-  @spec in_flight_exit_output_piggybacked() :: ABI.FunctionSelector.t()
-  def in_flight_exit_output_piggybacked() do
-    %ABI.FunctionSelector{
-      function: "InFlightExitOutputPiggybacked",
-      input_names: ["exitTarget", "txHash", "outputIndex"],
-      inputs_indexed: [true, true, false],
-      method_id: <<110, 205, 142, 121>>,
-      returns: [],
-      type: :event,
-      types: [:address, {:bytes, 32}, {:uint, 16}]
-    }
-  end
-
-  @spec block_submitted() :: ABI.FunctionSelector.t()
-  def block_submitted() do
-    %ABI.FunctionSelector{
-      function: "BlockSubmitted",
-      input_names: ["blockNumber"],
-      inputs_indexed: [false],
-      method_id: <<90, 151, 143, 71>>,
-      returns: [],
-      type: :event,
+      function: "minExitPeriod",
+      input_names: ["min_exit_period"],
+      inputs_indexed: nil,
+      method_id: <<212, 162, 180, 239>>,
+      # returns: [uint: 256],
+      type: :function,
+      # types: []
       types: [uint: 256]
     }
   end
 
-  @spec exit_finalized() :: ABI.FunctionSelector.t()
-  def exit_finalized() do
+  def get_version() do
     %ABI.FunctionSelector{
-      function: "ExitFinalized",
-      input_names: ["exitId"],
-      inputs_indexed: [true],
-      method_id: <<10, 219, 41, 176>>,
-      returns: [],
-      type: :event,
-      types: [uint: 160]
+      function: "getVersion",
+      input_names: ["version"],
+      inputs_indexed: nil,
+      method_id: <<13, 142, 110, 44>>,
+      # returns: [:string],
+      type: :function,
+      # types: []
+      types: [:string]
     }
   end
 
-  @spec in_flight_exit_challenge_responded() :: ABI.FunctionSelector.t()
-  def in_flight_exit_challenge_responded() do
-    # <<99, 124, 196, 167>> == "c|ħ"
+  def exit_games() do
     %ABI.FunctionSelector{
-      function: "InFlightExitChallengeResponded",
-      input_names: ["challenger", "txHash", "challengeTxPosition"],
-      inputs_indexed: [true, true, false],
-      # method_id: "c|ħ",
-      method_id: <<99, 124, 196, 167>>,
-      returns: [],
-      type: :event,
-      types: [:address, {:bytes, 32}, {:uint, 256}]
+      function: "exitGames",
+      input_names: ["exit_game_address"],
+      inputs_indexed: nil,
+      method_id: <<175, 7, 151, 100>>,
+      # returns: [:address],
+      type: :function,
+      # types: [uint: 256]
+      types: [:address]
     }
   end
 
-  @spec exit_challenged() :: ABI.FunctionSelector.t()
-  def exit_challenged() do
+  def vaults() do
     %ABI.FunctionSelector{
-      function: "ExitChallenged",
-      input_names: ["utxoPos"],
-      inputs_indexed: [true],
-      method_id: <<93, 251, 165, 38>>,
-      returns: [],
-      type: :event,
+      function: "vaults",
+      input_names: ["vault_address"],
+      inputs_indexed: nil,
+      method_id: <<140, 100, 234, 74>>,
+      # returns: [:address],
+      type: :function,
+      # types: [uint: 256]
+      types: [:address]
+    }
+  end
+
+  def child_block_interval() do
+    %ABI.FunctionSelector{
+      function: "childBlockInterval",
+      input_names: ["child_block_interval"],
+      inputs_indexed: nil,
+      method_id: <<56, 169, 224, 188>>,
+      # returns: [uint: 256],
+      type: :function,
+      # types: []
       types: [uint: 256]
     }
   end
 
-  @spec in_flight_exit_input_blocked() :: ABI.FunctionSelector.t()
-  def in_flight_exit_input_blocked() do
+  def next_child_block() do
     %ABI.FunctionSelector{
-      function: "InFlightExitInputBlocked",
-      input_names: ["challenger", "txHash", "inputIndex"],
-      inputs_indexed: [true, true, false],
-      method_id: <<71, 148, 4, 88>>,
-      returns: [],
-      type: :event,
-      types: [:address, {:bytes, 32}, {:uint, 16}]
+      function: "nextChildBlock",
+      input_names: ["block_number"],
+      inputs_indexed: nil,
+      method_id: <<76, 168, 113, 79>>,
+      # returns: [uint: 256],
+      type: :function,
+      # types: []
+      types: [uint: 256]
     }
   end
 
-  @spec in_flight_exit_output_blocked() :: ABI.FunctionSelector.t()
-  def in_flight_exit_output_blocked() do
+  def blocks() do
     %ABI.FunctionSelector{
-      function: "InFlightExitOutputBlocked",
-      input_names: ["challenger", "txHash", "outputIndex"],
-      inputs_indexed: [true, true, false],
-      method_id: <<203, 232, 218, 210>>,
-      returns: [],
-      type: :event,
-      types: [:address, {:bytes, 32}, {:uint, 16}]
+      function: "blocks",
+      input_names: ["block_hash", "block_timestamp"],
+      inputs_indexed: nil,
+      method_id: <<242, 91, 63, 153>>,
+      # returns: [bytes: 32, uint: 256],
+      type: :function,
+      # types: [uint: 256]
+      types: [bytes: 32, uint: 256]
     }
   end
 
-  @spec in_flight_exit_input_withdrawn() :: ABI.FunctionSelector.t()
-  def in_flight_exit_input_withdrawn() do
+  def standard_exits() do
     %ABI.FunctionSelector{
-      function: "InFlightExitInputWithdrawn",
-      input_names: ["exitId", "inputIndex"],
-      inputs_indexed: [true, false],
-      method_id: <<68, 70, 236, 17>>,
-      returns: [],
-      type: :event,
-      types: [uint: 160, uint: 16]
+      function: "standardExits",
+      input_names: ["standard_exit_structs"],
+      inputs_indexed: nil,
+      method_id: <<12, 165, 182, 118>>,
+      # returns: [
+      #   array: {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}
+      # ],
+      type: :function,
+      # types: [array: {:uint, 160}]
+      types: [
+        array: {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}
+      ]
     }
   end
 
-  @spec in_flight_exit_output_withdrawn() :: ABI.FunctionSelector.t()
-  def in_flight_exit_output_withdrawn() do
+  def in_flight_exits() do
     %ABI.FunctionSelector{
-      function: "InFlightExitOutputWithdrawn",
-      input_names: ["exitId", "outputIndex"],
-      inputs_indexed: [true, false],
-      method_id: <<162, 65, 198, 222>>,
-      returns: [],
-      type: :event,
-      types: [uint: 160, uint: 16]
+      function: "inFlightExits",
+      input_names: ["in_flight_exit_structs"],
+      inputs_indexed: nil,
+      method_id: <<206, 201, 225, 167>>,
+      # returns: [
+      #   array: {:tuple,
+      #           [
+      #             :bool,
+      #             {:uint, 64},
+      #             {:uint, 256},
+      #             {:uint, 256},
+      #             {:array, :tuple, 4},
+      #             {:array, :tuple, 4},
+      #             :address,
+      #             {:uint, 256},
+      #             {:uint, 256}
+      #           ]}
+      # ],
+      type: :function,
+      # types: [array: {:uint, 160}]
+      types: [
+        {:array, {:tuple, [:bool, {:uint, 64}, {:uint, 256}, {:uint, 256}, :address, {:uint, 256}, {:uint, 256}]}}
+      ]
     }
   end
 end
