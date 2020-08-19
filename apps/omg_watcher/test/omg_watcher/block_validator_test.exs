@@ -32,7 +32,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
   @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()
 
   describe "stateless_validate/1" do
-    test "returns error if a transaction is not correctly formed (e.g. duplicate inputs)" do
+    test "returns an error if a transaction within the block is not correctly formed (e.g. duplicate inputs in this test)" do
       input_1 = {1, 0, 0, @alice}
       input_2 = {2, 0, 0, @alice}
       input_3 = {3, 0, 0, @alice}
@@ -87,7 +87,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       assert {:ok, true} == BlockValidator.stateless_validate(block)
     end
 
-    test "returns error for non-matching Merkle root hash" do
+    test "returns an error if the given hash does not match the reconstructed Merkle root hash" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
@@ -102,7 +102,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       assert {:error, :invalid_merkle_root} == BlockValidator.stateless_validate(block)
     end
 
-    test "accepts matching Merkle root hash" do
+    test "accepts a matching Merkle root hash" do
       recovered_tx_1 = TestHelper.create_recovered([{1, 0, 0, @alice}], @eth, [{@bob, 100}])
       recovered_tx_2 = TestHelper.create_recovered([{2, 0, 0, @alice}], @eth, [{@bob, 100}])
 
