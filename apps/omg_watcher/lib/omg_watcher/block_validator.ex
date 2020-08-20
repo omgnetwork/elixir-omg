@@ -37,7 +37,7 @@ defmodule OMG.Watcher.BlockValidator do
     with :ok <- number_of_transactions_within_limit(submitted_block.transactions),
          {:ok, recovered_transactions} <- verify_transactions(submitted_block.transactions),
          {:ok, _fee_transactions} <- verify_fee_transactions(recovered_transactions),
-         {:ok, _inputs} <- verify_no_duplicate_inputs(recovered_transactions, %{}),
+         {:ok, _inputs} <- verify_no_duplicate_inputs(recovered_transactions),
          {:ok, _block} <- verify_merkle_root(submitted_block, recovered_transactions) do
       {:ok, true}
     end
@@ -83,21 +83,15 @@ defmodule OMG.Watcher.BlockValidator do
 
   defp number_of_transactions_within_limit(_transactions), do: :ok
 
-  @spec verify_no_duplicate_inputs([Transaction.Recovered.t()], map()) :: {:ok, map()}
-  defp verify_no_duplicate_inputs([], input_set), do: {:ok, input_set}
+  @spec verify_no_duplicate_inputs([Transaction.Recovered.t()]) :: {:ok, map()} | {:error, :block_duplicate_inputs}
 
-  defp verify_no_duplicate_inputs([transaction | rest], input_set) do
-    current_input_positions = transaction |> Transaction.get_inputs() |> Enum.map(&Position.encode/1)
+  defp verify_no_duplicate_inputs(transactions) do
+    all_inputs = Enum.flat_map(transactions, &Transaction.get_inputs/1)
+    uniq_inputs = Enum.uniq_by(all_inputs, &Position.encode/1)
 
-    current_input_positions
-    |> Enum.any?(fn input_position -> Map.has_key?(input_set, input_position) end)
-    |> case do
-      true ->
-        {:error, :block_duplicate_inputs}
-
-      false ->
-        new_input_set = current_input_positions |> Map.new(fn pos -> {pos, true} end) |> Map.merge(input_set)
-        verify_no_duplicate_inputs(rest, new_input_set)
+    case length(all_inputs) == length(uniq_inputs) do
+      true -> {:ok, all_inputs}
+      false -> {:error, :block_duplicate_inputs}
     end
   end
 
