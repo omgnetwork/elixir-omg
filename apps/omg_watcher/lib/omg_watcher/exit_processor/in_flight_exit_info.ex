@@ -193,6 +193,16 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {:put, :in_flight_exit_info, {ife_hash, value}}
   end
 
+  @doc """
+  Returns all input utxos for given in-flight exits
+  """
+  @spec get_input_utxos(list(t())) :: list(Utxo.Position.t())
+  def get_input_utxos(in_flight_exits) do
+    in_flight_exits
+    |> Enum.map(& &1.input_utxos_pos)
+    |> List.flatten()
+  end
+
   defp assert_utxo_pos_type(Utxo.position(blknum, txindex, oindex))
        when is_integer(blknum) and is_integer(txindex) and is_integer(oindex),
        do: :ok
@@ -257,6 +267,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def to_db_value(%Transaction.Payment{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata})
       when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
     %{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata}
+  end
+
+  @spec get_inputs(list(t())) :: list(Utxo.Position.t())
+  def get_inputs(ifes) do
+    ifes
+    |> Enum.map(fn %{tx: tx} -> Transaction.get_inputs(tx) end)
+    |> List.flatten()
   end
 
   @spec piggyback(t(), combined_index_t()) :: t() | {:error, :non_existent_exit | :cannot_piggyback}

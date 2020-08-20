@@ -38,6 +38,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.ExitProcessor.Tools
 
@@ -77,6 +78,18 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def new_in_flight_exits(in_flight_exit_started_events) do
     GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events}, @timeout)
+  end
+
+  @doc """
+  Accepts events and processes them in the state - new in flight exits are tracked.
+
+  Returns `db_updates` to be sent to `OMG.DB` by the caller
+  """
+  # empty list clause to not block the server for no-ops
+  def delete_in_flight_exits([]), do: {:ok, []}
+
+  def delete_in_flight_exits(in_flight_exit_deleted_events) do
+    GenServer.call(__MODULE__, {:in_flight_exits_deleted, in_flight_exit_deleted_events}, @timeout)
   end
 
   @doc """
@@ -357,6 +370,23 @@ defmodule OMG.Watcher.ExitProcessor do
     ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
     {new_state, db_updates} = Core.new_in_flight_exits(state, exits, ife_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
+  end
+
+  @doc """
+  See `delete_in_flight_exits/1`. Flow:
+  - spends input utxos
+  - deletes in-flight exits from state
+  """
+  def handle_call({:delete_in_flight_exits, deletions}, _from, state) do
+    _ =
+      if not Enum.empty?(deletions),
+        do: Logger.info("Recognized #{Enum.count(deletions)} deletions: #{inspect(deletions)}")
+
+    {new_state, deleted_exits, db_updates} = Core.delete_in_flight_exits(state, deletions)
+    input_utxos = InFlightExitInfo.get_inputs(deleted_exits)
+    {:ok, db_updates_from_state, _validities} = State.exit_utxos(input_utxos)
+
+    {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
 
   @doc """
