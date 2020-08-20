@@ -119,7 +119,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
       assert {:ok, true} = BlockValidator.stateless_validate(block)
     end
 
-    test "rejects a block with fewer than two transactions or more transactions than the defined limit" do
+    test "rejects a block with no transactions or more transactions than the defined limit" do
       oversize_block = %{
         hash: "0x0",
         number: 1000,

@@ -27,10 +27,10 @@ defmodule OMG.Watcher.BlockValidator do
   @doc """
   Executes stateless validation of a submitted block:
   - Verifies that the number of transactions falls within the accepted range.
-  - Verifies that transactions are correctly formed.
+  - Verifies that (payment and fee) transactions  are correctly formed.
   - Verifies that there are no duplicate inputs at the block level.
   - Verifies that given Merkle root matches reconstructed Merkle root.
-  - Verifies that fee transactions are correctly placed, calculated and unique per currency.
+  - Verifies that fee transactions are correctly placed and unique per currency.
   """
   @spec stateless_validate(Block.t()) :: {:ok, boolean()} | {:error, atom()}
   def stateless_validate(submitted_block) do
