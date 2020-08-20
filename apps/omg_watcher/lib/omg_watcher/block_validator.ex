@@ -75,7 +75,7 @@ defmodule OMG.Watcher.BlockValidator do
   end
 
   @spec number_of_transactions_within_limit([Transaction.Signed.tx_bytes()]) :: :ok | {:error, atom()}
-  defp number_of_transactions_within_limit(transactions) when length(transactions) == 0, do: {:error, :empty_block}
+  defp number_of_transactions_within_limit(transactions) when transactions == [], do: {:error, :empty_block}
 
   defp number_of_transactions_within_limit(transactions) when length(transactions) > @transaction_upper_limit do
     {:error, :transactions_exceed_block_limit}
