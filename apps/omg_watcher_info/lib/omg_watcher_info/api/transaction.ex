@@ -42,6 +42,25 @@ defmodule OMG.WatcherInfo.API.Transaction do
           | {:error, :too_many_outputs}
           | {:error, :empty_transaction}
 
+  @type order_t() :: %{
+          owner: Crypto.address_t(),
+          payments: nonempty_list(UtxoSelection.payment_t()),
+          metadata: binary() | nil,
+          fee: UtxoSelection.fee_t()
+        }
+
+  @type utxos_map_t() :: %{UtxoSelection.currency_t() => UtxoSelection.utxo_list_t()}
+  @type inputs_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
+  @type transaction_t() :: %{
+          inputs: nonempty_list(%DB.TxOutput{}),
+          outputs: nonempty_list(UtxoSelection.payment_t()),
+          fee: UtxoSelection.fee_t(),
+          txbytes: Transaction.tx_bytes() | nil,
+          metadata: Transaction.metadata(),
+          sign_hash: Crypto.hash_t() | nil,
+          typed_data: TypedDataHash.Types.typedDataSignRequest_t()
+        }
+
   @doc """
   Retrieves a specific transaction by id
   """
@@ -95,7 +114,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   def create(order) do
     case order.owner
          |> DB.TxOutput.get_sorted_grouped_utxos()
-         |> UtxoSelection.create_advice(order) do
+         |> create_inputs(order) do
       {:error, reason} ->
         {:error, reason}
 
@@ -104,8 +123,30 @@ defmodule OMG.WatcherInfo.API.Transaction do
         |> create_transaction(order)
         |> respond(:complete)
     end
+  end
 
-    # IO.inspect(result)
+  @doc """
+  Given order finds spender's inputs sufficient to perform a payment.
+  If also provided with receiver's address, creates and encodes a transaction.
+  """
+  @spec create_inputs(utxos_map_t(), order_t()) :: inputs_t()
+  defp create_inputs(utxos, %{payments: payments, fee: fee}) do
+    needed_funds = UtxoSelection.needed_funds(payments, fee)
+
+    token_utxo_selection = UtxoSelection.select_utxo(utxos, needed_funds)
+
+    with {:ok, funds} <- UtxoSelection.funds_sufficient?(token_utxo_selection) do
+      utxo_count =
+        funds
+        |> Stream.map(fn {_, utxos} -> length(utxos) end)
+        |> Enum.sum()
+
+      merge_utxos = UtxoSelection.prioritize_merge_utxos(funds, utxos)
+
+      if utxo_count <= Transaction.Payment.max_inputs(),
+        do: UtxoSelection.add_utxos_for_stealth_merge(funds, merge_utxos),
+        else: {:error, :too_many_inputs}
+    end
   end
 
   @spec include_typed_data(UtxoSelection.advice_t()) :: UtxoSelection.advice_t()
