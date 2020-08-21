@@ -30,6 +30,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
   @default_transactions_limit 200
   @empty_metadata <<0::256>>
+  @max_outputs Transaction.Payment.max_outputs()
 
   @type create_t() ::
           {:ok,
@@ -127,20 +128,38 @@ defmodule OMG.WatcherInfo.API.Transaction do
       address
       |> DB.TxOutput.get_sorted_grouped_utxos(:asc)
       |> Map.get(currency, [])
-      |> Enum.slice(0, 4)
 
     case merge_inputs do
       [_single_input] ->
         {:error, :single_input_for_ccy}
 
-      _ ->
-        create_transaction([{currency, merge_inputs}], %{
-          fee: %{amount: 0, currency: currency},
-          metadata: @empty_metadata,
-          owner: address,
-          payments: []
-        })
+      inputs ->
+        generate_merge_transactions(inputs, currency, address)
     end
+  end
+
+  defp generate_merge_transactions(merge_inputs, currency, owner) do
+    merge_inputs
+    |> Stream.chunk_every(@max_outputs)
+    |> Enum.flat_map(fn input_set ->
+      case input_set do
+        [_single_input] ->
+          []
+
+        inputs ->
+          {:ok, transaction} = create_merge(inputs, currency, owner)
+          [transaction]
+      end
+    end)
+  end
+
+  defp create_merge(inputs, currency, owner) do
+    create_transaction([{currency, inputs}], %{
+      fee: %{amount: 0, currency: currency},
+      metadata: @empty_metadata,
+      owner: owner,
+      payments: []
+    })
   end
 
   defp add_type_specs(%{inputs: inputs, outputs: outputs, metadata: metadata}) do
