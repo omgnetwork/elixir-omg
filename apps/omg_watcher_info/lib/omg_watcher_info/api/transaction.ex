@@ -125,10 +125,8 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  @doc """
-  Given order finds spender's inputs sufficient to perform a payment.
-  If also provided with receiver's address, creates and encodes a transaction.
-  """
+  # Given order finds spender's inputs sufficient to perform a payment.
+  # If also provided with receiver's address, creates and encodes a transaction.
   @spec create_inputs(utxos_map_t(), order_t()) :: inputs_t()
   defp create_inputs(utxos, %{payments: payments, fee: fee}) do
     needed_funds = UtxoSelection.needed_funds(payments, fee)
