@@ -64,7 +64,7 @@ config :omg_child_chain,
 # We need to start OMG.ChildChainRPC.Web.Endpoint with HTTP server for Performance and Watcher tests to work
 # as a drawback lightweight (without HTTP server) controller tests are no longer an option.
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
-  http: [port: 9657],
+  http: [port: 9656],
   server: true
 
 config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
@@ -130,7 +130,7 @@ config :os_mon,
   disk_almost_full_threshold: 0.99,
   disk_space_check_interval: 120
 
-config :omg_watcher, child_chain_url: "http://localhost:9657"
+config :omg_watcher, child_chain_url: "http://localhost:9656"
 
 config :omg_watcher,
   # NOTE `exit_processor_sla_margin` can't be made shorter. At 8 it sometimes
@@ -147,7 +147,7 @@ config :omg_watcher, OMG.Watcher.Tracer,
   disabled?: true,
   env: "test"
 
-config :omg_watcher_info, child_chain_url: "http://localhost:9657"
+config :omg_watcher_info, child_chain_url: "http://localhost:9656"
 
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   ownership_timeout: 180_000,
