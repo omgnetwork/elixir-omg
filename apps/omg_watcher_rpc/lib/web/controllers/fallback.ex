@@ -57,6 +57,10 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       code: "transaction.create:insufficient_funds",
       description: "Account balance is too low to satisfy the payment."
     },
+    too_many_inputs: %{
+      code: "transaction.create:too_many_inputs",
+      description: "Total number of payments + change + fees exceed maximum allowed inputs."
+    },
     too_many_outputs: %{
       code: "transaction.create:too_many_outputs",
       description: "Total number of payments + change + fees exceed maximum allowed outputs."
@@ -68,6 +72,10 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     self_transaction_not_supported: %{
       code: "transaction.create:self_transaction_not_supported",
       description: "This endpoint cannot be used to create merge or split transactions."
+    },
+    invalid_merkle_root: %{
+      code: "block.validate:invalid_merkle_root",
+      description: "Block hash does not match reconstructed Merkle root."
     },
     missing_signature: %{
       code: "submit_typed:missing_signature",

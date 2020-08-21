@@ -945,67 +945,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
-    test "advice on merge single token tx", %{
-      alice: alice,
-      bob: bob,
-      blocks_inserter: blocks_inserter,
-      test_server: context
-    } do
-      alice_balance = balance_in_token(alice.addr, @eth)
-      max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
-
-      payment = max_spendable + 10
-
-      prepare_test_server(context, @fee_response)
-
-      assert %{
-               "result" => "intermediate",
-               "transactions" => transactions
-             } =
-               WatcherHelper.success?(
-                 "transaction.create",
-                 %{
-                   "owner" => Encoding.to_hex(alice.addr),
-                   "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
-                   ],
-                   "fee" => %{"currency" => @default_fee_currency}
-                 }
-               )
-
-      make_payments(7000, alice, Enum.map(transactions, & &1["txbytes"]), blocks_inserter)
-
-      assert alice_balance == balance_in_token(alice.addr, @eth)
-      assert max_amount_spendable_in_single_tx(alice.addr, @eth) >= payment
-    end
-
-    @tag fixtures: [:alice, :bob, :more_utxos]
-    test "advice on merge does not merge single utxo", %{alice: alice, bob: bob, test_server: context} do
-      max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
-
-      payment = max_spendable + 1
-
-      prepare_test_server(context, @fee_response)
-
-      assert %{
-               "result" => "intermediate",
-               "transactions" => [transaction]
-             } =
-               WatcherHelper.success?(
-                 "transaction.create",
-                 %{
-                   "owner" => Encoding.to_hex(alice.addr),
-                   "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
-                   ],
-                   "fee" => %{"currency" => @default_fee_currency}
-                 }
-               )
-
-      assert OMG.State.Transaction.Payment.max_inputs() == length(transaction["inputs"])
-    end
-
-    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
     test "allows to pay multi token tx", %{
       alice: alice,
       bob: bob,
@@ -1077,50 +1016,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       assert alice_eth - @default_fee_amount == balance_in_token(alice.addr, @eth)
       assert alice_token - payment_token == balance_in_token(alice.addr, @other_token)
       assert bob_token + payment_token == balance_in_token(bob.addr, @other_token)
-    end
-
-    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
-    test "advice on merge multi token tx", %{
-      alice: alice,
-      bob: bob,
-      blocks_inserter: blocks_inserter,
-      test_server: context
-    } do
-      alice_eth = balance_in_token(alice.addr, @eth)
-      alice_token = balance_in_token(alice.addr, @other_token)
-      bob_eth = balance_in_token(bob.addr, @eth)
-      bob_token = balance_in_token(bob.addr, @other_token)
-
-      payment_eth = max_amount_spendable_in_single_tx(alice.addr, @eth) + 10
-      payment_token = max_amount_spendable_in_single_tx(alice.addr, @other_token) + 10
-
-      prepare_test_server(context, @fee_response)
-
-      assert %{
-               "result" => "intermediate",
-               "transactions" => transactions
-             } =
-               WatcherHelper.success?(
-                 "transaction.create",
-                 %{
-                   "owner" => Encoding.to_hex(alice.addr),
-                   "payments" => [
-                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)},
-                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
-                   ],
-                   "fee" => %{"currency" => @default_fee_currency}
-                 }
-               )
-
-      make_payments(7000, alice, Enum.map(transactions, & &1["txbytes"]), blocks_inserter)
-
-      assert alice_eth == balance_in_token(alice.addr, @eth)
-      assert alice_token == balance_in_token(alice.addr, @other_token)
-      assert bob_eth == balance_in_token(bob.addr, @eth)
-      assert bob_token == balance_in_token(bob.addr, @other_token)
-
-      assert max_amount_spendable_in_single_tx(alice.addr, @eth) >= payment_eth
-      assert max_amount_spendable_in_single_tx(alice.addr, @other_token) >= payment_token
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
@@ -1296,7 +1191,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :more_utxos]
-    test "returns an error when requester is equal to all the ouputs owner", %{alice: alice} do
+    test "returns an error when requester is equal to all the outputs owner", %{alice: alice} do
       params = %{
         "owner" => Encoding.to_hex(alice.addr),
         "payments" => [
