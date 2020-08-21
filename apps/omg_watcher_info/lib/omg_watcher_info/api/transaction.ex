@@ -18,12 +18,12 @@ defmodule OMG.WatcherInfo.API.Transaction do
   """
 
   alias OMG.State.Transaction
+  alias OMG.TypedDataHash
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.UtxoSelection
-  alias OMG.TypedDataHash
 
   require Utxo
   require Transaction.Payment
