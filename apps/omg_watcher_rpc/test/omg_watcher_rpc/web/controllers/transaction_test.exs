@@ -19,7 +19,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
-  import OMG.WatcherInfo.Factory, only: [build: 1, with_deposit: 1, insert: 1, with_inputs: 2, with_outputs: 2]
+  # only: [build: 1, with_deposit: 1, insert: 1, with_inputs: 2, with_outputs: 2]
+  import OMG.WatcherInfo.Factory
 
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
@@ -32,6 +33,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias Support.WatcherHelper
 
   require OMG.State.Transaction.Payment
+  import OMG.WatcherInfo.Factory
+
+  require Utxo
 
   @eth OMG.Eth.zero_address()
   @other_token <<127::160>>
@@ -1208,6 +1212,69 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } == WatcherHelper.no_success?("transaction.create", params)
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "returns an error when need more than 4 inputs to satisfy payments and fee", %{
+      alice: alice,
+      bob: bob
+    } do
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 499, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "code" => "transaction.create:too_many_inputs",
+               "description" => "Total number of payments + change + fees exceed maximum allowed inputs.",
+               "object" => "error"
+             } == WatcherHelper.no_success?("transaction.create", params)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "stealth add inputs when 2 inputs can matched payments and fees", %{
+      alice: alice,
+      bob: bob
+    } do
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 40, currency: @eth, owner: alice.addr)
+
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 49, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 1,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 20},
+                     %{"amount" => 10},
+                     %{"amount" => 30},
+                     %{"amount" => 40}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+    end
+
     defp balance_in_token(address, token) do
       currency = Encoding.to_hex(token)
 
@@ -1215,18 +1282,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         %{"currency" => ^currency, "amount" => amount} -> amount
         _ -> false
       end)
-    end
-
-    defp max_amount_spendable_in_single_tx(address, token) do
-      currency = Encoding.to_hex(token)
-
-      address
-      |> WatcherHelper.get_utxos()
-      |> Stream.filter(&(&1["currency"] == currency))
-      |> Enum.sort_by(& &1["amount"], &>=/2)
-      |> Stream.take(Transaction.Payment.max_inputs())
-      |> Stream.map(& &1["amount"])
-      |> Enum.sum()
     end
 
     defp make_payments(blknum, spender, txs_bytes, blocks_inserter) when is_list(txs_bytes) do
