@@ -28,7 +28,7 @@ defmodule OMG.Watcher.BlockValidator do
   Executes stateless validation of a submitted block:
   - Verifies that the number of transactions falls within the accepted range.
   - Verifies that (payment and fee) transactions  are correctly formed.
-    - Verifies that fee transactions are correctly placed and unique per currency.
+  - Verifies that fee transactions are correctly placed and unique per currency.
   - Verifies that there are no duplicate inputs at the block level.
   - Verifies that given Merkle root matches reconstructed Merkle root.
 
