@@ -767,6 +767,36 @@ jobs:
           path: current_release/
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
+  increase_chart_version_childchain:
+    docker:
+      - image: cimg/base:2020.01
+    environment:
+      CHART_NAME: childchain
+      HELM_CHART_REPO: helm-development
+    steps:
+      - checkout
+      - run: sh .circleci/ci_increase_chart_version.sh
+
+  increase_chart_version_watcher:
+    docker:
+      - image: cimg/base:2020.01
+    environment:
+      CHART_NAME: watcher
+      HELM_CHART_REPO: helm-development
+    steps:
+      - checkout
+      - run: sh .circleci/ci_increase_chart_version.sh
+
+  increase_chart_version_watcher_info:
+    docker:
+      - image: cimg/base:2020.01
+    environment:
+      CHART_NAME: watcher-info
+      HELM_CHART_REPO: helm-development
+    steps:
+      - checkout
+      - run: sh .circleci/ci_increase_chart_version.sh
+
   deploy_child_chain:
     executor: deployer
     steps:
@@ -987,3 +1017,19 @@ workflows:
             branches:
               only:
                 - master
+      # Increase chart version for new release
+      - increase_chart_version_childchain:
+          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          filters: &only_release_tag
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                # eg. v1.0.3-pre.0, v1.0.3, ...
+                - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - increase_chart_version_watcher:
+          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          filters: *only_release_tag
+      - increase_chart_version_watcher_info:
+          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          filters: *only_release_tag
