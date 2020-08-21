@@ -43,6 +43,13 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
               fastest: 20_000_000_000
             }
 
+  @typep thresholds() :: %{
+    safe_low: non_neg_integer(),
+    standard: non_neg_integer(),
+    fast: non_neg_integer(),
+    fastest: non_neg_integer()
+  }
+
   @thresholds %{
     safe_low: 35,
     standard: 60,
@@ -51,6 +58,13 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   }
 
   @target_threshold :fast
+
+  @typep recommendations() :: %{
+    safe_low: float(),
+    standard: float(),
+    fast: float(),
+    fastest: float()
+  }
 
   @behaviour Strategy
 
@@ -121,7 +135,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   @doc false
   @impl GenServer
   def handle_info({History, :updated}, state) do
-    prices = do_recalculate()
+    prices = calculate(History.all(), @thresholds)
 
     _ = Logger.info("#{__MODULE__}: History updated. Prices recalculated to: #{inspect(prices)}")
     {:noreply, %{state | prices: prices}}
@@ -131,8 +145,13 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   # Internal implementations
   #
 
-  defp do_recalculate() do
-    sorted_min_prices = History.all() |> filter_min() |> Enum.sort()
+  # Returns the recommended gas prices for each of the provided `@thresholds`. It does the following:
+  #   1. For each historical block, take the minimum gas price accepted by the block
+  #   2. Sort the minimum gas prices from lowest to highest prices
+  #   3. Extract the gas prices at the given thresholds (in other word, the percentile)
+  @spec calculate(History.t(), thresholds()) :: recommendations() | {:error, :no_gas_price_history}
+  defp calculate(history, thresholds) do
+    sorted_min_prices = history |> filter_min() |> Enum.sort()
 
     # Handles when all blocks are empty (possible on local chain and low traffic testnets)
     case length(sorted_min_prices) do
@@ -140,7 +159,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
         {:error, :no_gas_price_history}
 
       block_count ->
-        Enum.map(@thresholds, fn {threshold_name, value} ->
+        Enum.map(thresholds, fn {threshold_name, value} ->
           position = floor(block_count * value / 100) - 1
           {threshold_name, Enum.at(sorted_min_prices, position)}
         end)

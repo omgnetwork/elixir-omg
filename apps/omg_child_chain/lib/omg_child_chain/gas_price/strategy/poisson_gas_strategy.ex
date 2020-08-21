@@ -124,7 +124,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
   @doc false
   @impl GenServer
   def handle_info({History, :updated}, state) do
-    prices = do_recalculate()
+    prices = calculate()
 
     _ = Logger.info("#{__MODULE__}: History updated. Prices recalculated to: #{inspect(prices)}")
     {:noreply, %{state | prices: prices}}
@@ -135,7 +135,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
   #
 
   # An equivalent of https://github.com/ethgasstation/gasstation-express-oracle/blob/3cfb354/gasExpress.py#L213-L229
-  defp do_recalculate() do
+  defp calculate() do
     case exclude_empty(History.all()) do
       [] ->
         {:error, :no_gas_price_history}
