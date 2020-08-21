@@ -28,9 +28,10 @@ defmodule OMG.Watcher.BlockValidator do
   Executes stateless validation of a submitted block:
   - Verifies that the number of transactions falls within the accepted range.
   - Verifies that (payment and fee) transactions  are correctly formed.
+    - Verifies that fee transactions are correctly placed and unique per currency.
   - Verifies that there are no duplicate inputs at the block level.
   - Verifies that given Merkle root matches reconstructed Merkle root.
-  - Verifies that fee transactions are correctly placed and unique per currency.
+
   """
   @spec stateless_validate(Block.t()) :: {:ok, boolean()} | {:error, atom()}
   def stateless_validate(submitted_block) do
@@ -83,8 +84,7 @@ defmodule OMG.Watcher.BlockValidator do
 
   defp number_of_transactions_within_limit(_transactions), do: :ok
 
-  @spec verify_no_duplicate_inputs([Transaction.Recovered.t()]) :: {:ok, map()} | {:error, :block_duplicate_inputs}
-
+  @spec verify_no_duplicate_inputs([Transaction.Recovered.t()]) :: {:ok, [map()]} | {:error, :block_duplicate_inputs}
   defp verify_no_duplicate_inputs(transactions) do
     all_inputs = Enum.flat_map(transactions, &Transaction.get_inputs/1)
     uniq_inputs = Enum.uniq_by(all_inputs, &Position.encode/1)
