@@ -43,6 +43,8 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
           sigs: binary()
         }
 
+  @type order_t() :: :asc | :desc
+
   @primary_key false
   schema "txoutputs" do
     field(:blknum, :integer, primary_key: true)
@@ -209,14 +211,14 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     end)
   end
 
-  @spec get_sorted_grouped_utxos(OMG.Crypto.address_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
-  def get_sorted_grouped_utxos(owner) do
+  @spec get_sorted_grouped_utxos(OMG.Crypto.address_t(), order_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
+  def get_sorted_grouped_utxos(owner, order \\ :desc) do
     # TODO: use clever DB query to get following out of DB
     owner
     |> get_all_utxos()
     |> Enum.group_by(fn utxo -> utxo.currency end)
     |> Enum.map(fn {currency, utxos} ->
-      {currency, Enum.sort_by(utxos, fn utxo -> utxo.amount end, :desc)}
+      {currency, Enum.sort_by(utxos, fn utxo -> utxo.amount end, order)}
     end)
     |> Map.new()
   end
