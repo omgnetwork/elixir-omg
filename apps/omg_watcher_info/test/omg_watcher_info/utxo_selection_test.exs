@@ -30,134 +30,6 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   @eth OMG.Eth.zero_address()
   @other_token <<127::160>>
 
-  describe "create_advice/2" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns inputs satisfy payments and fee" do
-      amount_1 = 1000
-      amount_2 = 2000
-
-      _ = insert(:txoutput, amount: amount_1, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: amount_2, currency: @eth, owner: @alice)
-
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
-
-      %{
-        @eth => [utxo_1, utxo_2]
-      } = utxos
-
-      order = %{
-        owner: @bob,
-        payments: [
-          %{
-            owner: @alice,
-            currency: @eth,
-            amount: 1000
-          }
-        ],
-        fee: %{
-          currency: @eth,
-          amount: 1000
-        },
-        metadata: nil
-      }
-
-      assert %{
-               @eth => [utxo_2, utxo_1]
-             } == UtxoSelection.create_advice(utxos, order)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns inputs correctly when there're 2 inputs and have 2 mergable utxos" do
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 200, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
-      _ = insert(:txoutput, amount: 200, currency: @other_token, owner: @alice)
-
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
-      eth_utxos = utxos[@eth]
-      other_token_utxos = utxos[@other_token]
-
-      order = %{
-        owner: @bob,
-        payments: [
-          %{
-            owner: @alice,
-            currency: @eth,
-            amount: 100
-          }
-        ],
-        fee: %{
-          currency: @other_token,
-          amount: 100
-        },
-        metadata: nil
-      }
-
-      assert %{
-               @eth => eth_utxos,
-               @other_token => other_token_utxos
-             } == UtxoSelection.create_advice(utxos, order)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns error when insufficient balance" do
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
-
-      order = %{
-        owner: @bob,
-        payments: [
-          %{
-            owner: @alice,
-            currency: @eth,
-            amount: 400
-          }
-        ],
-        fee: %{
-          currency: @other_token,
-          amount: 100
-        },
-        metadata: nil
-      }
-
-      assert {:error, {:insufficient_funds, [%{missing: 100, token: "0x000000000000000000000000000000000000007f"}]}} ==
-               UtxoSelection.create_advice(utxos, order)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns error when too many inputs to satisfy payments and fee" do
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
-
-      order = %{
-        owner: @bob,
-        payments: [
-          %{
-            owner: @alice,
-            currency: @eth,
-            amount: 400
-          }
-        ],
-        fee: %{
-          currency: @eth,
-          amount: 100
-        },
-        metadata: nil
-      }
-
-      assert {:error, :too_many_inputs} == UtxoSelection.create_advice(utxos, order)
-    end
-  end
-
   describe "needed_funds/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct map when payment_currency != fee_currency" do
@@ -478,7 +350,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "within the currency grouping, orders UTXOs in asdending order of value ('dust first')" do
+    test "within the currency grouping, orders UTXOs in ascending order of value ('dust first')" do
       token_a = <<65::160>>
       token_b = <<66::160>>
 
