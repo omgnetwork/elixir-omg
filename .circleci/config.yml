@@ -232,7 +232,7 @@ jobs:
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher_info
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher_rpc --router apps/omg_watcher_rpc/lib/web/router.ex
 
-  child_chain_coveralls_and_integration_tests:
+  child_chain_tests:
     executor: builder_pg_geth
     environment:
       MIX_ENV: test
@@ -250,12 +250,34 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_info --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude needs_childchain_running --exclude watcher_info --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_info --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude needs_childchain_running --exclude watcher_info --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
+  
+  child_chain_integration_tests:
+    executor: builder_pg_geth
+    environment:
+      MIX_ENV: test
+    steps:
+      - setup_elixir-omg_workspace
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Compile
+          command: mix compile
+      - run:
+          name: Start Geth
+          command: docker-compose up -d geth
+      - run:
+          name: Start ChildChain
+          command: make start-child_chain OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
+      - run:
+          name: Integration Tests 
+          command: mix test test/omg_child_chain/integration/happy_path/check_IFE_input_piggybacking_is_ignored_by_the_child_chain.exs
 
   watcher_coveralls_and_integration_tests:
     executor: builder_pg_geth
@@ -900,12 +922,15 @@ workflows:
                 - master
       - coveralls_report:
           requires:
-            - child_chain_coveralls_and_integration_tests
+            - child_chain_tests,
             - watcher_coveralls_and_integration_tests
             - watcher_info_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
             - test
-      - child_chain_coveralls_and_integration_tests:
+      - child_chain_integration_tests:
+          requires: [build]
+          filters: *all_branches_and_tags
+      - child_chain_tests:
           requires: [build]
           filters: *all_branches_and_tags
       - watcher_coveralls_and_integration_tests:
@@ -948,7 +973,8 @@ workflows:
       - publish_child_chain:
           requires:
             [
-              child_chain_coveralls_and_integration_tests,
+              child_chain_tests,
+              child_chain_integration_tests
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
@@ -971,7 +997,8 @@ workflows:
       - publish_watcher:
           requires:
             [
-              child_chain_coveralls_and_integration_tests,
+              child_chain_tests,
+              child_chain_integration_tests
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,

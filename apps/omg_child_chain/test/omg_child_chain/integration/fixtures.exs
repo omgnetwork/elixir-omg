@@ -76,24 +76,6 @@ defmodule OMG.ChildChain.Integration.Fixtures do
     file_path
   end
 
-  deffixture in_beam_child_chain(contract, fee_file, db_initialized) do
-    # match variables to hide "unused var" warnings (can't be fixed by underscoring in line above, breaks macro):
-    _ = contract
-    _ = db_initialized
-    _ = fee_file
-    # need to override that to very often, so that many checks fall in between a single child chain block submission
-    {:ok, started_apps} = Application.ensure_all_started(:omg_child_chain)
-    {:ok, started_apps_rpc} = Application.ensure_all_started(:omg_child_chain_rpc)
-
-    on_exit(fn ->
-      (started_apps ++ started_apps_rpc)
-      |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-
-    wait_for_web()
-  end
-
   deffixture alice_deposits(alice, token) do
     prepare_deposits(alice, token)
   end

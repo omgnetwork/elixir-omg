@@ -35,102 +35,14 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   alias Support.Integration.DepositHelper
   alias Support.RootChainHelper
 
-  @moduletag :integration
-  @moduletag :child_chain
+  @moduletag :needs_childchain_running
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 120_000
 
   @eth OMG.Eth.zero_address()
   @interval Configuration.child_block_interval()
-  # kill this test ASAP
-  @tag fixtures: [:alice, :bob, :in_beam_child_chain, :token, :alice_deposits]
-  test "deposit, spend, restart, exit etc works fine", %{
-    alice: alice,
-    bob: bob,
-    token: token,
-    alice_deposits: {deposit_blknum, token_deposit_blknum}
-  } do
-    {:ok, token} = Encoding.from_hex(token)
 
-    raw_tx = Transaction.Payment.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 2}], <<0::256>>)
-
-    tx = OMG.TestHelper.sign_encode(raw_tx, [alice.priv])
-    # spend the deposit
-    assert {:ok, %{"blknum" => spend_child_block}} = submit_transaction(tx)
-
-    token_raw_tx =
-      Transaction.Payment.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 6}, {alice.addr, token, 2}])
-
-    token_tx = OMG.TestHelper.sign_encode(token_raw_tx, [alice.priv])
-    # spend the token deposit
-    assert {:ok, %{"blknum" => spend_token_child_block}} = submit_transaction(token_tx)
-
-    post_spend_child_block = spend_token_child_block + @interval
-    {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block)
-
-    # check if operator is propagating block with hash submitted to RootChain
-    {block_hash, _} = RootChain.blocks(spend_child_block)
-    assert {:ok, %{"transactions" => transactions}} = get_block(block_hash)
-
-    # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
-    {:ok, decoded_tx_bytes} = transactions |> hd() |> Encoding.from_hex()
-    assert %{raw_tx: ^raw_tx} = Transaction.Signed.decode!(decoded_tx_bytes)
-
-    # Restart everything to check persistance and revival.
-    # NOTE: this is an integration test of the critical data persistence in the child chain
-    #       See various ...PersistenceTest tests for more detailed tests of persistence behaviors
-    Enum.each([:omg_child_chain, :omg_eth, :omg_db], &Application.stop/1)
-    {:ok, _started_apps} = Application.ensure_all_started(:omg_child_chain)
-    wait_for_web()
-    # repeat spending to see if all works
-    raw_tx2 = Transaction.Payment.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, @eth, 8}])
-    tx2 = OMG.TestHelper.sign_encode(raw_tx2, [bob.priv, alice.priv])
-    # spend the output of the first tx
-    assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
-
-    post_spend_child_block2 = spend_child_block2 + @interval
-    {:ok, _} = DevHelper.wait_for_next_child_block(post_spend_child_block2)
-
-    # check if operator is propagating block with hash submitted to RootChain
-    {block_hash2, _} = RootChain.blocks(spend_child_block2)
-
-    assert {:ok, %{"transactions" => [transaction2, fee_tx_hex]}} = get_block(block_hash2)
-    {:ok, decoded_tx2_bytes} = Encoding.from_hex(transaction2)
-    assert %{raw_tx: ^raw_tx2} = Transaction.Signed.decode!(decoded_tx2_bytes)
-
-    # sanity checks, mainly persistence & failure responses
-    assert {:ok, %{}} = get_block(block_hash)
-    assert {:error, %{"code" => "get_block:not_found"}} = get_block(<<0::size(256)>>)
-    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(tx)
-    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(tx2)
-    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(token_tx)
-
-    # try to exit from transaction2's output
-    {:ok, fee_bytes} = Encoding.from_hex(fee_tx_hex)
-    proof = Block.inclusion_proof([tx2, fee_bytes], 0)
-    encoded_utxo_pos = Utxo.Position.encode(Utxo.position(spend_child_block2, 0, 0))
-    raw_txbytes = Transaction.raw_txbytes(raw_tx2)
-
-    assert {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-             DevHelper.transact_sync!(
-               RootChainHelper.start_exit(
-                 encoded_utxo_pos,
-                 raw_txbytes,
-                 proof,
-                 alice.addr
-               )
-             )
-
-    # check if the utxo is no longer available
-    exiters_finality_margin = OMG.Configuration.deposit_finality_margin() + 1
-    {:ok, _} = DevHelper.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
-
-    invalid_raw_tx = Transaction.Payment.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
-    invalid_tx = OMG.TestHelper.sign_encode(invalid_raw_tx, [alice.priv])
-    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
-  end
-
-  @tag fixtures: [:alice, :in_beam_child_chain, :alice_deposits]
+  @tag fixtures: [:alice, :alice_deposits]
   test "check that unspent funds can be exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # create transaction, submit, wait for block publication
