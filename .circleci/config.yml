@@ -267,6 +267,7 @@ jobs:
           command: |
             [ -d data ] || mkdir data && chmod 777 data
       - run: make docker-child_chain
+      - run: make init_test
       - run:
           command: docker-compose up geth childchain
           background: true
