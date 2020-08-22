@@ -263,9 +263,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Compile
-          command: mix compile
-      - run:
           name: Setup data dir
           command: |
             [ -d data ] || mkdir data && chmod 777 data
