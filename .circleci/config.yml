@@ -261,10 +261,7 @@ jobs:
     machine:
       image: ubuntu-1604:201903-01
     steps:
-      - setup_elixir-omg_workspace
-      - restore_cache:
-          keys:
-            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - checkout
       - run:
           name: Compile
           command: mix compile
