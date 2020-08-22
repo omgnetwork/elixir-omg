@@ -922,7 +922,7 @@ workflows:
                 - master
       - coveralls_report:
           requires:
-            - child_chain_tests,
+            - child_chain_tests
             - watcher_coveralls_and_integration_tests
             - watcher_info_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
