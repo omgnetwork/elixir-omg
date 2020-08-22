@@ -58,7 +58,7 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
 
     proof = Block.inclusion_proof([Transaction.Signed.encode(tx), fee_tx], 0)
 
-    {:ok, %{"status" => "0x1"}} =
+    ife =
       RootChainHelper.in_flight_exit(
         Transaction.raw_txbytes(in_flight_tx),
         get_input_txs([tx]),
@@ -67,7 +67,8 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
         in_flight_tx_sigs,
         alice.addr
       )
-      |> DevHelper.transact_sync!()
+
+    {:ok, %{"status" => "0x1"}} = DevHelper.transact_sync!(ife)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       in_flight_tx
@@ -82,12 +83,8 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   end
 
   defp submit_transaction(tx) do
-    TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: Encoding.to_hex(tx)})
-    |> get_body_data()
-  end
-
-  defp get_block(hash) do
-    TestHelper.rpc_call(:post, "/block.get", %{hash: Encoding.to_hex(hash)})
+    :post
+    |> TestHelper.rpc_call("/transaction.submit", %{transaction: Encoding.to_hex(tx)})
     |> get_body_data()
   end
 

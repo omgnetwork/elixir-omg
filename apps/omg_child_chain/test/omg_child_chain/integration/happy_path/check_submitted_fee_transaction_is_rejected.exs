@@ -176,12 +176,8 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   end
 
   defp submit_transaction(tx) do
-    TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: Encoding.to_hex(tx)})
-    |> get_body_data()
-  end
-
-  defp get_block(hash) do
-    TestHelper.rpc_call(:post, "/block.get", %{hash: Encoding.to_hex(hash)})
+    :post
+    |> TestHelper.rpc_call("/transaction.submit", %{transaction: Encoding.to_hex(tx)})
     |> get_body_data()
   end
 

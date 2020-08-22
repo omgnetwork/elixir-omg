@@ -135,12 +135,6 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
     |> get_body_data()
   end
 
-  defp get_block(hash) do
-    :post
-    |> TestHelper.rpc_call("/block.get", %{hash: Encoding.to_hex(hash)})
-    |> get_body_data()
-  end
-
   defp get_body_data(resp_body) do
     {
       if(resp_body["success"], do: :ok, else: :error),
