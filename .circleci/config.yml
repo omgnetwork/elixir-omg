@@ -974,7 +974,7 @@ workflows:
           requires:
             [
               child_chain_tests,
-              child_chain_integration_tests
+              child_chain_integration_tests,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
@@ -998,7 +998,7 @@ workflows:
           requires:
             [
               child_chain_tests,
-              child_chain_integration_tests
+              child_chain_integration_tests,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
