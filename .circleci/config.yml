@@ -258,9 +258,8 @@ jobs:
             fi
   
   child_chain_integration_tests:
-    executor: builder_pg_geth
-    environment:
-      MIX_ENV: test
+    machine:
+      image: ubuntu-1604:201903-01
     steps:
       - setup_elixir-omg_workspace
       - restore_cache:
@@ -270,11 +269,13 @@ jobs:
           name: Compile
           command: mix compile
       - run:
-          name: Start Geth
-          command: docker-compose up -d geth
+          name: Setup data dir
+          command: |
+            [ -d data ] || mkdir data && chmod 777 data
+      - run: make docker-child_chain
       - run:
-          name: Start ChildChain
-          command: make start-child_chain OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
+          command: docker-compose up geth childchain
+          background: true
       - run:
           name: Integration Tests 
           command: mix test test/omg_child_chain/integration/happy_path/check_IFE_input_piggybacking_is_ignored_by_the_child_chain.exs
