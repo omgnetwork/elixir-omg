@@ -270,6 +270,24 @@ jobs:
       - run:
           command: docker-compose up geth childchain
           background: true
+      - restore_cache:
+          key: v2-asdf-install
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
+            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
+            source $BASH_ENV
+            asdf plugin-add erlang || asdf plugin-update erlang
+            asdf plugin-add elixir || asdf plugin-update elixir
+            asdf install
+          no_output_timeout: 2400
+      - save_cache:
+          key: v2-asdf-install
+          paths:
+            - ~/.asdf
+            - ~/.asdf-vm
+      - run: make install-hex-rebar
       - run:
           name: Integration Tests 
           command: mix test test/omg_child_chain/integration/happy_path/check_IFE_input_piggybacking_is_ignored_by_the_child_chain.exs
