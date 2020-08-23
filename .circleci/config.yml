@@ -290,6 +290,9 @@ jobs:
             - ~/.asdf-vm
       - run: make install-hex-rebar
       - run:
+          name: Get deps
+          command: mix deps.get
+      - run:
           name: Integration Tests 
           command: mix test test/omg_child_chain/integration/happy_path/check_IFE_input_piggybacking_is_ignored_by_the_child_chain.exs
 
