@@ -290,6 +290,17 @@ jobs:
             - ~/.asdf-vm
       - run: make install-hex-rebar
       - run:
+          name: Install deps
+          command: |
+            set -e
+            sudo killall dpkg || true &&
+            sudo rm /var/lib/dpkg/lock || true &&
+            sudo rm /var/cache/apt/archives/lock || true &&
+            sudo dpkg --configure -a || true &&
+            sudo apt-get update &&
+            ./bin/setup
+          no_output_timeout: 2400
+      - run:
           name: Get deps
           command: mix deps.get
       - run:
