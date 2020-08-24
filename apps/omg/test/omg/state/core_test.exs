@@ -511,7 +511,7 @@ defmodule OMG.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend own output", %{bob: bob, state_alice_deposit: state} do
     # The transaction here is designed so that it would spend its own output. Sanity checking first
-    {1000, true} = Core.get_status(state)
+    {1000, true, 0} = Core.get_status(state)
     recovered2 = create_recovered([{1000, 0, 0, bob}], @eth, [{bob, 6}])
 
     state
@@ -803,20 +803,20 @@ defmodule OMG.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "Getting current block height on empty state", %{state_empty: state} do
-    assert {@blknum1, _} = Core.get_status(state)
+    assert {@blknum1, _, _} = Core.get_status(state)
   end
 
   @tag fixtures: [:state_empty]
   test "Getting current block height with one formed block", %{state_empty: state} do
     {:ok, {_, _}, new_state} = form_block_check(state)
-    assert {@blknum2, true} = Core.get_status(new_state)
+    assert {@blknum2, true, 0} = Core.get_status(new_state)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "beginning of block changes when transactions executed and block formed",
        %{alice: alice, state_empty: state} do
     # at empty state it is at the beginning of the next block
-    assert {@blknum1, true} = Core.get_status(state)
+    assert {@blknum1, true, 0} = Core.get_status(state)
 
     # when we execute a tx it isn't at the beginning
     {:ok, _, state} =
@@ -824,12 +824,12 @@ defmodule OMG.State.CoreTest do
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}]), @fee)
 
-    assert {@blknum1, false} = Core.get_status(state)
+    assert {@blknum1, false, 1} = Core.get_status(state)
 
     # when a block has been newly formed it is at the beginning
     {:ok, _, state} = form_block_check(state)
 
-    assert {@blknum2, true} = Core.get_status(state)
+    assert {@blknum2, true, 0} = Core.get_status(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

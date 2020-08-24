@@ -104,6 +104,7 @@ defmodule OMG.ChildChain.BlockQueue do
     _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
     block_submit_every_nth = Keyword.fetch!(args, :block_submit_every_nth)
+    block_submit_when_n_txs = Keyword.fetch!(args, :block_submit_when_n_txs)
     block_submit_max_gas_price = Keyword.fetch!(args, :block_submit_max_gas_price)
     gas_price_adj_params = %GasPriceAdjustment{max_gas_price: block_submit_max_gas_price}
 
@@ -115,6 +116,7 @@ defmodule OMG.ChildChain.BlockQueue do
         parent_height: parent_height,
         child_block_interval: child_block_interval,
         block_submit_every_nth: block_submit_every_nth,
+        block_submit_when_n_txs: block_submit_when_n_txs,
         finality_threshold: finality_threshold,
         gas_price_adj_params: gas_price_adj_params
       )
@@ -138,6 +140,11 @@ defmodule OMG.ChildChain.BlockQueue do
 
     interval = Keyword.fetch!(args, :block_queue_eth_height_check_interval_ms)
     {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
+
+    if is_number(block_submit_when_n_txs) do
+      block_fulfilment_check_interval_ms = Keyword.fetch!(args, :block_fulfilment_check_interval_ms)
+      {:ok, _} = :timer.send_interval(block_fulfilment_check_interval_ms, self(), :check_block_fulfilment)
+    end
 
     # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
     :ok = OMG.Bus.subscribe({:child_chain, "blocks"}, link: true)
@@ -163,12 +170,34 @@ defmodule OMG.ChildChain.BlockQueue do
     {:ok, ethereum_height} = EthereumHeight.get()
 
     mined_blknum = RootChain.get_mined_child_block()
-    {_, is_empty_block} = OMG.State.get_status()
+    {_, _, txs_count} = OMG.State.get_status()
 
     _ = Logger.debug("Ethereum at \#'#{inspect(ethereum_height)}', mined child at \#'#{inspect(mined_blknum)}'")
 
     state1 =
-      case Core.set_ethereum_status(state, ethereum_height, mined_blknum, is_empty_block) do
+      case Core.set_ethereum_status(state, ethereum_height, mined_blknum, txs_count) do
+        {:do_form_block, state1} ->
+          :ok = OMG.State.form_block()
+          state1
+
+        {:dont_form_block, state1} ->
+          state1
+      end
+
+    submit_blocks(state1)
+    {:noreply, state1}
+  end
+
+  @doc """
+  Checks currently pending transactions count against `submit_block_when_n_txs` configuration property to decide what do do.
+
+  `OMG.ChildChain.BlockQueue.Core` decides whether a new block should be formed or not.
+  """
+  def handle_info(:check_block_fulfilment, state) do
+    {_, _, txs_count} = OMG.State.get_status()
+
+    state1 =
+      case Core.check_block_fulfiled_enough(state, txs_count) do
         {:do_form_block, state1} ->
           :ok = OMG.State.form_block()
           state1

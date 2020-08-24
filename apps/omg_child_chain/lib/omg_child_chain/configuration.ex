@@ -38,9 +38,19 @@ defmodule OMG.ChildChain.Configuration do
     Application.fetch_env!(@app, :block_submit_every_nth)
   end
 
+  @spec block_submit_when_n_txs() :: no_return | pos_integer()
+  def block_submit_when_n_txs() do
+    Application.fetch_env!(@app, :block_submit_when_n_txs)
+  end
+
   @spec block_submit_max_gas_price() :: no_return | pos_integer()
   def block_submit_max_gas_price() do
     Application.fetch_env!(@app, :block_submit_max_gas_price)
+  end
+
+  @spec block_fulfilment_check_interval_ms() :: no_return | pos_integer()
+  def block_fulfilment_check_interval_ms() do
+    Application.fetch_env!(@app, :block_fulfilment_check_interval_ms)
   end
 
   @doc """

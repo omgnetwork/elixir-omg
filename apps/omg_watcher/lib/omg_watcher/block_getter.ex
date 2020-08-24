@@ -84,7 +84,7 @@ defmodule OMG.Watcher.BlockGetter do
     exit_processor_initial_results = ExitProcessor.check_validity(10 * 60_000)
     # State treats current as the next block to be executed or a block that is being executed
     # while top block number is a block that has been formed (they differ by the interval)
-    {current_block_height, state_at_block_beginning} = State.get_status()
+    {current_block_height, state_at_block_beginning, _} = State.get_status()
     child_top_block_number = current_block_height - child_block_interval
 
     {:ok, last_synced_height} = OMG.DB.get_single_value(:last_block_getter_eth_height)

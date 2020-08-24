@@ -94,7 +94,7 @@ defmodule OMG.Watcher.API.StatusCache.External do
 
   defp get_validated_child_block_number() do
     child_block_interval = Configuration.child_block_interval()
-    {state_current_block, _} = State.get_status()
+    {state_current_block, _, _} = State.get_status()
     state_current_block - child_block_interval
   end
 
