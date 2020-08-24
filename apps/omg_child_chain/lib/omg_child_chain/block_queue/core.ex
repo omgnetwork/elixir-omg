@@ -107,6 +107,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     # config:
     child_block_interval: nil,
     block_submit_every_nth: 1,
+    block_submit_when_n_txs: :infinity,
     finality_threshold: 12,
     gas_price_adj_params: %GasPriceAdjustment{}
   ]
@@ -129,6 +130,9 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           child_block_interval: pos_integer(),
           # configure to trigger forming a child chain block every this many Ethereum blocks are mined since enqueueing
           block_submit_every_nth: pos_integer(),
+          # configure to trigger forming a child chain block when there are this many pending transactions.
+          # Defaults to `:infinity` which means - pending transaction count takes no effect on block forming.
+          block_submit_when_n_txs: pos_integer() | atom(),
           # depth of max reorg we take into account
           finality_threshold: pos_integer(),
           # the gas price adjustment strategy parameters
@@ -179,19 +183,25 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   Based on that, decides whether new block forming should be triggered as well as the gas price to use for subsequent
   submissions.
   """
-  @spec set_ethereum_status(Core.t(), BlockQueue.eth_height(), BlockQueue.plasma_block_num(), boolean()) ::
+  @spec set_ethereum_status(Core.t(), BlockQueue.eth_height(), BlockQueue.plasma_block_num(), pos_integer()) ::
           {:do_form_block, Core.t()} | {:dont_form_block, Core.t()}
-  def set_ethereum_status(state, parent_height, mined_child_block_num, is_empty_block) do
+  def set_ethereum_status(state, parent_height, mined_child_block_num, pending_txs_count) do
     new_state =
       %{state | parent_height: parent_height}
       |> set_mined(mined_child_block_num)
       |> adjust_gas_price()
 
-    if should_form_block?(new_state, is_empty_block) do
+    if should_form_block?(new_state, pending_txs_count) do
       {:do_form_block, %{new_state | wait_for_enqueue: true}}
     else
       {:dont_form_block, new_state}
     end
+  end
+
+  @spec check_block_fulfiled_enough(Core.t(), pos_integer()) ::
+          {:do_form_block, Core.t()} | {:dont_form_block, Core.t()}
+  def check_block_fulfiled_enough(state, pending_txs_count) do
+    {:dont_form_block, state}
   end
 
   @doc """

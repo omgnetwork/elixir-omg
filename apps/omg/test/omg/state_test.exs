@@ -74,7 +74,7 @@ defmodule OMG.StateTest do
     assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}]), fee)
 
     # block forming & status
-    assert {blknum, _} = State.get_status()
+    assert {blknum, _, _} = State.get_status()
     assert :ok = State.form_block()
     # exits, with invalid ones
     assert {:ok, _db, _} = State.exit_utxos([Utxo.position(blknum, 0, 0)])
