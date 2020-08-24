@@ -1234,12 +1234,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } == WatcherHelper.no_success?("transaction.create", params)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "stealth add inputs when 2 inputs use different currencies", %{
-      alice: alice,
-      bob: bob,
       test_server: context
     } do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
       _ = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
@@ -1273,12 +1273,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } = WatcherHelper.success?("transaction.create", params)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "stealth add inputs when 2 inputs can matched payments and fees", %{
-      alice: alice,
-      bob: bob,
       test_server: context
     } do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
