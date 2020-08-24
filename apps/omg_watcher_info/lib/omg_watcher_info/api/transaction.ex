@@ -174,6 +174,44 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
+  def merge(%{utxo_positions: utxo_positions}) do
+    merge_inputs =
+      Enum.reduce_while(utxo_positions, [], fn encoded_position, acc ->
+        case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
+          nil -> {:halt, {:error, :input_not_found}}
+          input -> {:cont, [input | acc]}
+        end
+      end)
+
+    case validate_merge_inputs(merge_inputs) do
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp validate_merge_inputs(inputs) do
+    with {:ok, inputs} <- single_owner(inputs),
+         {:ok, inputs} <- no_single_input_for_currency(inputs) do
+      {:ok, inputs}
+    end
+  end
+
+  defp single_owner(inputs) do
+    case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
+      1 -> {:ok, inputs}
+      _ -> {:error, :multiple_input_owners}
+    end
+  end
+
+  defp no_single_input_for_currency(inputs) do
+    inputs
+    |> Enum.group_by(fn utxo -> utxo.currency end)
+    |> Enum.any?(fn {_ccy, inputs} -> length(inputs) < 2 end)
+    |> case do
+      true -> {:error, :single_input_for_ccy}
+      false -> {:ok, inputs}
+    end
+  end
+
   defp generate_merge_transactions(merge_inputs, currency, owner) do
     merge_inputs
     |> Stream.chunk_every(@max_outputs)

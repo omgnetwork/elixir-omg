@@ -17,27 +17,72 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
 
+  alias OMG.Utxo.Position
   alias OMG.WatcherInfo.API.Transaction
 
   import OMG.WatcherInfo.Factory
 
-  @owner <<1::160>>
-  @currency_1 <<2::160>>
-  @currency_2 <<3::160>>
+  @alice <<1::160>>
+  @bob <<2::160>>
+  @currency_1 <<3::160>>
+  @currency_2 <<4::160>>
 
   describe "merge/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "merge with address and currency does so correctly" do
-      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 5)
-      _ = insert(:txoutput, currency: @currency_2, owner: @owner, amount: 1)
-      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 2)
-      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 1)
-      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 1)
-      _ = insert(:txoutput, currency: @currency_1, owner: @owner, amount: 1)
+      # _ = :txoutput |> insert(currency: @currency_1, owner: @owner, amount: 1) |> position_from_insert()
+      # position_1 = :txoutput |> insert(currency: @currency_1, owner: @owner, amount: 1) |> encoded_position_from_insert()
 
-      result = Transaction.merge(%{address: @owner, currency: @currency_1})
-      IO.inspect(result)
-      assert 1 == 1
+      # result = Transaction.merge(%{utxo_positions: [position_1]})
+      # IO.inspect(result)
+      # # assert 1 == 1
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "given `utxo_positions` parameter, returns an error if any position is not found" do
+      insert_initial_utxo()
+
+      position_1 = :txoutput |> insert() |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert() |> encoded_position_from_insert()
+      position_3 = :txoutput |> insert() |> encoded_position_from_insert()
+
+      empty_position = insert(:txoutput) |> Map.update!(:blknum, fn n -> n + 1 end) |> encoded_position_from_insert()
+
+      assert Transaction.merge(%{utxo_positions: [position_1, position_2, position_3, empty_position]}) ==
+               {:error, :input_not_found}
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "given `utxo_positions` parameter, returns an error if the corresponding UTXOs belong to more than one address" do
+      insert_initial_utxo()
+
+      position_1 = :txoutput |> insert(owner: @alice) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: @alice) |> encoded_position_from_insert()
+      position_3 = :txoutput |> insert(owner: @bob) |> encoded_position_from_insert()
+
+      assert Transaction.merge(%{utxo_positions: [position_1, position_2, position_3]}) ==
+               {:error, :multiple_input_owners}
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "given `utxo_positions` parameter, returns an error if a currency has less than two UTXOs" do
+      insert_initial_utxo()
+
+      position_1 = :txoutput |> insert(owner: @alice, currency: @currency_1) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: @alice, currency: @currency_1) |> encoded_position_from_insert()
+      position_3 = :txoutput |> insert(owner: @alice, currency: @currency_2) |> encoded_position_from_insert()
+
+      assert Transaction.merge(%{utxo_positions: [position_1, position_2, position_3]}) ==
+               {:error, :single_input_for_ccy}
+    end
+  end
+
+  defp encoded_position_from_insert(%{oindex: oindex, txindex: txindex, blknum: blknum}) do
+    Position.encode({:utxo_position, blknum, txindex, oindex})
+  end
+
+  # This is needed so that UTXOs inserted subsequently can have a proper (non-zero) position
+  defp insert_initial_utxo() do
+    insert(:txoutput)
   end
 end
