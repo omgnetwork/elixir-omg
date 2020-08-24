@@ -1207,8 +1207,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "returns an error when need more than 4 inputs to satisfy payments and fee", %{
       alice: alice,
-      bob: bob
+      bob: bob,
+      test_server: context
     } do
+      prepare_test_server(context, @fee_response)
+
       _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
       _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
       _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
@@ -1218,7 +1221,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       params = %{
         "owner" => Encoding.to_hex(alice.addr),
         "payments" => [
-          %{"amount" => 499, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 495, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1233,8 +1236,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "stealth add inputs when 2 inputs can matched payments and fees", %{
       alice: alice,
-      bob: bob
+      bob: bob,
+      test_server: context
     } do
+      prepare_test_server(context, @fee_response)
+
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
       _ = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
       _ = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
@@ -1243,7 +1249,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       params = %{
         "owner" => Encoding.to_hex(alice.addr),
         "payments" => [
-          %{"amount" => 49, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 45, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1252,7 +1258,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 1,
+                     "amount" => 5,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
