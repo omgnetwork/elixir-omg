@@ -81,9 +81,8 @@ defmodule LoadTest.Common.ByzantineEvents do
           other -> other
         end
       end)
+      |> IO.inspect()
       |> only_successes()
-
-    IO.inspect({"get_many_standard_exits", result})
 
     result
   end
@@ -98,14 +97,15 @@ defmodule LoadTest.Common.ByzantineEvents do
   """
   @spec start_many_exits(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
   def start_many_exits(exit_datas, owner_address) do
-    IO.inspect("  def start_many_exits(exit_datas, owner_address) do")
-
     map_contract_transaction(exit_datas, fn composed_exit ->
+      txbytes = Encoding.to_binary(composed_exit["txbytes"])
+      proof = Encoding.to_binary(composed_exit["proof"])
+
       Exit.start_exit(
-        composed_exit["utxo_pos"] |> IO.inspect(),
-        composed_exit["txbytes"] |> IO.inspect(),
-        composed_exit["proof"] |> IO.inspect(),
-        IO.inspect(owner_address)
+        composed_exit["utxo_pos"],
+        txbytes,
+        proof,
+        owner_address
       )
     end)
   end
@@ -182,15 +182,12 @@ defmodule LoadTest.Common.ByzantineEvents do
         LoadTest.Connection.WatcherSecurity.client(),
         params
       )
-      |> IO.inspect()
 
     utxos = Jason.decode!(utxos_response.body)["data"]
 
     utxo_positions = Enum.map(utxos, & &1["utxo_pos"])
 
     result = if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
-
-    IO.inspect({"get_exitable_utxos", result})
 
     result
   end
