@@ -1228,7 +1228,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       assert %{
                "code" => "transaction.create:too_many_inputs",
-               "description" => "Total number of payments + change + fees exceed maximum allowed inputs.",
+               "description" => "The number of inputs required to cover the payment and fee exceeds the maximum allowed.",
                "object" => "error"
              } == WatcherHelper.no_success?("transaction.create", params)
     end

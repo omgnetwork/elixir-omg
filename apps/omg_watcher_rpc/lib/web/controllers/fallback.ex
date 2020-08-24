@@ -59,7 +59,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     },
     too_many_inputs: %{
       code: "transaction.create:too_many_inputs",
-      description: "Total number of payments + change + fees exceed maximum allowed inputs."
+      description: "The number of inputs required to cover the payment and fee exceeds the maximum allowed."
     },
     too_many_outputs: %{
       code: "transaction.create:too_many_outputs",
