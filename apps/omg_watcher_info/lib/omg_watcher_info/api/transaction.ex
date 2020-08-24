@@ -34,7 +34,6 @@ defmodule OMG.WatcherInfo.API.Transaction do
   @type create_t() ::
           {:ok,
            %{
-             result: :complete | :intermediate,
              transactions: nonempty_list(transaction_t())
            }}
           | {:error, {:insufficient_funds, list(map())}}
@@ -176,7 +175,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   end
 
   defp create_inputs(inputs) do
-    t = inputs
+    inputs
     |> Stream.map(fn input -> %{blknum: input.blknum, txindex: input.txindex, oindex: input.oindex} end)
     |> Stream.concat(Stream.repeatedly(fn -> %{blknum: 0, txindex: 0, oindex: 0} end))
     |> (fn input -> Enum.zip([:input0, :input1, :input2, :input3], input) end).()
