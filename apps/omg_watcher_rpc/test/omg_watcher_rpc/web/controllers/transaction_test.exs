@@ -1302,10 +1302,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      "currency" => @eth_hex
                    },
                    "inputs" => [
-                     %{"amount" => 20},
-                     %{"amount" => 10},
-                     %{"amount" => 30},
-                     %{"amount" => 40}
+                     %{"amount" => 20, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 30, "currency" => @eth_hex},
+                     %{"amount" => 40, "currency" => @eth_hex}
                    ]
                  }
                ]

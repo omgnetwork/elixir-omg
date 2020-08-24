@@ -112,16 +112,11 @@ defmodule OMG.WatcherInfo.API.Transaction do
   """
   @spec create(order_t()) :: create_t()
   def create(order) do
-    case order.owner
-         |> DB.TxOutput.get_sorted_grouped_utxos()
-         |> select_inputs(order) do
-      {:error, reason} ->
-        {:error, reason}
-
-      result ->
-        result
-        |> create_transaction(order)
-        |> respond()
+    with {:ok, inputs} <-
+           order.owner
+           |> DB.TxOutput.get_sorted_grouped_utxos()
+           |> select_inputs(order) do
+      create_transaction(inputs, order)
     end
   end
 
@@ -142,7 +137,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
       merge_utxos = UtxoSelection.prioritize_merge_utxos(funds, utxos)
 
       if utxo_count <= Transaction.Payment.max_inputs(),
-        do: UtxoSelection.add_utxos_for_stealth_merge(funds, merge_utxos),
+        do: {:ok, UtxoSelection.add_utxos_for_stealth_merge(funds, merge_utxos)},
         else: {:error, :too_many_inputs}
     end
   end
@@ -229,14 +224,16 @@ defmodule OMG.WatcherInfo.API.Transaction do
         raw_tx = create_raw_transaction(inputs, outputs, metadata)
 
         {:ok,
-         %{
-           inputs: inputs,
-           outputs: outputs,
-           fee: fee,
-           metadata: metadata,
-           txbytes: create_txbytes(raw_tx),
-           sign_hash: compute_sign_hash(raw_tx)
-         }}
+         [
+           %{
+             inputs: inputs,
+             outputs: outputs,
+             fee: fee,
+             metadata: metadata,
+             txbytes: create_txbytes(raw_tx),
+             sign_hash: compute_sign_hash(raw_tx)
+           }
+         ]}
     end
   end
 
@@ -260,12 +257,4 @@ defmodule OMG.WatcherInfo.API.Transaction do
     with tx when not is_nil(tx) <- tx,
          do: TypedDataHash.hash_struct(tx)
   end
-
-  defp respond({:ok, transaction}),
-    do: {:ok, [transaction]}
-
-  defp respond(transactions) when is_list(transactions),
-    do: {:ok, transactions}
-
-  defp respond(error), do: error
 end
