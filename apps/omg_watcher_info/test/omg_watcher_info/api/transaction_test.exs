@@ -30,12 +30,17 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
   describe "merge/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "merge with address and currency does so correctly" do
-      # _ = :txoutput |> insert(currency: @currency_1, owner: @owner, amount: 1) |> position_from_insert()
-      # position_1 = :txoutput |> insert(currency: @currency_1, owner: @owner, amount: 1) |> encoded_position_from_insert()
+      insert_initial_utxo()
 
-      # result = Transaction.merge(%{utxo_positions: [position_1]})
-      # IO.inspect(result)
-      # # assert 1 == 1
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+
+      merge_tx = Transaction.merge(%{address: @alice, currency: @currency_1})
+      assert length(merge_tx) == 1
+
+      %{outputs: outputs} = List.first(merge_tx)
+      assert outputs === [%{amount: 3, currency: @currency_1, owner: @alice}]
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

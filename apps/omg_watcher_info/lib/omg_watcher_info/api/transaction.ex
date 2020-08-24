@@ -169,23 +169,26 @@ defmodule OMG.WatcherInfo.API.Transaction do
       [_single_input] ->
         {:error, :single_input_for_ccy}
 
-      inputs ->
-        generate_merge_transactions(inputs, currency, address)
+      inputs -> generate_merge_transactions(inputs)
     end
   end
 
   def merge(%{utxo_positions: utxo_positions}) do
-    merge_inputs =
-      Enum.reduce_while(utxo_positions, [], fn encoded_position, acc ->
-        case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
-          nil -> {:halt, {:error, :input_not_found}}
-          input -> {:cont, [input | acc]}
-        end
-      end)
-
-    case validate_merge_inputs(merge_inputs) do
-      {:error, error} -> {:error, error}
+    with {:ok, merge_inputs} <- utxo_positions_to_merge_inputs(utxo_positions) do
+      case validate_merge_inputs(merge_inputs) do
+        {:error, error} -> {:error, error}
+        {:ok, inputs} -> generate_merge_transactions(inputs)
+      end
     end
+  end
+
+  defp utxo_positions_to_merge_inputs (utxo_positions) do
+    Enum.reduce_while(utxo_positions, {:ok, []}, fn encoded_position, {:ok, acc} ->
+      case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
+        nil -> {:halt, {:error, :input_not_found}}
+        input -> {:cont, {:ok, [input | acc]}}
+      end
+    end)
   end
 
   defp validate_merge_inputs(inputs) do
@@ -212,7 +215,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  defp generate_merge_transactions(merge_inputs, currency, owner) do
+  defp generate_merge_transactions(merge_inputs) do
     merge_inputs
     |> Stream.chunk_every(@max_outputs)
     |> Enum.flat_map(fn input_set ->
@@ -221,13 +224,15 @@ defmodule OMG.WatcherInfo.API.Transaction do
           []
 
         inputs ->
-          {:ok, transaction} = create_merge(inputs, currency, owner)
+          {:ok, transaction} = create_merge(inputs)
           [transaction]
       end
     end)
   end
 
-  defp create_merge(inputs, currency, owner) do
+  defp create_merge(inputs) do
+    %{currency: currency, owner: owner} = List.first(inputs)
+
     create_transaction([{currency, inputs}], %{
       fee: %{amount: 0, currency: currency},
       metadata: @empty_metadata,
