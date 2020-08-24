@@ -17,6 +17,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Module provides API for transactions
   """
 
+  alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
   alias OMG.Utils.Paginator
@@ -109,7 +110,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
-  @spec create(UtxoSelection.order_t()) :: create_t()
+  @spec create(order_t()) :: create_t()
   def create(order) do
     case order.owner
          |> DB.TxOutput.get_sorted_grouped_utxos()
