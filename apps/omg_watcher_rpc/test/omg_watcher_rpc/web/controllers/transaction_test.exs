@@ -1228,9 +1228,49 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       assert %{
                "code" => "transaction.create:too_many_inputs",
-               "description" => "The number of inputs required to cover the payment and fee exceeds the maximum allowed.",
+               "description" =>
+                 "The number of inputs required to cover the payment and fee exceeds the maximum allowed.",
                "object" => "error"
              } == WatcherHelper.no_success?("transaction.create", params)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "stealth add inputs when 2 inputs use different currencies", %{
+      alice: alice,
+      bob: bob,
+      test_server: context
+    } do
+      prepare_test_server(context, @fee_response)
+
+      _ = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 20, currency: @other_token, owner: alice.addr)
+      _ = insert(:txoutput, amount: 30, currency: @other_token, owner: alice.addr)
+      _ = insert(:txoutput, amount: 40, currency: @other_token, owner: alice.addr)
+
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 20, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 40, "currency" => @other_token_hex},
+                     %{"amount" => 30, "currency" => @other_token_hex},
+                     %{"amount" => 20, "currency" => @other_token_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
