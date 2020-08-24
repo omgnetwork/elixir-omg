@@ -18,12 +18,12 @@ defmodule OMG.WatcherInfo.API.Transaction do
   """
 
   alias OMG.State.Transaction
+  alias OMG.TypedDataHash
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.UtxoSelection
-  alias OMG.TypedDataHash
 
   require Utxo
   require Transaction.Payment
@@ -122,14 +122,12 @@ defmodule OMG.WatcherInfo.API.Transaction do
       result ->
         result
         |> create_transaction(order)
-        |> respond(:complete)
+        |> respond()
     end
   end
 
-  @doc """
-  Given order finds spender's inputs sufficient to perform a payment.
-  If also provided with receiver's address, creates and encodes a transaction.
-  """
+  # Given order finds spender's inputs sufficient to perform a payment.
+  # If also provided with receiver's address, creates and encodes a transaction.
   @spec create_inputs(utxos_map_t(), order_t()) :: inputs_t()
   defp create_inputs(utxos, %{payments: payments, fee: fee}) do
     needed_funds = UtxoSelection.needed_funds(payments, fee)
@@ -153,13 +151,10 @@ defmodule OMG.WatcherInfo.API.Transaction do
   @spec include_typed_data(UtxoSelection.advice_t()) :: UtxoSelection.advice_t()
   def include_typed_data({:error, _} = err), do: err
 
-  def include_typed_data({:ok, %{transactions: txs} = advice}),
+  def include_typed_data({:ok, txs}),
     do: {
       :ok,
-      %{
-        advice
-        | transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)
-      }
+      %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
 
   # @spec merge(map()) :: UtxoSelection.advice_t()
@@ -310,11 +305,11 @@ defmodule OMG.WatcherInfo.API.Transaction do
          do: TypedDataHash.hash_struct(tx)
   end
 
-  defp respond({:ok, transaction}, result),
-    do: {:ok, %{result: result, transactions: [transaction]}}
+  defp respond({:ok, transaction}),
+    do: {:ok, [transaction]}
 
-  defp respond(transactions, result) when is_list(transactions),
-    do: {:ok, %{result: result, transactions: transactions}}
+  defp respond(transactions) when is_list(transactions),
+    do: {:ok, transactions}
 
-  defp respond(error, _), do: error
+  defp respond(error), do: error
 end

@@ -785,7 +785,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       creating_txhash = inserted_txs |> Enum.at(0) |> elem(2) |> Encoding.to_hex()
 
       assert %{
-               "result" => "complete",
                "transactions" => [
                  %{
                    "inputs" => [
@@ -838,7 +837,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       prepare_test_server(context, @fee_response)
 
       assert %{
-               "result" => "complete",
                "transactions" => [
                  %{
                    "inputs" => verbose_inputs,
@@ -878,7 +876,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       prepare_test_server(context, @fee_response)
 
       assert %{
-               "result" => "complete",
                "transactions" => [
                  %{
                    "typed_data" => %{
@@ -928,7 +925,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       prepare_test_server(context, @fee_response)
 
       assert %{
-               "result" => "complete",
                "transactions" => [%{"txbytes" => tx_hex}]
              } =
                WatcherHelper.success?(
@@ -966,7 +962,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       prepare_test_server(context, @fee_response)
 
       assert %{
-               "result" => "complete",
                "transactions" => [%{"txbytes" => tx_hex}]
              } =
                WatcherHelper.success?(
@@ -1001,7 +996,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       prepare_test_server(context, @fee_response)
 
       assert %{
-               "result" => "complete",
                "transactions" => [%{"txbytes" => tx_hex}]
              } =
                WatcherHelper.success?(
@@ -1080,7 +1074,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       prepare_test_server(context, @fee_response)
 
       assert %{
-               "result" => "complete",
                "transactions" => [
                  %{
                    "txbytes" => nil,
@@ -1150,7 +1143,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       })
 
       assert %{
-               "result" => "complete",
                "transactions" => [%{"txbytes" => tx_hex}]
              } =
                WatcherHelper.success?(
@@ -1257,7 +1249,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       }
 
       assert %{
-               "result" => "complete",
                "transactions" => [
                  %{
                    "fee" => %{

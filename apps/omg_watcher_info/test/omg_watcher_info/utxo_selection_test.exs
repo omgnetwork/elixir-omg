@@ -26,7 +26,6 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   require Utxo
 
   @alice <<27::160>>
-  @bob <<28::160>>
   @eth OMG.Eth.zero_address()
   @other_token <<127::160>>
 

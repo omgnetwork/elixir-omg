@@ -26,22 +26,18 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   require Transaction.Payment
 
   @type currency_t() :: Transaction.Payment.currency()
-
   @type payment_t() :: %{
           owner: Crypto.address_t() | nil,
           currency: currency_t(),
           amount: pos_integer()
         }
-
   @type fee_t() :: %{
           currency: currency_t(),
           amount: non_neg_integer()
         }
-
   @type advice_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
   @type utxos_map_t() :: %{currency_t() => utxo_list_t()}
   @type utxo_list_t() :: list(%DB.TxOutput{})
-
 
   @doc """
   Defines and prioritises available UTXOs for stealth merge based on the available and selected sets.
