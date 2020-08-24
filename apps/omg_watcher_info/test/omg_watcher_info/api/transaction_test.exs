@@ -29,18 +29,101 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
 
   describe "merge/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "merge with address and currency does so correctly" do
+    test "merge with address and currency forms multiple merge transactions if possible" do
       insert_initial_utxo()
 
       _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
       _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
       _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+
+      merge_tx = Transaction.merge(%{address: @alice, currency: @currency_1})
+      assert length(merge_tx) == 2
+
+      %{outputs: first_output} = List.first(merge_tx)
+      %{outputs: last_output} = List.last(merge_tx)
+      assert first_output === [%{amount: 4, currency: @currency_1, owner: @alice}]
+      assert last_output === [%{amount: 3, currency: @currency_1, owner: @alice}]
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "merge with address and currency does so correctly" do
+      insert_initial_utxo()
+
+      _ = :txoutput |> insert(currency: @currency_1, owner: @bob, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_2, owner: @bob, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_2, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_2, owner: @alice, amount: 1)
 
       merge_tx = Transaction.merge(%{address: @alice, currency: @currency_1})
       assert length(merge_tx) == 1
 
       %{outputs: outputs} = List.first(merge_tx)
       assert outputs === [%{amount: 3, currency: @currency_1, owner: @alice}]
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "merge with address and currency handles 4 inputs" do
+      insert_initial_utxo()
+
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+
+      merge_tx = Transaction.merge(%{address: @alice, currency: @currency_1})
+      %{outputs: outputs} = List.first(merge_tx)
+      assert outputs === [%{amount: 4, currency: @currency_1, owner: @alice}]
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "merge with address and currency fails on single input" do
+      insert_initial_utxo()
+
+      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency_2, owner: @alice, amount: 1)
+
+      assert Transaction.merge(%{address: @alice, currency: @currency_1}) ==
+        {:error, :single_input_for_ccy}
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "given `utxo_positions` parameter, correctly forms merge tx" do
+      insert_initial_utxo()
+
+      position_1 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_3 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      merge_tx = Transaction.merge(%{utxo_positions: [position_1, position_2, position_3]})
+      %{outputs: outputs} = List.first(merge_tx)
+      assert outputs === [%{amount: 3, currency: @currency_1, owner: @alice}]
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "given `utxo_positions` parameter, correctly forms multiple merge tx if possible" do
+      insert_initial_utxo()
+
+      position_1 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_3 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_4 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_5 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_6 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_7 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      merge_tx = Transaction.merge(%{utxo_positions: [position_1, position_2, position_3, position_4, position_5, position_6, position_7]})
+      %{outputs: first_output} = List.first(merge_tx)
+      %{outputs: last_output} = List.last(merge_tx)
+      assert first_output === [%{amount: 4, currency: @currency_1, owner: @alice}]
+      assert last_output === [%{amount: 3, currency: @currency_1, owner: @alice}]
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

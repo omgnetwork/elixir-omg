@@ -157,8 +157,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
       %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
 
-  # @spec merge(map()) :: UtxoSelection.advice_t()
-
+  @spec merge(map()) :: list(transaction_t())
   def merge(%{address: address, currency: currency} = _constraints) do
     merge_inputs =
       address

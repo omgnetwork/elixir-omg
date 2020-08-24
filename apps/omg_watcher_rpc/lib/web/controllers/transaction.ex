@@ -85,7 +85,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
 
   @doc """
   Creates and encodes a merge transaction.
-  Can be called with either an array of utxo positions or utxo inputs, alternatively an address currency pair.
+  Can be called with either an array of utxo positions or an address currency pair.
   """
   def merge(conn, params) do
     with {:ok, constraints} <- Validator.MergeConstraints.parse(params) do
