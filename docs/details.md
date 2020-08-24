@@ -203,6 +203,8 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 
 * **`block_submit_every_nth`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 
+* **`block_submit_when_n_txs`** - pending transaction count that will trigger block submission faster than in required Ethereum's blocks (see: `block_submi_every_nth`). When not set defaults to infinity, effecively switching this feature off.
+
 * **`block_submit_max_gas_price`** - the maximum gas price to use for block submission. The first block submission after application boot will use the max price,
   and gradually adjusts to the current optimum price for subsequent blocks.
 
