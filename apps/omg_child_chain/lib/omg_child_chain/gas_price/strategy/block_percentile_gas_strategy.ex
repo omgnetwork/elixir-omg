@@ -149,6 +149,11 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   #   1. For each historical block, take the minimum gas price accepted by the block
   #   2. Sort the minimum gas prices from lowest to highest prices
   #   3. Extract the gas prices at the given thresholds (in other word, the percentile)
+  #
+  # Edge case behaviours:
+  #   1. No historical gas prices available. Returns `{:error, :no_gas_price_history}`.
+  #      Prices continue to be fetched and recalculated on the same regular basis.
+  #   2. Too few historical gas prices. Calculation will be done on as much as the price data is available.
   @spec calculate(History.t(), thresholds()) :: recommendations() | {:error, :no_gas_price_history}
   defp calculate(history, thresholds) do
     sorted_min_prices = history |> filter_min() |> Enum.sort()
