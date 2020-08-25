@@ -20,8 +20,8 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
   alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.API.Transaction, as: TransactionAPI
+  alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.UtxoSelection
   alias OMG.WireFormatTypes
 
