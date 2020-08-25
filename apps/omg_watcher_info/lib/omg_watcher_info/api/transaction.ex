@@ -33,10 +33,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   @empty_metadata <<0::256>>
 
   @type create_t() ::
-          {:ok,
-           %{
-             transactions: nonempty_list(transaction_t())
-           }}
+          {:ok, nonempty_list(transaction_t())}
           | {:error, {:insufficient_funds, list(map())}}
           | {:error, :too_many_inputs}
           | {:error, :too_many_outputs}
@@ -50,7 +47,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
         }
 
   @type utxos_map_t() :: %{UtxoSelection.currency_t() => UtxoSelection.utxo_list_t()}
-  @type inputs_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
+  @type inputs_t() :: {:ok, utxos_map_t()} | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
   @type transaction_t() :: %{
           inputs: nonempty_list(%DB.TxOutput{}),
           outputs: nonempty_list(UtxoSelection.payment_t()),
@@ -136,9 +133,18 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
       merge_utxos = UtxoSelection.prioritize_merge_utxos(funds, utxos)
 
-      if utxo_count <= Transaction.Payment.max_inputs(),
-        do: {:ok, UtxoSelection.add_utxos_for_stealth_merge(funds, merge_utxos)},
-        else: {:error, :too_many_inputs}
+      case utxo_count do
+        n when n <= Transaction.Payment.max_inputs() ->
+          utxos = funds |> Map.new() |> UtxoSelection.add_utxos_for_stealth_merge(merge_utxos)
+          {:ok, utxos}
+
+        _ ->
+          {:error, :too_many_inputs}
+      end
+
+      # if utxo_count <= Transaction.Payment.max_inputs(),
+      #   do: {:ok, UtxoSelection.add_utxos_for_stealth_merge(funds, merge_utxos)},
+      #   else: {:error, :too_many_inputs}
     end
   end
 
