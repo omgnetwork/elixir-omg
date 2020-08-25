@@ -88,7 +88,7 @@ defmodule OMG.Eth.RootChainTest do
 
   defp exit_id_from_receipt(%{"logs" => logs}) do
     topic =
-      "ExitStarted(address,uint160)"
+      "ExitStarted(address,uint168)"
       |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
       |> Encoding.to_hex()
 

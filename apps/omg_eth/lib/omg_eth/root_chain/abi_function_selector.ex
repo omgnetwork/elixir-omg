@@ -207,7 +207,7 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
       function: "standardExits",
       input_names: ["standard_exit_structs"],
       inputs_indexed: nil,
-      method_id: <<12, 165, 182, 118>>,
+      method_id: <<121, 75, 85, 147>>,
       # returns: [
       #   array: {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}
       # ],
@@ -224,7 +224,7 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
       function: "inFlightExits",
       input_names: ["in_flight_exit_structs"],
       inputs_indexed: nil,
-      method_id: <<206, 201, 225, 167>>,
+      method_id: <<85, 220, 82, 55>>,
       # returns: [
       #   array: {:tuple,
       #           [

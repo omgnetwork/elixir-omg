@@ -123,8 +123,8 @@ defmodule OMG.ChildChain.DatadogEvent.EncodeTest do
   test "if exit finalized event log can be decoded" do
     exit_finalized_event = %{
       eth_height: 330,
-      event_signature: "ExitFinalized(uint160)",
-      exit_id: 1_423_280_346_484_099_708_949_144_162_169_101_241_792_387_057,
+      event_signature: "ExitFinalized(uint168)",
+      exit_id: 81_309_820_288_462_349_357_922_495_476_773_313_169_175_330_970_420,
       log_index: 2,
       root_chain_txhash:
         <<190, 49, 10, 222, 65, 39, 140, 86, 7, 98, 3, 17, 183, 147, 99, 170, 82, 10, 196, 108, 123, 167, 84, 191, 48,
@@ -133,8 +133,8 @@ defmodule OMG.ChildChain.DatadogEvent.EncodeTest do
 
     assert Encode.make_it_readable!(exit_finalized_event) == %{
              eth_height: 330,
-             event_signature: "ExitFinalized(uint160)",
-             exit_id: 1_423_280_346_484_099_708_949_144_162_169_101_241_792_387_057,
+             event_signature: "ExitFinalized(uint168)",
+             exit_id: 81_309_820_288_462_349_357_922_495_476_773_313_169_175_330_970_420,
              log_index: 2,
              root_chain_txhash: "0xbe310ade41278c5607620311b79363aa520ac46c7ba754bf3027d501c5a95f40"
            }
@@ -375,8 +375,8 @@ defmodule OMG.ChildChain.DatadogEvent.EncodeTest do
   test "if in flight exit finalized can be decoded" do
     in_flight_exit_finalized_event = %{
       eth_height: 335,
-      event_signature: "InFlightExitOutputWithdrawn(uint160,uint16)",
-      in_flight_exit_id: 3_853_567_223_408_339_354_111_409_210_931_346_801_537_991_844,
+      event_signature: "InFlightExitOutputWithdrawn(uint168,uint16)",
+      in_flight_exit_id: 289_509_717_723_506_568_833_816_412_236_561_243_950_769_583_247_992,
       log_index: 1,
       output_index: 1,
       root_chain_txhash:
@@ -387,8 +387,8 @@ defmodule OMG.ChildChain.DatadogEvent.EncodeTest do
 
     assert Encode.make_it_readable!(in_flight_exit_finalized_event) == %{
              eth_height: 335,
-             event_signature: "InFlightExitOutputWithdrawn(uint160,uint16)",
-             in_flight_exit_id: 3_853_567_223_408_339_354_111_409_210_931_346_801_537_991_844,
+             event_signature: "InFlightExitOutputWithdrawn(uint168,uint16)",
+             in_flight_exit_id: 289_509_717_723_506_568_833_816_412_236_561_243_950_769_583_247_992,
              log_index: 1,
              omg_data: %{piggyback_type: :output},
              output_index: 1,
@@ -399,8 +399,8 @@ defmodule OMG.ChildChain.DatadogEvent.EncodeTest do
   test "if exit started can be decoded" do
     exit_started_event = %{
       eth_height: 759,
-      event_signature: "ExitStarted(address,uint160)",
-      exit_id: 961_120_214_746_159_734_848_620_722_848_998_552_444_082_017,
+      event_signature: "ExitStarted(address,uint168)",
+      exit_id: 81_309_820_288_462_349_357_922_495_476_773_313_169_175_330_970_420,
       log_index: 1,
       owner: <<8, 133, 129, 36, 179, 184, 128, 198, 139, 54, 15, 211, 25, 204, 97, 218, 39, 84, 94, 154>>,
       root_chain_txhash:
@@ -410,8 +410,8 @@ defmodule OMG.ChildChain.DatadogEvent.EncodeTest do
 
     assert Encode.make_it_readable!(exit_started_event) == %{
              eth_height: 759,
-             event_signature: "ExitStarted(address,uint160)",
-             exit_id: 961_120_214_746_159_734_848_620_722_848_998_552_444_082_017,
+             event_signature: "ExitStarted(address,uint168)",
+             exit_id: 81_309_820_288_462_349_357_922_495_476_773_313_169_175_330_970_420,
              log_index: 1,
              owner: "0x08858124b3b880c68b360fd319cc61da27545e9a",
              root_chain_txhash: "0x4a8248b88a17b2be4c6086a1984622de1a60dda3c9dd9ece1ef97ed18efa028c"
