@@ -24,7 +24,6 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Validator.Base
   alias OMG.WatcherInfo.API.Transaction, as: TransactionAPI
-  alias OMG.WatcherInfo.UtxoSelection
 
   @doc """
   Parses and validates request body
