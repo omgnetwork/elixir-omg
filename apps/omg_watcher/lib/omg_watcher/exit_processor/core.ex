@@ -649,17 +649,24 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   def delete_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, deletions) do
     exit_ids =
       deletions
-      |> Enum.map(& &1.exit_id)
+      |> Enum.map(fn %{exit_id: exit_id} -> InFlightExitInfo.to_contract_id(exit_id) end)
       |> MapSet.new()
 
-    deleted_ifes_by_key = Enum.filter(ifes, fn {_, ife} -> MapSet.member?(exit_ids, ife.contract_id) end)
+    deleted_ifes_by_key =
+      ifes
+      |> Enum.filter(fn {_, ife} -> MapSet.member?(exit_ids, ife.contract_id) end)
+      |> Map.new()
 
-    keys_to_delete = Map.keys(deleted_ifes_by_key)
-    updated_ifes = Map.drop(ifes, keys_to_delete)
+    deleted_keys = Map.keys(deleted_ifes_by_key)
+    updated_ifes = Map.drop(ifes, deleted_keys)
 
-    deleted_ifes = Map.values(deleted_ifes_by_key)
-    db_updates = Enum.map(keys_to_delete, fn key -> {:delete, :in_flight_exit_info, key} end)
+    deleted_utxos =
+      deleted_ifes_by_key
+      |> Map.values()
+      |> InFlightExitInfo.get_input_utxos()
 
-    {%{state | ifes: updated_ifes}, deleted_ifes, db_updates}
+    db_updates = Enum.map(deleted_keys, fn key -> {:delete, :in_flight_exit_info, key} end)
+
+    {%{state | in_flight_exits: updated_ifes}, deleted_utxos, db_updates}
   end
 end

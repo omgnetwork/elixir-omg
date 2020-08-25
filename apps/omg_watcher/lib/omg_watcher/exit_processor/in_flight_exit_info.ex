@@ -269,13 +269,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     %{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
-  @spec get_inputs(list(t())) :: list(Utxo.Position.t())
-  def get_inputs(ifes) do
-    ifes
-    |> Enum.map(fn %{tx: tx} -> Transaction.get_inputs(tx) end)
-    |> List.flatten()
-  end
-
   @spec piggyback(t(), combined_index_t()) :: t() | {:error, :non_existent_exit | :cannot_piggyback}
   def piggyback(ife, index)
 
@@ -433,6 +426,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         oldest_competitor: oldest_competitor_pos
       }),
       do: is_older?(seen_in_pos, oldest_competitor_pos)
+
+  @doc """
+  Converts integer to in-flight exit contract id
+  """
+  @spec to_contract_id(non_neg_integer) :: <<_::192>>
+  def to_contract_id(id), do: <<id::192>>
 
   @doc """
   Checks if the competitor being seen at `competitor_pos` (`nil` if unseen) is viable to challenge with, considering the

@@ -38,7 +38,6 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.ExitProcessor.Tools
 
@@ -382,9 +381,8 @@ defmodule OMG.Watcher.ExitProcessor do
       if not Enum.empty?(deletions),
         do: Logger.info("Recognized #{Enum.count(deletions)} deletions: #{inspect(deletions)}")
 
-    {new_state, deleted_exits, db_updates} = Core.delete_in_flight_exits(state, deletions)
-    input_utxos = InFlightExitInfo.get_inputs(deleted_exits)
-    {:ok, db_updates_from_state, _validities} = State.exit_utxos(input_utxos)
+    {new_state, deleted_utxos, db_updates} = Core.delete_in_flight_exits(state, deletions)
+    {:ok, db_updates_from_state, _validities} = State.exit_utxos(deleted_utxos)
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
