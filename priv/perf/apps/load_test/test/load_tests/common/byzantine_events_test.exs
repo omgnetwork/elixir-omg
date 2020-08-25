@@ -19,6 +19,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
   use ExUnit.Case, async: false
   use LoadTest.Performance
 
+  alias LoadTest.ChildChain.Exit
+
   @moduletag :integration
   @moduletag timeout: 180_000
 
@@ -26,6 +28,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
   @take 3
 
   setup_all do
+    Exit.add_exit_queue()
+
     # preventing :erlang.binary_to_existing_atom("last_mined_child_block_timestamp", :utf8) exception
     _ = String.to_atom("last_mined_child_block_timestamp")
     _ = String.to_atom("last_seen_eth_block_number")
@@ -56,6 +60,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
+
+    Process.sleep(20_000)
 
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} =
       ByzantineEvents.get_exitable_utxos(alice.addr, take: @take)
