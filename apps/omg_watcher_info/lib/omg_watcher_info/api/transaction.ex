@@ -157,7 +157,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
       %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
 
-  @spec merge(map()) :: list(transaction_t())
+  @spec merge(map()) :: create_t()
   def merge(%{address: address, currency: currency} = _constraints) do
     merge_inputs =
       address
@@ -168,7 +168,10 @@ defmodule OMG.WatcherInfo.API.Transaction do
       [_single_input] ->
         {:error, :single_input_for_ccy}
 
-      inputs -> generate_merge_transactions(inputs)
+      inputs ->
+        inputs
+        |> generate_merge_transactions()
+        |> respond()
     end
   end
 
@@ -176,7 +179,11 @@ defmodule OMG.WatcherInfo.API.Transaction do
     with {:ok, merge_inputs} <- utxo_positions_to_merge_inputs(utxo_positions) do
       case validate_merge_inputs(merge_inputs) do
         {:error, error} -> {:error, error}
-        {:ok, inputs} -> generate_merge_transactions(inputs)
+
+        {:ok, inputs} ->
+          inputs
+          |> generate_merge_transactions()
+          |> respond()
       end
     end
   end
