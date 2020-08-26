@@ -1461,6 +1461,140 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
   end
 
+  describe "/transaction.merge" do
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "address currency params return expected result", %{alice: alice} do
+      alice_hex = Encoding.to_hex(alice.addr)
+
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice.addr)
+
+      assert %{
+                "transactions" => [
+                  %{
+                    "typed_data" => _,
+                    "txbytes" => _,
+                    "inputs" => [
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      }
+                    ],
+                    "outputs" => [
+                      %{
+                        "amount" => 3,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                    ]
+                  }
+                ]
+              } =
+                WatcherHelper.success?(
+                  "transaction.merge",
+                  %{
+                    "address" => alice_hex,
+                    "currency" => @eth_hex
+                  }
+                )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "address currency params returns multiple valid transactions", %{alice: alice} do
+      alice_hex = Encoding.to_hex(alice.addr)
+
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+
+      assert %{
+                "transactions" => [
+                  %{
+                    "typed_data" => _,
+                    "txbytes" => _,
+                    "inputs" => [
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      }
+                    ],
+                    "outputs" => [
+                      %{
+                        "amount" => 4,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                    ]
+                  },
+                  %{
+                    "typed_data" => _,
+                    "txbytes" => _,
+                    "inputs" => [
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      }
+                    ],
+                    "outputs" => [
+                      %{
+                        "amount" => 2,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                    ]
+                  }
+                ]
+              } =
+                WatcherHelper.success?(
+                  "transaction.merge",
+                  %{
+                    "address" => alice_hex,
+                    "currency" => @eth_hex
+                  }
+                )
+    end
+  end
+
   defp get_block(blknum), do: DB.Repo.get(DB.Block, blknum)
 
   defp from_hex!(hex) do
