@@ -81,7 +81,6 @@ defmodule LoadTest.Common.ByzantineEvents do
           other -> other
         end
       end)
-      |> IO.inspect()
       |> only_successes()
 
     result
@@ -129,10 +128,13 @@ defmodule LoadTest.Common.ByzantineEvents do
     positions
     |> Enum.shuffle()
     |> Enum.map(fn position ->
-      WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_challenge_data(
-        LoadTest.Connection.WatcherSecurity.client(),
-        %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema{utxo_pos: position}
-      )
+      case WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_challenge_data(
+             LoadTest.Connection.WatcherSecurity.client(),
+             %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema{utxo_pos: position}
+           ) do
+        {:ok, response} -> {:ok, Jason.decode!(response.body)["data"]}
+        error -> error
+      end
     end)
     |> only_successes()
   end
@@ -149,11 +151,11 @@ defmodule LoadTest.Common.ByzantineEvents do
   def challenge_many_exits(challenge_responses, challenger_address) do
     map_contract_transaction(challenge_responses, fn challenge ->
       Exit.challenge_exit(
-        challenge.exit_id,
-        challenge.exiting_tx,
-        challenge.txbytes,
-        challenge.input_index,
-        challenge.sig,
+        challenge["exit_id"],
+        challenge["exiting_tx"],
+        challenge["txbytes"],
+        challenge["input_index"],
+        challenge["sig"],
         challenger_address
       )
     end)

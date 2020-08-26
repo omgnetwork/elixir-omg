@@ -87,7 +87,7 @@ defmodule LoadTest.Common.Generators do
     block["transactions"]
     |> Stream.with_index()
     |> Stream.flat_map(fn {tx, index} ->
-      transaction_to_output_positions(tx, block["number"], index, opts)
+      transaction_to_output_positions(tx, block["blknum"], index, opts)
     end)
   end
 

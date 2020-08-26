@@ -114,7 +114,6 @@ defmodule LoadTest.ChildChain.Exit do
   defp contract_address_payment_exit_game() do
     :load_test
     |> Application.fetch_env!(:contract_address_payment_exit_game)
-    |> IO.inspect()
     |> Encoding.to_binary()
   end
 end

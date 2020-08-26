@@ -145,6 +145,17 @@ defmodule LoadTest.ChildChain.Transaction do
     end
   end
 
+  defp reconstruct_transaction([tx_type, outputs_rlp, nonce_rlp]) do
+    with {:ok, 3} <- parse_uint256(tx_type),
+         {:ok, outputs} <- parse_outputs(outputs_rlp),
+         {:ok, nonce} <- reconstruct_nonce(nonce_rlp) do
+      {:ok, %{tx_type: 3, outputs: outputs, nonce: nonce}}
+    end
+  end
+
+  defp reconstruct_nonce(nonce) when is_binary(nonce) and byte_size(nonce) == 32, do: {:ok, nonce}
+  defp reconstruct_nonce(_), do: {:error, :malformed_nonce}
+
   defp validate_metadata(metadata) when is_binary(metadata) and byte_size(metadata) == 32, do: {:ok, metadata}
   defp validate_metadata(_), do: {:error, :malformed_metadata}
 
