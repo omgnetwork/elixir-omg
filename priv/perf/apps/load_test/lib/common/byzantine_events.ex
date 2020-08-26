@@ -152,10 +152,10 @@ defmodule LoadTest.Common.ByzantineEvents do
     map_contract_transaction(challenge_responses, fn challenge ->
       Exit.challenge_exit(
         challenge["exit_id"],
-        challenge["exiting_tx"],
-        challenge["txbytes"],
+        Encoding.to_binary(challenge["exiting_tx"]),
+        Encoding.to_binary(challenge["txbytes"]),
         challenge["input_index"],
-        challenge["sig"],
+        Encoding.to_binary(challenge["sig"]),
         challenger_address
       )
     end)
