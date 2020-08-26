@@ -1608,12 +1608,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                ]
              } = WatcherHelper.success?("transaction.create", params)
     end
-
-    defp prepare_test_server(context, response) do
-      response
-      |> TestServer.make_response()
-      |> TestServer.with_response(context, "/fees.all")
-    end
   end
 
   describe "/transaction.create validation" do
