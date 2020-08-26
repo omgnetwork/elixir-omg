@@ -126,6 +126,8 @@ services:
     depends_on:
       nginx:
         condition: service_healthy
+      feefeed:
+        condition: service_healthy
     networks:
       chain_net:
         ipv4_address: 172.27.0.103
@@ -222,6 +224,11 @@ services:
     ports:
       - "5433:5432"
     restart: always
+    healthcheck:
+      test: pg_isready -U feefeed
+      interval: 5s
+      timeout: 3s
+      retries: 5
     environment:
       POSTGRES_USER: feefeed
       POSTGRES_PASSWORD: feefeed
@@ -251,8 +258,17 @@ services:
     expose:
       - "4000"
     depends_on:
-      - postgres_feefeed
+      postgres_feefeed:
+        condition: service_healthy
+      nginx:
+        condition: service_healthy
     restart: always
+    healthcheck:
+      test: wget --quiet --tries=1 --spider localhost:4000 || exit 1
+      interval: 30s
+      timeout: 1s
+      retries: 5
+      start_period: 30s
     networks:
       chain_net:
         ipv4_address: 172.27.0.107
