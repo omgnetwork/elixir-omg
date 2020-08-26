@@ -110,6 +110,89 @@ defmodule LoadTest.ChildChain.Transaction do
     end)
   end
 
+  def recover(encoded_signed_tx) do
+    {:ok, trx} =
+      encoded_signed_tx
+      |> Encoding.to_binary()
+      |> ExRLP.decode()
+      |> reconstruct()
+
+    trx
+  end
+
+  defp reconstruct([raw_witnesses | typed_tx_rlp_decoded_chunks]) do
+    with true <- is_list(raw_witnesses) || {:error, :malformed_witnesses},
+         true <- Enum.all?(raw_witnesses, &valid_witness?/1) || {:error, :malformed_witnesses},
+         {:ok, raw_tx} <- reconstruct_transaction(typed_tx_rlp_decoded_chunks) do
+      {:ok, %{raw_tx: raw_tx, sigs: raw_witnesses}}
+    end
+  end
+
+  defp valid_witness?(witness) when is_binary(witness), do: byte_size(witness) == 65
+  defp valid_witness?(_), do: false
+
+  defp reconstruct_transaction([raw_type, inputs_rlp, outputs_rlp, tx_data_rlp, metadata_rlp])
+       when is_binary(raw_type) do
+    with {:ok, 1} <- parse_uint256(raw_type),
+         {:ok, inputs} <- parse_inputs(inputs_rlp),
+         {:ok, outputs} <- parse_outputs(outputs_rlp),
+         {:ok, tx_data} <- parse_uint256(tx_data_rlp),
+         0 <- tx_data,
+         {:ok, metadata} <- validate_metadata(metadata_rlp) do
+      {:ok, %{tx_type: 1, inputs: inputs, outputs: outputs, metadata: metadata}}
+    else
+      _ -> {:error, :unrecognized_transaction_type}
+    end
+  end
+
+  defp validate_metadata(metadata) when is_binary(metadata) and byte_size(metadata) == 32, do: {:ok, metadata}
+  defp validate_metadata(_), do: {:error, :malformed_metadata}
+
+  defp parse_inputs(inputs_rlp) do
+    with true <- Enum.count(inputs_rlp) <= 4 || {:error, :too_many_inputs},
+         # NOTE: workaround for https://github.com/omisego/ex_plasma/issues/19.
+         #       remove, when this is blocked on `ex_plasma` end
+         true <- Enum.all?(inputs_rlp, &(&1 != <<0::256>>)) || {:error, :malformed_inputs},
+         do: {:ok, Enum.map(inputs_rlp, &parse_input!/1)}
+  rescue
+    _ -> {:error, :malformed_inputs}
+  end
+
+  defp parse_input!(encoded) do
+    {:ok, result} = decode_position(encoded)
+
+    result
+  end
+
+  defp decode_position(encoded) when is_number(encoded) and encoded <= 0, do: {:error, :encoded_utxo_position_too_low}
+  defp decode_position(encoded) when is_integer(encoded) and encoded > 0, do: do_decode_position(encoded)
+  defp decode_position(encoded) when is_binary(encoded) and byte_size(encoded) == 32, do: do_decode_position(encoded)
+
+  defp do_decode_position(encoded) do
+    ExPlasma.Utxo.new(encoded)
+  end
+
+  defp parse_outputs(outputs_rlp) do
+    outputs = Enum.map(outputs_rlp, &parse_output!/1)
+
+    with true <- Enum.count(outputs) <= 4 || {:error, :too_many_outputs},
+         nil <- Enum.find(outputs, &match?({:error, _}, &1)),
+         do: {:ok, outputs}
+  rescue
+    _ -> {:error, :malformed_outputs}
+  end
+
+  defp parse_output!(rlp_data) do
+    {:ok, result} = ExPlasma.Utxo.new(rlp_data)
+
+    result
+  end
+
+  defp parse_uint256(<<0>> <> _binary), do: {:error, :leading_zeros_in_encoded_uint}
+  defp parse_uint256(binary) when byte_size(binary) <= 32, do: {:ok, :binary.decode_unsigned(binary, :big)}
+  defp parse_uint256(binary) when byte_size(binary) > 32, do: {:error, :encoded_uint_too_big}
+  defp parse_uint256(_), do: {:error, :malformed_uint256}
+
   defp try_submit_tx(tx, 0), do: do_submit_tx(tx)
 
   defp try_submit_tx(tx, retries) do

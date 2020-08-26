@@ -18,9 +18,9 @@ defmodule LoadTest.Common.Generators do
   """
 
   alias ExPlasma.Encoding
+  alias LoadTest.ChildChain.Transaction
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
-  alias OMG.State.Transaction
 
   @generate_user_timeout 600_000
 
@@ -95,13 +95,17 @@ defmodule LoadTest.Common.Generators do
     filtered_address = opts[:owned_by]
 
     tx
-    |> Transaction.Recovered.recover_from!()
-    |> Transaction.get_outputs()
+    |> Transaction.recover()
+    |> get_outputs()
     |> Enum.filter(&(is_nil(filtered_address) || &1.owner == filtered_address))
     |> Enum.with_index()
     |> Enum.map(fn {_, oindex} ->
       ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
     end)
+  end
+
+  defp get_outputs(transaction) do
+    transaction.raw_tx.outputs
   end
 
   defp poll_get_block(block_hash, child_chain_url) do
