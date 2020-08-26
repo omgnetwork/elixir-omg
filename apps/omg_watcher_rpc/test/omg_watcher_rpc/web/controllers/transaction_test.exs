@@ -1204,19 +1204,19 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } == WatcherHelper.no_success?("transaction.create", params)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns an error when need more than 4 inputs to satisfy payments and fee", %{
-      alice: alice,
-      bob: bob,
       test_server: context
     } do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _payment_1 = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _payment_2 = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _payment_3 = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _payment_4 = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
+      _payment_5_fee = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
 
       params = %{
         "owner" => Encoding.to_hex(alice.addr),
@@ -1232,84 +1232,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "The number of inputs required to cover the payment and fee exceeds the maximum allowed.",
                "object" => "error"
              } == WatcherHelper.no_success?("transaction.create", params)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "stealth add inputs when 2 inputs use different currencies", %{
-      test_server: context
-    } do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      prepare_test_server(context, @fee_response)
-
-      _ = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 20, currency: @other_token, owner: alice.addr)
-      _ = insert(:txoutput, amount: 30, currency: @other_token, owner: alice.addr)
-      _ = insert(:txoutput, amount: 40, currency: @other_token, owner: alice.addr)
-
-      params = %{
-        "owner" => Encoding.to_hex(alice.addr),
-        "payments" => [
-          %{"amount" => 20, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
-        ],
-        "fee" => %{"currency" => @eth_hex}
-      }
-
-      assert %{
-               "transactions" => [
-                 %{
-                   "fee" => %{
-                     "amount" => 5,
-                     "currency" => @eth_hex
-                   },
-                   "inputs" => [
-                     %{"amount" => 5, "currency" => @eth_hex},
-                     %{"amount" => 40, "currency" => @other_token_hex},
-                     %{"amount" => 30, "currency" => @other_token_hex},
-                     %{"amount" => 20, "currency" => @other_token_hex}
-                   ]
-                 }
-               ]
-             } = WatcherHelper.success?("transaction.create", params)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "stealth add inputs when 2 inputs can matched payments and fees", %{
-      test_server: context
-    } do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      prepare_test_server(context, @fee_response)
-
-      _ = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 40, currency: @eth, owner: alice.addr)
-
-      params = %{
-        "owner" => Encoding.to_hex(alice.addr),
-        "payments" => [
-          %{"amount" => 45, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
-        ],
-        "fee" => %{"currency" => @eth_hex}
-      }
-
-      assert %{
-               "transactions" => [
-                 %{
-                   "fee" => %{
-                     "amount" => 5,
-                     "currency" => @eth_hex
-                   },
-                   "inputs" => [
-                     %{"amount" => 20, "currency" => @eth_hex},
-                     %{"amount" => 10, "currency" => @eth_hex},
-                     %{"amount" => 30, "currency" => @eth_hex},
-                     %{"amount" => 40, "currency" => @eth_hex}
-                   ]
-                 }
-               ]
-             } = WatcherHelper.success?("transaction.create", params)
     end
 
     defp balance_in_token(address, token) do
@@ -1337,6 +1259,354 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         end)
 
       blocks_inserter.([{blknum, recovered_txs}])
+    end
+
+    defp prepare_test_server(context, response) do
+      response
+      |> TestServer.make_response()
+      |> TestServer.with_response(context, "/fees.all")
+    end
+  end
+
+  describe "/transaction.create stealth add inputs" do
+    setup tags do
+      context = TestServer.start()
+      on_exit(fn -> TestServer.stop(context) end)
+      Map.put(tags, :test_server, context)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "does not stealth add inputs where the number of inputs reached maximum", %{
+      test_server: context
+    } do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      prepare_test_server(context, @fee_response)
+
+      _payment_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+      _payment_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+      _payment_3 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+      _payment_and_fee = insert(:txoutput, amount: 15, currency: @eth, owner: alice.addr)
+
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 40, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 15, "currency" => @eth_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "stealth add 1 more input when 3 inputs with single currency covers payment and fee", %{test_server: context} do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      prepare_test_server(context, @fee_response)
+
+      _payment_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+      _payment_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+      _fee_1 = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _stealth_merge_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+
+      # Assert when payment amount exactly matched with input amounts
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 20, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+
+      # Assert when payment amount doesn't exactly matched with input amounts
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 18, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "stealth add 1 more input when 3 inputs with multiple currency covers payment and fee", %{
+      test_server: context
+    } do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      prepare_test_server(context, @fee_response)
+
+      _payment_1 = insert(:txoutput, amount: 5, currency: @other_token, owner: alice.addr)
+      _payment_2 = insert(:txoutput, amount: 5, currency: @other_token, owner: alice.addr)
+      _fee = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _stealth_add_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+
+      # Assert when payment amount exactly matched with input amounts
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 10, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @other_token_hex},
+                     %{"amount" => 5, "currency" => @other_token_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+
+      # Assert when payment amount doesn't exactly matched with input amounts
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 8, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @other_token_hex},
+                     %{"amount" => 5, "currency" => @other_token_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "stealth add 2 more inputs when 2 inputs with single currency covers payments and fee", %{test_server: context} do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      prepare_test_server(context, @fee_response)
+
+      _payment_1 = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
+      _fee = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _stealth_add_1 = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
+      _stealth_add_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+
+      # Assert when payment amount exactly matched with input amounts
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 30, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 20, "currency" => @eth_hex},
+                     %{"amount" => 30, "currency" => @eth_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+
+      # Assert when payment amount exactly matched with input amounts
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 28, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 20, "currency" => @eth_hex},
+                     %{"amount" => 30, "currency" => @eth_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "stealth add 2 more inputs when 2 inputs with multiple currency covers payments and fee", %{
+      test_server: context
+    } do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      prepare_test_server(context, @fee_response)
+
+      _payment_1 = insert(:txoutput, amount: 30, currency: @other_token, owner: alice.addr)
+      _fee = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _stealth_add_1 = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
+      _stealth_add_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+
+      # Assert when payment amount exactly matched with input amounts
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 30, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 20, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 30, "currency" => @other_token_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+
+      # Assert when payment amount exactly matched with input amounts
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 28, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 20, "currency" => @eth_hex},
+                     %{"amount" => 10, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 30, "currency" => @other_token_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "stealth add 1 more input when there're currently 2 inputs and have only 1 utxo left", %{test_server: context} do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+      prepare_test_server(context, @fee_response)
+
+      _fee = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _payment = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
+      _merge_1 = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
+
+      params = %{
+        "owner" => Encoding.to_hex(alice.addr),
+        "payments" => [
+          %{"amount" => 20, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+        ],
+        "fee" => %{"currency" => @eth_hex}
+      }
+
+      assert %{
+               "transactions" => [
+                 %{
+                   "fee" => %{
+                     "amount" => 5,
+                     "currency" => @eth_hex
+                   },
+                   "inputs" => [
+                     %{"amount" => 20, "currency" => @eth_hex},
+                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => 30, "currency" => @eth_hex}
+                   ]
+                 }
+               ]
+             } = WatcherHelper.success?("transaction.create", params)
     end
 
     defp prepare_test_server(context, response) do
