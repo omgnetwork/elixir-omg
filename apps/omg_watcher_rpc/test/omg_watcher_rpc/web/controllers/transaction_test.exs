@@ -27,6 +27,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
+  alias OMG.Utxo.Position
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.TestServer
   alias OMG.WireFormatTypes
@@ -1466,6 +1467,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     test "address currency params return expected result", %{alice: alice} do
       alice_hex = Encoding.to_hex(alice.addr)
 
+      insert(:txoutput)
       _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
       _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
       _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
@@ -1518,6 +1520,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     test "address currency params returns multiple valid transactions", %{alice: alice} do
       alice_hex = Encoding.to_hex(alice.addr)
 
+      insert(:txoutput)
       _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
       _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
       _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
@@ -1593,6 +1596,59 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                   }
                 )
     end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "valid utxo positions returns correctly formed merge transactions", %{alice: alice} do
+      alice_hex = Encoding.to_hex(alice.addr)
+
+      insert(:txoutput)
+      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_3 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
+
+      assert %{
+                "transactions" => [
+                  %{
+                    "typed_data" => _,
+                    "txbytes" => _,
+                    "inputs" => [
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                      %{
+                        "amount" => 1,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      }
+                    ],
+                    "outputs" => [
+                      %{
+                        "amount" => 3,
+                        "currency" => @eth_hex,
+                        "owner" => alice_hex
+                      },
+                    ]
+                  }
+                ]
+              } =
+                WatcherHelper.success?(
+                  "transaction.merge",
+                  %{
+                    "utxo_positions" => [position_1, position_2, position_3]
+                  }
+                )
+    end
+  end
+
+  defp encoded_position_from_insert(%{oindex: oindex, txindex: txindex, blknum: blknum}) do
+    Position.encode({:utxo_position, blknum, txindex, oindex})
   end
 
   defp get_block(blknum), do: DB.Repo.get(DB.Block, blknum)
