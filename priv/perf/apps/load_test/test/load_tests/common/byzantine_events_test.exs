@@ -53,6 +53,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     ByzantineEvents.get_many_standard_exits(utxos)
   end
 
+  # since we're using the same geth node for all tests, this test is not compatible with the test on line 76
+  @tag :skip
   test "can provide timing of status.get under many valid SEs", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
