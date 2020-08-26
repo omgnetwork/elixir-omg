@@ -57,8 +57,8 @@ defmodule LoadTest.ChildChain.Exit do
         gas: Encoding.to_hex(@gas_add_exit_queue)
       }
 
-      {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap) |> IO.inspect()
-      Ethereum.transact_sync(receipt_hash) |> IO.inspect()
+      {:ok, receipt_hash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+      Ethereum.transact_sync(receipt_hash)
       wait_for_exit_queue(100)
       receipt_hash
     end
