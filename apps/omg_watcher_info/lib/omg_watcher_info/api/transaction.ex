@@ -141,10 +141,6 @@ defmodule OMG.WatcherInfo.API.Transaction do
         _ ->
           {:error, :too_many_inputs}
       end
-
-      # if utxo_count <= Transaction.Payment.max_inputs(),
-      #   do: {:ok, UtxoSelection.add_utxos_for_stealth_merge(funds, merge_utxos)},
-      #   else: {:error, :too_many_inputs}
     end
   end
 
