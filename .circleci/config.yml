@@ -947,7 +947,7 @@ workflows:
       - property_tests:
           requires: [build]
           filters: *all_branches_and_tags
-      Publish in case of master branch, version branches and version tags.
+      # Publish in case of master branch, version branches and version tags.
       - publish_child_chain:
           requires:
             [
