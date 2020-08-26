@@ -488,7 +488,6 @@ jobs:
             make generate_api_code
             mix deps.get
             mix test
-            docker-compose logs watcher
       - run:
           name: Run load test
           command: |
