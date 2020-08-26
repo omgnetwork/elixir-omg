@@ -62,7 +62,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
       assert MergeConstraints.parse(request_data) == {:error, {:validation_error, "currency", :hex}}
     end
 
-    test "returns utxo_positions constraints when given more than 2 and less than 5 positions" do
+    test "returns utxo_positions constraints when given at least 2 positions" do
       request_data = %{
         "utxo_positions" => [1, 2]
       }
@@ -74,15 +74,15 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
              }
     end
 
-    test "returns utxo_positions constraints when given 4 positions" do
+    test "returns utxo_positions constraints when given 10 positions" do
       request_data = %{
-        "utxo_positions" => [1, 2, 3, 4]
+        "utxo_positions" => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
       }
 
       {:ok, constraints} = MergeConstraints.parse(request_data)
 
       assert constraints == %{
-               utxo_positions: [1, 2, 3, 4]
+               utxo_positions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
              }
     end
 
@@ -92,14 +92,6 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
       }
 
       assert MergeConstraints.parse(request_data) == {:error, {:validation_error, "utxo_positions", {:min_length, 2}}}
-    end
-
-    test "fails utxo_positions constraints when given more than 4 positions" do
-      request_data = %{
-        "utxo_positions" => [1, 2, 3, 4, 5]
-      }
-
-      assert MergeConstraints.parse(request_data) == {:error, {:validation_error, "utxo_positions", {:max_length, 4}}}
     end
 
     test "fails utxo_positions constraints when given a random string" do

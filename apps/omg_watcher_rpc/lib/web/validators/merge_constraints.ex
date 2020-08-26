@@ -19,12 +19,9 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
 
   import OMG.Utils.HttpRPC.Validator.Base
 
-  alias OMG.State.Transaction
   alias OMG.WatcherRPC.Web.Validator.Helpers
 
   require OMG.State.Transaction.Payment
-
-  @max_inputs Transaction.Payment.max_inputs()
 
   defp get_constraints(params) do
     case params do
@@ -35,7 +32,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
         ]
 
       %{"utxo_positions" => _} ->
-        [{"utxo_positions", [min_length: 2, max_length: @max_inputs, list: &to_utxo_pos/1], :utxo_positions}]
+        [{"utxo_positions", [min_length: 2, list: &to_utxo_pos/1], :utxo_positions}]
 
       _ ->
         {:error, :operation_bad_request}
