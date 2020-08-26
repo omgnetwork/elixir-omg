@@ -1,6 +1,16 @@
+release-branch=master
 issues=true
-issues-wo-labels=false
-unreleased=false
-since-tag=v0.0.1
-exclude-tags=sirn-deploy
-
+issues-wo-labels=true
+pull-requests=true
+pr-wo-labels=true
+unreleased=true
+since-tag=v0.4.8
+exclude-tags-regex=.*-pre.*
+enhancement-label=### Enhancements
+enhancement-labels=enhancement
+bugs-label=### Bug fixes
+bug-labels=bug
+breaking-label=### Breaking changes
+breaking-labels=breaking
+issues-label=### Other closed issues
+pr-label=### Other closed pull requests
