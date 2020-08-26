@@ -5,6 +5,9 @@ import Config
 #
 # See https://hexdocs.pm/mix/1.9.0/Mix.Tasks.Release.html#module-runtime-configuration
 
+config :omg_child_chain,
+  block_submit_stall_threshold_blocks: String.to_integer(System.get_env("BLOCK_SUBMIT_STALL_THRESHOLD_BLOCKS") || "4")
+
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   # Have at most `:pool_size` DB connections on standby and serving DB queries.
   pool_size: String.to_integer(System.get_env("WATCHER_INFO_DB_POOL_SIZE") || "10"),
