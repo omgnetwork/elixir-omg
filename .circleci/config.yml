@@ -480,14 +480,14 @@ jobs:
       - run: sh .circleci/status.sh
       - restore_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
-      - run:
-          name: Run specs
-          command: |
-            cd priv/cabbage
-            make install
-            make generate_api_code
-            mix deps.get
-            mix test
+      # - run:
+      #     name: Run specs
+      #     command: |
+      #       cd priv/cabbage
+      #       make install
+      #       make generate_api_code
+      #       mix deps.get
+      #       mix test
       - run:
           name: Run load test
           command: |
