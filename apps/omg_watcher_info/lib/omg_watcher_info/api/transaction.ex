@@ -117,13 +117,14 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  # Given order finds spender's inputs sufficient to perform a payment.
+  # Given an `order`, finds spender's inputs sufficient to perform a payment.
   # If also provided with receiver's address, creates and encodes a transaction.
   @spec select_inputs(utxos_map_t(), order_t()) :: inputs_t()
   defp select_inputs(utxos, %{payments: payments, fee: fee}) do
-    needed_funds = UtxoSelection.needed_funds(payments, fee)
-
-    token_utxo_selection = UtxoSelection.select_utxo(utxos, needed_funds)
+    token_utxo_selection =
+      payments
+      |> UtxoSelection.needed_funds(fee)
+      |> UtxoSelection.select_utxo(utxos)
 
     with {:ok, funds} <- UtxoSelection.funds_sufficient?(token_utxo_selection) do
       utxo_count =
@@ -131,12 +132,14 @@ defmodule OMG.WatcherInfo.API.Transaction do
         |> Stream.map(fn {_, utxos} -> length(utxos) end)
         |> Enum.sum()
 
-      merge_utxos = UtxoSelection.prioritize_merge_utxos(funds, utxos)
-
       case utxo_count do
         n when n <= Transaction.Payment.max_inputs() ->
-          utxos = funds |> Map.new() |> UtxoSelection.add_utxos_for_stealth_merge(merge_utxos)
-          {:ok, utxos}
+          stealth_merged_utxos =
+            utxos
+            |> UtxoSelection.prioritize_merge_utxos(funds)
+            |> UtxoSelection.add_utxos_for_stealth_merge(Map.new(funds))
+
+          {:ok, stealth_merged_utxos}
 
         _ ->
           {:error, :too_many_inputs}

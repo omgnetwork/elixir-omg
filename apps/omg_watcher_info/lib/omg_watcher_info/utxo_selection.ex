@@ -45,8 +45,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   - Prioritises currencies that have the largest number of UTXOs
   - Sorts by ascending order of UTXO value within the currency groupings ("dust first").
   """
-  @spec prioritize_merge_utxos(list({currency_t(), utxo_list_t()}), utxos_map_t()) :: utxo_list_t()
-  def prioritize_merge_utxos(selected_utxos, utxos) do
+  @spec prioritize_merge_utxos(utxos_map_t(), list({currency_t(), utxo_list_t()})) :: utxo_list_t()
+  def prioritize_merge_utxos(utxos, selected_utxos) do
     selected_utxo_hashes =
       selected_utxos
       |> Enum.flat_map(fn {_ccy, utxos} -> utxos end)
@@ -87,8 +87,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   no UTXOs are available. Agnostic to the priority ordering of available UTXOs.
   Returns an updated map of UTXOs for the transaction.
   """
-  @spec add_utxos_for_stealth_merge(utxos_map_t(), utxo_list_t()) :: utxos_map_t()
-  def add_utxos_for_stealth_merge(selected_utxos, available_utxos) do
+  @spec add_utxos_for_stealth_merge(utxo_list_t(), utxos_map_t()) :: utxos_map_t()
+  def add_utxos_for_stealth_merge(available_utxos, selected_utxos) do
     cond do
       get_number_of_utxos(selected_utxos) == Transaction.Payment.max_inputs() ->
         selected_utxos
@@ -99,11 +99,12 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       true ->
         [priority_utxo | remaining_available_utxos] = available_utxos
 
-        selected_utxos
-        |> Map.update!(priority_utxo.currency, fn current_utxos ->
-          [priority_utxo | current_utxos]
-        end)
-        |> add_utxos_for_stealth_merge(remaining_available_utxos)
+        stealth_merged_utxos =
+          Map.update!(selected_utxos, priority_utxo.currency, fn current_utxos ->
+            [priority_utxo | current_utxos]
+          end)
+
+        add_utxos_for_stealth_merge(remaining_available_utxos, stealth_merged_utxos)
     end
   end
 
@@ -113,9 +114,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   Returns {currency, { variance, [utxos] }}. A `variance` greater than zero means insufficient funds.
   The ordering of UTXOs in descending order of amount is implicitly assumed for this algorithm to work deterministically.
   """
-  @spec select_utxo(utxos_map_t(), %{currency_t() => pos_integer()}) ::
+  @spec select_utxo(%{currency_t() => pos_integer()}, utxos_map_t()) ::
           list({currency_t(), {integer, utxo_list_t()}})
-  def select_utxo(utxos, needed_funds) do
+  def select_utxo(needed_funds, utxos) do
     Enum.map(needed_funds, fn {token, need} ->
       token_utxos = Map.get(utxos, token, [])
 
