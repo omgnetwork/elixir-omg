@@ -6,32 +6,36 @@
 
 ### Enhancements
 
+- Adjustable DB connection pool parameters [\#1684](https://github.com/omgnetwork/elixir-omg/issues/1684)
 - Monitoring & alert for pending block submissions [\#1629](https://github.com/omgnetwork/elixir-omg/issues/1629)
+- Ability to filter transactions by date range in transaction.all [\#1417](https://github.com/omgnetwork/elixir-omg/issues/1417)
+-  /block.validate endpoint [\#1668](https://github.com/omgnetwork/elixir-omg/pull/1668) ([okalouti](https://github.com/okalouti))
 
 ### Bug fixes
 
+- Handle unexpected HTTP method gracefully [\#1646](https://github.com/omgnetwork/elixir-omg/issues/1646)
 - exit started ABI decoding call data ROPSTEN [\#1632](https://github.com/omgnetwork/elixir-omg/issues/1632)
+- Protocol.UndefinedError: protocol Jason.Encoder not implemented for \#PID\<0.32128.13\> of type PID, Jason.Encoder protocol m... [\#1619](https://github.com/omgnetwork/elixir-omg/issues/1619)
 - Balance metrics should include deposit utxos [\#1582](https://github.com/omgnetwork/elixir-omg/issues/1582)
 - Missing log metadata when json-encoding the log failed [\#1571](https://github.com/omgnetwork/elixir-omg/issues/1571)
-- List of lists of signatures borks the endpoint process for `transaction.submit` [\#1158](https://github.com/omgnetwork/elixir-omg/issues/1158)
-- Add missing clause on witness validation check [\#1656](https://github.com/omgnetwork/elixir-omg/pull/1656) ([mederic-p](https://github.com/mederic-p))
-
-### Other closed issues
-
-- docker-compose configuration that hooks up to OMG Network V1 Mainnet [\#1694](https://github.com/omgnetwork/elixir-omg/issues/1694)
-- Adjustable DB connection pool parameters [\#1684](https://github.com/omgnetwork/elixir-omg/issues/1684)
-- Pin elixir and erlang versions for asdf [\#1647](https://github.com/omgnetwork/elixir-omg/issues/1647)
-- Handle unexpected HTTP method gracefully [\#1646](https://github.com/omgnetwork/elixir-omg/issues/1646)
-- Protocol.UndefinedError: protocol Jason.Encoder not implemented for \#PID\<0.32128.13\> of type PID, Jason.Encoder protocol m... [\#1619](https://github.com/omgnetwork/elixir-omg/issues/1619)
-- README warning [\#1581](https://github.com/omgnetwork/elixir-omg/issues/1581)
 - StatusCache race condition on startup [\#1557](https://github.com/omgnetwork/elixir-omg/issues/1557)
-- docker-compose per each public environment [\#1423](https://github.com/omgnetwork/elixir-omg/issues/1423)
-- Ability to filter transactions by date range in transaction.all [\#1417](https://github.com/omgnetwork/elixir-omg/issues/1417)
-- Is transaction.submit security critical API? [\#1129](https://github.com/omgnetwork/elixir-omg/issues/1129)
+- List of lists of signatures borks the endpoint process for `transaction.submit` [\#1158](https://github.com/omgnetwork/elixir-omg/issues/1158)
 - Queued child chain blocks that got stuck might cause operator to invalidate the child chain [\#702](https://github.com/omgnetwork/elixir-omg/issues/702)
 - Finalization of invalid IFEs and invalid IFEs without challenge aren't reported by the Watcher [\#671](https://github.com/omgnetwork/elixir-omg/issues/671)
+- Fix fee adapter to accept decimal value in fee rules [\#1662](https://github.com/omgnetwork/elixir-omg/pull/1662) ([jarindr](https://github.com/jarindr))
+- Add missing clause on witness validation check [\#1656](https://github.com/omgnetwork/elixir-omg/pull/1656) ([mederic-p](https://github.com/mederic-p))
 
-### Other closed pull requests
+### Documentation updates
+
+- README warning [\#1581](https://github.com/omgnetwork/elixir-omg/issues/1581)
+
+### Untagged issues
+
+- docker-compose configuration that hooks up to OMG Network V1 Mainnet [\#1694](https://github.com/omgnetwork/elixir-omg/issues/1694)
+- Pin elixir and erlang versions for asdf [\#1647](https://github.com/omgnetwork/elixir-omg/issues/1647)
+- docker-compose per each public environment [\#1423](https://github.com/omgnetwork/elixir-omg/issues/1423)
+
+### Untagged pull requests
 
 - auto trigger chart version bump [\#1695](https://github.com/omgnetwork/elixir-omg/pull/1695) ([boolafish](https://github.com/boolafish))
 - Block Validation: New Checks [\#1693](https://github.com/omgnetwork/elixir-omg/pull/1693) ([okalouti](https://github.com/okalouti))
@@ -40,8 +44,6 @@
 - corrrectly serialize PIDs in alarms.get [\#1678](https://github.com/omgnetwork/elixir-omg/pull/1678) ([ayrat555](https://github.com/ayrat555))
 - account.get\_exitable\_utxos is unaware of in-flight exited inputs [\#1676](https://github.com/omgnetwork/elixir-omg/pull/1676) ([pnowosie](https://github.com/pnowosie))
 - chore: increase timeouts for childchain healthchecks [\#1671](https://github.com/omgnetwork/elixir-omg/pull/1671) ([ayrat555](https://github.com/ayrat555))
--  /block.validate endpoint [\#1668](https://github.com/omgnetwork/elixir-omg/pull/1668) ([okalouti](https://github.com/okalouti))
-- Fix fee adapter to accept decimal value in fee rules [\#1662](https://github.com/omgnetwork/elixir-omg/pull/1662) ([jarindr](https://github.com/jarindr))
 - docs: extend description of running cabbage tests [\#1658](https://github.com/omgnetwork/elixir-omg/pull/1658) ([pnowosie](https://github.com/pnowosie))
 - fix integration tests [\#1654](https://github.com/omgnetwork/elixir-omg/pull/1654) ([ayrat555](https://github.com/ayrat555))
 - fix: unexpected http method [\#1651](https://github.com/omgnetwork/elixir-omg/pull/1651) ([ripzery](https://github.com/ripzery))
@@ -55,7 +57,7 @@
 
 [Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.3-pre.2...v1.0.3)
 
-### Other closed pull requests
+### Untagged pull requests
 
 - remove trace decorator from OMG.WatcherInfo.DB.EthEvent.get/1 [\#1640](https://github.com/omgnetwork/elixir-omg/pull/1640) ([ayrat555](https://github.com/ayrat555))
 - chore: change log and version file change for v1.0.3 [\#1638](https://github.com/omgnetwork/elixir-omg/pull/1638) ([boolafish](https://github.com/boolafish))
@@ -78,7 +80,7 @@
 
 [Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.2-pre.0...v1.0.2)
 
-### Other closed pull requests
+### Untagged pull requests
 
 - chore: bump version in VERSION file [\#1613](https://github.com/omgnetwork/elixir-omg/pull/1613) ([boolafish](https://github.com/boolafish))
 - docs: v1.0.2 change logs [\#1611](https://github.com/omgnetwork/elixir-omg/pull/1611) ([boolafish](https://github.com/boolafish))
@@ -98,7 +100,7 @@
 
 [Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.1-pre.0...v1.0.1)
 
-### Other closed pull requests
+### Untagged pull requests
 
 - feat: increase ExitProcessor timeouts [\#1592](https://github.com/omgnetwork/elixir-omg/pull/1592) ([InoMurko](https://github.com/InoMurko))
 
@@ -106,7 +108,7 @@
 
 [Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.0-pre.2...v1.0.0)
 
-### Other closed pull requests
+### Untagged pull requests
 
 - prevent race condition for status cache [\#1558](https://github.com/omgnetwork/elixir-omg/pull/1558) ([InoMurko](https://github.com/InoMurko))
 - Changelog for v1.0.0 [\#1556](https://github.com/omgnetwork/elixir-omg/pull/1556) ([T-Dnzt](https://github.com/T-Dnzt))
