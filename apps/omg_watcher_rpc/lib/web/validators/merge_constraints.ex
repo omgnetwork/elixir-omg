@@ -34,9 +34,6 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
           {"currency", [:currency], :currency}
         ]
 
-      %{"utxos" => _} ->
-        [{"utxos", [min_length: 2, max_length: @max_inputs, list: &validate_utxo/1], :utxos}]
-
       %{"utxo_positions" => _} ->
         [{"utxo_positions", [min_length: 2, max_length: @max_inputs, list: &to_utxo_pos/1], :utxo_positions}]
 
@@ -63,17 +60,6 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
     case Helpers.validate_constraints(params, constraints) do
       {:ok, result} -> {:ok, Map.new(result)}
       error -> error
-    end
-  end
-
-  defp validate_utxo(utxo) do
-    with {:ok, _blknum} <- expect(utxo, "blknum", :pos_integer),
-         {:ok, _txindex} <- expect(utxo, "txindex", :pos_integer),
-         {:ok, _oindex} <- expect(utxo, "oindex", :pos_integer),
-         {:ok, _owner} <- expect(utxo, "owner", :address),
-         {:ok, _currency} <- expect(utxo, "currency", :currency),
-         {:ok, _amount} <- expect(utxo, "amount", :pos_integer) do
-      {:ok, utxo}
     end
   end
 
