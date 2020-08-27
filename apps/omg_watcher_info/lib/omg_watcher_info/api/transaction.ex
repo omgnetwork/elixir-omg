@@ -169,9 +169,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
         {:error, :single_input_for_ccy}
 
       inputs ->
-        inputs
-        |> generate_merge_transactions()
-        |> respond()
+        {:ok, generate_merge_transactions(inputs)}
     end
   end
 
@@ -182,9 +180,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
           {:error, error}
 
         {:ok, inputs} ->
-          inputs
-          |> generate_merge_transactions()
-          |> respond()
+          {:ok, generate_merge_transactions(inputs)}
       end
     end
   end
@@ -232,7 +228,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
         inputs ->
           {:ok, transaction} = create_merge(inputs)
-          [transaction]
+          transaction
       end
     end)
   end
