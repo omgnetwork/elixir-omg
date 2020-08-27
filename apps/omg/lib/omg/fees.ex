@@ -80,12 +80,46 @@ defmodule OMG.Fees do
           :ok | {:error, :fees_not_covered} | {:error, :overpaying_fees} | {:error, :multiple_potential_currency_fees}
   # If :ignore_fees is given, we don't require any surplus of tokens. If surplus exists, it will be collected.
   def check_if_covered(_, :ignore_fees), do: :ok
+  def check_if_covered(_, %{}), do: :ok
 
   # Otherwise we remove all non positive tokens from the map and process it
   def check_if_covered(implicit_paid_fee_by_currency, accepted_fees) do
     implicit_paid_fee_by_currency
     |> remove_zero_fees()
     |> check_positive_amounts(accepted_fees)
+  end
+
+  @doc ~S"""
+  Returns the fees to pay for a particular transaction,
+  and under particular fee specs listed in `fee_map`.
+
+  ## Examples
+  iex> OMG.Fees.for_transaction(
+  ...> %OMG.State.Transaction.Recovered{
+  ...>   signed_tx: %OMG.State.Transaction.Signed{raw_tx: OMG.State.Transaction.Payment.new([], [], <<0::256>>)}
+  ...> },
+  ...> %{
+  ...>   1 => %{
+  ...>     "eth" => [1],
+  ...>     "omg" => [3]
+  ...>   },
+  ...>   2 => %{
+  ...>     "eth" => [4],
+  ...>     "omg" => [5]
+  ...>   }
+  ...> }
+  ...> )
+  %{
+    "eth" => [1],
+    "omg" => [3]
+  }
+  """
+  @spec for_transaction(Transaction.Recovered.t(), merged_fee_t()) :: optional_fee_t()
+  def for_transaction(transaction, fee_map) do
+    case MergeTransactionValidator.is_merge_transaction?(transaction) do
+      true -> :no_fees_required
+      false -> get_fee_for_type(transaction, fee_map)
+    end
   end
 
   # With :no_fees_required, we ensure that no surplus of token is given
@@ -126,39 +160,6 @@ defmodule OMG.Fees do
 
       current_amount < paid_fee ->
         {:error, :overpaying_fees}
-    end
-  end
-
-  @doc ~S"""
-  Returns the fees to pay for a particular transaction,
-  and under particular fee specs listed in `fee_map`.
-
-  ## Examples
-  iex> OMG.Fees.for_transaction(
-  ...> %OMG.State.Transaction.Recovered{
-  ...>   signed_tx: %OMG.State.Transaction.Signed{raw_tx: OMG.State.Transaction.Payment.new([], [], <<0::256>>)}
-  ...> },
-  ...> %{
-  ...>   1 => %{
-  ...>     "eth" => [1],
-  ...>     "omg" => [3]
-  ...>   },
-  ...>   2 => %{
-  ...>     "eth" => [4],
-  ...>     "omg" => [5]
-  ...>   }
-  ...> }
-  ...> )
-  %{
-    "eth" => [1],
-    "omg" => [3]
-  }
-  """
-  @spec for_transaction(Transaction.Recovered.t(), merged_fee_t()) :: optional_fee_t()
-  def for_transaction(transaction, fee_map) do
-    case MergeTransactionValidator.is_merge_transaction?(transaction) do
-      true -> :no_fees_required
-      false -> get_fee_for_type(transaction, fee_map)
     end
   end
 
