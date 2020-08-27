@@ -208,7 +208,7 @@ defmodule LoadTest.Common.ByzantineEvents do
 
     _ = Logger.info("Waiting for the watcher to synchronize")
 
-    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height, service) end, 100_000)
+    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height, service) end, 200_000)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
@@ -284,7 +284,10 @@ defmodule LoadTest.Common.ByzantineEvents do
 
     status
     |> Map.get("services_synced_heights")
-    |> Enum.reject(fn height -> height["service"] == "block_getter" end)
+    |> Enum.reject(fn height ->
+      service = height["service"]
+      service == "block_getter" || service == "exit_finalizer" || service == "ife_exit_finalizer"
+    end)
     |> Enum.all?(&(&1["height"] >= root_chain_height))
   end
 
