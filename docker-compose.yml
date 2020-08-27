@@ -272,6 +272,7 @@ services:
     networks:
       chain_net:
         ipv4_address: 172.27.0.107
+
 networks:
   chain_net:
     driver: bridge
