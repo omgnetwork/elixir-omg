@@ -129,7 +129,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-      assert [{@eth, {-200, utxos}}] = UtxoSelection.select_utxo(utxos, needed_funds)
+      assert [{@eth, {-200, utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -142,7 +142,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-      assert [{@eth, {0, utxos}}] = UtxoSelection.select_utxo(utxos, needed_funds)
+      assert [{@eth, {0, utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -156,7 +156,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-      assert [{@eth, {1_000, _utxos}}] = UtxoSelection.select_utxo(utxos, needed_funds)
+      assert [{@eth, {1_000, _utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
     end
   end
 
@@ -176,7 +176,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         @eth => included
       }
 
-      assert UtxoSelection.add_utxos_for_stealth_merge(inputs, [not_included]) == inputs
+      assert UtxoSelection.add_utxos_for_stealth_merge([not_included], inputs) == inputs
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -188,7 +188,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       inputs = DB.TxOutput.get_sorted_grouped_utxos(@alice)
       other_available = []
 
-      assert UtxoSelection.add_utxos_for_stealth_merge(inputs, other_available) == inputs
+      assert UtxoSelection.add_utxos_for_stealth_merge(other_available, inputs) == inputs
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -212,7 +212,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         @eth => [available_3, available_2, available_1, included]
       }
 
-      assert UtxoSelection.add_utxos_for_stealth_merge(inputs, available) == expected
+      assert UtxoSelection.add_utxos_for_stealth_merge(available, inputs) == expected
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -234,7 +234,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       assert %{
                @eth => [input_1, merge_1],
                @other_token => [input_2, merge_2]
-             } = UtxoSelection.add_utxos_for_stealth_merge(inputs, [merge_1, merge_2])
+             } = UtxoSelection.add_utxos_for_stealth_merge([merge_1, merge_2], inputs)
     end
   end
 
@@ -254,7 +254,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         @eth => [selected_eth]
       }
 
-      result = UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+      result = UtxoSelection.prioritize_merge_utxos(utxos, inputs)
 
       assert result == available_eth
       assert Enum.member?(result, selected_eth) == false
@@ -284,7 +284,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         token_b => [utxo_b_1]
       }
 
-      result = UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+      result = UtxoSelection.prioritize_merge_utxos(utxos, inputs)
 
       assert result == [utxo_a_2, utxo_b_2]
       assert Enum.find(result, fn utxo -> utxo.currency == token_c end) == nil
@@ -320,7 +320,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         token_c => [selected_c]
       }
 
-      result = UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+      result = UtxoSelection.prioritize_merge_utxos(utxos, inputs)
 
       assert result == available_a ++ available_b ++ available_c
     end
@@ -345,7 +345,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         token_b => [b_1]
       }
 
-      assert UtxoSelection.prioritize_merge_utxos(inputs, utxos) == [b_2, b_3, a_3]
+      assert UtxoSelection.prioritize_merge_utxos(utxos, inputs) == [b_2, b_3, a_3]
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -375,7 +375,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       sorted_available_a = Enum.sort_by(available_a, fn utxo -> utxo.amount end, :asc)
       sorted_available_b = Enum.sort_by(available_b, fn utxo -> utxo.amount end, :asc)
 
-      assert UtxoSelection.prioritize_merge_utxos(inputs, utxos) == Enum.concat(sorted_available_a, sorted_available_b)
+      assert UtxoSelection.prioritize_merge_utxos(utxos, inputs) == Enum.concat(sorted_available_a, sorted_available_b)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -394,7 +394,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         @eth => [eth_1]
       }
 
-      assert UtxoSelection.prioritize_merge_utxos(inputs, utxos)
+      assert UtxoSelection.prioritize_merge_utxos(utxos, inputs)
              |> Enum.filter(fn utxo -> utxo.currency == @eth end)
              |> length() == 3
     end
@@ -406,7 +406,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-      assert [] == UtxoSelection.prioritize_merge_utxos(%{}, utxos)
+      assert [] == UtxoSelection.prioritize_merge_utxos(utxos, %{})
     end
   end
 end

@@ -17,6 +17,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Module provides API for transactions
   """
 
+  alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
   alias OMG.Utils.Paginator
@@ -33,11 +34,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   @max_outputs Transaction.Payment.max_outputs()
 
   @type create_t() ::
-          {:ok,
-           %{
-             result: :complete | :intermediate,
-             transactions: nonempty_list(UtxoSelection.transaction_t())
-           }}
+          {:ok, nonempty_list(transaction_t())}
           | {:error, {:insufficient_funds, list(map())}}
           | {:error, :too_many_inputs}
           | {:error, :too_many_outputs}
@@ -51,7 +48,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
         }
 
   @type utxos_map_t() :: %{UtxoSelection.currency_t() => UtxoSelection.utxo_list_t()}
-  @type inputs_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
+  @type inputs_t() :: {:ok, utxos_map_t()} | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
   @type transaction_t() :: %{
           inputs: nonempty_list(%DB.TxOutput{}),
           outputs: nonempty_list(UtxoSelection.payment_t()),
@@ -111,28 +108,24 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
-  @spec create(UtxoSelection.order_t()) :: create_t()
+  @spec create(order_t()) :: create_t()
   def create(order) do
-    case order.owner
-         |> DB.TxOutput.get_sorted_grouped_utxos()
-         |> create_inputs(order) do
-      {:error, reason} ->
-        {:error, reason}
-
-      result ->
-        result
-        |> create_transaction(order)
-        |> respond()
+    with {:ok, inputs} <-
+           order.owner
+           |> DB.TxOutput.get_sorted_grouped_utxos()
+           |> select_inputs(order) do
+      create_transaction(inputs, order)
     end
   end
 
-  # Given order finds spender's inputs sufficient to perform a payment.
+  # Given an `order`, finds spender's inputs sufficient to perform a payment.
   # If also provided with receiver's address, creates and encodes a transaction.
-  @spec create_inputs(utxos_map_t(), order_t()) :: inputs_t()
-  defp create_inputs(utxos, %{payments: payments, fee: fee}) do
-    needed_funds = UtxoSelection.needed_funds(payments, fee)
-
-    token_utxo_selection = UtxoSelection.select_utxo(utxos, needed_funds)
+  @spec select_inputs(utxos_map_t(), order_t()) :: inputs_t()
+  defp select_inputs(utxos, %{payments: payments, fee: fee}) do
+    token_utxo_selection =
+      payments
+      |> UtxoSelection.needed_funds(fee)
+      |> UtxoSelection.select_utxo(utxos)
 
     with {:ok, funds} <- UtxoSelection.funds_sufficient?(token_utxo_selection) do
       utxo_count =
@@ -140,11 +133,18 @@ defmodule OMG.WatcherInfo.API.Transaction do
         |> Stream.map(fn {_, utxos} -> length(utxos) end)
         |> Enum.sum()
 
-      merge_utxos = UtxoSelection.prioritize_merge_utxos(funds, utxos)
+      case utxo_count do
+        n when n <= Transaction.Payment.max_inputs() ->
+          stealth_merged_utxos =
+            utxos
+            |> UtxoSelection.prioritize_merge_utxos(funds)
+            |> UtxoSelection.add_utxos_for_stealth_merge(Map.new(funds))
 
-      if utxo_count <= Transaction.Payment.max_inputs(),
-        do: UtxoSelection.add_utxos_for_stealth_merge(funds, merge_utxos),
-        else: {:error, :too_many_inputs}
+          {:ok, stealth_merged_utxos}
+
+        _ ->
+          {:error, :too_many_inputs}
+      end
     end
   end
 
@@ -267,12 +267,10 @@ defmodule OMG.WatcherInfo.API.Transaction do
   end
 
   defp create_inputs(inputs) do
-    empty_gen = fn -> %{blknum: 0, txindex: 0, oindex: 0} end
-
     inputs
-    |> Stream.map(&Map.take(&1, [:blknum, :txindex, :oindex]))
-    |> Stream.concat(Stream.repeatedly(empty_gen))
-    |> (&Enum.zip([:input0, :input1, :input2, :input3], &1)).()
+    |> Stream.map(fn input -> %{blknum: input.blknum, txindex: input.txindex, oindex: input.oindex} end)
+    |> Stream.concat(Stream.repeatedly(fn -> %{blknum: 0, txindex: 0, oindex: 0} end))
+    |> (fn input -> Enum.zip([:input0, :input1, :input2, :input3], input) end).()
   end
 
   defp create_outputs(outputs) do
@@ -281,7 +279,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
     outputs
     |> Stream.concat(Stream.repeatedly(empty_gen))
-    |> (&Enum.zip([:output0, :output1, :output2, :output3], &1)).()
+    |> (fn output -> Enum.zip([:output0, :output1, :output2, :output3], output) end).()
   end
 
   defp create_transaction(utxos_per_token, %{
@@ -295,14 +293,14 @@ defmodule OMG.WatcherInfo.API.Transaction do
       |> Stream.map(fn {token, utxos} ->
         outputs =
           [fee | payments]
-          |> Stream.filter(&(&1.currency == token))
-          |> Stream.map(& &1.amount)
+          |> Stream.filter(fn %{currency: currency} -> currency == token end)
+          |> Stream.map(fn %{amount: amount} -> amount end)
           |> Enum.sum()
 
-        inputs = utxos |> Stream.map(& &1.amount) |> Enum.sum()
+        inputs = utxos |> Stream.map(fn %{amount: amount} -> amount end) |> Enum.sum()
         %{amount: inputs - outputs, owner: owner, currency: token}
       end)
-      |> Enum.filter(&(&1.amount > 0))
+      |> Enum.filter(fn %{amount: amount} -> amount > 0 end)
 
     outputs = payments ++ rests
 
@@ -322,24 +320,26 @@ defmodule OMG.WatcherInfo.API.Transaction do
         raw_tx = create_raw_transaction(inputs, outputs, metadata)
 
         {:ok,
-         %{
-           inputs: inputs,
-           outputs: outputs,
-           fee: fee,
-           metadata: metadata,
-           txbytes: create_txbytes(raw_tx),
-           sign_hash: compute_sign_hash(raw_tx)
-         }}
+         [
+           %{
+             inputs: inputs,
+             outputs: outputs,
+             fee: fee,
+             metadata: metadata,
+             txbytes: create_txbytes(raw_tx),
+             sign_hash: compute_sign_hash(raw_tx)
+           }
+         ]}
     end
   end
 
   defp create_raw_transaction(inputs, outputs, metadata) do
-    if Enum.any?(outputs, &(&1.owner == nil)),
+    if Enum.any?(outputs, fn %{owner: owner} -> owner == nil end),
       do: nil,
       else:
         Transaction.Payment.new(
-          inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
-          outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
+          Enum.map(inputs, fn input -> {input.blknum, input.txindex, input.oindex} end),
+          Enum.map(outputs, fn output -> {output.owner, output.currency, output.amount} end),
           metadata || @empty_metadata
         )
   end
@@ -353,12 +353,4 @@ defmodule OMG.WatcherInfo.API.Transaction do
     with tx when not is_nil(tx) <- tx,
          do: TypedDataHash.hash_struct(tx)
   end
-
-  defp respond({:ok, transaction}),
-    do: {:ok, [transaction]}
-
-  defp respond(transactions) when is_list(transactions),
-    do: {:ok, transactions}
-
-  defp respond(error), do: error
 end
