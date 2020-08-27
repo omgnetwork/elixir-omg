@@ -237,7 +237,7 @@ services:
       chain_net:
         ipv4_address: 172.27.0.106
   feefeed:
-    image: "omisego/feefeed-dev:669beed"
+    image: "omisego/feefeed-dev:7f2cb93"
     command: "start"
     container_name: feefeed
     environment:
