@@ -33,6 +33,22 @@ transaction.create:
         500:
           $ref: '../responses.yaml#/InternalServerError'
 
+transaction.merge:
+    post:
+      tags:
+        - Transaction
+      summary: Constructs merge transactions.
+      description: >
+        Given owner and currency, or a list of utxo positions, creates and encodes merge transactions for the caller.
+      operationId: mergeTransaction
+      requestBody:
+        $ref: 'request_bodies.yaml#/MergeTransactionsBodySchema'
+      responses:
+        200:
+          $ref: 'responses.yaml#/MergeTransactionResponse'
+        500:
+          $ref: '../responses.yaml#/InternalServerError'
+
 transaction.get:
   post:
     tags:

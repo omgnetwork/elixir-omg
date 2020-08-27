@@ -92,6 +92,27 @@ CreateTransactionsBodySchema:
             currency: '0x0000000000000000000000000000000000000000'
           metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
 
+MergeTransactionsBodySchema:
+  description: The description of merge transaction to be crafted.
+  required: true
+  content:
+    application/json:
+      schema:
+        title: 'MergeTransactionsBodySchema'
+        type: object
+        properties:
+          address:
+            type: string    
+          currency:
+            type: string
+          utxo_positions:
+            type: array
+            items:
+              type: string
+        example:
+          address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+          currency: '0x0000000000000000000000000000000000000000'
+
 GetTransactionBodySchema:
   description: Id (hash) of the transaction
   required: true

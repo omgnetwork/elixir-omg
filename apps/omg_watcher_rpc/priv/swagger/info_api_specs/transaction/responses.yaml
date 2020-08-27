@@ -12,6 +12,13 @@ CreateTransactionResponse:
       schema:
         $ref: 'response_schemas.yaml#/CreateTransactionResponseSchema'
 
+MergeTransactionResponse:
+  description: Transaction merge successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/MergeTransactionResponseSchema'
+
 GetTransactionResponse:
   description: Transaction details succcessful response
   content:
