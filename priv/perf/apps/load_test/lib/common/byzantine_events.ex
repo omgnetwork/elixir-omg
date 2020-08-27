@@ -205,7 +205,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   def watcher_synchronize(opts \\ []) do
     root_chain_height = Keyword.get(opts, :root_chain_height, nil)
     _ = Logger.info("Waiting for the watcher to synchronize")
-    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height) end, 400_000)
+    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height) end, 100_000)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
