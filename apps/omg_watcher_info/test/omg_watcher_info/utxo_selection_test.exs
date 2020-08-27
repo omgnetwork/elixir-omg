@@ -102,7 +102,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       _ = insert(:txoutput, amount: 100, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 100, currency: @other_token, owner: @alice)
 
-      %{@eth => [eth_utxo], @other_token => [other_token_utxo]} = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      %{@eth => [eth_utxo], @other_token => [other_token_utxo]} = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       constructed_argument = [
         {@eth, {variances[@eth], [eth_utxo]}},
@@ -127,7 +127,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       _ = insert(:txoutput, amount: 1_200, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 1_000, currency: @eth, owner: @alice)
 
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       assert [{@eth, {-200, utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
     end
@@ -140,7 +140,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       _ = insert(:txoutput, amount: 2_000, currency: @eth, owner: @alice)
 
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       assert [{@eth, {0, utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
     end
@@ -154,7 +154,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       _ = insert(:txoutput, amount: 500, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 500, currency: @eth, owner: @alice)
 
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       assert [{@eth, {1_000, _utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
     end
@@ -169,7 +169,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       [not_included | included] =
         @alice
-        |> DB.TxOutput.get_sorted_grouped_utxos()
+        |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
         |> Map.get(@eth)
 
       inputs = %{
@@ -185,7 +185,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         _ = insert(:txoutput, owner: @alice)
       end
 
-      inputs = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      inputs = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
       other_available = []
 
       assert UtxoSelection.add_utxos_for_stealth_merge(other_available, inputs) == inputs
@@ -199,7 +199,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       [included | available] =
         @alice
-        |> DB.TxOutput.get_sorted_grouped_utxos()
+        |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
         |> Map.get(@eth)
 
       [available_1, available_2, available_3 | _not_for_inclusion] = available
@@ -222,7 +222,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       _ = insert(:txoutput, currency: @other_token, owner: @alice)
       _ = insert(:txoutput, currency: @other_token, owner: @alice)
 
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
       [input_1, merge_1] = Map.get(utxos, @eth)
       [input_2, merge_2] = Map.get(utxos, @other_token)
 
@@ -248,7 +248,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       %{
         @eth => [selected_eth | available_eth]
-      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       inputs = %{
         @eth => [selected_eth]
@@ -277,7 +277,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         ^token_a => [utxo_a_1, utxo_a_2],
         ^token_b => [utxo_b_1, utxo_b_2],
         ^token_c => [_, _]
-      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       inputs = %{
         token_a => [utxo_a_1],
@@ -312,7 +312,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         ^token_a => [selected_a | available_a],
         ^token_b => [selected_b | available_b],
         ^token_c => [selected_c | available_c]
-      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       inputs = %{
         token_a => [selected_a],
@@ -338,7 +338,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       %{
         ^token_a => [a_1, a_2, a_3],
         ^token_b => [b_1, b_2, b_3]
-      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       inputs = %{
         token_a => [a_1, a_2],
@@ -365,7 +365,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       %{
         ^token_a => [a_1 | available_a],
         ^token_b => [b_1, b_2 | available_b]
-      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       inputs = %{
         token_a => [a_1],
@@ -386,7 +386,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       %{
         @eth => [eth_1 | available_eth]
-      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      } = utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       assert length(available_eth) > 3
 
@@ -404,7 +404,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       _ = insert(:txoutput, currency: @eth, owner: @alice)
       _ = insert(:txoutput, currency: @eth, owner: @alice)
 
-      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       assert [] == UtxoSelection.prioritize_merge_utxos(utxos, %{})
     end

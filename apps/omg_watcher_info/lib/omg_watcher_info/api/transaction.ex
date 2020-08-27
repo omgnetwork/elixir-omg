@@ -112,7 +112,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   def create(order) do
     with {:ok, inputs} <-
            order.owner
-           |> DB.TxOutput.get_sorted_grouped_utxos()
+           |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
            |> select_inputs(order) do
       create_transaction(inputs, order)
     end
@@ -178,7 +178,8 @@ defmodule OMG.WatcherInfo.API.Transaction do
   def merge(%{utxo_positions: utxo_positions}) do
     with {:ok, merge_inputs} <- utxo_positions_to_merge_inputs(utxo_positions) do
       case validate_merge_inputs(merge_inputs) do
-        {:error, error} -> {:error, error}
+        {:error, error} ->
+          {:error, error}
 
         {:ok, inputs} ->
           inputs
@@ -188,7 +189,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  defp utxo_positions_to_merge_inputs (utxo_positions) do
+  defp utxo_positions_to_merge_inputs(utxo_positions) do
     Enum.reduce_while(utxo_positions, {:ok, []}, fn encoded_position, {:ok, acc} ->
       case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
         nil -> {:halt, {:error, :input_not_found}}
