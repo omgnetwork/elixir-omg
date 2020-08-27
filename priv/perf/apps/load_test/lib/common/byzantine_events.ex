@@ -276,16 +276,12 @@ defmodule LoadTest.Common.ByzantineEvents do
   defp root_chain_synced?(nil, _, _), do: true
 
   defp root_chain_synced?(root_chain_height, status, nil) do
-    IO.inspect(
-      {root_chain_height,
-       status
-       |> Map.get("services_synced_heights")}
-    )
-
     status
     |> Map.get("services_synced_heights")
     |> Enum.reject(fn height ->
       service = height["service"]
+      # these service heights are stuck on circle ci, but they work fine locally
+      # I think ci machin is not powerful enough
       service == "block_getter" || service == "exit_finalizer" || service == "ife_exit_finalizer"
     end)
     |> Enum.all?(&(&1["height"] >= root_chain_height))
@@ -294,7 +290,6 @@ defmodule LoadTest.Common.ByzantineEvents do
   defp root_chain_synced?(root_chain_height, status, service) do
     heights = Map.get(status, "services_synced_heights")
 
-    IO.inspect({root_chain_height, heights})
     found_root_chain_height = Enum.find(heights, fn height -> height["service"] == service end)
 
     found_root_chain_height && found_root_chain_height["height"] >= root_chain_height

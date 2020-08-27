@@ -378,10 +378,6 @@ cabbage-childchain-logs:
 cabbage-geth-logs:
 	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "geth"
 
-cabbage-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "reorg"
-
-
 ###OTHER
 docker-start-cluster:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
