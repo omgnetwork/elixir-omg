@@ -262,7 +262,9 @@ defmodule LoadTest.Common.ByzantineEvents do
 
     status = Jason.decode!(status_response.body)["data"]
 
-    with :ok <- watcher_synchronized_to_mined_block?(status),
+    IO.inspect({root_chain_height, status})
+
+    with true <- watcher_synchronized_to_mined_block?(status),
          true <- root_chain_synced?(root_chain_height, status) do
       :ok
     else
@@ -278,14 +280,16 @@ defmodule LoadTest.Common.ByzantineEvents do
     |> Enum.all?(&(&1["height"] >= root_chain_height))
   end
 
-  defp watcher_synchronized_to_mined_block?(%{
-         "last_mined_child_block_number" => last_mined_child_block_number,
-         "last_validated_child_block_number" => last_validated_child_block_number
-       })
+  defp watcher_synchronized_to_mined_block?(
+         %{
+           "last_mined_child_block_number" => last_mined_child_block_number,
+           "last_validated_child_block_number" => last_validated_child_block_number
+         } = params
+       )
        when last_mined_child_block_number == last_validated_child_block_number and
               last_mined_child_block_number > 0 do
     _ = Logger.debug("Synced to blknum: #{last_validated_child_block_number}")
-    :ok
+    true
   end
 
   defp watcher_synchronized_to_mined_block?(_), do: :not_synchronized
