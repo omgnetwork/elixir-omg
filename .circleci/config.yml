@@ -504,12 +504,12 @@ jobs:
       #       make generate_api_code
       #       mix deps.get
       #       mix test
-      # - run:
-      #     name: Run load test
-      #     command: |
-      #       cd priv/perf
-      #       make init
-      #       make test
+      - run:
+          name: Run load test
+          command: |
+            cd priv/perf
+            make init
+            make test
       # - run:
       #     name: (Cabbage) Format generated code and check for warnings
       #     command: |
