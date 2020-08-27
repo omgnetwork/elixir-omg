@@ -172,7 +172,7 @@ defmodule LoadTest.Common.SenderServer do
       {:ok, newblknum, newtxindex, newvalue} ->
         send(self(), :do)
 
-        if newblknum > last_tx.blknum,
+        if newblknum > state.last_tx.blknum,
           do:
             LoadTest.Common.SenderManager.sender_stats(%{
               seqnum: state.seqnum,
