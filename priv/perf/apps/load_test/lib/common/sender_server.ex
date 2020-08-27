@@ -179,7 +179,7 @@ defmodule LoadTest.Common.SenderServer do
               txindex: last_tx.txindex
             })
 
-        state |> next_state(newblknum, newtxindex, newvalue)
+        next_state(state, newblknum, newtxindex, newvalue)
 
       :retry ->
         Process.send_after(self(), :do, @tx_retry_waiting_time_ms)

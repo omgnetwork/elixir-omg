@@ -13,6 +13,9 @@
 # limitations under the License.
 
 defmodule LoadTest.ChildChain.Abi do
+  @moduledoc """
+  Functions that provide ethereum log decoding
+  """
   alias ExPlasma.Encoding
   alias LoadTest.ChildChain.Abi.AbiEventSelector
   alias LoadTest.ChildChain.Abi.AbiFunctionSelector

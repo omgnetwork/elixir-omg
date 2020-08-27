@@ -22,7 +22,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   shell do:
 
   ```
-  use OMG.Performance
+  use LoadTest.Performance
 
   Performance.init()
   spenders = Generators.generate_users(2)
@@ -30,7 +30,7 @@ defmodule LoadTest.Common.ByzantineEvents do
 
   You probably want to prefill the child chain with transactions, see `OMG.Performance.ExtendedPerftest` or just:
   ```
-  Performance.ExtendedPerftest.start(10_000, 16, randomized: false)
+  LoadTest.Common.ExtendedPerftest.start(10_000, 16, randomized: false)
   ```
   (`randomized: false` is useful to test massive honest-standard-exiting, since it will create many unspent UTXOs for
   each of the spenders)

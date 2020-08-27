@@ -163,12 +163,10 @@ defmodule LoadTest.ChildChain.Deposit do
   defp encode_payment_transaction(inputs, outputs, metadata \\ <<0::256>>) do
     ExRLP.encode([
       1,
-      inputs
-      |> Enum.map(fn {blknum, txindex, oindex} ->
-        %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex} |> ExPlasma.Utxo.to_rlp()
+      Enum.map(inputs, fn {blknum, txindex, oindex} ->
+        ExPlasma.Utxo.to_rlp(%ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex})
       end),
-      outputs
-      |> Enum.map(fn {owner, currency, amount} ->
+      Enum.map(outputs, fn {owner, currency, amount} ->
         [1, [owner, currency, amount]]
       end),
       0,

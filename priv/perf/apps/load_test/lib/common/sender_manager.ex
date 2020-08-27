@@ -123,7 +123,7 @@ defmodule LoadTest.Common.SenderManager do
   # Returns array of tuples, each tuple contains four fields:
   # * {blknum,   total_txs_in_blk,   avg_txs_in_sec,   time_between_blocks_ms}
   defp analyze(%{events: events, start_time: start, initial_blknums: initial_blknums}) do
-    events_by_blknum = events |> Enum.group_by(& &1.blknum)
+    events_by_blknum = Enum.group_by(events, & &1.blknum)
 
     # we don't want the initial blocks that end up in the events
     ordered_keys =
@@ -137,7 +137,7 @@ defmodule LoadTest.Common.SenderManager do
       |> Enum.map(&collect_block/1)
       |> Enum.reduce({start, []}, &analyze_block/2)
 
-    block_stats |> Enum.reverse()
+    Enum.reverse(block_stats)
   end
 
   # Receives all events from Senders processes related to the same block and computes block's statistics.

@@ -49,8 +49,7 @@ defmodule LoadTest.Common.Runner do
 
     destfile = Path.join(opts[:destdir], "perf_result_profiling_#{:os.system_time(:seconds)}")
 
-    [callers: true, sort: :own, totals: true, details: true, dest: String.to_charlist(destfile)]
-    |> :fprof.analyse()
+    :fprof.analyse(callers: true, sort: :own, totals: true, details: true, dest: String.to_charlist(destfile))
 
     _ = Logger.info("The :fprof output written to #{inspect(destfile)}.")
 
