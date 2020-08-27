@@ -1256,7 +1256,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _payment_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
       _payment_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
       _payment_3 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
-      _payment_and_fee = insert(:txoutput, amount: 10 + @default_fee_amount, currency: @eth, owner: alice.addr)
+      _payment_and_fee = insert(:txoutput, amount: 15, currency: @eth, owner: alice.addr)
 
       params = %{
         "owner" => Encoding.to_hex(alice.addr),
@@ -1277,7 +1277,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 10, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
-                     %{"amount" => 10 + @default_fee_amount, "currency" => @eth_hex}
+                     %{"amount" => 15, "currency" => @eth_hex}
                    ]
                  }
                ]
