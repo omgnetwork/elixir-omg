@@ -24,10 +24,9 @@ defmodule OMG.ChildChain.Integration.HappyPathTest do
   require OMG.Utxo
 
   alias OMG.Block
-  alias OMG.Eth.Configuration
   alias OMG.Eth.Client
+  alias OMG.Eth.Configuration
   alias OMG.State.Transaction
-
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias Support.DevHelper
