@@ -16,7 +16,7 @@ defmodule LoadTest.Common.ExtendedPerftest do
   @moduledoc """
   This performance test allows to send out many transactions to a child chain instance of choice.
 
-  See `OMG.Performance` for configuration within the `iex` shell using `Performance.init()`
+  See `LoadTest.Performance` for configuration within the `iex` shell using `Performance.init()`
   """
 
   alias LoadTest.ChildChain.Deposit
@@ -35,11 +35,11 @@ defmodule LoadTest.Common.ExtendedPerftest do
   Once you have your Ethereum node and a child chain running, from a configured `iex -S mix run --no-start` shell
 
   ```
-  use OMG.Performance
+  use LoadTest.Performance
 
   Performance.init()
   spenders = Generators.generate_users(2)
-  Performance.ExtendedPerftest.start(100, spenders, destdir: destdir)
+  LoadTest.Common.ExtendedPerftest.start(100, spenders, destdir: destdir)
   ```
 
   The results are going to be waiting for you in a file within `destdir` and will be logged.
@@ -49,7 +49,7 @@ defmodule LoadTest.Common.ExtendedPerftest do
     - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
       defaults to `true`
   """
-  @spec start(pos_integer(), list(TestHelper.entity()), keyword()) :: :ok
+  @spec start(pos_integer(), list(map()), keyword()) :: :ok
   def start(ntx_to_send, spenders, opts \\ []) do
     _ =
       Logger.info(
@@ -70,7 +70,7 @@ defmodule LoadTest.Common.ExtendedPerftest do
     result
   end
 
-  @spec create_deposits(list(TestHelper.entity()), pos_integer()) :: list()
+  @spec create_deposits(list(map()), pos_integer()) :: list()
   defp create_deposits(spenders, ntx_to_send) do
     Enum.map(make_deposits(ntx_to_send * 2, spenders), fn {:ok, owner, blknum, amount} ->
       utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: 0, oindex: 0})

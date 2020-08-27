@@ -31,7 +31,7 @@ defmodule LoadTest.Common.Generators do
     - :faucet - the address to send the test ETH from, assumed to be unlocked and have the necessary funds
     - :initial_funds_wei - the amount of test ETH that will be granted to every generated user
   """
-  @spec generate_users(non_neg_integer) :: [OMG.TestHelper.entity()]
+  @spec generate_users(non_neg_integer) :: [map()]
   def generate_users(size) do
     1..size
     |> Task.async_stream(fn _ -> generate_user() end, timeout: @generate_user_timeout)
@@ -56,7 +56,7 @@ defmodule LoadTest.Common.Generators do
     if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
   end
 
-  @spec stream_blocks() :: [OMG.Block.t()]
+  @spec stream_blocks() :: [map()]
   defp stream_blocks() do
     child_chain_url = Application.fetch_env!(:load_test, :child_chain_url)
     interval = Application.fetch_env!(:load_test, :child_block_interval)

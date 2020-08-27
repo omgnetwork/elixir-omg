@@ -52,11 +52,13 @@ defmodule LoadTest.ChildChain.Deposit do
     Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
   end
 
-  def deposit_to_child_chain(to, value, address \\ <<0::160>>)
+  def deposit_to_child_chain(to, value) do
+    deposit_to_child_chain(to, value, <<0::160>>)
+  end
 
-  def deposit_to_child_chain(to, value, address) do
+  def deposit_to_child_chain(to, value, <<0::160>>) do
     {:ok, receipt} =
-      encode_payment_transaction([], [{to, address, value}])
+      encode_payment_transaction([], [{to, <<0::160>>, value}])
       |> deposit_transaction(value, to)
       |> Ethereum.transact_sync()
 

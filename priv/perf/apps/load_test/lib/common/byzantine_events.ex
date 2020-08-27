@@ -94,7 +94,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
   the receipt of the last transaction sent out.
   """
-  @spec start_many_exits(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  @spec start_many_exits(list(map), binary()) :: {:ok, map()} | {:error, any()}
   def start_many_exits(exit_datas, owner_address) do
     map_contract_transaction(exit_datas, fn composed_exit ->
       txbytes = Encoding.to_binary(composed_exit["txbytes"])
@@ -147,7 +147,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
   the receipt of the last transaction sent out.
   """
-  @spec challenge_many_exits(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  @spec challenge_many_exits(list(map), binary()) :: {:ok, map()} | {:error, any()}
   def challenge_many_exits(challenge_responses, challenger_address) do
     map_contract_transaction(challenge_responses, fn challenge ->
       Exit.challenge_exit(
@@ -175,7 +175,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   Options:
     - :take - if not nil, will limit to this many results
   """
-  @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
+  @spec get_exitable_utxos(binary(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
     params = %WatcherInfoAPI.Model.AddressBodySchema1{address: Encoding.to_hex(addr)}
 
@@ -208,7 +208,7 @@ defmodule LoadTest.Common.ByzantineEvents do
 
     _ = Logger.info("Waiting for the watcher to synchronize")
 
-    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height, service) end, 200_000)
+    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height, service) end, 500_000)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
@@ -276,6 +276,12 @@ defmodule LoadTest.Common.ByzantineEvents do
   defp root_chain_synced?(nil, _, _), do: true
 
   defp root_chain_synced?(root_chain_height, status, nil) do
+    IO.inspect(
+      {root_chain_height,
+       status
+       |> Map.get("services_synced_heights")}
+    )
+
     status
     |> Map.get("services_synced_heights")
     |> Enum.reject(fn height ->
@@ -305,5 +311,8 @@ defmodule LoadTest.Common.ByzantineEvents do
     true
   end
 
-  defp watcher_synchronized_to_mined_block?(_), do: :not_synchronized
+  defp watcher_synchronized_to_mined_block?(params) do
+    IO.inspect(params)
+    :not_synchronized
+  end
 end
