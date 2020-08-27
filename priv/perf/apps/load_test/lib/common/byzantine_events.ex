@@ -249,7 +249,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   defp map_contract_transaction(enumberable, transaction_function) do
     enumberable
     |> Enum.map(transaction_function)
-    |> Task.async_stream(&Ethereum.transact_sync(&1, 100_000),
+    |> Task.async_stream(&Ethereum.transact_sync(&1, 200_000),
       timeout: :infinity,
       max_concurrency: 10_000
     )
