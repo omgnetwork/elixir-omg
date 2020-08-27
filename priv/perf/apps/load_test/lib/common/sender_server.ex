@@ -167,10 +167,7 @@ defmodule LoadTest.Common.SenderServer do
           tx_submit_result :: {:ok, map} | :retry | {:error, any},
           state :: __MODULE__.state()
         ) :: __MODULE__.state()
-  defp update_state_with_tx_submission(
-         tx_submit_result,
-         %__MODULE__{seqnum: seqnum, last_tx: last_tx} = state
-       ) do
+  defp update_state_with_tx_submission(tx_submit_result, state) do
     case tx_submit_result do
       {:ok, newblknum, newtxindex, newvalue} ->
         send(self(), :do)
@@ -178,9 +175,9 @@ defmodule LoadTest.Common.SenderServer do
         if newblknum > last_tx.blknum,
           do:
             LoadTest.Common.SenderManager.sender_stats(%{
-              seqnum: seqnum,
-              blknum: last_tx.blknum,
-              txindex: last_tx.txindex
+              seqnum: state.seqnum,
+              blknum: state.last_tx.blknum,
+              txindex: state.last_tx.txindex
             })
 
         next_state(state, newblknum, newtxindex, newvalue)
