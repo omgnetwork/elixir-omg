@@ -548,9 +548,9 @@ jobs:
             [ -d data2 ] || mkdir data2 && chmod 777 data2
             [ -d data ] || mkdir data && chmod 777 data
       - run: printf "%s\\n" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-      - run: make docker-child_chain
-      - run: make docker-watcher
-      - run: make docker-watcher_info
+      # - run: make docker-child_chain
+      # - run: make docker-watcher
+      # - run: make docker-watcher_info
       - run:
           name: Start daemon services
           command: |
