@@ -65,7 +65,7 @@ defmodule LoadTest.Common.ExtendedPerftest do
 
     result = LoadTest.Common.Runner.run(ntx_to_send, utxos, opts, false)
 
-    Process.sleep(100_000)
+    Process.sleep(20_000)
 
     result
   end
