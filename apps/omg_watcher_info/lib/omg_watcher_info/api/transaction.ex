@@ -143,12 +143,12 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
     case UtxoSelection.funds_sufficient(token_utxo_selection) do
       {:ok, funds} ->
-        stealth_merged_utxos =
+        stealth_merge_utxos =
           utxos
           |> UtxoSelection.prioritize_merge_utxos(funds)
           |> UtxoSelection.add_utxos_for_stealth_merge(Map.new(funds))
 
-        {:ok, stealth_merged_utxos}
+        {:ok, stealth_merge_utxos}
 
       err ->
         err

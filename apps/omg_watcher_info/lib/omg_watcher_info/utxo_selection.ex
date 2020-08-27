@@ -86,12 +86,12 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       _ ->
         [priority_utxo | remaining_available_utxos] = available_utxos
 
-        stealth_merged_utxos =
+        stealth_merge_utxos =
           Map.update!(selected_utxos, priority_utxo.currency, fn current_utxos ->
             [priority_utxo | current_utxos]
           end)
 
-        add_utxos_for_stealth_merge(remaining_available_utxos, stealth_merged_utxos)
+        add_utxos_for_stealth_merge(remaining_available_utxos, stealth_merge_utxos)
     end
   end
 
