@@ -20,9 +20,15 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.API.Transaction
   alias OMG.WatcherRPC.Web.View
 
+  import OMG.WatcherInfo.Factory
+
   require Utxo
+
+  @alice <<1::160>>
+  @currency <<2::160>>
 
   describe "render/2 with transaction.json" do
     @tag fixtures: [:initial_blocks]
@@ -65,6 +71,23 @@ defmodule OMG.WatcherRPC.Web.View.TransactionTest do
       assert utxos_match_all?(rendered_1.outputs, tx_1.outputs)
       assert utxos_match_all?(rendered_2.inputs, tx_2.inputs)
       assert utxos_match_all?(rendered_2.outputs, tx_2.outputs)
+    end
+  end
+
+  describe "render/2 with merge.json" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "renders merge transactions" do
+      insert(:txoutput)
+      _ = :txoutput |> insert(currency: @currency, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency, owner: @alice, amount: 1)
+      _ = :txoutput |> insert(currency: @currency, owner: @alice, amount: 1)
+
+      {:ok, merge_txs} = Transaction.merge(%{address: @alice, currency: @currency})
+      IO.inspect(merge_txs)
+
+      rendered = View.Transaction.render("merge.json", %{response: merge_txs})
+      # TODO: not doing this right...
+      assert 1 == 1
     end
   end
 
