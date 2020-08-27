@@ -87,7 +87,7 @@ defmodule OMG.WatcherInfo.Transaction do
              fee: order.fee,
              metadata: order.metadata,
              txbytes: Transaction.raw_txbytes(raw_tx),
-             sign_hash: TypedDataHash.hash_struct(raw_tx),
+             sign_hash: TypedDataHash.hash_struct(raw_tx)
            }
          ]}
     end
