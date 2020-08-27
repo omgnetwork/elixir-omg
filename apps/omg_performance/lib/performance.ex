@@ -32,11 +32,56 @@ defmodule OMG.Performance do
     end
   end
 
+  @doc """
+  Sets up the `OMG.Performance` machinery to a required config. Uses some default values, overridable via:
+    - `opts`
+    - system env (some entries)
+    - `config.exs`
+  in that order of preference. The configuration chosen is put into `Application`'s environment
+
+  Options:
+    - :ethereum_rpc_url - URL of the Ethereum node's RPC, default `http://localhost:8545`
+    - :child_chain_url - URL of the Child Chain server's RPC, default `http://localhost:9656`
+    - :watcher_url - URL of the Watcher's RPC, default `http://localhost:7434`
+    - :contract_addr - a map with the root chain contract addresses
+
+  If you're testing against a local child chain/watcher instances, consider setting the following configuration:
+  ```
+  config :omg,
+    deposit_finality_margin: 1
+  config :omg_watcher,
+    exit_finality_margin: 1
+  ```
+  in order to prevent the apps from waiting for unnecessary confirmations
+
+  """
   def init(opts \\ []) do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, _} = Application.ensure_all_started(:hackney)
     {:ok, _} = Application.ensure_all_started(:cowboy)
+
+    ethereum_rpc_url =
+      System.get_env("ETHEREUM_RPC_URL") || Application.get_env(:ethereumex, :url, "http://localhost:8545")
+
+    child_chain_url =
+      System.get_env("CHILD_CHAIN_URL") || Application.get_env(:omg_watcher, :child_chain_url, "http://localhost:9656")
+
+    watcher_url =
+      System.get_env("WATCHER_URL") || Application.get_env(:omg_performance, :watcher_url, "http://localhost:7434")
+
+    defaults = [
+      ethereum_rpc_url: ethereum_rpc_url,
+      child_chain_url: child_chain_url,
+      watcher_url: watcher_url,
+      contract_addr: nil
+    ]
+
+    opts = Keyword.merge(defaults, opts)
+
+    :ok = Application.put_env(:ethereumex, :request_timeout, :infinity)
+    :ok = Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
+    :ok = Application.put_env(:ethereumex, :url, opts[:ethereum_rpc_url])
 
     :ok
   end

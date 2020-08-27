@@ -496,30 +496,30 @@ jobs:
           name: Print geth logs
           command: make cabbage-geth-logs
           background: true
-      - run:
-          name: Run specs
-          command: |
-            cd priv/cabbage
-            make install
-            make generate_api_code
-            mix deps.get
-            mix test
-      - run:
-          name: Run load test
-          command: |
-            cd priv/perf
-            make init
-            make test
-      - run:
-          name: (Cabbage) Format generated code and check for warnings
-          command: |
-            cd priv/cabbage
-            # run format ONLY on formatted code so that it cleans up quoted atoms because
-            # we cannot exclude folders to --warnings-as-errors
-            mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
-            mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
-            mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
-            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
+      # - run:
+      #     name: Run specs
+      #     command: |
+      #       cd priv/cabbage
+      #       make install
+      #       make generate_api_code
+      #       mix deps.get
+      #       mix test
+      # - run:
+      #     name: Run load test
+      #     command: |
+      #       cd priv/perf
+      #       make init
+      #       make test
+      # - run:
+      #     name: (Cabbage) Format generated code and check for warnings
+      #     command: |
+      #       cd priv/cabbage
+      #       # run format ONLY on formatted code so that it cleans up quoted atoms because
+      #       # we cannot exclude folders to --warnings-as-errors
+      #       mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
+      #       mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
+      #       mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
+      #       MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
@@ -710,13 +710,13 @@ jobs:
             make start-watcher_info OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
           background: true
           no_output_timeout: 2400
-      - run:
-          name: Install specs
-          command: |
-            cd priv/cabbage
-            make install
-            make generate_api_code
-            mix deps.get
+      # - run:
+      #     name: Install specs
+      #     command: |
+      #       cd priv/cabbage
+      #       make install
+      #       make generate_api_code
+      #       mix deps.get
       - run:
           name: Print docker and process states
           command: |
@@ -725,11 +725,11 @@ jobs:
             ps axww | grep watcher_info
             ps axww | grep child_chain
       - run: sh .circleci/status.sh
-      - run:
-          name: Run specs
-          command: |
-            cd priv/cabbage
-            mix test
+      # - run:
+      #     name: Run specs
+      #     command: |
+      #       cd priv/cabbage
+      #       mix test
       - run:
           name: Run load test
           command: |
