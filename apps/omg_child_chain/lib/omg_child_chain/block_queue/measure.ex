@@ -27,16 +27,23 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
   alias OMG.ChildChain.BlockQueue
   alias OMG.ChildChain.BlockQueue.Balance
   alias OMG.ChildChain.BlockQueue.GasAnalyzer
+  alias OMG.ChildChain.BlockQueue.SubmissionMonitor
   alias OMG.Status.Metric.Datadog
 
   @supported_events [
     [:process, BlockQueue],
+    # Events triggered when a block is submitting or submitted
+    [:blknum_submitting, BlockQueue],
+    [:blknum_submitted, BlockQueue],
+    # Events providing collections of blocks being submitted or stalled
+    [:blocks_submitting, SubmissionMonitor],
+    [:blocks_stalled, SubmissionMonitor],
     [:gas, GasAnalyzer],
     [:authority_balance, Balance]
   ]
   def supported_events(), do: @supported_events
 
-  def handle_event([:process, BlockQueue], _, _state, _config) do
+  def handle_event([:process, BlockQueue], _measurements, _metadata, _config) do
     value =
       self()
       |> Process.info(:message_queue_len)
@@ -47,11 +54,25 @@ defmodule OMG.ChildChain.BlockQueue.Measure do
 
   def handle_event([:gas, GasAnalyzer], %{gas: gas}, _, _config) do
     gwei = div(gas, 1_000_000_000)
-    _ = Datadog.gauge(name(:block_submission), gwei)
+    _ = Datadog.gauge(name(:block_submission_gas), gwei)
   end
 
   def handle_event([:authority_balance, Balance], %{authority_balance: authority_balance}, _, _config) do
     gwei = div(authority_balance, 1_000_000_000)
     _ = Datadog.gauge(name(:authority_balance), gwei)
+  end
+
+  def handle_event([:blknum_submitting, BlockQueue], %{blknum: blknum}, _, _config) do
+    _ = Datadog.gauge(name(:block_queue_blknum_submitting), blknum)
+    _ = Datadog.increment(name(:block_submission_attempt), 1)
+  end
+
+  def handle_event([:blknum_submitted, BlockQueue], %{blknum: blknum}, _, _config) do
+    _ = Datadog.gauge(name(:block_queue_blknum_submitted), blknum)
+    _ = Datadog.increment(name(:block_submission_success), 1)
+  end
+
+  def handle_event([:blocks_stalled, SubmissionMonitor], %{blocks: blocks}, _, _config) do
+    _ = Datadog.gauge(name(:block_queue_num_blocks_stalled), length(blocks))
   end
 end
