@@ -204,7 +204,7 @@ defmodule LoadTest.Common.ByzantineEvents do
   @spec watcher_synchronize(keyword()) :: :ok
   def watcher_synchronize(opts \\ []) do
     root_chain_height = Keyword.get(opts, :root_chain_height, nil)
-    service = Keyword.get(opts, :service, "root_chain_height")
+    service = Keyword.get(opts, :service, nil)
 
     _ = Logger.info("Waiting for the watcher to synchronize")
 
@@ -274,6 +274,19 @@ defmodule LoadTest.Common.ByzantineEvents do
   end
 
   defp root_chain_synced?(nil, _, _), do: true
+
+  defp root_chain_synced?(root_chain_height, status, nil) do
+    IO.inspect(
+      {root_chain_height,
+       status
+       |> Map.get("services_synced_heights")}
+    )
+
+    status
+    |> Map.get("services_synced_heights")
+    |> Enum.reject(fn height -> height["service"] == "block_getter" end)
+    |> Enum.all?(&(&1["height"] >= root_chain_height))
+  end
 
   defp root_chain_synced?(root_chain_height, status, service) do
     heights = Map.get(status, "services_synced_heights")
