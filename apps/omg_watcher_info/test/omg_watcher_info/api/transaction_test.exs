@@ -43,10 +43,9 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       {:ok, merge_txs} = Transaction.merge(%{address: @alice, currency: @currency_1})
       assert length(merge_txs) == 2
 
-      %{outputs: first_output} = List.first(merge_txs)
-      %{outputs: last_output} = List.last(merge_txs)
-      assert first_output === [%{amount: 4, currency: @currency_1, owner: @alice}]
-      assert last_output === [%{amount: 3, currency: @currency_1, owner: @alice}]
+      [%{outputs:[output_1]}, %{outputs: [output_2]}] = merge_txs
+      assert output_1 === [%{amount: 4, currency: @currency_1, owner: @alice}]
+      assert output_2 === [%{amount: 3, currency: @currency_1, owner: @alice}]
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -120,10 +119,9 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       position_7 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
 
       {:ok, merge_txs} = Transaction.merge(%{utxo_positions: [position_1, position_2, position_3, position_4, position_5, position_6, position_7]})
-      %{outputs: first_output} = List.first(merge_txs)
-      %{outputs: last_output} = List.last(merge_txs)
-      assert first_output === [%{amount: 4, currency: @currency_1, owner: @alice}]
-      assert last_output === [%{amount: 3, currency: @currency_1, owner: @alice}]
+      [%{outputs:[output_1]}, %{outputs: [output_2]}] = merge_txs
+      assert output_1 === [%{amount: 4, currency: @currency_1, owner: @alice}]
+      assert output_2 === [%{amount: 3, currency: @currency_1, owner: @alice}]
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
