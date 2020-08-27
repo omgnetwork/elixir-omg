@@ -17,9 +17,11 @@ defmodule OMG.WatcherInfo.Transaction do
   Module create transaction from selected utxos and order.
   """
 
+  alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.TypedDataHash
   alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.UtxoSelection
 
   require Transaction.Payment
 
