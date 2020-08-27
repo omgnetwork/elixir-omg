@@ -110,7 +110,7 @@ defmodule LoadTest.Common.SenderServer do
     {:stop, :normal, state}
   end
 
-  def handle_info(:do, %__MODULE__{} = state) do
+  def handle_info(:do, state) do
     newstate =
       state
       |> prepare_and_submit_tx()
@@ -119,41 +119,45 @@ defmodule LoadTest.Common.SenderServer do
     {:noreply, newstate}
   end
 
-  defp prepare_and_submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx, randomized: randomized}) do
+  defp prepare_and_submit_tx(state) do
     to_spend = 1
-    new_amount = last_tx.amount - to_spend - @fees_amount
+    new_amount = state.last_tx.amount - to_spend - @fees_amount
 
     recipient =
-      if randomized do
+      if state.randomized do
         {:ok, user} = Account.new()
 
         user
       else
-        spender
+        state.spender
       end
 
     _ =
       Logger.debug(
-        "[#{inspect(seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{inspect(new_amount)}"
+        "[#{inspect(state.seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{
+          inspect(new_amount)
+        }"
       )
 
     recipient_output = [%ExPlasma.Utxo{owner: recipient.addr, currency: @eth, amount: to_spend}]
     # we aren't allowed to create zero-amount outputs, so if this is the last tx and no change is due, leave it out
     change_output =
-      if new_amount > 0, do: [%ExPlasma.Utxo{owner: spender.addr, currency: @eth, amount: new_amount}], else: []
+      if new_amount > 0, do: [%ExPlasma.Utxo{owner: state.spender.addr, currency: @eth, amount: new_amount}], else: []
 
     [%{blknum: blknum, txindex: txindex, amount: amount} | _] =
       Transaction.submit_tx(
-        [%ExPlasma.Utxo{blknum: last_tx.blknum, txindex: last_tx.txindex, oindex: last_tx.oindex}],
+        [%ExPlasma.Utxo{blknum: state.last_tx.blknum, txindex: state.last_tx.txindex, oindex: state.last_tx.oindex}],
         change_output ++ recipient_output,
         [
-          spender
+          state.spender
         ],
         1_000
       )
 
     _ =
-      Logger.debug("[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}")
+      Logger.debug(
+        "[#{inspect(state.seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
+      )
 
     {:ok, blknum, txindex, amount}
   end
@@ -203,7 +207,7 @@ defmodule LoadTest.Common.SenderServer do
         oindex: oindex,
         amount: amount
       },
-      child_chain_url: Application.fetch_env!(:omg_watcher, :child_chain_url),
+      child_chain_url: Application.fetch_env!(:load_test, :child_chain_url),
       randomized: Keyword.get(opts, :randomized)
     }
   end
@@ -211,10 +215,10 @@ defmodule LoadTest.Common.SenderServer do
   # Generates next module's state
   @spec next_state(state :: __MODULE__.state(), blknum :: pos_integer, txindex :: pos_integer, amount :: pos_integer) ::
           __MODULE__.state()
-  defp next_state(%__MODULE__{ntx_to_send: ntx_to_send} = state, blknum, txindex, amount) do
+  defp next_state(state, blknum, txindex, amount) do
     %__MODULE__{
       state
-      | ntx_to_send: ntx_to_send - 1,
+      | ntx_to_send: state.ntx_to_send - 1,
         last_tx: %LastTx{
           state.last_tx
           | blknum: blknum,
