@@ -646,19 +646,19 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Deletes in-flight exits from state and returns deleted exits
   """
   @spec delete_in_flight_exits(__MODULE__.t(), list(map)) :: {__MODULE__.t(), list(InFlightExitInfo.t()), list(any())}
-  def delete_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, deletions) do
+  def delete_in_flight_exits(state, deletions) do
     exit_ids =
       deletions
       |> Enum.map(fn %{exit_id: exit_id} -> InFlightExitInfo.to_contract_id(exit_id) end)
       |> MapSet.new()
 
     deleted_ifes_by_key =
-      ifes
+      state.in_flight_exits
       |> Enum.filter(fn {_, ife} -> MapSet.member?(exit_ids, ife.contract_id) end)
       |> Map.new()
 
     deleted_keys = Map.keys(deleted_ifes_by_key)
-    updated_ifes = Map.drop(ifes, deleted_keys)
+    updated_ifes = Map.drop(state.in_flight_exits, deleted_keys)
 
     deleted_utxos =
       deleted_ifes_by_key
