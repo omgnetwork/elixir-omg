@@ -94,7 +94,6 @@ CreateTransactionsBodySchema:
 
 MergeTransactionsBodySchema:
   description: The description of merge transaction to be crafted.
-  required: true
   content:
     application/json:
       schema:
@@ -108,10 +107,15 @@ MergeTransactionsBodySchema:
           utxo_positions:
             type: array
             items:
-              type: string
-        example:
-          address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
-          currency: '0x0000000000000000000000000000000000000000'
+              type: string           
+      examples:
+        UTXO positions:  
+          value:
+            utxo_positions: ["811000000000001", "811000000000002"]
+        address and currency:      
+          value:
+            address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+            currency: '0x0000000000000000000000000000000000000000'
 
 GetTransactionBodySchema:
   description: Id (hash) of the transaction
