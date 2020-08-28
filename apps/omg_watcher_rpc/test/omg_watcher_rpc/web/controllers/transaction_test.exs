@@ -1786,44 +1786,44 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice.addr)
 
       assert %{
-                "transactions" => [
-                  %{
-                    "typed_data" => _,
-                    "txbytes" => _,
-                    "inputs" => [
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      }
-                    ],
-                    "outputs" => [
-                      %{
-                        "amount" => 3,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                    ]
-                  }
-                ]
-              } =
-                WatcherHelper.success?(
-                  "transaction.merge",
-                  %{
-                    "address" => alice_hex,
-                    "currency" => @eth_hex
-                  }
-                )
+               "transactions" => [
+                 %{
+                   "typed_data" => _,
+                   "txbytes" => _,
+                   "inputs" => [
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ],
+                   "outputs" => [
+                     %{
+                       "amount" => 3,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ]
+                 }
+               ]
+             } =
+               WatcherHelper.success?(
+                 "transaction.merge",
+                 %{
+                   "address" => alice_hex,
+                   "currency" => @eth_hex
+                 }
+               )
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -1839,72 +1839,72 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
 
       assert %{
-                "transactions" => [
-                  %{
-                    "typed_data" => _,
-                    "txbytes" => _,
-                    "inputs" => [
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      }
-                    ],
-                    "outputs" => [
-                      %{
-                        "amount" => 4,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                    ]
-                  },
-                  %{
-                    "typed_data" => _,
-                    "txbytes" => _,
-                    "inputs" => [
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      }
-                    ],
-                    "outputs" => [
-                      %{
-                        "amount" => 2,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                    ]
-                  }
-                ]
-              } =
-                WatcherHelper.success?(
-                  "transaction.merge",
-                  %{
-                    "address" => alice_hex,
-                    "currency" => @eth_hex
-                  }
-                )
+               "transactions" => [
+                 %{
+                   "typed_data" => _,
+                   "txbytes" => _,
+                   "inputs" => [
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ],
+                   "outputs" => [
+                     %{
+                       "amount" => 4,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ]
+                 },
+                 %{
+                   "typed_data" => _,
+                   "txbytes" => _,
+                   "inputs" => [
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ],
+                   "outputs" => [
+                     %{
+                       "amount" => 2,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ]
+                 }
+               ]
+             } =
+               WatcherHelper.success?(
+                 "transaction.merge",
+                 %{
+                   "address" => alice_hex,
+                   "currency" => @eth_hex
+                 }
+               )
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -1917,43 +1917,43 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       position_3 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
 
       assert %{
-                "transactions" => [
-                  %{
-                    "typed_data" => _,
-                    "txbytes" => _,
-                    "inputs" => [
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      }
-                    ],
-                    "outputs" => [
-                      %{
-                        "amount" => 3,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                    ]
-                  }
-                ]
-              } =
-                WatcherHelper.success?(
-                  "transaction.merge",
-                  %{
-                    "utxo_positions" => [position_1, position_2, position_3]
-                  }
-                )
+               "transactions" => [
+                 %{
+                   "typed_data" => _,
+                   "txbytes" => _,
+                   "inputs" => [
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ],
+                   "outputs" => [
+                     %{
+                       "amount" => 3,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ]
+                 }
+               ]
+             } =
+               WatcherHelper.success?(
+                 "transaction.merge",
+                 %{
+                   "utxo_positions" => [position_1, position_2, position_3]
+                 }
+               )
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -1969,71 +1969,71 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       position_6 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
 
       assert %{
-                "transactions" => [
-                  %{
-                    "typed_data" => _,
-                    "txbytes" => _,
-                    "inputs" => [
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      }
-                    ],
-                    "outputs" => [
-                      %{
-                        "amount" => 4,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                    ]
-                  },
-                  %{
-                    "typed_data" => _,
-                    "txbytes" => _,
-                    "inputs" => [
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                      %{
-                        "amount" => 1,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      }
-                    ],
-                    "outputs" => [
-                      %{
-                        "amount" => 2,
-                        "currency" => @eth_hex,
-                        "owner" => ^alice_hex
-                      },
-                    ]
-                  }
-                ]
-              } =
-                WatcherHelper.success?(
-                  "transaction.merge",
-                  %{
-                    "utxo_positions" => [position_1, position_2, position_3, position_4, position_5, position_6]
-                  }
-                )
+               "transactions" => [
+                 %{
+                   "typed_data" => _,
+                   "txbytes" => _,
+                   "inputs" => [
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ],
+                   "outputs" => [
+                     %{
+                       "amount" => 4,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ]
+                 },
+                 %{
+                   "typed_data" => _,
+                   "txbytes" => _,
+                   "inputs" => [
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     },
+                     %{
+                       "amount" => 1,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ],
+                   "outputs" => [
+                     %{
+                       "amount" => 2,
+                       "currency" => @eth_hex,
+                       "owner" => ^alice_hex
+                     }
+                   ]
+                 }
+               ]
+             } =
+               WatcherHelper.success?(
+                 "transaction.merge",
+                 %{
+                   "utxo_positions" => [position_1, position_2, position_3, position_4, position_5, position_6]
+                 }
+               )
     end
   end
 

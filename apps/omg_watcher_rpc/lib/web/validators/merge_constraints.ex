@@ -17,9 +17,10 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
   Validates `/transaction.merge` parameters
   """
 
-  import OMG.Utils.HttpRPC.Validator.Base
-
+  alias OMG.Utils.HttpRPC.Validator.Base
   alias OMG.WatcherRPC.Web.Validator.Helpers
+
+  import OMG.Utils.HttpRPC.Validator.Base
 
   require OMG.State.Transaction.Payment
 

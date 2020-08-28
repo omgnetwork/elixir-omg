@@ -43,9 +43,9 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       {:ok, merge_txs} = Transaction.merge(%{address: @alice, currency: @currency_1})
       assert length(merge_txs) == 2
 
-      [%{outputs:[output_1]}, %{outputs: [output_2]}] = merge_txs
-      assert output_1 === [%{amount: 4, currency: @currency_1, owner: @alice}]
-      assert output_2 === [%{amount: 3, currency: @currency_1, owner: @alice}]
+      [%{outputs: [output_1]}, %{outputs: [output_2]}] = merge_txs
+      assert output_1 === %{amount: 4, currency: @currency_1, owner: @alice}
+      assert output_2 === %{amount: 3, currency: @currency_1, owner: @alice}
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -90,16 +90,21 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       _ = :txoutput |> insert(currency: @currency_2, owner: @alice, amount: 1)
 
       assert Transaction.merge(%{address: @alice, currency: @currency_1}) ==
-        {:error, :single_input_for_ccy}
+               {:error, :single_input_for_ccy}
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "given `utxo_positions` parameter, correctly forms merge tx" do
       insert_initial_utxo()
 
-      position_1 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
-      position_2 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
-      position_3 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_1 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      position_2 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      position_3 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
 
       {:ok, merge_txs} = Transaction.merge(%{utxo_positions: [position_1, position_2, position_3]})
       %{outputs: outputs} = List.first(merge_txs)
@@ -110,18 +115,35 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
     test "given `utxo_positions` parameter, correctly forms multiple merge tx if possible" do
       insert_initial_utxo()
 
-      position_1 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
-      position_2 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
-      position_3 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
-      position_4 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
-      position_5 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
-      position_6 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
-      position_7 = :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+      position_1 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
 
-      {:ok, merge_txs} = Transaction.merge(%{utxo_positions: [position_1, position_2, position_3, position_4, position_5, position_6, position_7]})
-      [%{outputs:[output_1]}, %{outputs: [output_2]}] = merge_txs
-      assert output_1 === [%{amount: 4, currency: @currency_1, owner: @alice}]
-      assert output_2 === [%{amount: 3, currency: @currency_1, owner: @alice}]
+      position_2 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      position_3 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      position_4 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      position_5 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      position_6 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      position_7 =
+        :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
+
+      {:ok, merge_txs} =
+        Transaction.merge(%{
+          utxo_positions: [position_1, position_2, position_3, position_4, position_5, position_6, position_7]
+        })
+
+      [%{outputs: [output_1]}, %{outputs: [output_2]}] = merge_txs
+      assert output_1 === %{amount: 4, currency: @currency_1, owner: @alice}
+      assert output_2 === %{amount: 3, currency: @currency_1, owner: @alice}
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
