@@ -147,9 +147,7 @@ defmodule LoadTest.Common.SenderServer do
       Transaction.submit_tx(
         [%ExPlasma.Utxo{blknum: state.last_tx.blknum, txindex: state.last_tx.txindex, oindex: state.last_tx.oindex}],
         change_output ++ recipient_output,
-        [
-          state.spender
-        ],
+        [state.spender],
         1_000
       )
 
