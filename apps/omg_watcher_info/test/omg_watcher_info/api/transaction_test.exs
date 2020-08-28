@@ -32,13 +32,13 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
     test "merge with address and currency forms multiple merge transactions if possible" do
       insert_initial_utxo()
 
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
 
       {:ok, merge_txs} = Transaction.merge(%{address: @alice, currency: @currency_1})
       assert length(merge_txs) == 2
@@ -52,13 +52,13 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
     test "merge with address and currency does so correctly" do
       insert_initial_utxo()
 
-      _ = :txoutput |> insert(currency: @currency_1, owner: @bob, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_2, owner: @bob, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_2, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_2, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @bob, amount: 1)
+      _ = insert(:txoutput, currency: @currency_2, owner: @bob, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_2, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_2, owner: @alice, amount: 1)
 
       {:ok, merge_txs} = Transaction.merge(%{address: @alice, currency: @currency_1})
       assert length(merge_txs) == 1
@@ -71,11 +71,11 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
     test "merge with address and currency handles 4 inputs" do
       insert_initial_utxo()
 
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
 
       {:ok, merge_txs} = Transaction.merge(%{address: @alice, currency: @currency_1})
       %{outputs: outputs} = List.first(merge_txs)
@@ -86,8 +86,8 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
     test "merge with address and currency fails on single input" do
       insert_initial_utxo()
 
-      _ = :txoutput |> insert(currency: @currency_1, owner: @alice, amount: 1)
-      _ = :txoutput |> insert(currency: @currency_2, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
+      _ = insert(:txoutput, currency: @currency_2, owner: @alice, amount: 1)
 
       assert Transaction.merge(%{address: @alice, currency: @currency_1}) ==
                {:error, :single_input_for_ccy}
