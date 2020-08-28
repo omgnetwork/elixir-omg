@@ -567,22 +567,6 @@ jobs:
       - restore_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
       - run:
-          name: Print watcher logs
-          command: make cabbage-watcher-logs
-          background: true
-      - run:
-          name: Print watcher_info logs
-          command: make cabbage-watcher_info-logs
-          background: true
-      - run:
-          name: Print childchain logs
-          command: make cabbage-childchain-logs
-          background: true
-      - run:
-          name: Print geth logs
-          command: make cabbage-geth-logs
-          background: true
-      - run:
           name: Run load test
           command: |
             cd priv/perf

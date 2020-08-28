@@ -364,20 +364,6 @@ cabbage-reorg-geth-logs:
 cabbage-reorgs-logs:
 	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "reorg"
 
-### Cabage docker logs
-
-cabbage-watcher-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher
-
-cabbage-watcher_info-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher_info
-
-cabbage-childchain-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow childchain
-
-cabbage-geth-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "geth"
-
 ###OTHER
 docker-start-cluster:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
