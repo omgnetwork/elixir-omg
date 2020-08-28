@@ -571,6 +571,7 @@ jobs:
       - run:
           name: (Perf) Credo and formatting
           command: |
+            export $(cat ./localchain_contract_addresses.env | xargs)
             cd priv/perf
             mix do credo, format --check-formatted --dry-run
 
