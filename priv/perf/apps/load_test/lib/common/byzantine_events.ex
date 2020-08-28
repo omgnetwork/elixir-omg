@@ -276,12 +276,6 @@ defmodule LoadTest.Common.ByzantineEvents do
   defp root_chain_synced?(nil, _, _), do: true
 
   defp root_chain_synced?(root_chain_height, status, nil) do
-    IO.inspect(
-      {root_chain_height,
-       status
-       |> Map.get("services_synced_heights")}
-    )
-
     status
     |> Map.get("services_synced_heights")
     |> Enum.reject(fn height ->
@@ -312,7 +306,6 @@ defmodule LoadTest.Common.ByzantineEvents do
   end
 
   defp watcher_synchronized_to_mined_block?(params) do
-    IO.inspect(params)
     :not_synchronized
   end
 end
