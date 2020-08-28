@@ -558,6 +558,8 @@ jobs:
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
+            echo $(cat ./localchain_contract_addresses.env | xargs)
+            export $(cat ./localchain_contract_addresses.env | xargs)
             cd priv/perf
             # run format ONLY on formatted code so that it cleans up quoted atoms because
             # we cannot exclude folders to --warnings-as-errors
