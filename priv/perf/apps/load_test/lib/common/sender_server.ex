@@ -58,7 +58,6 @@ defmodule LoadTest.Common.SenderServer do
             ntx_to_send: integer,
             spender: map,
             last_tx: LastTx.t(),
-            child_chain_url: binary(),
             randomized: boolean()
           }
 
@@ -204,7 +203,6 @@ defmodule LoadTest.Common.SenderServer do
         oindex: oindex,
         amount: amount
       },
-      child_chain_url: Application.fetch_env!(:load_test, :child_chain_url),
       randomized: Keyword.get(opts, :randomized)
     }
   end

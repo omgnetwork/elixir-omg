@@ -16,7 +16,7 @@ init:
 	mix deps.get
 
 test: # runs test against child chain and geth provided in test docker containers
-	LOAD_TEST_FAUCET_PRIVATE_KEY=0xd885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce mix test test/load_tests/runner/utxos_load_test.exs:22
+	LOAD_TEST_FAUCET_PRIVATE_KEY=0xd885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce mix test --trace
 
 format-code-check-warnings:
 	MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
