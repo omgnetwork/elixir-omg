@@ -24,7 +24,6 @@ defmodule LoadTest.ChildChain.Deposit do
   alias LoadTest.ChildChain.Abi
   alias LoadTest.ChildChain.Transaction
   alias LoadTest.Ethereum
-
   alias LoadTest.Ethereum.Account
 
   @eth <<0::160>>

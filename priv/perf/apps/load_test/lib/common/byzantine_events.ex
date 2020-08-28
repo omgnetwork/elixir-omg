@@ -71,12 +71,11 @@ defmodule LoadTest.Common.ByzantineEvents do
       exit_positions
       |> Enum.shuffle()
       |> Enum.map(fn encoded_position ->
-        case WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_exit_data(
-               LoadTest.Connection.WatcherSecurity.client(),
-               %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1{
-                 utxo_pos: encoded_position
-               }
-             ) do
+        client = LoadTest.Connection.WatcherSecurity.client()
+        params = %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1{utxo_pos: encoded_position}
+        response_result = WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_exit_data(client, params)
+
+        case response_result do
           {:ok, response} -> {:ok, Jason.decode!(response.body)["data"]}
           other -> other
         end
@@ -128,10 +127,11 @@ defmodule LoadTest.Common.ByzantineEvents do
     positions
     |> Enum.shuffle()
     |> Enum.map(fn position ->
-      case WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_challenge_data(
-             LoadTest.Connection.WatcherSecurity.client(),
-             %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema{utxo_pos: position}
-           ) do
+      client = LoadTest.Connection.WatcherSecurity.client()
+      params = %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema{utxo_pos: position}
+      response_result = WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_challenge_data(client, params)
+
+      case response_result do
         {:ok, response} -> {:ok, Jason.decode!(response.body)["data"]}
         error -> error
       end
@@ -177,14 +177,9 @@ defmodule LoadTest.Common.ByzantineEvents do
   """
   @spec get_exitable_utxos(binary(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
+    client = LoadTest.Connection.WatcherSecurity.client()
     params = %WatcherInfoAPI.Model.AddressBodySchema1{address: Encoding.to_hex(addr)}
-
-    {:ok, utxos_response} =
-      WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(
-        LoadTest.Connection.WatcherSecurity.client(),
-        params
-      )
-
+    {:ok, utxos_response} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(client, params)
     utxos = Jason.decode!(utxos_response.body)["data"]
 
     utxo_positions = Enum.map(utxos, & &1["utxo_pos"])

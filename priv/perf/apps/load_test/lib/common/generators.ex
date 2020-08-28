@@ -113,10 +113,11 @@ defmodule LoadTest.Common.Generators do
   end
 
   defp poll_get_block(block_hash, child_chain_url, retry) do
-    case ChildChainAPI.Api.Block.block_get(
-           LoadTest.Connection.ChildChain.client(),
-           %ChildChainAPI.Model.GetBlockBodySchema{hash: Encoding.to_hex(block_hash)}
-         ) do
+    client = LoadTest.Connection.ChildChain.client()
+    params = %ChildChainAPI.Model.GetBlockBodySchema{hash: Encoding.to_hex(block_hash)}
+    response = ChildChainAPI.Api.Block.block_get(client, params)
+
+    case response do
       {:ok, block_response} ->
         {:ok, Jason.decode!(block_response.body)["data"]}
 
