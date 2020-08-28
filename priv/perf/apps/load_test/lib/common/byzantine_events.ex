@@ -219,7 +219,7 @@ defmodule LoadTest.Common.ByzantineEvents do
     {:ok, status_response} =
       WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
 
-    status = Jason.decode!(status_response.body)["data"]["byzantine_events"]
+    Jason.decode!(status_response.body)["data"]["byzantine_events"]
   end
 
   @doc """
