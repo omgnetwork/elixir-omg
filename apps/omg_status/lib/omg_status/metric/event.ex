@@ -60,9 +60,34 @@ defmodule OMG.Status.Metric.Event do
   def name(:block_transactions), do: "block_transactions"
 
   @doc """
+  Childchain Block submission attempted
+  """
+  def name(:block_submission_attempt), do: "block_submission_attempt"
+
+  @doc """
+  Childchain Block successfully submitted
+  """
+  def name(:block_submission_success), do: "block_submission_success"
+
+  @doc """
   Child Chain Block queue gas usage metric
   """
-  def name(:block_submission), do: "block_submission_gas"
+  def name(:block_submission_gas), do: "block_submission_gas"
+
+  @doc """
+  Child Chain BlockQueue's blknum of the block being submitted
+  """
+  def name(:block_queue_blknum_submitting), do: "block_queue_blknum_submitting"
+
+  @doc """
+  Child Chain BlockQueue's blknum of the block submitted
+  """
+  def name(:block_queue_blknum_submitted), do: "block_queue_blknum_submitted"
+
+  @doc """
+  Child Chain BlockQueue's number of blocks currently being submitted and stalled
+  """
+  def name(:block_queue_num_blocks_stalled), do: "block_queue_num_blocks_stalled"
 
   @doc """
   Child Chain authority address balance
