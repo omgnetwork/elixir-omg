@@ -66,7 +66,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
     block_submit_when_n_txs = Configuration.block_submit_when_n_txs()
     block_submit_max_gas_price = Configuration.block_submit_max_gas_price()
     ethereum_events_check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
-    block_fulfilment_check_interval_ms = Configuration.block_fulfilment_check_interval_ms()
+    block_fulfillment_check_interval_ms = Configuration.block_fulfillment_check_interval_ms()
     coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
     deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
@@ -81,7 +81,7 @@ defmodule OMG.ChildChain.SyncSupervisor do
          contract_deployment_height: contract_deployment_height,
          metrics_collection_interval: metrics_collection_interval,
          block_queue_eth_height_check_interval_ms: block_queue_eth_height_check_interval_ms,
-         block_fulfilment_check_interval_ms: block_fulfilment_check_interval_ms,
+         block_fulfillment_check_interval_ms: block_fulfillment_check_interval_ms,
          submission_finality_margin: submission_finality_margin,
          block_submit_every_nth: block_submit_every_nth,
          block_submit_when_n_txs: block_submit_when_n_txs,

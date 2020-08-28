@@ -384,6 +384,7 @@ defmodule OMG.State.Core do
     UtxoSet.exists?(utxos, utxo_pos)
   end
 
+  # TODO: check if we need `is_block_beggining` at all
   @doc """
       Gets the current block's height and whether at the beginning of the block
   """

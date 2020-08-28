@@ -142,8 +142,8 @@ defmodule OMG.ChildChain.BlockQueue do
     {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
     if is_number(block_submit_when_n_txs) do
-      block_fulfilment_check_interval_ms = Keyword.fetch!(args, :block_fulfilment_check_interval_ms)
-      {:ok, _} = :timer.send_interval(block_fulfilment_check_interval_ms, self(), :check_block_fulfilment)
+      block_fulfillment_check_interval_ms = Keyword.fetch!(args, :block_fulfillment_check_interval_ms)
+      {:ok, _} = :timer.send_interval(block_fulfillment_check_interval_ms, self(), :check_block_fulfillment)
     end
 
     # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
@@ -193,11 +193,11 @@ defmodule OMG.ChildChain.BlockQueue do
 
   `OMG.ChildChain.BlockQueue.Core` decides whether a new block should be formed or not.
   """
-  def handle_info(:check_block_fulfilment, state) do
+  def handle_info(:check_block_fulfillment, state) do
     {_, _, txs_count} = OMG.State.get_status()
 
     state1 =
-      case Core.check_block_fulfiled_enough(state, txs_count) do
+      case Core.check_block_fulfilled(state, txs_count) do
         {:do_form_block, state1} ->
           :ok = OMG.State.form_block()
           state1

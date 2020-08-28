@@ -51,7 +51,7 @@ config :omg_child_chain,
   fee_adapter_check_interval_ms: 10_000,
   fee_buffer_duration_ms: 30_000,
   fee_adapter: {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: nil]},
-  block_fulfilment_check_interval_ms: 2_000
+  block_fulfillment_check_interval_ms: 2_000
 
 config :omg_child_chain, OMG.ChildChain.Tracer,
   service: :omg_child_chain,

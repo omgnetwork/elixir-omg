@@ -198,10 +198,18 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     end
   end
 
-  @spec check_block_fulfiled_enough(Core.t(), pos_integer()) ::
+  @spec check_block_fulfilled(Core.t(), pos_integer()) ::
           {:do_form_block, Core.t()} | {:dont_form_block, Core.t()}
-  def check_block_fulfiled_enough(state, pending_txs_count) do
-    {:dont_form_block, state}
+  def check_block_fulfilled(state, pending_txs_count) do
+    state
+    |> should_form_block?(pending_txs_count)
+    |> case do
+      true ->
+        {:do_form_block, %{state | wait_for_enqueue: true}}
+
+      false ->
+        {:dont_form_block, state}
+    end
   end
 
   @doc """
@@ -518,20 +526,23 @@ defmodule OMG.ChildChain.BlockQueue.Core do
   defp to_mined_block_filter(%{formed_child_block_num: formed} = state),
     do: fn {blknum, _} -> next_blknum_to_mine(state) <= blknum and blknum <= formed end
 
-  @spec should_form_block?(Core.t(), boolean()) :: boolean()
+  @spec should_form_block?(Core.t(), pos_integer()) :: boolean()
   defp should_form_block?(
          %Core{
            parent_height: parent_height,
            last_enqueued_block_at_height: last_enqueued_block_at_height,
            block_submit_every_nth: block_submit_every_nth,
+           block_submit_when_n_txs: block_submit_when_n_txs,
            wait_for_enqueue: wait_for_enqueue
          },
-         is_empty_block
+         pending_txs_count
        ) do
     # e.g. if we're at 15th Ethereum block now, last enqueued was at 14th, we're submitting a child chain block on every
     # single Ethereum block (`block_submit_every_nth` == 1), then we could form a new block (`it_is_time` is `true`)
     it_is_time = parent_height - last_enqueued_block_at_height >= block_submit_every_nth
-    should_form_block = it_is_time and !wait_for_enqueue and !is_empty_block
+    block_fulfilled = pending_txs_count >= block_submit_when_n_txs
+    is_empty_block = pending_txs_count == 0
+    should_form_block = (it_is_time or block_fulfilled) and !wait_for_enqueue and !is_empty_block
 
     _ =
       if !should_form_block do
