@@ -143,6 +143,7 @@ defmodule OMG.DB do
       :last_exit_finalizer_eth_height,
       :last_exit_challenger_eth_height,
       :last_in_flight_exit_processor_eth_height,
+      :last_ife_exit_deleted_eth_height,
       :last_piggyback_processor_eth_height,
       :last_competitor_processor_eth_height,
       :last_challenges_responds_processor_eth_height,
