@@ -552,7 +552,6 @@ jobs:
       - run:
           name: Run load test
           command: |
-            echo $(cat ./localchain_contract_addresses.env | xargs)
             export $(cat ./localchain_contract_addresses.env | xargs)
             cd priv/perf
             make init
