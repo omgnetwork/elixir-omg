@@ -33,14 +33,6 @@ defmodule LoadTest.Performance do
     end
   end
 
-  def init() do
-    {:ok, _} = Application.ensure_all_started(:briefly)
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
-    {:ok, _} = Application.ensure_all_started(:hackney)
-    {:ok, _} = Application.ensure_all_started(:cowboy)
-    :ok
-  end
-
   @doc """
   Utility macro which causes the expression given to be timed, the timing logged (`info`) and the original result of the
   call to be returned

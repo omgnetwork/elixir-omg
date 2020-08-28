@@ -491,22 +491,6 @@ jobs:
             make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - install_elixir_and_check_docker_status
       - run:
-          name: Print watcher logs
-          command: make cabbage-watcher-logs
-          background: true
-      - run:
-          name: Print watcher_info logs
-          command: make cabbage-watcher_info-logs
-          background: true
-      - run:
-          name: Print childchain logs
-          command: make cabbage-childchain-logs
-          background: true
-      - run:
-          name: Print geth logs
-          command: make cabbage-geth-logs
-          background: true
-      - run:
           name: Run specs
           command: |
             cd priv/cabbage

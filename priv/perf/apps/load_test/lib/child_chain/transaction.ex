@@ -64,19 +64,6 @@ defmodule LoadTest.ChildChain.Transaction do
     Enum.map([value: 0, gasPrice: @gas_price, gas: @lots_of_gas], fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 
-  defp do_spend(_input, _output, change_amount, _currency, _signer, _retries) when change_amount < 0 do
-    :error_insufficient_funds
-  end
-
-  defp do_spend(input, output, 0, _currency, signer, retries) do
-    submit_tx([input], [output], [signer], retries)
-  end
-
-  defp do_spend(input, output, change_amount, currency, signer, retries) do
-    change_output = %Utxo{owner: signer.addr, currency: currency, amount: change_amount}
-    submit_tx([input], [change_output, output], [signer], retries)
-  end
-
   @doc """
   Submits a transaction
 
@@ -126,6 +113,19 @@ defmodule LoadTest.ChildChain.Transaction do
          {:ok, raw_tx} <- reconstruct_transaction(typed_tx_rlp_decoded_chunks) do
       {:ok, %{raw_tx: raw_tx, sigs: raw_witnesses}}
     end
+  end
+
+  defp do_spend(_input, _output, change_amount, _currency, _signer, _retries) when change_amount < 0 do
+    :error_insufficient_funds
+  end
+
+  defp do_spend(input, output, 0, _currency, signer, retries) do
+    submit_tx([input], [output], [signer], retries)
+  end
+
+  defp do_spend(input, output, change_amount, currency, signer, retries) do
+    change_output = %Utxo{owner: signer.addr, currency: currency, amount: change_amount}
+    submit_tx([input], [change_output, output], [signer], retries)
   end
 
   defp valid_witness?(witness) when is_binary(witness), do: byte_size(witness) == 65

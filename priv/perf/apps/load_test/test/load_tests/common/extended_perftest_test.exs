@@ -25,7 +25,6 @@ defmodule LoadTest.Common.ExtendedPerftestTest do
 
   @tag timeout: 120_000
   test "Smoke test - run start_extended_perf and see if it doesn't crash" do
-    :ok = Performance.init()
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     # 3000 txs sending 1 each, plus 1 for fees
     ntxs = 3000

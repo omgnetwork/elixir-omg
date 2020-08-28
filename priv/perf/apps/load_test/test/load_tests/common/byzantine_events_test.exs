@@ -36,7 +36,6 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     _ = String.to_atom("last_seen_eth_block_timestamp")
     _ = String.to_atom("last_validated_child_block_timestamp")
 
-    :ok = Performance.init()
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     {:ok, %{destdir: destdir}}
   end
