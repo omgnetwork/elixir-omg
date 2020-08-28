@@ -1,17 +1,13 @@
+# Issue/PR filter
 release-branch=master
-issues=true
-issues-wo-labels=true
-pull-requests=true
-pr-wo-labels=true
-unreleased=true
 since-tag=v0.4.8
 exclude-tags-regex=.*-pre.*
-enhancement-label=### Enhancements
-enhancement-labels=enhancement
-bugs-label=### Bug fixes
-bug-labels=bug
-breaking-label=### Breaking changes
-breaking-labels=breaking
-issues-label=### Untagged issues
+unreleased=true
+
+issues=false
+pull-requests=true
+pr-wo-labels=true
+
+# Categories
 pr-label=### Untagged pull requests
-add-sections={"documentation":{"prefix":"### Documentation updates","labels":["documentation"]}, "question":{"prefix":"### Closed questions","labels":["question"]}, "api":{"prefix":"### API changes","labels":["api"]}}
+configure-sections={"api":{"prefix":"### API changes","labels":["api"]}, "breaking":{"prefix":"### Breaking changes","labels":["breaking"]}, "enhancement":{"prefix":"### Enhancements","labels":["enhancement"]}, "bug":{"prefix":"### Bug fixes","labels":["bug"]}, "chore":{"prefix":"### Chores","labels":["chore"]}, "documentation":{"prefix":"### Documentation updates","labels":["documentation"]}, "question":{"prefix":"### Closed questions","labels":["question"]}}
