@@ -305,7 +305,7 @@ defmodule LoadTest.Common.ByzantineEvents do
     true
   end
 
-  defp watcher_synchronized_to_mined_block?(params) do
+  defp watcher_synchronized_to_mined_block?(_params) do
     :not_synchronized
   end
 end
