@@ -51,6 +51,32 @@ defmodule OMG.WatcherInfo.Transaction do
         }
 
   @type utxos_map_t() :: %{UtxoSelection.currency_t() => UtxoSelection.utxo_list_t()}
+  @type inputs_t() :: {:ok, utxos_map_t()} | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
+
+  @doc """
+  Given an `order`, finds spender's inputs sufficient to perform a payment.
+  If also provided with receiver's address, creates and encodes a transaction.
+  """
+  @spec select_inputs(utxos_map_t(), order_t()) :: inputs_t()
+  def select_inputs(utxos, %{payments: payments, fee: fee}) do
+    token_utxo_selection =
+      payments
+      |> UtxoSelection.needed_funds(fee)
+      |> UtxoSelection.select_utxo(utxos)
+
+    case UtxoSelection.funds_sufficient(token_utxo_selection) do
+      {:ok, funds} ->
+        stealth_merge_utxos =
+          utxos
+          |> UtxoSelection.prioritize_merge_utxos(funds)
+          |> UtxoSelection.add_utxos_for_stealth_merge(Map.new(funds))
+
+        {:ok, stealth_merge_utxos}
+
+      err ->
+        err
+    end
+  end
 
   @doc """
   Given selected utxos and order, create inputs and outputs, then returns a transaction.
@@ -63,8 +89,8 @@ defmodule OMG.WatcherInfo.Transaction do
   """
   @spec create(utxos_map_t(), order_t()) :: create_t()
   def create(utxos_per_token, order) do
-    inputs = create_input(utxos_per_token)
-    outputs = create_output(utxos_per_token, order)
+    inputs = build_inputs(utxos_per_token)
+    outputs = build_outputs(utxos_per_token, order)
 
     cond do
       Enum.count(inputs) > Transaction.Payment.max_inputs() ->
@@ -93,13 +119,22 @@ defmodule OMG.WatcherInfo.Transaction do
     end
   end
 
-  defp create_input(utxos_per_token) do
+  @spec include_typed_data(UtxoSelection.advice_t()) :: UtxoSelection.advice_t()
+  def include_typed_data({:error, _} = err), do: err
+
+  def include_typed_data({:ok, txs}),
+    do: {
+      :ok,
+      %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
+    }
+
+  defp build_inputs(utxos_per_token) do
     utxos_per_token
     |> Enum.map(fn {_, utxos} -> utxos end)
     |> List.flatten()
   end
 
-  defp create_output(utxos_per_token, order) do
+  defp build_outputs(utxos_per_token, order) do
     rests =
       utxos_per_token
       |> Stream.map(fn {token, utxos} ->
@@ -123,5 +158,38 @@ defmodule OMG.WatcherInfo.Transaction do
       Enum.map(outputs, fn output -> {output.owner, output.currency, output.amount} end),
       metadata || @empty_metadata
     )
+  end
+
+  defp add_type_specs(%{inputs: inputs, outputs: outputs, metadata: metadata}) do
+    message =
+      [
+        create_inputs(inputs),
+        create_outputs(outputs),
+        [metadata: metadata || @empty_metadata]
+      ]
+      |> Enum.concat()
+      |> Map.new()
+
+    %{
+      domain: TypedDataHash.Config.domain_data_from_config(),
+      message: message
+    }
+    |> Map.merge(TypedDataHash.Types.eip712_types_specification())
+  end
+
+  defp create_inputs(inputs) do
+    inputs
+    |> Stream.map(fn input -> %{blknum: input.blknum, txindex: input.txindex, oindex: input.oindex} end)
+    |> Stream.concat(Stream.repeatedly(fn -> %{blknum: 0, txindex: 0, oindex: 0} end))
+    |> (fn input -> Enum.zip([:input0, :input1, :input2, :input3], input) end).()
+  end
+
+  defp create_outputs(outputs) do
+    zero_addr = OMG.Eth.zero_address()
+    empty_gen = fn -> %{owner: zero_addr, currency: zero_addr, amount: 0} end
+
+    outputs
+    |> Stream.concat(Stream.repeatedly(empty_gen))
+    |> (fn output -> Enum.zip([:output0, :output1, :output2, :output3], output) end).()
   end
 end
