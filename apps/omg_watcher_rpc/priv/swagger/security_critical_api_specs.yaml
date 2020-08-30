@@ -767,8 +767,6 @@ paths:
       tags:
         - Account
       summary: Gets all utxos belonging to the given address.
-      description: |
-        **Note:** this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API's [Account - Get Utxos](http://TODO) instead. This version is provided in case the Informational API is not available.
       operationId: account_get_exitable_utxos
       requestBody:
         description: HEX-encoded address of the account
