@@ -58,7 +58,6 @@ commands:
   make_docker_images:
     description: Builds docker images
     steps:
-      - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
 
@@ -259,8 +258,6 @@ jobs:
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r .
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_bus
-      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_child_chain
-      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_child_chain_rpc --router apps/omg_child_chain_rpc/lib/omg_child_chain_rpc/web/router.ex
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_db
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_eth
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_status
@@ -268,31 +265,6 @@ jobs:
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher_info
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher_rpc --router apps/omg_watcher_rpc/lib/web/router.ex
-
-  child_chain_coveralls_and_integration_tests:
-    executor: builder_pg_geth
-    environment:
-      MIX_ENV: test
-    steps:
-      - setup_elixir-omg_workspace
-      - restore_cache:
-          keys:
-            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Compile
-          command: mix compile
-      - run:
-          name: Integration Tests & Coveralls Part Child Chain
-          command: |
-            # Don't submit coverage report for forks, but let the build succeed
-            export SHELL=/bin/bash
-            if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_info --exclude common --exclude test --trace
-            else
-              mix coveralls.circle --parallel --umbrella --include child_chain --exclude watcher --exclude watcher_info --exclude common --exclude test --trace ||
-                # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
-                (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
-            fi
 
   watcher_coveralls_and_integration_tests:
     executor: builder_pg_geth
@@ -312,9 +284,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -337,9 +309,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche --exclude child_chain --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -362,9 +334,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -387,9 +359,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
+              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info 
             else
-              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain ||
+              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -681,8 +653,7 @@ jobs:
       - run:
           name: Run Child Chain
           command: |
-            set -e
-            make start-child_chain OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
+            docker-compose up childchain
           background: true
           no_output_timeout: 2400
       - run:
@@ -720,16 +691,6 @@ jobs:
             cd priv/cabbage
             mix test
 
-  publish_child_chain:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      CHILD_CHAIN_IMAGE_NAME: "omisego/child_chain"
-    steps:
-      - checkout
-      - run: make docker-child_chain CHILD_CHAIN_IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME
-      - run: IMAGE_NAME=$CHILD_CHAIN_IMAGE_NAME sh .circleci/ci_publish.sh
-
   publish_watcher:
     machine:
       image: ubuntu-1604:201903-01
@@ -766,16 +727,6 @@ jobs:
           path: current_release/
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
-  increase_chart_version_childchain:
-    docker:
-      - image: cimg/base:2020.01
-    environment:
-      CHART_NAME: childchain
-      HELM_CHART_REPO: helm-development
-    steps:
-      - checkout
-      - run: sh .circleci/ci_increase_chart_version.sh
-
   increase_chart_version_watcher:
     docker:
       - image: cimg/base:2020.01
@@ -795,12 +746,6 @@ jobs:
     steps:
       - checkout
       - run: sh .circleci/ci_increase_chart_version.sh
-
-  deploy_child_chain:
-    executor: deployer
-    steps:
-      - checkout
-      - run: DEPLOY=child_chain sh .circleci/ci_deploy.sh
 
   deploy_watcher:
     executor: deployer
@@ -892,21 +837,17 @@ workflows:
           requires: [build]
           filters: *all_branches_and_tags
       - notify_services:
-          requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
+          requires: [deploy_watcher, deploy_watcher_info]
           filters:
             branches:
               only:
                 - master
       - coveralls_report:
           requires:
-            - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
             - watcher_info_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
             - test
-      - child_chain_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
       - watcher_coveralls_and_integration_tests:
           requires: [build]
           filters: *all_branches_and_tags
@@ -947,33 +888,9 @@ workflows:
           requires: [build]
           filters: *all_branches_and_tags
       # Publish in case of master branch, version branches and version tags.
-      - publish_child_chain:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-              lint_version,
-              audit_deps
-            ]
-          filters: &master_and_version_branches_and_all_tags
-            branches:
-              only:
-                - master
-                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-                - /^v[0-9]+\.[0-9]+/
-            tags:
-              only:
-                - /.+/
       - publish_watcher:
           requires:
             [
-              child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
@@ -988,7 +905,6 @@ workflows:
       - publish_watcher_info:
           requires:
             [
-              child_chain_coveralls_and_integration_tests,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
@@ -1000,38 +916,21 @@ workflows:
               audit_deps
             ]
           filters: *master_and_version_branches_and_all_tags
-      # Release deploy to development in case of master branch.
-      - deploy_child_chain:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
       - deploy_watcher:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          requires: [publish_watcher, publish_watcher_info]
           filters:
             branches:
               only:
                 - master
       - deploy_watcher_info:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          requires: [publish_watcher, publish_watcher_info]
           filters:
             branches:
               only:
                 - master
-      # Increase chart version for new release
-      - increase_chart_version_childchain:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters: &only_release_tag
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                # eg. v1.0.3-pre.0, v1.0.3, ...
-                - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
       - increase_chart_version_watcher:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          requires: [publish_watcher, publish_watcher_info]
           filters: *only_release_tag
       - increase_chart_version_watcher_info:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          requires: [publish_watcher, publish_watcher_info]
           filters: *only_release_tag
