@@ -47,7 +47,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: false, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -61,7 +62,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: false, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -79,7 +81,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -97,7 +100,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -121,7 +125,8 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 

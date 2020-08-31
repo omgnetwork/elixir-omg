@@ -25,19 +25,20 @@ defmodule LoadTest.Common.Runner do
   Foreach user runs n submit_transaction requests to the chain server. Requests are done sequentially for every user
   """
   @spec run(pos_integer(), list(), pos_integer(), keyword(), profile :: boolean()) :: :ok
-  def run(ntx_to_send, utxos, fee_amount, opts, true),  do: do_profiled_run(ntx_to_send, utxos, fee_amount, opts)
+  def run(ntx_to_send, utxos, fee_amount, opts, true), do: do_profiled_run(ntx_to_send, utxos, fee_amount, opts)
   def run(ntx_to_send, utxos, fee_amount, opts, false), do: do_run(ntx_to_send, utxos, fee_amount, opts)
 
   defp do_run(ntx_to_send, utxos, fee_amount, opts) do
     {duration, _result} =
       :timer.tc(fn ->
         # fire async transaction senders
-        manager = LoadTest.Common.SenderManager.start_link_all_senders(
-          ntx_to_send,
-          utxos,
-          fee_amount,
-          opts
-        )
+        manager =
+          LoadTest.Common.SenderManager.start_link_all_senders(
+            ntx_to_send,
+            utxos,
+            fee_amount,
+            opts
+          )
 
         # Wait all senders do their job, checker will stop when it happens and stops itself
         wait_for(manager)
