@@ -219,6 +219,7 @@ services:
     networks:
       chain_net:
         ipv4_address: 172.27.0.105
+
   postgres_feefeed:
     image: postgres:12.2-alpine
     ports:
@@ -236,8 +237,9 @@ services:
     networks:
       chain_net:
         ipv4_address: 172.27.0.106
+
   feefeed:
-    image: "omisego/feefeed-dev:7f2cb93"
+    image: "omisego/feefeed-dev:a142549"
     command: "start"
     container_name: feefeed
     environment:
@@ -264,7 +266,7 @@ services:
         condition: service_healthy
     restart: always
     healthcheck:
-      test: wget --quiet --tries=1 --spider localhost:4000 || exit 1
+      test: curl localhost:4000
       interval: 30s
       timeout: 1s
       retries: 5
