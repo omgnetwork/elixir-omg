@@ -946,7 +946,19 @@ workflows:
                 - master
       - increase_chart_version_watcher:
           requires: [publish_watcher, publish_watcher_info]
-          filters: *only_release_tag
+          filters: &only_release_tag
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                # eg. v1.0.3-pre.0, v1.0.3, ...
+                - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
       - increase_chart_version_watcher_info:
           requires: [publish_watcher, publish_watcher_info]
-          filters: *only_release_tag
+          filters: &only_release_tag
+            branches:
+              ignore: /.*/
+            tags:
+              only:
+                # eg. v1.0.3-pre.0, v1.0.3, ...
+                - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
