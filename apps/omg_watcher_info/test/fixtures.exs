@@ -17,7 +17,6 @@ defmodule OMG.WatcherInfo.Fixtures do
 
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
-  use OMG.ChildChain.Integration.Fixtures
   use OMG.Utils.LoggerExt
 
   alias Ecto.Adapters.SQL

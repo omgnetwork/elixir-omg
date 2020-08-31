@@ -27,7 +27,6 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
-  use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
 
   alias OMG.DevCrypto
