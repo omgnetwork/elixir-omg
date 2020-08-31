@@ -141,10 +141,11 @@ defmodule OMG.ChildChain.BlockQueue do
     interval = Keyword.fetch!(args, :block_queue_eth_height_check_interval_ms)
     {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
-    if is_number(block_submit_when_n_txs) do
-      block_fulfillment_check_interval_ms = Keyword.fetch!(args, :block_fulfillment_check_interval_ms)
-      {:ok, _} = :timer.send_interval(block_fulfillment_check_interval_ms, self(), :check_block_fulfillment)
-    end
+    _ =
+      if is_number(block_submit_when_n_txs) do
+        block_fulfillment_check_interval_ms = Keyword.fetch!(args, :block_fulfillment_check_interval_ms)
+        {:ok, _} = :timer.send_interval(block_fulfillment_check_interval_ms, self(), :check_block_fulfillment)
+      end
 
     # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
     :ok = OMG.Bus.subscribe({:child_chain, "blocks"}, link: true)

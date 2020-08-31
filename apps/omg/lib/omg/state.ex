@@ -138,7 +138,7 @@ defmodule OMG.State do
   The beginning of the block is `true/false` depending on whether there have been no transactions executed yet for
   the current child chain block
   """
-  @spec get_status() :: {non_neg_integer(), boolean()}
+  @spec get_status() :: {non_neg_integer(), boolean(), non_neg_integer()}
   def get_status() do
     GenServer.call(__MODULE__, :get_status, @timeout)
   end
