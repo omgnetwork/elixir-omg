@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.SenderServer do
+defmodule LoadTest.Common.SenderServer do
   @moduledoc """
   The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
@@ -22,16 +22,13 @@ defmodule OMG.Performance.SenderServer do
   @fees_amount 1
 
   use GenServer
-  use OMG.Utils.LoggerExt
 
-  alias OMG.DevCrypto
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.Utxo
-  alias OMG.Watcher.HttpRPC.Client
-  require Utxo
+  alias LoadTest.ChildChain.Transaction
+  alias LoadTest.Ethereum.Account
 
-  @eth OMG.Eth.zero_address()
+  require Logger
+
+  @eth <<0::160>>
 
   defmodule LastTx do
     @moduledoc """
@@ -61,7 +58,6 @@ defmodule OMG.Performance.SenderServer do
             ntx_to_send: integer,
             spender: map,
             last_tx: LastTx.t(),
-            child_chain_url: binary(),
             randomized: boolean()
           }
 
@@ -109,73 +105,58 @@ defmodule OMG.Performance.SenderServer do
       ) do
     _ = Logger.info("[#{inspect(seqnum)}] Stoping...")
 
-    OMG.Performance.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
+    LoadTest.Common.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
     {:stop, :normal, state}
   end
 
-  def handle_info(:do, %__MODULE__{} = state) do
+  def handle_info(:do, state) do
     newstate =
       state
-      |> prepare_new_tx()
-      |> submit_tx(state)
+      |> prepare_and_submit_tx()
       |> update_state_with_tx_submission(state)
 
     {:noreply, newstate}
   end
 
-  defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx, randomized: randomized}) do
+  defp prepare_and_submit_tx(state) do
     to_spend = 1
-    new_amount = last_tx.amount - to_spend - @fees_amount
-    recipient = if randomized, do: TestHelper.generate_entity(), else: spender
+    new_amount = state.last_tx.amount - to_spend - @fees_amount
+
+    recipient =
+      if state.randomized do
+        {:ok, user} = Account.new()
+
+        user
+      else
+        state.spender
+      end
 
     _ =
       Logger.debug(
-        "[#{inspect(seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{inspect(new_amount)}"
+        "[#{inspect(state.seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{
+          inspect(new_amount)
+        }"
       )
 
-    recipient_output = [{recipient.addr, @eth, to_spend}]
+    recipient_output = [%ExPlasma.Utxo{owner: recipient.addr, currency: @eth, amount: to_spend}]
     # we aren't allowed to create zero-amount outputs, so if this is the last tx and no change is due, leave it out
-    change_output = if new_amount > 0, do: [{spender.addr, @eth, new_amount}], else: []
+    change_output =
+      if new_amount > 0, do: [%ExPlasma.Utxo{owner: state.spender.addr, currency: @eth, amount: new_amount}], else: []
 
-    # create and return signed transaction
-    [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-    |> Transaction.Payment.new(change_output ++ recipient_output)
-    |> DevCrypto.sign([spender.priv])
-  end
+    [%{blknum: blknum, txindex: txindex, amount: amount} | _] =
+      Transaction.submit_tx(
+        [%ExPlasma.Utxo{blknum: state.last_tx.blknum, txindex: state.last_tx.txindex, oindex: state.last_tx.oindex}],
+        change_output ++ recipient_output,
+        [state.spender],
+        1_000
+      )
 
-  # Submits new transaction to the blockchain server.
-  @spec submit_tx(Transaction.Signed.t(), __MODULE__.state()) ::
-          {:ok, blknum :: pos_integer, txindex :: pos_integer, new_amount :: pos_integer}
-          | {:error, any()}
-          | :retry
-  defp submit_tx(tx, %__MODULE__{seqnum: seqnum, child_chain_url: child_chain_url}) do
-    result =
-      tx
-      |> Transaction.Signed.encode()
-      |> submit_tx_rpc(child_chain_url)
+    _ =
+      Logger.debug(
+        "[#{inspect(state.seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
+      )
 
-    case result do
-      {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} ->
-        _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission will be retried, utxo not found yet.")
-        :retry
-
-      {:error, {:client_error, %{"code" => "submit:too_many_transactions_in_block"}}} ->
-        _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission will be retried, block is full.")
-        :retry
-
-      {:error, reason} ->
-        _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission has failed, reason: #{inspect(reason)}")
-        {:error, reason}
-
-      {:ok, %{blknum: blknum, txindex: txindex}} ->
-        _ =
-          Logger.debug(
-            "[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
-          )
-
-        [%{amount: amount} | _] = Transaction.get_outputs(tx)
-        {:ok, blknum, txindex, amount}
-    end
+    {:ok, blknum, txindex, amount}
   end
 
   # Handles result of successful Tx submission or retry request into new state and sends :do message
@@ -183,23 +164,20 @@ defmodule OMG.Performance.SenderServer do
           tx_submit_result :: {:ok, map} | :retry | {:error, any},
           state :: __MODULE__.state()
         ) :: __MODULE__.state()
-  defp update_state_with_tx_submission(
-         tx_submit_result,
-         %__MODULE__{seqnum: seqnum, last_tx: last_tx} = state
-       ) do
+  defp update_state_with_tx_submission(tx_submit_result, state) do
     case tx_submit_result do
       {:ok, newblknum, newtxindex, newvalue} ->
         send(self(), :do)
 
-        if newblknum > last_tx.blknum,
+        if newblknum > state.last_tx.blknum,
           do:
-            OMG.Performance.SenderManager.sender_stats(%{
-              seqnum: seqnum,
-              blknum: last_tx.blknum,
-              txindex: last_tx.txindex
+            LoadTest.Common.SenderManager.sender_stats(%{
+              seqnum: state.seqnum,
+              blknum: state.last_tx.blknum,
+              txindex: state.last_tx.txindex
             })
 
-        state |> next_state(newblknum, newtxindex, newvalue)
+        next_state(state, newblknum, newtxindex, newvalue)
 
       :retry ->
         Process.send_after(self(), :do, @tx_retry_waiting_time_ms)
@@ -207,16 +185,10 @@ defmodule OMG.Performance.SenderServer do
     end
   end
 
-  # Submits Tx to the child chain server via http (Http-RPC) and translates successful result to atom-keyed map.
-  @spec submit_tx_rpc(binary, binary()) :: {:ok, map} | {:error, any}
-  defp submit_tx_rpc(encoded_tx, child_chain_url) do
-    Client.submit(encoded_tx, child_chain_url)
-  end
-
   #   Generates module's initial state
   @spec init_state(pos_integer(), map(), pos_integer(), keyword()) :: __MODULE__.state()
   defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send, opts) do
-    Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode!(utxo_pos)
+    {:ok, %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex}} = ExPlasma.Utxo.new(utxo_pos)
 
     %__MODULE__{
       seqnum: seqnum,
@@ -229,7 +201,6 @@ defmodule OMG.Performance.SenderServer do
         oindex: oindex,
         amount: amount
       },
-      child_chain_url: Application.fetch_env!(:omg_watcher, :child_chain_url),
       randomized: Keyword.get(opts, :randomized)
     }
   end
@@ -237,10 +208,10 @@ defmodule OMG.Performance.SenderServer do
   # Generates next module's state
   @spec next_state(state :: __MODULE__.state(), blknum :: pos_integer, txindex :: pos_integer, amount :: pos_integer) ::
           __MODULE__.state()
-  defp next_state(%__MODULE__{ntx_to_send: ntx_to_send} = state, blknum, txindex, amount) do
+  defp next_state(state, blknum, txindex, amount) do
     %__MODULE__{
       state
-      | ntx_to_send: ntx_to_send - 1,
+      | ntx_to_send: state.ntx_to_send - 1,
         last_tx: %LastTx{
           state.last_tx
           | blknum: blknum,
