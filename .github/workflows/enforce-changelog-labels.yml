@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # When updating the labels here, also update the `configure-sections` of the `.github_changelog_generator` file
-      ONE_OF_LABELS="api|enhancement|breaking|bug|chore|documentation"
-      APPROVAL_MESSAGE="The PR has a valid changelog label."
-      REJECTION_MESSAGE="The PR is missing a valid changelog label."
+      ONE_OF_LABELS: "api|enhancement|breaking|bug|chore|documentation"
+      APPROVAL_MESSAGE: "The PR has a valid changelog label."
+      REJECTION_MESSAGE: "The PR is missing a valid changelog label."
     steps:
       - name: Check that the PR has a changelog label
         run: |
