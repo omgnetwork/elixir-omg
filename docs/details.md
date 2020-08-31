@@ -41,24 +41,12 @@ The general idea of the apps responsibilities is:
 
 See [application architecture](architecture.md) for more details.
 
-## Child chain server
-
-`:omg_child_chain` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_child_chain_rpc`.
-
 For the responsibilities and design of the child chain server see [Plasma Blockchain Design document](tesuji_blockchain_design.md).
 
 ## Using the child chain server's API
 
 The child chain server is listening on port `9656` by default.
 
-### HTTP-RPC
-
-HTTP-RPC requests are served up on the port specified in `omg_child_chain_rpc`'s `config` (`:omg_child_chain_rpc, OMG.RPC.Web.Endpoint, http: [port: ...]`).
-The available RPC calls are defined by `omg_child_chain` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`.
-All requests shall be POST with parameters provided in the request body in JSON object.
-Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.
-
-For API documentation see: https://developer.omisego.co/elixir-omg/.
 
 ## Ethereum private key management
 
