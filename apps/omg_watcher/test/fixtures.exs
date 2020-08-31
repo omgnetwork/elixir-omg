@@ -18,10 +18,7 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.DB.Fixtures
   use OMG.Eth.Fixtures
   use OMG.Utils.LoggerExt
-
-  alias OMG.Eth
   alias OMG.Status.Alert.Alarm
-  alias OMG.TestHelper
 
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
