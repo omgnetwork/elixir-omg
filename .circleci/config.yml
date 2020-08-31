@@ -366,25 +366,6 @@ jobs:
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
-  property_tests:
-    executor: builder_pg_geth
-    environment:
-      MIX_ENV: test
-    steps:
-      - setup_elixir-omg_workspace
-      - restore_cache:
-          keys:
-            - v2-mix-cache-test-compile-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-      - run:
-          name: Compile
-          command: mix compile
-      - run:
-          name: Property Test
-          command: |
-            export SHELL=/bin/bash
-            # no coverage calculation, coverage is on the other tests
-            mix test --only property --trace
-
   integration_tests:
     executor: builder_pg_geth
     environment:
@@ -884,9 +865,6 @@ workflows:
       - test:
           requires: [build]
           filters: *all_branches_and_tags
-      - property_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
       # Publish in case of master branch, version branches and version tags.
       - publish_watcher:
           requires:
@@ -895,7 +873,6 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
-              property_tests,
               dialyzer,
               lint,
               lint_version,
@@ -917,7 +894,6 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
-              property_tests,
               dialyzer,
               lint,
               lint_version,
