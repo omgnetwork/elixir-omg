@@ -63,7 +63,6 @@ commands:
   make_docker_images:
     description: Builds docker images
     steps:
-      - docker_login
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
@@ -489,6 +488,7 @@ jobs:
           name: Setup data dir
           command: |
             [ -d data ] || mkdir data && chmod 777 data
+      - docker_login
       - make_docker_images
       - run:
           name: Start daemon services
@@ -533,6 +533,7 @@ jobs:
           name: Setup data dir
           command: |
             [ -d data ] || mkdir data && chmod 777 data
+      - docker_login
       - make_docker_images
       - run:
           name: Start daemon services
@@ -584,6 +585,7 @@ jobs:
             [ -d data1 ] || mkdir data1 && chmod 777 data1
             [ -d data2 ] || mkdir data2 && chmod 777 data2
             [ -d data ] || mkdir data && chmod 777 data
+      - docker_login
       - make_docker_images
       - run:
           name: Start daemon services
