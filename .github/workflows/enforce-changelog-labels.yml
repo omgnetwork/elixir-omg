@@ -22,7 +22,7 @@ jobs:
           # Using the issues API instead of pulls because it can return only the labels
           curl "https://api.github.com/repos/omgnetwork/elixir-omg/issues/${{ github.event.pull_request.number }}/labels" \
           | grep -o '"name": "[^"]*' \
-          | cut -d'"' -f4
+          | cut -d'"' -f4 \
           | grep -E $ONE_OF_LABELS
 
       - name: Approve the PR if a changelog label is found
