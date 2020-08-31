@@ -160,8 +160,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     case Enum.empty?(missing_funds) do
       true ->
         {:ok,
-         utxo_selection
-         |> Enum.reduce(%{}, fn {token, {_missing_amount, utxos}}, acc ->
+         Enum.reduce(utxo_selection, %{}, fn {token, {_missing_amount, utxos}}, acc ->
            Map.put(acc, token, utxos)
          end)}
 
