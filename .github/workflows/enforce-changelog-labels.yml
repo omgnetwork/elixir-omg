@@ -1,0 +1,36 @@
+name: Enforce changelog labels
+
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled]
+    branches: [master]
+
+jobs:
+  auto-merge-pr:
+    runs-on: ubuntu-latest
+    env:
+      # When updating the labels here, also update the `configure-sections` of the `.github_changelog_generator` file
+      ONE_OF_LABELS="api|enhancement|breaking|bug|chore|documentation"
+      APPROVAL_MESSAGE="The PR has a valid changelog label. Approving..."
+      REJECTION_MESSAGE="The PR is missing a valid changelog label. Requesting change..."
+    steps:
+      - name: Check that the PR has a changelog label
+        run: |
+          # Using the issues API instead of pulls because it can return only the labels
+          curl "https://api.github.com/repos/omgnetwork/elixir-omg/issues/${{ github.event.pull_request.number }}/labels" \
+          | grep -o '"name": "[^"]*' | cut -d'"' -f4 \
+          | grep -E $ONE_OF_LABELS
+
+          if test $? -eq 0; then
+            echo $APPROVAL_MESSAGE
+            curl -X POST "https://api.github.com/repos/omgnetwork/elixir-omg/pulls/${{ github.event.pull_request.number }}/reviews \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" \
+              --data "{\"event\": \"APPROVE\", \"body\": \"${APPROVAL_MESSAGE\"}"
+          else
+            echo $REJECTION_MESSAGE
+            curl -X POST "https://api.github.com/repos/omgnetwork/elixir-omg/pulls/${{ github.event.pull_request.number }}/reviews \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" \
+              --data "{\"event\": \"REQUEST_CHANGES\", \"body\": \"${REJECTION_MESSAGE\"}"
+          fi

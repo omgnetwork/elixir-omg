@@ -10,4 +10,7 @@ pr-wo-labels=true
 
 # Categories
 pr-label=### Untagged pull requests
-configure-sections={"api":{"prefix":"### API changes","labels":["api"]}, "breaking":{"prefix":"### Breaking changes","labels":["breaking"]}, "enhancement":{"prefix":"### Enhancements","labels":["enhancement"]}, "bug":{"prefix":"### Bug fixes","labels":["bug"]}, "chore":{"prefix":"### Chores","labels":["chore"]}, "documentation":{"prefix":"### Documentation updates","labels":["documentation"]}, "question":{"prefix":"### Closed questions","labels":["question"]}}
+
+# When updating the sections here, also update the `ONE_OF_LABELS` env vars in the `.github/workflows/enforce-changelog-labels.yml` file
+configure-sections={"api":{"prefix":"### API changes","labels":["api"]}, "breaking":{"prefix":"### Breaking changes","labels":["breaking"]}, "enhancement":{"prefix":"### Enhancements","labels":["enhancement"]}, "bug":{"prefix":"### Bug fixes","labels":["bug"]}, "chore":{"prefix":"### Chores","labels":["chore"]}, "documentation":{"prefix":"### Documentation updates","labels":["documentation"]}}
+
