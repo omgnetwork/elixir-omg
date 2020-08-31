@@ -6,7 +6,7 @@ on:
     # branches: [master]
 
 jobs:
-  auto-merge-pr:
+  check-changelog-label:
     runs-on: ubuntu-latest
     env:
       # When updating the labels here, also update the `configure-sections` of the `.github_changelog_generator` file
