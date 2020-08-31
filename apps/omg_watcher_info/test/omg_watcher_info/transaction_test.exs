@@ -55,7 +55,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
         metadata: nil
       }
 
-      assert {:error, :too_many_inputs} = Transaction.create(utxos_per_token, order)
+      assert {:error, :too_many_inputs} == Transaction.create(utxos_per_token, order)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -80,7 +80,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
         metadata: nil
       }
 
-      assert {:error, :too_many_outputs} = Transaction.create(utxos_per_token, order)
+      assert {:error, :too_many_outputs} == Transaction.create(utxos_per_token, order)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -94,7 +94,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
         metadata: nil
       }
 
-      assert {:error, :empty_transaction} = Transaction.create([], order)
+      assert {:error, :empty_transaction} == Transaction.create([], order)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -115,23 +115,48 @@ defmodule OMG.WatcherInfo.TransactionTest do
         metadata: nil
       }
 
-      assert {:ok, [%{
-        fee: %{currency: @eth, amount: 5},
-        inputs: [
-          %{amount: 10, currency: @eth},
-          %{amount: 10, currency: @eth},
-          %{amount: 10, currency: @eth},
-          %{amount: 10, currency: @eth}
-        ],
-        outputs: [
-          %{amount: 35, currency: @eth, owner: @bob},
-        ]
-      }]} = Transaction.create(utxos_per_token, order)
+      assert {:ok,
+              [
+                %{
+                  fee: %{currency: @eth, amount: 5},
+                  inputs: [
+                    %{amount: 10, currency: @eth},
+                    %{amount: 10, currency: @eth},
+                    %{amount: 10, currency: @eth},
+                    %{amount: 10, currency: @eth}
+                  ],
+                  outputs: [
+                    %{amount: 35, currency: @eth, owner: @bob}
+                  ]
+                }
+              ]} = Transaction.create(utxos_per_token, order)
     end
   end
 
   describe "include_typed_data/1" do
-    test "" do
+    test "returns an original error when the param is matched with {:error, _}" do
+      assert {:error, :any} == Transaction.include_typed_data({:error, :any})
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns transactions with :typed_data" do
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
+
+      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      order = %{
+        owner: @alice,
+        payments: [
+          %{amount: 5, currency: @eth, owner: @bob}
+        ],
+        fee: %{currency: @eth, amount: 5},
+        metadata: nil
+      }
+
+      {:ok, transactions} = Transaction.create(utxos_per_token, order)
+
+      assert {:ok, %{transactions: transactions}} = Transaction.include_typed_data({:ok, transactions})
+      assert Enum.all?(transactions, &Map.has_key?(&1, :typed_data))
     end
   end
 end
