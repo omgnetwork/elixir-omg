@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Check that the PR has a changelog label
         run: |
+          set -o xtrace
+
           # Using the issues API instead of pulls because it can return only the labels
           curl "https://api.github.com/repos/omgnetwork/elixir-omg/issues/${{ github.event.pull_request.number }}/labels" \
           | grep -o '"name": "[^"]*' | cut -d'"' -f4 \
