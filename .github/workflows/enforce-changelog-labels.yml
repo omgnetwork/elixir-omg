@@ -41,4 +41,4 @@ jobs:
           curl -X POST "https://api.github.com/repos/omgnetwork/elixir-omg/pulls/${{ github.event.pull_request.number }}/reviews" \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" \
-            --data "{\"event\": \"REQUEST_CHANGES\", \"body\": \"${REJECTION_MESSAGE}. Label the PR with one of: ${ONE_OF_LABELS//|/, }.\"}"
+            --data "{\"event\": \"REQUEST_CHANGES\", \"body\": \"${REJECTION_MESSAGE} Label the PR with one of: ${ONE_OF_LABELS//|/, }.\"}"
