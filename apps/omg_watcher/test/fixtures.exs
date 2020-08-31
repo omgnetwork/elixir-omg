@@ -20,29 +20,6 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Utils.LoggerExt
   alias OMG.Status.Alert.Alarm
 
-  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
-
-  defp wait_for_start(outstream, look_for, timeout, logger_fn) do
-    # Monitors the stdout coming out of a process for signal of successful startup
-    waiting_task_function = fn ->
-      outstream
-      |> Stream.map(logger_fn)
-      |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
-      |> Enum.to_list()
-    end
-
-    waiting_task_function
-    |> Task.async()
-    |> Task.await(timeout)
-
-    :ok
-  end
-
-  defp log_output(prefix, line) do
-    Logger.debug("#{prefix}: " <> line)
-    line
-  end
-
   deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized
     _ = contract

@@ -15,6 +15,7 @@
 defmodule OMG.WatcherInfo.Fixtures do
   use ExUnitFixtures.FixtureModule
 
+  use OMG.Fixtures
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
   use OMG.Utils.LoggerExt
