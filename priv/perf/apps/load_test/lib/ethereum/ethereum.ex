@@ -19,6 +19,7 @@ defmodule LoadTest.Ethereum do
   require Logger
 
   alias ExPlasma.Encoding
+  alias LoadTest.ChildChain.Abi
   alias LoadTest.Ethereum.NonceTracker
   alias LoadTest.Ethereum.Sync
   alias LoadTest.Ethereum.Transaction
@@ -30,6 +31,26 @@ defmodule LoadTest.Ethereum do
   @type hash_t() :: <<_::256>>
 
   @doc """
+  Send transaction to be singed by a key managed by Ethereum node, geth or parity.
+  For geth, account must be unlocked externally.
+  If using parity, account passphrase must be provided directly or via config.
+  """
+  @spec contract_transact(<<_::160>>, <<_::160>>, binary, [any]) :: {:ok, <<_::256>>} | {:error, any}
+  def contract_transact(from, to, signature, args, opts \\ []) do
+    data = encode_tx_data(signature, args)
+
+    txmap =
+      %{from: Encoding.to_hex(from), to: Encoding.to_hex(to), data: data}
+      |> Map.merge(Map.new(opts))
+      |> encode_all_integer_opts()
+
+    case Ethereumex.HttpClient.eth_send_transaction(txmap) do
+      {:ok, receipt_enc} -> {:ok, Encoding.to_binary(receipt_enc)}
+      other -> other
+    end
+  end
+
+  @doc """
   Waits until transaction is mined
   Returns transaction receipt updated with Ethereum block number in which the transaction was mined
   """
@@ -37,6 +58,14 @@ defmodule LoadTest.Ethereum do
   def transact_sync(txhash, timeout \\ @about_4_blocks_time) do
     {:ok, %{"status" => "0x1"} = receipt} = eth_receipt(txhash, timeout)
     {:ok, Map.update!(receipt, "blockNumber", &Encoding.to_int(&1))}
+  end
+
+  def create_account_from_secret(secret, passphrase) do
+    Ethereumex.HttpClient.request("personal_importRawKey", [Base.encode16(secret), passphrase], [])
+  end
+
+  def unlock_account(addr, passphrase) do
+    Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], [])
   end
 
   def fund_address_from_default_faucet(account, opts) do
@@ -53,6 +82,15 @@ defmodule LoadTest.Ethereum do
     {:ok, tx_fund} = send_transaction(params)
 
     transact_sync(tx_fund)
+  end
+
+  def block_hash(mined_num) do
+    contract_address = Application.fetch_env!(:load_test, :contract_address_plasma_framework)
+
+    %{"block_hash" => block_hash, "block_timestamp" => block_timestamp} =
+      get_external_data(contract_address, "blocks(uint256)", [mined_num])
+
+    {block_hash, block_timestamp}
   end
 
   def send_raw_transaction(txmap, sender) do
@@ -78,6 +116,31 @@ defmodule LoadTest.Ethereum do
     Encoding.to_int(nonce)
   end
 
+  def wait_for_root_chain_block(awaited_eth_height, timeout \\ 600_000) do
+    f = fn ->
+      {:ok, eth_height} =
+        case Ethereumex.HttpClient.eth_block_number() do
+          {:ok, height_hex} ->
+            {:ok, Encoding.to_int(height_hex)}
+
+          other ->
+            other
+        end
+
+      if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
+    end
+
+    Sync.repeat_until_success(f, timeout)
+  end
+
+  defp get_external_data(address, signature, params) do
+    data = signature |> ABI.encode(params) |> Encoding.to_hex()
+
+    {:ok, data} = Ethereumex.HttpClient.eth_call(%{to: address, data: data})
+
+    Abi.decode_function(data, signature)
+  end
+
   defp send_transaction(txmap), do: Ethereumex.HttpClient.eth_send_transaction(txmap)
 
   defp eth_receipt(txhash, timeout) do
@@ -91,5 +154,17 @@ defmodule LoadTest.Ethereum do
     end
 
     Sync.repeat_until_success(f, timeout)
+  end
+
+  defp encode_tx_data(signature, args) do
+    signature
+    |> ABI.encode(args)
+    |> Encoding.to_hex()
+  end
+
+  defp encode_all_integer_opts(opts) do
+    opts
+    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
+    |> Enum.into(opts, fn {k, v} -> {k, Encoding.to_hex(v)} end)
   end
 end

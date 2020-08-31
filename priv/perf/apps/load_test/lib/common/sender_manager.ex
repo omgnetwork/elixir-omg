@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.SenderManager do
+defmodule LoadTest.Common.SenderManager do
   @moduledoc """
   Registry-kind module that creates and starts sender processes and waits until all are done
   """
 
   use GenServer
-  use OMG.Utils.LoggerExt
 
-  alias OMG.Utxo
-
-  require Utxo
+  require Logger
 
   def sender_stats(new_stats) do
     GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
@@ -53,14 +50,13 @@ defmodule OMG.Performance.SenderManager do
       utxos
       |> Enum.with_index(1)
       |> Enum.map(fn {utxo, seqnum} ->
-        {:ok, pid} = OMG.Performance.SenderServer.start_link({seqnum, utxo, ntx_to_send, opts})
+        {:ok, pid} = LoadTest.Common.SenderServer.start_link({seqnum, utxo, ntx_to_send, opts})
         {seqnum, pid}
       end)
 
     initial_blknums =
-      utxos
-      |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-        Utxo.position(blknum, _txindex, _oindex) = Utxo.Position.decode!(utxo_pos)
+      Enum.map(utxos, fn %{utxo_pos: utxo_pos} ->
+        {:ok, %ExPlasma.Utxo{blknum: blknum}} = ExPlasma.Utxo.new(utxo_pos)
         blknum
       end)
 
@@ -127,7 +123,7 @@ defmodule OMG.Performance.SenderManager do
   # Returns array of tuples, each tuple contains four fields:
   # * {blknum,   total_txs_in_blk,   avg_txs_in_sec,   time_between_blocks_ms}
   defp analyze(%{events: events, start_time: start, initial_blknums: initial_blknums}) do
-    events_by_blknum = events |> Enum.group_by(& &1.blknum)
+    events_by_blknum = Enum.group_by(events, & &1.blknum)
 
     # we don't want the initial blocks that end up in the events
     ordered_keys =
@@ -141,7 +137,7 @@ defmodule OMG.Performance.SenderManager do
       |> Enum.map(&collect_block/1)
       |> Enum.reduce({start, []}, &analyze_block/2)
 
-    block_stats |> Enum.reverse()
+    Enum.reverse(block_stats)
   end
 
   # Receives all events from Senders processes related to the same block and computes block's statistics.
