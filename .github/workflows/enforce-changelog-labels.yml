@@ -3,7 +3,7 @@ name: Enforce changelog labels
 on:
   pull_request:
     types: [opened, labeled, unlabeled]
-    branches: [master]
+    # branches: [master]
 
 jobs:
   auto-merge-pr:
