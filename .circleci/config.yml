@@ -55,10 +55,15 @@ commands:
           name: Attach workspace
           at: .
 
+  docker_login:
+    description: login to dockerhub for private repo access
+    steps:
+      - run: printf "%s\\n" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
   make_docker_images:
     description: Builds docker images
     steps:
-      - run: printf "%s\\n" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+      - docker_login
       - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
@@ -629,6 +634,7 @@ jobs:
             git submodule init
             git submodule update
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - docker_login
       - run:
           name: Start geth, postgres, feefeed and pull in blockchain snapshot
           command: make start-services
