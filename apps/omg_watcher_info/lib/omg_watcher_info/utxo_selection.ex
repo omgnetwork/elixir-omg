@@ -17,7 +17,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   Provides Utxos selection and merging algorithms.
   """
 
-  alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.DB

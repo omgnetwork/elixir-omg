@@ -25,12 +25,10 @@ defmodule OMG.WatcherInfo.API.Transaction do
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.Transaction, as: TransactionCreator
-  alias OMG.WatcherInfo.UtxoSelection
 
   require Utxo
   require Transaction.Payment
 
-  @empty_metadata <<0::256>>
   @default_transactions_limit 200
 
   @type create_t() ::
