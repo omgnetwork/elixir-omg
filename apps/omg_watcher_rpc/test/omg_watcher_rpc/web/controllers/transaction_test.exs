@@ -1264,7 +1264,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       params = %{
         "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 40, "currency" => @eth_hex, "owner" =>bob_addr_hex}
+          %{"amount" => 40, "currency" => @eth_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1283,7 +1283,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 15, "currency" => @eth_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 40, "currency" => @eth_hex, "owner" => ^bob_addr_hex}
+                     %{"amount" => 40, "currency" => @eth_hex, "owner" => ^bob_addr_hex}
                    ]
                  }
                ]
@@ -1327,8 +1327,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 10, "currency" => @eth_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 20, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
+                     %{"amount" => 20, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1357,8 +1357,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 10, "currency" => @eth_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 18, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 12, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
+                     %{"amount" => 18, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 12, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1404,8 +1404,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 5, "currency" => @other_token_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 10, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
+                     %{"amount" => 10, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1434,9 +1434,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 5, "currency" => @other_token_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 8, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex},
-                    %{"amount" => 2, "currency" => @other_token_hex, "owner" => ^alice_addr_hex}
+                     %{"amount" => 8, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex},
+                     %{"amount" => 2, "currency" => @other_token_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1480,8 +1480,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 30, "currency" => @eth_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 30, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1510,8 +1510,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 30, "currency" => @eth_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 28, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 32, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
+                     %{"amount" => 28, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 32, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1557,9 +1557,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 30, "currency" => @other_token_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 30, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
-                  ]
+                     %{"amount" => 30, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
+                   ]
                  }
                ]
              } = WatcherHelper.success?("transaction.create", params)
@@ -1587,10 +1587,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 30, "currency" => @other_token_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 28, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex},
-                    %{"amount" => 2, "currency" => @other_token_hex, "owner" => ^alice_addr_hex}
-                  ]
+                     %{"amount" => 28, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex},
+                     %{"amount" => 2, "currency" => @other_token_hex, "owner" => ^alice_addr_hex}
+                   ]
                  }
                ]
              } = WatcherHelper.success?("transaction.create", params)
@@ -1630,8 +1630,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 30, "currency" => @eth_hex}
                    ],
                    "outputs" => [
-                    %{"amount" => 20, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
-                    %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
+                     %{"amount" => 20, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
