@@ -36,7 +36,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   - Prioritises currencies that have the largest number of UTXOs
   - Sorts by ascending order of UTXO value within the currency groupings ("dust first").
   """
-  @spec prioritize_merge_utxos(utxos_map_t(), list({currency_t(), utxo_list_t()})) :: utxo_list_t()
+  @spec prioritize_merge_utxos(utxos_map_t(), utxos_map_t()) :: utxo_list_t()
   def prioritize_merge_utxos(utxos, selected_utxos) do
     selected_utxo_hashes =
       selected_utxos
@@ -140,7 +140,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   @spec funds_sufficient([
           {currency :: currency_t(), {variance :: integer(), selected_utxos :: utxo_list_t()}}
         ]) ::
-          {:ok, [{currency_t(), utxo_list_t()}]}
+          {:ok, utxos_map_t()}
           | {:error, {:insufficient_funds, [%{token: String.t(), missing: pos_integer()}]}}
   def funds_sufficient(utxo_selection) do
     missing_funds =
