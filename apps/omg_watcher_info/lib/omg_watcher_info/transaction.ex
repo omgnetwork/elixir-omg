@@ -33,10 +33,20 @@ defmodule OMG.WatcherInfo.Transaction do
           | {:error, :too_many_outputs}
           | {:error, :empty_transaction}
 
+  @type fee_t() :: %{
+          currency: UtxoSelection.currency_t(),
+          amount: non_neg_integer()
+        }
+  @type payment_t() :: %{
+          owner: Crypto.address_t() | nil,
+          currency: UtxoSelection.currency_t(),
+          amount: pos_integer()
+        }
+
   @type transaction_t() :: %{
           inputs: nonempty_list(%DB.TxOutput{}),
-          outputs: nonempty_list(UtxoSelection.payment_t()),
-          fee: UtxoSelection.fee_t(),
+          outputs: nonempty_list(payment_t()),
+          fee: fee_t(),
           txbytes: Transaction.tx_bytes() | nil,
           metadata: Transaction.metadata(),
           sign_hash: Crypto.hash_t() | nil,
@@ -45,9 +55,9 @@ defmodule OMG.WatcherInfo.Transaction do
 
   @type order_t() :: %{
           owner: Crypto.address_t(),
-          payments: nonempty_list(UtxoSelection.payment_t()),
+          payments: nonempty_list(payment_t()),
           metadata: binary() | nil,
-          fee: UtxoSelection.fee_t()
+          fee: fee_t()
         }
 
   @type utxos_map_t() :: %{UtxoSelection.currency_t() => UtxoSelection.utxo_list_t()}

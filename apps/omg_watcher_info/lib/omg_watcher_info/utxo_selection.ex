@@ -21,20 +21,12 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.Transaction, as: TransactionCreator
 
   require Transaction
   require Transaction.Payment
 
   @type currency_t() :: Transaction.Payment.currency()
-  @type payment_t() :: %{
-          owner: Crypto.address_t() | nil,
-          currency: currency_t(),
-          amount: pos_integer()
-        }
-  @type fee_t() :: %{
-          currency: currency_t(),
-          amount: non_neg_integer()
-        }
   @type advice_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
   @type utxos_map_t() :: %{currency_t() => utxo_list_t()}
   @type utxo_list_t() :: list(%DB.TxOutput{})
@@ -127,7 +119,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   @doc """
   Sums up payable amount by token, including the fee.
   """
-  @spec needed_funds(list(payment_t()), %{amount: pos_integer(), currency: currency_t()}) ::
+  @spec needed_funds(list(TransactionCreator.payment_t()), %{amount: pos_integer(), currency: currency_t()}) ::
           %{currency_t() => pos_integer()}
   def needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
     needed_funds =

@@ -42,15 +42,15 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
   @type order_t() :: %{
           owner: Crypto.address_t(),
-          payments: nonempty_list(UtxoSelection.payment_t()),
+          payments: nonempty_list(TransactionCreator.payment_t()),
           metadata: binary() | nil,
-          fee: UtxoSelection.fee_t()
+          fee: TransactionCreator.fee_t()
         }
 
   @type transaction_t() :: %{
           inputs: nonempty_list(%DB.TxOutput{}),
-          outputs: nonempty_list(UtxoSelection.payment_t()),
-          fee: UtxoSelection.fee_t(),
+          outputs: nonempty_list(TransactionCreator.payment_t()),
+          fee: TransactionCreator.fee_t(),
           txbytes: Transaction.tx_bytes() | nil,
           metadata: Transaction.metadata(),
           sign_hash: Crypto.hash_t() | nil,

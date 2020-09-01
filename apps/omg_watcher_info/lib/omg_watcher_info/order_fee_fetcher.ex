@@ -22,7 +22,7 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.API.Transaction, as: TransactionAPI
   alias OMG.WatcherInfo.HttpRPC.Client
-  alias OMG.WatcherInfo.UtxoSelection
+  alias OMG.WatcherInfo.Transaction, as: TransactionCreator
   alias OMG.WireFormatTypes
 
   # Note: Hardcoding the tx_type for now, until we need to support more types of transactions
@@ -33,7 +33,7 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
 
   @type order_without_fee_amount_t() :: %{
           owner: Crypto.address_t(),
-          payments: nonempty_list(UtxoSelection.payment_t()),
+          payments: nonempty_list(TransactionCreator.payment_t()),
           fee: %{currency: Transaction.Payment.currency()},
           metadata: binary() | nil
         }
