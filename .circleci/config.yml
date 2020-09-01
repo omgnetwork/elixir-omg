@@ -55,6 +55,43 @@ commands:
           name: Attach workspace
           at: .
 
+  make_docker_images:
+    description: Builds docker images
+    steps:
+      - run: make docker-child_chain
+      - run: make docker-watcher
+      - run: make docker-watcher_info
+
+  install_elixir_and_check_docker_status:
+    description: Installs elixir and checks if docker is healthy
+    steps:
+      - run:
+          name: Print docker states
+          command: |
+            docker image ls
+            docker-compose ps
+      - restore_cache:
+          key: v2-asdf-install
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
+            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
+            source $BASH_ENV
+            asdf plugin-add erlang || asdf plugin-update erlang
+            asdf plugin-add elixir || asdf plugin-update elixir
+            asdf install
+          no_output_timeout: 2400
+      - save_cache:
+          key: v2-asdf-install
+          paths:
+            - ~/.asdf
+            - ~/.asdf-vm
+      - run: make install-hex-rebar
+      - run: sh .circleci/status.sh
+      - restore_cache:
+          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+
 jobs:
   barebuild:
     executor: metal
@@ -446,40 +483,13 @@ jobs:
           name: Setup data dir
           command: |
             [ -d data ] || mkdir data && chmod 777 data
-      - run: make docker-child_chain
-      - run: make docker-watcher
-      - run: make docker-watcher_info
+      - make_docker_images
       - run:
           name: Start daemon services
           command: |
             cd priv/cabbage
             make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
-      - run:
-          name: Print docker states
-          command: |
-            docker image ls
-            docker-compose ps
-      - restore_cache:
-          key: v2-asdf-install
-      - run:
-          name: Install Erlang and Elixir
-          command: |
-            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
-            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
-            source $BASH_ENV
-            asdf plugin-add erlang || asdf plugin-update erlang
-            asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install
-          no_output_timeout: 2400
-      - save_cache:
-          key: v2-asdf-install
-          paths:
-            - ~/.asdf
-            - ~/.asdf-vm
-      - run: make install-hex-rebar
-      - run: sh .circleci/status.sh
-      - restore_cache:
-          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+      - install_elixir_and_check_docker_status
       - run:
           name: Run specs
           command: |
@@ -488,12 +498,6 @@ jobs:
             make generate_api_code
             mix deps.get
             mix test
-      - run:
-          name: Run load test
-          command: |
-            cd priv/perf
-            make init
-            make test
       - run:
           name: (Cabbage) Format generated code and check for warnings
           command: |
@@ -504,9 +508,42 @@ jobs:
             mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
             mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
             MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
+      - save_cache:
+          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+          paths:
+            - "priv/cabbage/deps"
+      - run:
+          name: (Cabbage) Credo and formatting
+          command: |
+            cd priv/cabbage
+            mix do credo, format --check-formatted --dry-run
+
+  test_docker_compose_performance:
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - checkout
+      - run:
+          name: Setup data dir
+          command: |
+            [ -d data ] || mkdir data && chmod 777 data
+      - make_docker_images
+      - run:
+          name: Start daemon services
+          command: |
+            SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && docker-compose -f ./docker-compose.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+      - install_elixir_and_check_docker_status
+      - run:
+          name: Run load test
+          command: |
+            export $(cat ./localchain_contract_addresses.env | xargs)
+            cd priv/perf
+            make init
+            make test
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
+            export $(cat ./localchain_contract_addresses.env | xargs)
             cd priv/perf
             # run format ONLY on formatted code so that it cleans up quoted atoms because
             # we cannot exclude folders to --warnings-as-errors
@@ -515,13 +552,8 @@ jobs:
       - save_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
-            - "priv/cabbage/deps"
             - "priv/perf/deps"
-      - run:
-          name: (Cabbage) Credo and formatting
-          command: |
-            cd priv/cabbage
-            mix do credo, format --check-formatted --dry-run
+
       - run:
           name: (Perf) Credo and formatting
           command: |
@@ -546,40 +578,13 @@ jobs:
             [ -d data1 ] || mkdir data1 && chmod 777 data1
             [ -d data2 ] || mkdir data2 && chmod 777 data2
             [ -d data ] || mkdir data && chmod 777 data
-      - run: make docker-child_chain
-      - run: make docker-watcher
-      - run: make docker-watcher_info
+      - make_docker_images
       - run:
           name: Start daemon services
           command: |
             cd priv/cabbage
             make start_daemon_services_reorg-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
-      - run:
-          name: Print docker states
-          command: |
-            docker image ls
-            docker-compose ps
-      - restore_cache:
-          key: v2-asdf-install
-      - run:
-          name: Install Erlang and Elixir
-          command: |
-            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
-            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
-            source $BASH_ENV
-            asdf plugin-add erlang || asdf plugin-update erlang
-            asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install
-          no_output_timeout: 2400
-      - save_cache:
-          key: v2-asdf-install
-          paths:
-            - ~/.asdf
-            - ~/.asdf-vm
-      - run: make install-hex-rebar
-      - run: sh .circleci/status.sh
-      - restore_cache:
-          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
+      - install_elixir_and_check_docker_status
       - run:
           name: Print watcher logs
           command: make cabbage-reorg-watcher-logs
@@ -714,12 +719,6 @@ jobs:
           command: |
             cd priv/cabbage
             mix test
-      - run:
-          name: Run load test
-          command: |
-            cd priv/perf
-            make init
-            make test
 
   publish_child_chain:
     machine:
@@ -918,6 +917,9 @@ workflows:
           requires: [build]
           filters: *all_branches_and_tags
       - test_docker_compose_release:
+          requires: [build]
+          filters: *all_branches_and_tags
+      - test_docker_compose_performance:
           requires: [build]
           filters: *all_branches_and_tags
       - test_docker_compose_reorg:

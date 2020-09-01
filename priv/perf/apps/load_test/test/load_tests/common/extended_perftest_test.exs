@@ -12,36 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.ExtendedPerftestTest do
+defmodule LoadTest.Common.ExtendedPerftestTest do
   @moduledoc """
   Simple smoke testing of the performance test
   """
 
-  use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.ChildChain.Integration.Fixtures
-
-  use OMG.Performance
+  use LoadTest.Performance
 
   @moduletag :integration
   @moduletag :common
 
-  # NOTE: still bound to fixtures :(, because of the child chain setup, but this will go eventually, so leaving as is
-  deffixture perf_test(contract) do
-    _ = contract
-    :ok = Performance.init()
-    {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
-    {:ok, %{destdir: destdir}}
-  end
-
-  @tag fixtures: [:perf_test, :in_beam_child_chain]
   @tag timeout: 120_000
-  test "Smoke test - run start_extended_perf and see if it doesn't crash", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "Smoke test - run start_extended_perf and see if it doesn't crash" do
+    {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     # 3000 txs sending 1 each, plus 1 for fees
     ntxs = 3000
     senders = Generators.generate_users(2)
 
-    assert :ok = Performance.ExtendedPerftest.start(ntxs, senders, destdir: destdir)
+    assert :ok = ExtendedPerftest.start(ntxs, senders, destdir: destdir)
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * length(senders))

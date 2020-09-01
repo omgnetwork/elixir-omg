@@ -641,4 +641,32 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp sla_margin_safe?(exit_processor_sla_margin, min_exit_period_seconds, ethereum_block_time_seconds),
     do: exit_processor_sla_margin * ethereum_block_time_seconds < min_exit_period_seconds
+
+  @doc """
+  Deletes in-flight exits from state and returns deleted exits
+  """
+  @spec delete_in_flight_exits(__MODULE__.t(), list(map)) :: {__MODULE__.t(), list(InFlightExitInfo.t()), list(any())}
+  def delete_in_flight_exits(state, deletions) do
+    exit_ids =
+      deletions
+      |> Enum.map(fn %{exit_id: exit_id} -> InFlightExitInfo.to_contract_id(exit_id) end)
+      |> MapSet.new()
+
+    deleted_ifes_by_key =
+      state.in_flight_exits
+      |> Enum.filter(fn {_, ife} -> MapSet.member?(exit_ids, ife.contract_id) end)
+      |> Map.new()
+
+    deleted_keys = Map.keys(deleted_ifes_by_key)
+    updated_ifes = Map.drop(state.in_flight_exits, deleted_keys)
+
+    deleted_utxos =
+      deleted_ifes_by_key
+      |> Map.values()
+      |> InFlightExitInfo.get_input_utxos()
+
+    db_updates = Enum.map(deleted_keys, fn key -> {:delete, :in_flight_exit_info, key} end)
+
+    {%{state | in_flight_exits: updated_ifes}, deleted_utxos, db_updates}
+  end
 end
