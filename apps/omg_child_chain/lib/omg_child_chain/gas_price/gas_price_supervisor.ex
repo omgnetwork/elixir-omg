@@ -32,9 +32,10 @@ defmodule OMG.ChildChain.GasPrice.GasPriceSupervisor do
   def init(init_arg) do
     num_blocks = Keyword.fetch!(init_arg, :num_blocks)
     max_gas_price = Keyword.fetch!(init_arg, :max_gas_price)
+    ethereum_url = Keyword.fetch!(init_arg, :ethereum_url)
 
     children = [
-      {History, [event_bus: Bus, num_blocks: num_blocks]},
+      {History, [event_bus: Bus, num_blocks: num_blocks, ethereum_url: ethereum_url]},
       # Unfortunately LegacyGasStrategy cannot rely on its caller to enforce `max_gas_price`
       # because the strategy can keep doubling the price through the roof and take forever
       # to get back down below `max_gas_price` without its own ceiling.

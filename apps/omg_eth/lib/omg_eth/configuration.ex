@@ -66,6 +66,13 @@ defmodule OMG.Eth.Configuration do
     Application.fetch_env!(@app, :eth_node)
   end
 
+  @spec node_url() :: String.t() | no_return
+  def node_url() do
+    # Intentionally fetching from `:ethereumex` app. This config can be moved into @app context once all
+    # `Ethereumex.HttpClient.*` calls are passed a url instead of relying on `ethereumex.url` global config.
+    Application.fetch_env!(:ethereumex, :url)
+  end
+
   @spec ethereum_events_check_interval_ms() :: pos_integer | no_return
   def ethereum_events_check_interval_ms() do
     Application.fetch_env!(@app, :ethereum_events_check_interval_ms)

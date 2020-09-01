@@ -49,6 +49,7 @@ defmodule OMG.ChildChain.Supervisor do
     metrics_collection_interval = Configuration.metrics_collection_interval()
     gas_price_history_blocks = Configuration.block_submit_gas_price_history_blocks()
     max_gas_price = Configuration.block_submit_max_gas_price()
+    ethereum_url = OMG.Eth.Configuration.node_url()
     fee_server_opts = Configuration.fee_server_opts()
     fee_claimer_address = OMG.Configuration.fee_claimer_address()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
@@ -72,7 +73,7 @@ defmodule OMG.ChildChain.Supervisor do
            type: :supervisor
          }
        ]},
-      {GasPriceSupervisor, [num_blocks: gas_price_history_blocks, max_gas_price: max_gas_price]}
+      {GasPriceSupervisor, [num_blocks: gas_price_history_blocks, max_gas_price: max_gas_price, ethereum_url: ethereum_url]}
     ]
 
     is_datadog_disabled = is_disabled?()

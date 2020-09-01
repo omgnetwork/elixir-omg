@@ -34,8 +34,8 @@ defmodule OMG.ChildChain.GasPrice.History.Fetcher do
 
   Internally this function fetches the input `heights` in batches of #{@per_batch} blocks.
   """
-  @spec stream(Range.t()) :: Enumerable.t()
-  def stream(heights) do
+  @spec stream(Range.t(), String.t()) :: Enumerable.t()
+  def stream(heights, ethereum_url) do
     heights
     |> Stream.chunk_every(@per_batch)
     |> Stream.flat_map(fn heights ->
@@ -44,21 +44,21 @@ defmodule OMG.ChildChain.GasPrice.History.Fetcher do
       {:ok, results} =
         heights
         |> Enum.map(fn height -> {:eth_get_block_by_number, [Encoding.to_hex(height), true]} end)
-        |> batch_request()
+        |> batch_request(ethereum_url)
 
       results
     end)
   end
 
-  defp batch_request(requests, retries \\ @retries)
+  defp batch_request(requests, ethereum_url, retries \\ @retries)
 
-  defp batch_request(requests, 1) do
+  defp batch_request(requests, ethereum_url, 1) do
     _ = Logger.warn("Last attempt to batch request: #{inspect(requests)}")
-    HttpClient.batch_request(requests)
+    HttpClient.batch_request(requests, url: ethereum_url)
   end
 
-  defp batch_request(requests, retries) do
-    case HttpClient.batch_request(requests) do
+  defp batch_request(requests, ethereum_url, retries) do
+    case HttpClient.batch_request(requests, url: ethereum_url) do
       {:error, _} = response ->
         _ =
           Logger.warn("""

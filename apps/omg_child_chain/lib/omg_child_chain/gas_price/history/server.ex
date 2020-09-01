@@ -43,6 +43,7 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
           earliest_stored_height: non_neg_integer(),
           latest_stored_height: non_neg_integer(),
           history_ets: :ets.tid(),
+          ethereum_url: String.t(),
           subscribers: [pid()]
         }
 
@@ -50,6 +51,7 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
             earliest_stored_height: 0,
             latest_stored_height: 0,
             history_ets: nil,
+            ethereum_url: nil,
             subscribers: []
 
   @doc false
@@ -68,6 +70,7 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
   def init(opts) do
     num_blocks = Keyword.fetch!(opts, :num_blocks)
     event_bus = Keyword.fetch!(opts, :event_bus)
+    ethereum_url = Keyword.fetch!(opts, :ethereum_url)
     :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
 
     # The ets table is not initialized with `:read_concurrency` because we are expecting interleaving
@@ -76,7 +79,8 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
 
     state = %__MODULE__{
       num_blocks: num_blocks,
-      history_ets: history_ets
+      history_ets: history_ets,
+      ethereum_url: ethereum_url
     }
 
     _ = Logger.info("Started #{__MODULE__}: #{inspect(state)}")
@@ -125,7 +129,7 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
     # Fetch and insert new heights, leaving obsolete heights intact.
     :ok =
       fetch_from_height..to_height
-      |> Fetcher.stream()
+      |> Fetcher.stream(state.ethereum_url)
       |> stream_insert(state.history_ets)
       |> Stream.run()
 

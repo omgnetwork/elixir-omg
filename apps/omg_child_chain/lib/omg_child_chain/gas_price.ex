@@ -29,7 +29,7 @@ defmodule OMG.ChildChain.GasPrice do
   Include `OMG.ChildChain.GasPrice.GasPriceSupervisor` in the supervision tree:
 
       children = [
-        {GasPriceSupervisor, [num_blocks: gas_price_history_blocks, max_gas_price: max_gas_price]}
+        {GasPriceSupervisor, [num_blocks: gas_price_history_blocks, max_gas_price: max_gas_price, ethereum_url: ethereum_url]}
       ]
 
       Supervisor.init(children, strategy: :one_for_one)
