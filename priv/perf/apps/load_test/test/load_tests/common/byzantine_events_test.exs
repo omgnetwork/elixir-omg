@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.ByzantineEventsTest do
+defmodule LoadTest.Common.ByzantineEventsTest do
   @moduledoc """
   Simple smoke testing of the performance test
   """
-
-  use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.ChildChain.Integration.Fixtures
-  use OMG.Watcher.Fixtures
+  use LoadTest.Performance
 
-  use OMG.Performance
+  alias LoadTest.ChildChain.Exit
 
   @moduletag :integration
   @moduletag timeout: 180_000
@@ -31,29 +28,23 @@ defmodule OMG.Performance.ByzantineEventsTest do
   @take 3
 
   setup_all do
+    _ = Exit.add_exit_queue()
+
     # preventing :erlang.binary_to_existing_atom("last_mined_child_block_timestamp", :utf8) exception
     _ = String.to_atom("last_mined_child_block_timestamp")
     _ = String.to_atom("last_seen_eth_block_number")
     _ = String.to_atom("last_seen_eth_block_timestamp")
     _ = String.to_atom("last_validated_child_block_timestamp")
-    :ok
-  end
 
-  # NOTE: still bound to fixtures :(, because of the child chain setup, but this will go eventually, so leaving as is
-  deffixture perf_test(contract) do
-    _ = contract
-    :ok = Performance.init()
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
     {:ok, %{destdir: destdir}}
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of response when asking for exit data", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of response when asking for exit data", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -61,13 +52,13 @@ defmodule OMG.Performance.ByzantineEventsTest do
     ByzantineEvents.get_many_standard_exits(utxos)
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many valid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  # since we're using the same geth node for all tests, this test is not compatible with the test on line 76
+  @tag :skip
+  test "can provide timing of status.get under many valid SEs", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -81,13 +72,11 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert ByzantineEvents.get_byzantine_events("invalid_exit") == []
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many valid/invalid SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of status.get under many valid/invalid SEs", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -101,13 +90,11 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) >= @take
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of challenging", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of challenging", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -127,13 +114,11 @@ defmodule OMG.Performance.ByzantineEventsTest do
     assert Enum.count(challenge_responses) >= @take
   end
 
-  @tag fixtures: [:perf_test, :mix_based_child_chain, :mix_based_watcher]
-  test "can provide timing of status.get under many challenged SEs", %{perf_test: {:ok, %{destdir: destdir}}} do
+  test "can provide timing of status.get under many challenged SEs", %{destdir: destdir} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok =
-      Performance.ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
