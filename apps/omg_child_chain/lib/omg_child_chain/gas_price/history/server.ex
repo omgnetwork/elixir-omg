@@ -44,7 +44,7 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
           latest_stored_height: non_neg_integer(),
           history_ets: :ets.tid(),
           ethereum_url: String.t(),
-          subscribers: [pid()]
+          event_bus: module()
         }
 
   defstruct num_blocks: 200,
@@ -52,7 +52,7 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
             latest_stored_height: 0,
             history_ets: nil,
             ethereum_url: nil,
-            subscribers: []
+            event_bus: nil
 
   @doc false
   @spec all() :: History.t()
@@ -69,8 +69,8 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
   @impl GenServer
   def init(opts) do
     num_blocks = Keyword.fetch!(opts, :num_blocks)
-    event_bus = Keyword.fetch!(opts, :event_bus)
     ethereum_url = Keyword.fetch!(opts, :ethereum_url)
+    event_bus = Keyword.fetch!(opts, :event_bus)
     :ok = event_bus.subscribe({:root_chain, "ethereum_new_height"}, link: true)
 
     # The ets table is not initialized with `:read_concurrency` because we are expecting interleaving
@@ -80,7 +80,8 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
     state = %__MODULE__{
       num_blocks: num_blocks,
       history_ets: history_ets,
-      ethereum_url: ethereum_url
+      ethereum_url: ethereum_url,
+      event_bus: event_bus
     }
 
     _ = Logger.info("Started #{__MODULE__}: #{inspect(state)}")
@@ -112,13 +113,6 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
     {:noreply, %{state | earliest_stored_height: earliest_height, latest_stored_height: latest_height}}
   end
 
-  @doc false
-  @impl GenServer
-  def handle_cast({:subscribe, subscriber}, state) do
-    subscribers = Enum.uniq([subscriber | state.subscribers])
-    {:noreply, %{state | subscribers: subscribers}}
-  end
-
   #
   # Internal implementations
   #
@@ -143,8 +137,11 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
 
     _ = Logger.info("#{__MODULE__} available gas prices from Eth heights: #{from_height} - #{to_height}.")
 
-    # Inform all subscribers that the history has been updated.
-    _ = Enum.each(state.subscribers, fn subscriber -> send(subscriber, {History, :updated}) end)
+    # Publish `:history_updated` event through the OMG.Bus
+    {:child_chain, "gas_price_history"}
+    |> state.event_bus.new(:history_updated, to_height)
+    |> state.event_bus.direct_local_broadcast()
+
     {:ok, from_height, to_height}
   end
 

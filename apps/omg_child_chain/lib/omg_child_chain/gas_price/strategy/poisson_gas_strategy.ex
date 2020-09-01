@@ -94,8 +94,9 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
 
   @doc false
   @impl GenServer
-  def init(_init_arg) do
-    _ = History.subscribe(self())
+  def init(init_arg) do
+    event_bus = Keyword.fetch!(init_arg, :event_bus)
+    :ok = event_bus.subscribe({:child_chain, "gas_price_history"}, link: true)
     state = %__MODULE__{}
 
     _ = Logger.info("Started #{__MODULE__}: #{inspect(state)}")
@@ -123,7 +124,7 @@ defmodule OMG.ChildChain.GasPrice.Strategy.PoissonGasStrategy do
 
   @doc false
   @impl GenServer
-  def handle_info({History, :updated}, state) do
+  def handle_info({:internal_event_bus, :history_updated, _height}, state) do
     prices = calculate()
 
     _ = Logger.info("#{__MODULE__}: History updated. Prices recalculated to: #{inspect(prices)}")

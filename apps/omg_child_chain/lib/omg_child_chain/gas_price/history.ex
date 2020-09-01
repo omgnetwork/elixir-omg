@@ -46,22 +46,6 @@ defmodule OMG.ChildChain.GasPrice.History do
   end
 
   @doc """
-  Subscribes a process to gas price history changes.
-
-  On each history change, the subscriber can detect the change by handling `{History, :updated}` messages.
-
-  ## Examples
-
-      def handle_info({History, :updated}, state) do
-        # Do your operations on history update here
-      end
-  """
-  @spec subscribe(function()) :: :ok
-  def subscribe(pid) do
-    GenServer.cast(Server, {:subscribe, pid})
-  end
-
-  @doc """
   Get all existing gas price records.
   """
   @spec all() :: t()
