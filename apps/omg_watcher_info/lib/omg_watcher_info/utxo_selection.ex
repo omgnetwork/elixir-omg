@@ -43,8 +43,8 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       |> Enum.flat_map(fn {_ccy, utxos} -> utxos end)
       |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
 
-    case selected_utxo_hashes |> Map.keys() |> length() do
-      0 ->
+    case selected_utxo_hashes do
+      hashes_map when hashes_map == %{} ->
         []
 
       _ ->
