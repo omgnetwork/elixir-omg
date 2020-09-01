@@ -20,7 +20,7 @@ jobs:
         run: |
           set -o xtrace
           # Using the issues API instead of pulls because it can return only the labels
-          curl "https://api.github.com/repos/omgnetwork/elixir-omg/issues/${{ github.event.pull_request.number }}/labels" \
+          curl "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/labels" \
           | grep -o '"name": "[^"]*' \
           | cut -d'"' -f4 \
           | grep -E $ONE_OF_LABELS
@@ -29,7 +29,7 @@ jobs:
         if: steps.check-changelog-label.outcome == 'success'
         run: |
           echo $APPROVAL_MESSAGE
-          curl -X POST "https://api.github.com/repos/omgnetwork/elixir-omg/pulls/${{ github.event.pull_request.number }}/reviews" \
+          curl -X POST "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/reviews" \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" \
             --data "{\"event\": \"APPROVE\", \"body\": \"${APPROVAL_MESSAGE}\"}"
@@ -38,7 +38,7 @@ jobs:
         if: steps.check-changelog-label.outcome == 'failure'
         run: |
           echo $REJECTION_MESSAGE
-          curl -X POST "https://api.github.com/repos/omgnetwork/elixir-omg/pulls/${{ github.event.pull_request.number }}/reviews" \
+          curl -X POST "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/reviews" \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.HOUSE_KEEPER_BOT_TOKEN }}" \
             --data "{\"event\": \"REQUEST_CHANGES\", \"body\": \"${REJECTION_MESSAGE} Label the PR with one of: ${ONE_OF_LABELS//|/, }.\"}"
