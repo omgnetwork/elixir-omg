@@ -44,11 +44,11 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
             }
 
   @typep thresholds() :: %{
-    safe_low: non_neg_integer(),
-    standard: non_neg_integer(),
-    fast: non_neg_integer(),
-    fastest: non_neg_integer()
-  }
+           safe_low: non_neg_integer(),
+           standard: non_neg_integer(),
+           fast: non_neg_integer(),
+           fastest: non_neg_integer()
+         }
 
   @thresholds %{
     safe_low: 35,
@@ -60,11 +60,11 @@ defmodule OMG.ChildChain.GasPrice.Strategy.BlockPercentileGasStrategy do
   @target_threshold :fast
 
   @typep recommendations() :: %{
-    safe_low: float(),
-    standard: float(),
-    fast: float(),
-    fastest: float()
-  }
+           safe_low: float(),
+           standard: float(),
+           fast: float(),
+           fastest: float()
+         }
 
   @behaviour Strategy
 

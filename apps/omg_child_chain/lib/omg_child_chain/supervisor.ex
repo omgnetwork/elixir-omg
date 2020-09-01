@@ -73,7 +73,8 @@ defmodule OMG.ChildChain.Supervisor do
            type: :supervisor
          }
        ]},
-      {GasPriceSupervisor, [num_blocks: gas_price_history_blocks, max_gas_price: max_gas_price, ethereum_url: ethereum_url]}
+      {GasPriceSupervisor,
+       [num_blocks: gas_price_history_blocks, max_gas_price: max_gas_price, ethereum_url: ethereum_url]}
     ]
 
     is_datadog_disabled = is_disabled?()

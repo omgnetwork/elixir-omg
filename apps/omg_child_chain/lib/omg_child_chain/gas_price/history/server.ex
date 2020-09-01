@@ -156,8 +156,11 @@ defmodule OMG.ChildChain.GasPrice.History.Server do
   end
 
   defp prune_heights(history_ets, from, to) do
-    :ets.select_delete(history_ets, :ets.fun2ms(fn
-      {height, _prices, _timestamp} when height >= from and height <= to -> true
-    end))
+    :ets.select_delete(
+      history_ets,
+      :ets.fun2ms(fn
+        {height, _prices, _timestamp} when height >= from and height <= to -> true
+      end)
+    )
   end
 end
