@@ -33,7 +33,8 @@ defmodule OMG.Status.Alert.Alarm do
            | :invalid_fee_source
            | :statsd_client_connection
            | :main_supervisor_halted
-           | :system_memory_too_high, alarm_detail}
+           | :system_memory_too_high
+           | :block_submit_stalled, alarm_detail}
 
   def alarm_types(),
     do: [
@@ -43,7 +44,8 @@ defmodule OMG.Status.Alert.Alarm do
       :invalid_fee_source,
       :statsd_client_connection,
       :main_supervisor_halted,
-      :system_memory_too_high
+      :system_memory_too_high,
+      :block_submit_stalled
     ]
 
   @spec statsd_client_connection(module()) :: {:statsd_client_connection, alarm_detail}
@@ -73,6 +75,10 @@ defmodule OMG.Status.Alert.Alarm do
   @spec system_memory_too_high(module()) :: {:system_memory_too_high, alarm_detail}
   def system_memory_too_high(reporter),
     do: {:system_memory_too_high, %{node: Node.self(), reporter: reporter}}
+
+  @spec block_submit_stalled(module()) :: {:block_submit_stalled, alarm_detail}
+  def block_submit_stalled(reporter),
+    do: {:block_submit_stalled, %{node: Node.self(), reporter: reporter}}
 
   @spec set(alarms()) :: :ok | :duplicate
   def set(alarm), do: do_raise(alarm)

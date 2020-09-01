@@ -7,7 +7,7 @@
   * [Using the child chain server's API](#using-the-child-chain-servers-api)
     * [HTTP-RPC](#http-rpc)
   * [Ethereum private key management](#ethereum-private-key-management)
-    * [geth](#geth)               
+    * [geth](#geth)
   * [Managing the operator address](#managing-the-operator-address)
   * [Nonces restriction](#nonces-restriction)
   * [Funding the operator address](#funding-the-operator-address)
@@ -33,7 +33,6 @@ The general idea of the apps responsibilities is:
   - `omg_child_chain_rpc` - an HTTP-RPC server being the gateway to `omg_child_chain`
   - `omg_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
   - `omg_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
-  - `omg_performance` - performance tester for the child chain server
   - `omg_status` - application monitoring facilities
   - `omg_utils` - various non-omg-specific shared code
   - `omg_watcher` - the [Watcher](#watcher-and-watcher-info)
@@ -198,7 +197,7 @@ Affects how quick the services reading Ethereum events realize there's a new blo
 * **`block_queue_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `BlockQueue` exclusively
 
 * **`fee_adapter_check_interval_ms`** - interval for checking fees updates from the fee adapter.
-* 
+*
 * **`fee_buffer_duration_ms`** - duration for which a fee is still valid after beeing updated.
 
 * **`block_submit_every_nth`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.

@@ -6,6 +6,7 @@ import Config
 # See https://hexdocs.pm/mix/1.9.0/Mix.Tasks.Release.html#module-runtime-configuration
 
 config :omg_child_chain,
+  block_submit_stall_threshold_blocks: String.to_integer(System.get_env("BLOCK_SUBMIT_STALL_THRESHOLD_BLOCKS") || "4"),
   block_submit_max_gas_price: String.to_integer(System.get_env("BLOCK_SUBMIT_MAX_GAS_PRICE") || "20000000000"),
   block_submit_gas_price_strategy:
     case System.get_env("BLOCK_SUBMIT_GAS_PRICE_STRATEGY") do

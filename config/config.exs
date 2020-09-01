@@ -46,6 +46,7 @@ config :omg_child_chain,
   block_queue_eth_height_check_interval_ms: 6_000,
   block_submit_every_nth: 1,
   block_submit_max_gas_price: 20_000_000_000,
+  block_submit_stall_threshold_blocks: 4,
   block_submit_gas_price_strategy: OMG.ChildChain.GasPrice.Strategy.LegacyGasStrategy,
   block_submit_gas_price_history_blocks: 200,
   metrics_collection_interval: 60_000,
@@ -232,8 +233,5 @@ config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
 config :spandex_phoenix, tracer: OMG.WatcherRPC.Tracer
 
 config :briefly, directory: ["/tmp/omisego"]
-
-# `watcher_url` must match respective `:omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint`
-config :omg_performance, watcher_url: "localhost:7434"
 
 import_config "#{Mix.env()}.exs"

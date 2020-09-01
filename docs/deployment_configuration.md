@@ -22,7 +22,8 @@
 
 ***Child Chain only***
 
-- "BLOCK_SUBMIT_MAX_GAS_PRICE" - The maximum gas price to use for block submission. The first block submission after application boot will use the max price. The gas price gradually adjusts on subsequent blocks to reach the current optimum price . Defaults to `20000000000` (20 Gwei).
+- "BLOCK_SUBMIT_MAX_GAS_PRICE" - The maximum gas price to use for block submission. The first block submission after application boot will use the max price. The gas price gradually adjusts on subsequent blocks to reach the current optimum price. Defaults to `20000000000` (20 Gwei).
+- "BLOCK_SUBMIT_STALL_THRESHOLD_BLOCKS" - The number of root chain blocks passed until a child chain block pending submission is considered stalled. Defaults to `4` root chain blocks.
 - "BLOCK_SUBMIT_GAS_PRICE_STRATEGY" - The gas price strategy to use for block submission. Note that all strategies will still run, but only the one configured here will be used for actual submission. Suppots `LEGACY`, `BLOCK_PERCENTILE` and `POISSON`. Defaults to `LEGACY`.
 - "FEE_ADAPTER" - The adapter to use to populate the fee specs. Either `file` or `feed` (case-insensitive). Defaults to `file` with an empty fee specs.
 - "FEE_CLAIMER_ADDRESS" - 20-bytes HEX-encoded string of Ethereum address of Fee Claimer.
