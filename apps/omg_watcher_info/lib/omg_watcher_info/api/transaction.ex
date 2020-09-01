@@ -31,19 +31,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
   @default_transactions_limit 200
 
-  @type create_t() ::
-          {:ok, nonempty_list(transaction_t())}
-          | {:error, {:insufficient_funds, list(map())}}
-          | {:error, :too_many_inputs}
-          | {:error, :too_many_outputs}
-          | {:error, :empty_transaction}
-
-  @type order_t() :: %{
-          owner: Crypto.address_t(),
-          payments: nonempty_list(TransactionCreator.payment_t()),
-          metadata: binary() | nil,
-          fee: TransactionCreator.fee_t()
-        }
+  @type create_t() :: TransactionCreator.create_t() | {:error, {:insufficient_funds, list(map())}}
 
   @type transaction_t() :: %{
           inputs: nonempty_list(%DB.TxOutput{}),
@@ -104,13 +92,11 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
-  @spec create(order_t()) :: create_t()
+  @spec create(TransactionCreator.order_t()) :: create_t()
   def create(order) do
-    case(
-      order.owner
-      |> DB.TxOutput.get_sorted_grouped_utxos()
-      |> TransactionCreator.select_inputs(order)
-    ) do
+    case order.owner
+         |> DB.TxOutput.get_sorted_grouped_utxos()
+         |> TransactionCreator.select_inputs(order) do
       {:ok, inputs} ->
         TransactionCreator.create(inputs, order)
 

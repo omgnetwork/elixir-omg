@@ -49,15 +49,17 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
       _ ->
         selected_utxos
-        |> Enum.map(fn {ccy, _utxos} ->
-          utxos[ccy]
-          |> filter_unselected(selected_utxo_hashes)
-          |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
-        end)
+        |> Enum.map(&prioritize_utxos_by_currency(&1, utxos, selected_utxo_hashes))
         |> Enum.sort_by(&length/1, :desc)
         |> Enum.map(fn ccy_group -> Enum.slice(ccy_group, 0, 3) end)
         |> List.flatten()
     end
+  end
+
+  defp prioritize_utxos_by_currency({currency, _utxos}, utxos, selected_utxo_hashes) do
+    utxos[currency]
+    |> filter_unselected(selected_utxo_hashes)
+    |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
   end
 
   @doc """
