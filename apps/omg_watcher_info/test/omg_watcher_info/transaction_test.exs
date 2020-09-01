@@ -31,7 +31,49 @@ defmodule OMG.WatcherInfo.TransactionTest do
   @bob <<28::160>>
 
   describe "select_inputs/2" do
-    test "" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns {:ok, transctions} when able to select utxos to satisfy payments and fee" do
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
+
+      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      order = %{
+        owner: @alice,
+        payments: [
+          %{amount: 10, currency: @eth, owner: @bob}
+        ],
+        fee: %{currency: @eth, amount: 5},
+        metadata: nil
+      }
+
+      assert {:ok,
+              %{
+                @eth => [
+                  %{amount: 10, currency: @eth},
+                  %{amount: 10, currency: @eth}
+                ]
+              }} = Transaction.select_inputs(utxos_per_token, order)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns error when the funds are not sufficient to satisfy payments and fee" do
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
+
+      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+
+      order = %{
+        owner: @alice,
+        payments: [
+          %{amount: 30, currency: @eth, owner: @bob}
+        ],
+        fee: %{currency: @eth, amount: 10},
+        metadata: nil
+      }
+
+      assert {:error, {:insufficient_funds, [%{missing: 10}]}} = Transaction.select_inputs(utxos_per_token, order)
     end
   end
 
