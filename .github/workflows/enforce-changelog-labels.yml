@@ -16,19 +16,15 @@ jobs:
         id: check-changelog-label
         run: |
           set -o xtrace
+
           # Using the issues API instead of pulls because it can return only the labels
           curl "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/labels" \
           | grep -o '"name": "[^"]*' \
           | cut -d'"' -f4 \
           | grep -E $ONE_OF_LABELS
 
-      - name: Print success message
-        if: ${{ success() }}
-        run: |
-          echo "The PR has a valid changelog label."
-
-      - name: Print failure message
-        if: ${{ failure() }}
-        run: |
-          echo "The PR is missing a valid changelog label. Label the PR with one of: ${ONE_OF_LABELS//|/, }."
-          exit 1
+          if [ $? -eq 0 ]; then
+            echo "The PR has a valid changelog label."
+          else
+            echo "The PR is missing a valid changelog label. Label the PR with one of: ${ONE_OF_LABELS//|/, }."
+          fi
