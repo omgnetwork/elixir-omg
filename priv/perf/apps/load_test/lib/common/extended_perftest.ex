@@ -39,7 +39,7 @@ defmodule LoadTest.Common.ExtendedPerftest do
 
   Performance.init()
   spenders = Generators.generate_users(2)
-  LoadTest.Common.ExtendedPerftest.start(100, spenders, destdir: destdir)
+  LoadTest.Common.ExtendedPerftest.start(100, spenders, fee_amount, destdir: destdir)
   ```
 
   The results are going to be waiting for you in a file within `destdir` and will be logged.
@@ -49,8 +49,8 @@ defmodule LoadTest.Common.ExtendedPerftest do
     - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
       defaults to `true`
   """
-  @spec start(pos_integer(), list(map()), keyword()) :: :ok
-  def start(ntx_to_send, spenders, opts \\ []) do
+  @spec start(pos_integer(), list(map()), pos_integer(), keyword()) :: :ok
+  def start(ntx_to_send, spenders, fee_amount, opts \\ []) do
     _ =
       Logger.info(
         "Number of spenders: #{inspect(length(spenders))}, number of tx to send per spender: #{inspect(ntx_to_send)}" <>
@@ -61,18 +61,18 @@ defmodule LoadTest.Common.ExtendedPerftest do
 
     opts = Keyword.merge(defaults, opts)
 
-    utxos = create_deposits(spenders, ntx_to_send)
+    utxos = create_deposits(spenders, ntx_to_send, fee_amount)
 
-    result = LoadTest.Common.Runner.run(ntx_to_send, utxos, opts, false)
+    result = LoadTest.Common.Runner.run(ntx_to_send, utxos, fee_amount, opts, false)
 
     Process.sleep(20_000)
 
     result
   end
 
-  @spec create_deposits(list(map()), pos_integer()) :: list()
-  defp create_deposits(spenders, ntx_to_send) do
-    Enum.map(make_deposits(ntx_to_send * 2, spenders), fn {:ok, owner, blknum, amount} ->
+  @spec create_deposits(list(map()), pos_integer(), pos_integer()) :: list()
+  defp create_deposits(spenders, ntx_to_send, fee_amount) do
+    Enum.map(make_deposits(ntx_to_send * 2 * fee_amount, spenders), fn {:ok, owner, blknum, amount} ->
       utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: 0, oindex: 0})
       %{owner: owner, utxo_pos: utxo_pos, amount: amount}
     end)
