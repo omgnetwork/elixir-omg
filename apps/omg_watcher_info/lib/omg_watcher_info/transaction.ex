@@ -26,7 +26,6 @@ defmodule OMG.WatcherInfo.Transaction do
   require Transaction.Payment
 
   @empty_metadata <<0::256>>
-  @max_inputs Transaction.Payment.max_inputs()
   @max_outputs Transaction.Payment.max_outputs()
 
   @type create_t() ::
@@ -113,7 +112,7 @@ defmodule OMG.WatcherInfo.Transaction do
       true ->
         raw_tx = create_raw_transaction(inputs, outputs, order.metadata)
 
-        [
+        {:ok, [
           %{
             inputs: inputs,
             outputs: outputs,
@@ -122,7 +121,7 @@ defmodule OMG.WatcherInfo.Transaction do
             txbytes: Transaction.raw_txbytes(raw_tx),
             sign_hash: TypedDataHash.hash_struct(raw_tx)
           }
-        ]
+        ]}
     end
   end
 

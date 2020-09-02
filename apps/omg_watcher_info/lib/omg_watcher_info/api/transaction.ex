@@ -97,17 +97,19 @@ defmodule OMG.WatcherInfo.API.Transaction do
     case order.owner
          |> DB.TxOutput.get_sorted_grouped_utxos()
          |> TransactionCreator.select_inputs(order) do
-      {:ok, inputs} when is_required_merge(inputs) ->
-        inputs
-        |> TransactionCreator.generate_merge_transactions()
-        |> respond(:intermediate)
-
       {:ok, inputs} ->
-        TransactionCreator.create(inputs, order)
-        |> respond(:complete)
+        if(is_required_merge(inputs)) do
+          inputs
+          |> TransactionCreator.generate_merge_transactions()
+          |> respond(:intermediate)
+        else
+          inputs
+          |> TransactionCreator.create(order)
+          |> respond(:complete)
+        end
 
       err ->
-        respond(err)
+        err
     end
   end
 
@@ -124,6 +126,4 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
   defp respond(transactions, result) when is_list(transactions),
     do: {:ok, %{result: result, transactions: transactions}}
-
-  defp respond(error, _), do: error
 end
