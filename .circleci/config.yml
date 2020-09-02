@@ -483,7 +483,7 @@ jobs:
           name: "Pull Submodules"
           command: |
             git submodule init
-            git submodule update
+            git submodule update --remote
       - run:
           name: Setup data dir
           command: |
@@ -578,7 +578,7 @@ jobs:
           name: "Pull Submodules"
           command: |
             git submodule init
-            git submodule update
+            git submodule update --remote
       - run:
           name: Setup data dir
           command: |
@@ -634,7 +634,7 @@ jobs:
           name: "Pull Submodules"
           command: |
             git submodule init
-            git submodule update
+            git submodule update --remote
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
       - docker_login
       - run:
