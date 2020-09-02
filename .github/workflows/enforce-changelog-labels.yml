@@ -14,7 +14,6 @@ jobs:
     steps:
       - name: Check the PR for a changelog label
         id: check-changelog-label
-        continue-on-error: true
         run: |
           set -o xtrace
           # Using the issues API instead of pulls because it can return only the labels
