@@ -279,7 +279,7 @@ test-child_chain:
 # Documentation
 #
 changelog:
-	github_changelog_generator -u omisego -p elixir-omg
+	github_changelog_generator --user omgnetwork --project elixir-omg
 
 .PHONY: changelog
 
