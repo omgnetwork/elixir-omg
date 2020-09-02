@@ -66,6 +66,8 @@ priv/apps/watcher_security_critical_api
 
 # where Geth gets it's snapshot data
 data/
+data1/
+data2/
 # local test setup
 localchain_contract_addresses.env
 
