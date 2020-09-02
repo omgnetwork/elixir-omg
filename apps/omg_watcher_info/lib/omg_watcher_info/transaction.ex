@@ -26,6 +26,8 @@ defmodule OMG.WatcherInfo.Transaction do
   require Transaction.Payment
 
   @empty_metadata <<0::256>>
+  @max_inputs Transaction.Payment.max_inputs()
+  @max_outputs Transaction.Payment.max_outputs()
 
   @type create_t() ::
           {:ok, nonempty_list(transaction_t())}
@@ -89,13 +91,12 @@ defmodule OMG.WatcherInfo.Transaction do
   end
 
   @doc """
-  Given selected utxos and order, create inputs and outputs, then returns a transaction.
+  Given selected utxos and order, create inputs and outputs, then returns either {:error, reason} or transactions.
 
-  Returns an error when any of the following conditions is met:
-
-  1. A number of outputs overs maximum.
-  2. A number of inputs overs maximum.
-  3. An inputs are empty.
+  - Returns transactions when the inputs look good.
+  - Returns an error when any of the following conditions is met:
+    1. A number of outputs overs maximum.
+    2. An inputs are empty.
   """
   @spec create(utxos_map_t(), order_t()) :: create_t()
   def create(utxos_per_token, order) do
@@ -103,10 +104,7 @@ defmodule OMG.WatcherInfo.Transaction do
     outputs = build_outputs(utxos_per_token, order)
 
     cond do
-      Enum.count(inputs) > Transaction.Payment.max_inputs() ->
-        {:error, :too_many_inputs}
-
-      Enum.count(outputs) > Transaction.Payment.max_outputs() ->
+      Enum.count(outputs) > @max_outputs ->
         {:error, :too_many_outputs}
 
       Enum.empty?(inputs) ->
@@ -115,17 +113,16 @@ defmodule OMG.WatcherInfo.Transaction do
       true ->
         raw_tx = create_raw_transaction(inputs, outputs, order.metadata)
 
-        {:ok,
-         [
-           %{
-             inputs: inputs,
-             outputs: outputs,
-             fee: order.fee,
-             metadata: order.metadata,
-             txbytes: Transaction.raw_txbytes(raw_tx),
-             sign_hash: TypedDataHash.hash_struct(raw_tx)
-           }
-         ]}
+        [
+          %{
+            inputs: inputs,
+            outputs: outputs,
+            fee: order.fee,
+            metadata: order.metadata,
+            txbytes: Transaction.raw_txbytes(raw_tx),
+            sign_hash: TypedDataHash.hash_struct(raw_tx)
+          }
+        ]
     end
   end
 
@@ -137,6 +134,32 @@ defmodule OMG.WatcherInfo.Transaction do
       :ok,
       %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
+
+  def generate_merge_transactions(merge_inputs) do
+    merge_inputs
+    |> Stream.chunk_every(@max_outputs)
+    |> Enum.flat_map(fn input_set ->
+      case input_set do
+        [_single_input] ->
+          []
+
+        inputs ->
+          {:ok, transaction} = create_merge(inputs)
+          transaction
+      end
+    end)
+  end
+
+  defp create_merge(inputs) do
+    %{currency: currency, owner: owner} = List.first(inputs)
+
+    create([{currency, inputs}], %{
+      fee: %{amount: 0, currency: currency},
+      metadata: @empty_metadata,
+      owner: owner,
+      payments: []
+    })
+  end
 
   defp build_inputs(utxos_per_token) do
     utxos_per_token
