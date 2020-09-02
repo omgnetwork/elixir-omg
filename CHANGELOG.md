@@ -25,6 +25,7 @@
 ### Chores
 
 - feat: reintroduce automated changelog [\#1708](https://github.com/omgnetwork/elixir-omg/pull/1708) ([unnawut](https://github.com/unnawut))
+- add feefeed docker to elixir-omg setup [\#1700](https://github.com/omgnetwork/elixir-omg/pull/1700) ([boolafish](https://github.com/boolafish))
 - auto trigger chart version bump [\#1695](https://github.com/omgnetwork/elixir-omg/pull/1695) ([boolafish](https://github.com/boolafish))
 - bump phoenix [\#1680](https://github.com/omgnetwork/elixir-omg/pull/1680) ([InoMurko](https://github.com/InoMurko))
 - chore: increase timeouts for childchain healthchecks [\#1671](https://github.com/omgnetwork/elixir-omg/pull/1671) ([ayrat555](https://github.com/ayrat555))
@@ -41,7 +42,6 @@
 ### Untagged pull requests
 
 - feat: handle in-flight exits deletions [\#1701](https://github.com/omgnetwork/elixir-omg/pull/1701) ([pgebal](https://github.com/pgebal))
-- add feefeed docker to elixir-omg setup [\#1700](https://github.com/omgnetwork/elixir-omg/pull/1700) ([boolafish](https://github.com/boolafish))
 - move omg\_performance json rpc tests to perf project [\#1691](https://github.com/omgnetwork/elixir-omg/pull/1691) ([ayrat555](https://github.com/ayrat555))
 
 ## [v1.0.3](https://github.com/omgnetwork/elixir-omg/tree/v1.0.3) (2020-07-09)
@@ -51,10 +51,6 @@
 ### API changes
 
 - Add Transaction filter by end\_datetime [\#1595](https://github.com/omgnetwork/elixir-omg/pull/1595) ([jarindr](https://github.com/jarindr))
-
-### Enhancements
-
-- Add block processing queue to watcher info [\#1560](https://github.com/omgnetwork/elixir-omg/pull/1560) ([mederic-p](https://github.com/mederic-p))
 
 ### Bug fixes
 
@@ -73,6 +69,7 @@
 - feat: sync v1.0.1 changes back to master [\#1599](https://github.com/omgnetwork/elixir-omg/pull/1599) ([unnawut](https://github.com/unnawut))
 - release artifacts [\#1597](https://github.com/omgnetwork/elixir-omg/pull/1597) ([InoMurko](https://github.com/InoMurko))
 - Add reorged docker compose [\#1579](https://github.com/omgnetwork/elixir-omg/pull/1579) ([ayrat555](https://github.com/ayrat555))
+- Kevin/load test erc20 token [\#1577](https://github.com/omgnetwork/elixir-omg/pull/1577) ([kevsul](https://github.com/kevsul))
 
 ### Documentation updates
 
@@ -133,6 +130,7 @@
 
 ### Enhancements
 
+- Add block processing queue to watcher info [\#1560](https://github.com/omgnetwork/elixir-omg/pull/1560) ([mederic-p](https://github.com/mederic-p))
 - Inomurko/reorg block getter [\#1554](https://github.com/omgnetwork/elixir-omg/pull/1554) ([InoMurko](https://github.com/InoMurko))
 - add: logging for ethereum tasks [\#1550](https://github.com/omgnetwork/elixir-omg/pull/1550) ([okalouti](https://github.com/okalouti))
 - feat: env configurable block\_submit\_max\_gas\_price [\#1548](https://github.com/omgnetwork/elixir-omg/pull/1548) ([unnawut](https://github.com/unnawut))
