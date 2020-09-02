@@ -56,7 +56,7 @@ defmodule OMG.WatcherInfo.Transaction do
 
   @type order_t() :: %{
           owner: Crypto.address_t(),
-          payments: nonempty_list(payment_t()),
+          payments: list(payment_t()),
           metadata: binary() | nil,
           fee: fee_t()
         }
@@ -112,16 +112,17 @@ defmodule OMG.WatcherInfo.Transaction do
       true ->
         raw_tx = create_raw_transaction(inputs, outputs, order.metadata)
 
-        {:ok, [
-          %{
-            inputs: inputs,
-            outputs: outputs,
-            fee: order.fee,
-            metadata: order.metadata,
-            txbytes: Transaction.raw_txbytes(raw_tx),
-            sign_hash: TypedDataHash.hash_struct(raw_tx)
-          }
-        ]}
+        {:ok,
+         [
+           %{
+             inputs: inputs,
+             outputs: outputs,
+             fee: order.fee,
+             metadata: order.metadata,
+             txbytes: Transaction.raw_txbytes(raw_tx),
+             sign_hash: TypedDataHash.hash_struct(raw_tx)
+           }
+         ]}
     end
   end
 

@@ -94,7 +94,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   @spec create(TransactionCreator.order_t()) :: create_t()
   def create(order) do
     case order.owner
-         |> DB.TxOutput.get_sorted_grouped_utxos()
+         |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
          |> TransactionCreator.select_inputs(order) do
       {:ok, inputs} ->
         inputs
@@ -106,28 +106,88 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
+  @spec merge(map()) :: create_t()
+  def merge(%{address: address, currency: currency} = _constraints) do
+    merge_inputs =
+      address
+      |> DB.TxOutput.get_sorted_grouped_utxos(:asc)
+      |> Map.get(currency, [])
+
+    case merge_inputs do
+      [_single_input] ->
+        {:error, :single_input_for_ccy}
+
+      inputs ->
+        {:ok, TransactionCreator.generate_merge_transactions(inputs)}
+    end
+  end
+
+  def merge(%{utxo_positions: utxo_positions}) do
+    with {:ok, merge_inputs} <- get_merge_inputs(utxo_positions) do
+      case validate_merge_inputs(merge_inputs) do
+        {:error, error} ->
+          {:error, error}
+
+        {:ok, inputs} ->
+          {:ok, TransactionCreator.generate_merge_transactions(inputs)}
+      end
+    end
+  end
+
   defp get_utxos_count(inputs) do
     inputs
-      |> Enum.map(fn {_, utxos} -> utxos end)
-      |> List.flatten()
-      |> Enum.count
+    |> Enum.map(fn {_, utxos} -> utxos end)
+    |> List.flatten()
+    |> Enum.count()
   end
 
   defp create_transaction(utxos_count, inputs, _order) when utxos_count > Transaction.Payment.max_inputs() do
     inputs
-      |> TransactionCreator.generate_merge_transactions()
-      |> respond(:intermediate)
+    |> TransactionCreator.generate_merge_transactions()
+    |> respond(:intermediate)
   end
 
   defp create_transaction(_utxos_count, inputs, order) do
     inputs
-      |> TransactionCreator.create(order)
-      |> respond(:complete)
+    |> TransactionCreator.create(order)
+    |> respond(:complete)
+  end
+
+  defp get_merge_inputs(utxo_positions) do
+    Enum.reduce_while(utxo_positions, {:ok, []}, fn encoded_position, {:ok, acc} ->
+      case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
+        nil -> {:halt, {:error, :input_not_found}}
+        input -> {:cont, {:ok, [input | acc]}}
+      end
+    end)
+  end
+
+  defp validate_merge_inputs(inputs) do
+    with {:ok, inputs} <- single_owner(inputs),
+         {:ok, inputs} <- no_single_input_for_currency(inputs) do
+      {:ok, inputs}
+    end
+  end
+
+  defp single_owner(inputs) do
+    case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
+      1 -> {:ok, inputs}
+      _ -> {:error, :multiple_input_owners}
+    end
+  end
+
+  defp no_single_input_for_currency(inputs) do
+    inputs
+    |> Enum.group_by(fn utxo -> utxo.currency end)
+    |> Enum.any?(fn {_ccy, inputs} -> length(inputs) < 2 end)
+    |> case do
+      true -> {:error, :single_input_for_ccy}
+      false -> {:ok, inputs}
+    end
   end
 
   defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}
 
   defp respond(transactions, result) when is_list(transactions),
     do: {:ok, %{result: result, transactions: transactions}}
-
 end

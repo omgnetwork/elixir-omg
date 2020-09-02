@@ -92,7 +92,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
     with {:ok, constraints} <- Validator.MergeConstraints.parse(params) do
       constraints
       |> InfoApiTransaction.merge()
-      |> InfoApiTransaction.include_typed_data()
+      |> TransactionCreator.include_typed_data()
       |> api_response(conn, :merge)
     end
   end
