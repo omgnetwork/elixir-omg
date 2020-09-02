@@ -37,14 +37,18 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     _ = String.to_atom("last_validated_child_block_timestamp")
 
     {:ok, destdir} = Briefly.create(directory: true, prefix: "temp_results")
-    {:ok, %{destdir: destdir}}
+
+    fee_amount = Application.fetch_env!(:load_test, :fee_amount)
+
+    {:ok, %{destdir: destdir, fee_amount: fee_amount}}
   end
 
-  test "can provide timing of response when asking for exit data", %{destdir: destdir} do
+  test "can provide timing of response when asking for exit data", %{destdir: destdir, fee_amount: fee_amount} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -54,11 +58,12 @@ defmodule LoadTest.Common.ByzantineEventsTest do
 
   # since we're using the same geth node for all tests, this test is not compatible with the test on line 76
   @tag :skip
-  test "can provide timing of status.get under many valid SEs", %{destdir: destdir} do
+  test "can provide timing of status.get under many valid SEs", %{destdir: destdir, fee_amount: fee_amount} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: false, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: false, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -72,11 +77,12 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     assert ByzantineEvents.get_byzantine_events("invalid_exit") == []
   end
 
-  test "can provide timing of status.get under many valid/invalid SEs", %{destdir: destdir} do
+  test "can provide timing of status.get under many valid/invalid SEs", %{destdir: destdir, fee_amount: fee_amount} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -90,11 +96,12 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     assert Enum.count(ByzantineEvents.get_byzantine_events("invalid_exit")) >= @take
   end
 
-  test "can provide timing of challenging", %{destdir: destdir} do
+  test "can provide timing of challenging", %{destdir: destdir, fee_amount: fee_amount} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 
@@ -114,11 +121,12 @@ defmodule LoadTest.Common.ByzantineEventsTest do
     assert Enum.count(challenge_responses) >= @take
   end
 
-  test "can provide timing of status.get under many challenged SEs", %{destdir: destdir} do
+  test "can provide timing of status.get under many challenged SEs", %{destdir: destdir, fee_amount: fee_amount} do
     spenders = Generators.generate_users(2)
     alice = Enum.at(spenders, 0)
 
-    :ok = ExtendedPerftest.start(@number_of_transactions_to_send, spenders, randomized: true, destdir: destdir)
+    :ok =
+      ExtendedPerftest.start(@number_of_transactions_to_send, spenders, fee_amount, randomized: true, destdir: destdir)
 
     :ok = ByzantineEvents.watcher_synchronize()
 

@@ -1,4 +1,4 @@
 [submodule "priv/cabbage"]
 	path = priv/cabbage
-	url = git@github.com:omgnetwork/specs.git
+	url = https://github.com/omgnetwork/specs.git
         branch = master
