@@ -19,7 +19,6 @@ defmodule LoadTest.Common.SenderServer do
 
   # Waiting time (in milliseconds) before unsuccessful Tx submission is retried.
   @tx_retry_waiting_time_ms 333
-  @fees_amount 1
 
   use GenServer
 
@@ -46,6 +45,7 @@ defmodule LoadTest.Common.SenderServer do
     :seqnum,
     :ntx_to_send,
     :spender,
+    :fee_amount,
     # {blknum, txindex, oindex, amount}, @see %LastTx above
     :last_tx,
     :child_chain_url,
@@ -80,7 +80,7 @@ defmodule LoadTest.Common.SenderServer do
       defaults to `true`
   """
   @spec init({pos_integer(), map(), pos_integer(), keyword()}) :: {:ok, state()}
-  def init({seqnum, utxo, ntx_to_send, opts}) do
+  def init({seqnum, utxo, ntx_to_send, fee_amount, opts}) do
     defaults = [randomized: true]
     opts = Keyword.merge(defaults, opts)
 
@@ -90,7 +90,7 @@ defmodule LoadTest.Common.SenderServer do
       )
 
     send(self(), :do)
-    {:ok, init_state(seqnum, utxo, ntx_to_send, opts)}
+    {:ok, init_state(seqnum, utxo, ntx_to_send, fee_amount, opts)}
   end
 
   @doc """
@@ -120,7 +120,7 @@ defmodule LoadTest.Common.SenderServer do
 
   defp prepare_and_submit_tx(state) do
     to_spend = 1
-    new_amount = state.last_tx.amount - to_spend - @fees_amount
+    new_amount = state.last_tx.amount - to_spend - state.fee_amount
 
     recipient =
       if state.randomized do
@@ -186,14 +186,16 @@ defmodule LoadTest.Common.SenderServer do
   end
 
   #   Generates module's initial state
-  @spec init_state(pos_integer(), map(), pos_integer(), keyword()) :: __MODULE__.state()
-  defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send, opts) do
+  @spec init_state(pos_integer(), map(), pos_integer(), pos_integer(), keyword()) :: __MODULE__.state()
+  defp init_state(seqnum, utxo, ntx_to_send, fee_amount, opts) do
+    %{owner: spender, utxo_pos: utxo_pos, amount: amount} = utxo
     {:ok, %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex}} = ExPlasma.Utxo.new(utxo_pos)
 
     %__MODULE__{
       seqnum: seqnum,
       ntx_to_send: ntx_to_send,
       spender: spender,
+      fee_amount: fee_amount,
       last_tx: %LastTx{
         # initial state takes deposited value, put there on :init
         blknum: blknum,
