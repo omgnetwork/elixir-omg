@@ -26,5 +26,5 @@ jobs:
           if [ $? -eq 0 ]; then
             echo "The PR has a valid changelog label."
           else
-            echo "The PR is missing a valid changelog label. Label the PR with one of: ${ONE_OF_LABELS//|/, }."
+            echo "::error::The PR is missing a valid changelog label. Label the PR with one of: ${ONE_OF_LABELS//|/, }."
           fi
