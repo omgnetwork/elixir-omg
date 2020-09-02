@@ -26,6 +26,8 @@ defmodule OMG.WatcherInfo.Transaction do
   require Transaction.Payment
 
   @empty_metadata <<0::256>>
+  @max_inputs Transaction.Payment.max_inputs()
+  @max_outputs Transaction.Payment.max_outputs()
 
   @type create_t() ::
           {:ok, nonempty_list(transaction_t())}
@@ -102,7 +104,7 @@ defmodule OMG.WatcherInfo.Transaction do
     outputs = build_outputs(utxos_per_token, order)
 
     cond do
-      Enum.count(outputs) > Transaction.Payment.max_outputs() ->
+      Enum.count(outputs) > @max_outputs ->
         {:error, :too_many_outputs}
 
       Enum.empty?(inputs) ->
@@ -151,7 +153,7 @@ defmodule OMG.WatcherInfo.Transaction do
   defp create_merge(inputs) do
     %{currency: currency, owner: owner} = List.first(inputs)
 
-    create_transaction([{currency, inputs}], %{
+    create([{currency, inputs}], %{
       fee: %{amount: 0, currency: currency},
       metadata: @empty_metadata,
       owner: owner,
