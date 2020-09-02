@@ -96,27 +96,33 @@ defmodule OMG.WatcherInfo.API.Transaction do
     case order.owner
          |> DB.TxOutput.get_sorted_grouped_utxos()
          |> TransactionCreator.select_inputs(order) do
-      {:ok, inputs} when is_required_merge(inputs) ->
-        inputs
-        |> TransactionCreator.generate_merge_transactions()
-        |> respond(:intermediate)
-
       {:ok, inputs} ->
-        TransactionCreator.create(inputs, order)
-        |> respond(:complete)
+        inputs
+        |> get_utxos_count()
+        |> create_transaction(inputs, order)
 
       err ->
-        respond(err)
+        err
     end
   end
 
-  defp is_required_merge(inputs) do
-    utxos_count = inputs
+  defp get_utxos_count(inputs) do
+    inputs
       |> Enum.map(fn {_, utxos} -> utxos end)
       |> List.flatten()
       |> Enum.count
+  end
 
-    utxos_count > Transaction.Payment.max_inputs()
+  defp create_transaction(utxos_count, inputs, _order) when utxos_count > Transaction.Payment.max_inputs() do
+    inputs
+      |> TransactionCreator.generate_merge_transactions()
+      |> respond(:intermediate)
+  end
+
+  defp create_transaction(_utxos_count, inputs, order) do
+    inputs
+      |> TransactionCreator.create(order)
+      |> respond(:complete)
   end
 
   defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}
@@ -124,5 +130,4 @@ defmodule OMG.WatcherInfo.API.Transaction do
   defp respond(transactions, result) when is_list(transactions),
     do: {:ok, %{result: result, transactions: transactions}}
 
-  defp respond(error, _), do: error
 end
