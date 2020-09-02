@@ -1,5 +1,46 @@
 # Changelog
 
+## [v1.0.4-pre.0](https://github.com/omgnetwork/elixir-omg/tree/v1.0.4-pre.0)
+Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
+See [Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.3...v1.0.4-pre.0)
+
+#### API
+- [Changed] Ability to filter transactions by date range in transaction.all [\#1417](https://github.com/omgnetwork/elixir-omg/issues/1417)
+- [Changed] /block.validate endpoint [\#1668](https://github.com/omgnetwork/elixir-omg/pull/1668) ([okalouti](https://github.com/okalouti))
+
+#### CORE
+
+- [Fixed] Adjustable DB connection pool parameters [\#1684](https://github.com/omgnetwork/elixir-omg/issues/1684)
+- [Fixed] StatusCache race condition on startup [\#1557](https://github.com/omgnetwork/elixir-omg/issues/1557)
+- [Fixed] List of lists of signatures borks the endpoint process for `transaction.submit` [\#1158](https://github.com/omgnetwork/elixir-omg/issues/1158)
+- [Fixed] Missing log metadata when json-encoding the log failed [\#1571](https://github.com/omgnetwork/elixir-omg/issues/1571)
+- [Fixed] Queued child chain blocks that got stuck might cause operator to invalidate the child chain [\#702](https://github.com/omgnetwork/elixir-omg/issues/702)
+- [Fixed] Finalization of invalid IFEs and invalid IFEs without challenge aren't reported by the Watcher [\#671](https://github.com/omgnetwork/elixir-omg/issues/671)
+- [Fixed] corrrectly serialize PIDs in alarms.get [\#1678](https://github.com/omgnetwork/elixir-omg/pull/1678) ([ayrat555](https://github.com/ayrat555))
+- [Fixed] account.get\_exitable\_utxos is unaware of in-flight exited inputs [\#1676](https://github.com/omgnetwork/elixir-omg/pull/1676) ([pnowosie](https://github.com/pnowosie))
+- [Fixed] Fix fee adapter to accept decimal value in fee rules [\#1662](https://github.com/omgnetwork/elixir-omg/pull/1662) ([jarindr](https://github.com/jarindr))
+- [Fixed] Add missing clause on witness validation check [\#1656](https://github.com/omgnetwork/elixir-omg/pull/1656) ([mederic-p](https://github.com/mederic-p))
+- [Fixed] fix: unexpected http method [\#1651](https://github.com/omgnetwork/elixir-omg/pull/1651) ([ripzery](https://github.com/ripzery))
+- [Fixed] Handle unexpected HTTP method gracefully [\#1646](https://github.com/omgnetwork/elixir-omg/issues/1646)
+- [Changed] exit started ABI decoding call data ROPSTEN [\#1632](https://github.com/omgnetwork/elixir-omg/issues/1632)
+- [Fixed] Protocol.UndefinedError: protocol Jason.Encoder not implemented for \#PID\<0.32128.13\> of type PID, Jason.Encoder protocol m... [\#1619](https://github.com/omgnetwork/elixir-omg/issues/1619)
+
+#### Miscellaneous
+- [Fixed] Balance metrics should include deposit utxos [\#1582](https://github.com/omgnetwork/elixir-omg/issues/1582)
+- [Changed] Monitoring & alert for pending block submissions [\#1629](https://github.com/omgnetwork/elixir-omg/issues/1629)
+- [Changed] Block Validation: New Checks [\#1693](https://github.com/omgnetwork/elixir-omg/pull/1693) ([okalouti](https://github.com/okalouti))
+- [Changed] feat: configurable DB pool size, queue target and queue interval [\#1689](https://github.com/omgnetwork/elixir-omg/pull/1689) ([unnawut](https://github.com/unnawut))
+- [Changed] feat: block queue metrics and stalled submission alarm [\#1649](https://github.com/omgnetwork/elixir-omg/pull/1649) ([unnawut](https://github.com/unnawut))
+- [Changed] auto trigger chart version bump [\#1695](https://github.com/omgnetwork/elixir-omg/pull/1695) ([boolafish](https://github.com/boolafish))
+- [Changed] bump phoenix [\#1680](https://github.com/omgnetwork/elixir-omg/pull/1680) ([InoMurko](https://github.com/InoMurko))
+- [Changed] chore: increase timeouts for childchain healthchecks [\#1671](https://github.com/omgnetwork/elixir-omg/pull/1671) ([ayrat555](https://github.com/ayrat555))
+- [Changed] docs: extend description of running cabbage tests [\#1658](https://github.com/omgnetwork/elixir-omg/pull/1658) ([pnowosie](https://github.com/pnowosie))
+- [Changed] fix integration tests [\#1654](https://github.com/omgnetwork/elixir-omg/pull/1654) ([ayrat555](https://github.com/ayrat555))
+- [Changed] feat: pin elixir and erlang versions for asdf [\#1648](https://github.com/omgnetwork/elixir-omg/pull/1648) ([unnawut](https://github.com/unnawut))
+- [Changed] chore: change log and version file change for v1.0.3 \(\#1638\) [\#1639](https://github.com/omgnetwork/elixir-omg/pull/1639) ([boolafish](https://github.com/boolafish))
+- [Changed] use cabbage tests from a separate repo [\#1636](https://github.com/omgnetwork/elixir-omg/pull/1636) ([ayrat555](https://github.com/ayrat555))
+- [Changed] set OMG.State GenServer timeout to 10s [\#1517](https://github.com/omgnetwork/elixir-omg/pull/1517) ([achiurizo](https://github.com/achiurizo))
+
 ## [v1.0.3](https://github.com/omisego/elixir-omg/releases/tag/v1.0.3)
 Compatible with [`plasma-contracts@v1.0.4`](https://github.com/omisego/plasma-contracts/releases/tag/v1.0.4).
 See [full changelog](https://github.com/omisego/elixir-omg/compare/v1.0.2...v1.0.3).
