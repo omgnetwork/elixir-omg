@@ -22,4 +22,4 @@ jobs:
           | grep -o '"name": "[^"]*' \
           | cut -d'"' -f4 \
           | grep -E $ONE_OF_LABELS \
-          || echo "::error::The PR is missing a valid changelog label. Label the PR with one of: ${ONE_OF_LABELS//|/, }." && exit 1
+          || (echo "::error::The PR is missing a valid changelog label. Label the PR with one of: ${ONE_OF_LABELS//|/, }." && exit 1)
