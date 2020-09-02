@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.ExtendedPerftest do
+defmodule LoadTest.Common.ExtendedPerftest do
   @moduledoc """
   This performance test allows to send out many transactions to a child chain instance of choice.
 
-  See `OMG.Performance` for configuration within the `iex` shell using `Performance.init()`
+  See `LoadTest.Performance` for configuration within the `iex` shell using `Performance.init()`
   """
 
-  use OMG.Utils.LoggerExt
+  alias LoadTest.ChildChain.Deposit
 
-  alias OMG.TestHelper
-  alias OMG.Utxo
-  alias Support.Integration.DepositHelper
-
-  require Utxo
+  require Logger
 
   @make_deposit_timeout 600_000
 
@@ -39,11 +35,11 @@ defmodule OMG.Performance.ExtendedPerftest do
   Once you have your Ethereum node and a child chain running, from a configured `iex -S mix run --no-start` shell
 
   ```
-  use OMG.Performance
+  use LoadTest.Performance
 
   Performance.init()
   spenders = Generators.generate_users(2)
-  Performance.ExtendedPerftest.start(100, spenders, destdir: destdir)
+  LoadTest.Common.ExtendedPerftest.start(100, spenders, fee_amount, destdir: destdir)
   ```
 
   The results are going to be waiting for you in a file within `destdir` and will be logged.
@@ -53,8 +49,8 @@ defmodule OMG.Performance.ExtendedPerftest do
     - :randomized - whether the non-change outputs of the txs sent out will be random or equal to sender (if `false`),
       defaults to `true`
   """
-  @spec start(pos_integer(), list(TestHelper.entity()), keyword()) :: :ok
-  def start(ntx_to_send, spenders, opts \\ []) do
+  @spec start(pos_integer(), list(map()), pos_integer(), keyword()) :: :ok
+  def start(ntx_to_send, spenders, fee_amount, opts \\ []) do
     _ =
       Logger.info(
         "Number of spenders: #{inspect(length(spenders))}, number of tx to send per spender: #{inspect(ntx_to_send)}" <>
@@ -65,22 +61,26 @@ defmodule OMG.Performance.ExtendedPerftest do
 
     opts = Keyword.merge(defaults, opts)
 
-    utxos = create_deposits(spenders, ntx_to_send)
+    utxos = create_deposits(spenders, ntx_to_send, fee_amount)
 
-    OMG.Performance.Runner.run(ntx_to_send, utxos, opts, false)
+    result = LoadTest.Common.Runner.run(ntx_to_send, utxos, fee_amount, opts, false)
+
+    Process.sleep(20_000)
+
+    result
   end
 
-  @spec create_deposits(list(TestHelper.entity()), pos_integer()) :: list()
-  defp create_deposits(spenders, ntx_to_send) do
-    Enum.map(make_deposits(ntx_to_send * 2, spenders), fn {:ok, owner, blknum, amount} ->
-      utxo_pos = Utxo.Position.encode(Utxo.position(blknum, 0, 0))
+  @spec create_deposits(list(map()), pos_integer(), pos_integer()) :: list()
+  defp create_deposits(spenders, ntx_to_send, fee_amount) do
+    Enum.map(make_deposits(ntx_to_send * 2 * fee_amount, spenders), fn {:ok, owner, blknum, amount} ->
+      utxo_pos = ExPlasma.Utxo.pos(%{blknum: blknum, txindex: 0, oindex: 0})
       %{owner: owner, utxo_pos: utxo_pos, amount: amount}
     end)
   end
 
   defp make_deposits(value, accounts) do
     depositing_f = fn account ->
-      deposit_blknum = DepositHelper.deposit_to_child_chain(account.addr, value)
+      deposit_blknum = Deposit.deposit_to_child_chain(account.addr, value)
       {:ok, account, deposit_blknum, value}
     end
 

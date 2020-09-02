@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Performance.ByzantineEvents do
+defmodule LoadTest.Common.ByzantineEvents do
   @moduledoc """
   OMG network child chain server byzantine event test entrypoint. Runs performance byzantine tests.
 
@@ -22,7 +22,7 @@ defmodule OMG.Performance.ByzantineEvents do
   shell do:
 
   ```
-  use OMG.Performance
+  use LoadTest.Performance
 
   Performance.init()
   spenders = Generators.generate_users(2)
@@ -30,20 +30,18 @@ defmodule OMG.Performance.ByzantineEvents do
 
   You probably want to prefill the child chain with transactions, see `OMG.Performance.ExtendedPerftest` or just:
   ```
-  Performance.ExtendedPerftest.start(10_000, 16, randomized: false)
+  LoadTest.Common.ExtendedPerftest.start(10_000, 16, 75, randomized: false)
   ```
   (`randomized: false` is useful to test massive honest-standard-exiting, since it will create many unspent UTXOs for
   each of the spenders)
   """
 
-  use OMG.Utils.LoggerExt
+  require Logger
 
-  alias OMG.Performance.HttpRPC.WatcherClient
-  alias Support.WaitFor
-
-  alias OMG.Utxo
-
-  require Utxo
+  alias ExPlasma.Encoding
+  alias LoadTest.ChildChain.Exit
+  alias LoadTest.Ethereum
+  alias LoadTest.Ethereum.Sync
 
   @doc """
   For given utxo positions shuffle them and ask the watcher for exit data
@@ -69,12 +67,22 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_many_standard_exits(list(pos_integer())) :: list(map())
   def get_many_standard_exits(exit_positions) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+    result =
+      exit_positions
+      |> Enum.shuffle()
+      |> Enum.map(fn encoded_position ->
+        client = LoadTest.Connection.WatcherSecurity.client()
+        params = %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema1{utxo_pos: encoded_position}
+        response_result = WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_exit_data(client, params)
 
-    exit_positions
-    |> Enum.shuffle()
-    |> Enum.map(&WatcherClient.get_exit_data(&1, watcher_url))
-    |> only_successes()
+        case response_result do
+          {:ok, response} -> {:ok, Jason.decode!(response.body)["data"]}
+          other -> other
+        end
+      end)
+      |> only_successes()
+
+    result
   end
 
   @doc """
@@ -85,13 +93,16 @@ defmodule OMG.Performance.ByzantineEvents do
   Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
   the receipt of the last transaction sent out.
   """
-  @spec start_many_exits(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  @spec start_many_exits(list(map), binary()) :: {:ok, map()} | {:error, any()}
   def start_many_exits(exit_datas, owner_address) do
     map_contract_transaction(exit_datas, fn composed_exit ->
-      Support.RootChainHelper.start_exit(
-        composed_exit.utxo_pos,
-        composed_exit.txbytes,
-        composed_exit.proof,
+      txbytes = Encoding.to_binary(composed_exit["txbytes"])
+      proof = Encoding.to_binary(composed_exit["proof"])
+
+      Exit.start_exit(
+        composed_exit["utxo_pos"],
+        txbytes,
+        proof,
         owner_address
       )
     end)
@@ -113,11 +124,18 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_many_se_challenges(list(pos_integer())) :: list(map())
   def get_many_se_challenges(positions) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-
     positions
     |> Enum.shuffle()
-    |> Enum.map(&WatcherClient.get_exit_challenge(&1, watcher_url))
+    |> Enum.map(fn position ->
+      client = LoadTest.Connection.WatcherSecurity.client()
+      params = %WatcherSecurityCriticalAPI.Model.UtxoPositionBodySchema{utxo_pos: position}
+      response_result = WatcherSecurityCriticalAPI.Api.UTXO.utxo_get_challenge_data(client, params)
+
+      case response_result do
+        {:ok, response} -> {:ok, Jason.decode!(response.body)["data"]}
+        error -> error
+      end
+    end)
     |> only_successes()
   end
 
@@ -129,15 +147,15 @@ defmodule OMG.Performance.ByzantineEvents do
   Will send out all transactions concurrently, fail if any of them fails and block till the last gets mined. Returns
   the receipt of the last transaction sent out.
   """
-  @spec challenge_many_exits(list(map), OMG.Crypto.address_t()) :: {:ok, map()} | {:error, any()}
+  @spec challenge_many_exits(list(map), binary()) :: {:ok, map()} | {:error, any()}
   def challenge_many_exits(challenge_responses, challenger_address) do
     map_contract_transaction(challenge_responses, fn challenge ->
-      Support.RootChainHelper.challenge_exit(
-        challenge.exit_id,
-        challenge.exiting_tx,
-        challenge.txbytes,
-        challenge.input_index,
-        challenge.sig,
+      Exit.challenge_exit(
+        challenge["exit_id"],
+        Encoding.to_binary(challenge["exiting_tx"]),
+        Encoding.to_binary(challenge["txbytes"]),
+        challenge["input_index"],
+        Encoding.to_binary(challenge["sig"]),
         challenger_address
       )
     end)
@@ -157,13 +175,18 @@ defmodule OMG.Performance.ByzantineEvents do
   Options:
     - :take - if not nil, will limit to this many results
   """
-  @spec get_exitable_utxos(OMG.Crypto.address_t(), keyword()) :: list(pos_integer())
+  @spec get_exitable_utxos(binary(), keyword()) :: list(pos_integer())
   def get_exitable_utxos(addr, opts \\ []) when is_binary(addr) do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-    {:ok, utxos} = WatcherClient.get_exitable_utxos(addr, watcher_url)
-    utxo_positions = Enum.map(utxos, & &1.utxo_pos)
+    client = LoadTest.Connection.WatcherSecurity.client()
+    params = %WatcherInfoAPI.Model.AddressBodySchema1{address: Encoding.to_hex(addr)}
+    {:ok, utxos_response} = WatcherSecurityCriticalAPI.Api.Account.account_get_exitable_utxos(client, params)
+    utxos = Jason.decode!(utxos_response.body)["data"]
 
-    if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
+    utxo_positions = Enum.map(utxos, & &1["utxo_pos"])
+
+    result = if opts[:take], do: Enum.take(utxo_positions, opts[:take]), else: utxo_positions
+
+    result
   end
 
   @doc """
@@ -176,9 +199,11 @@ defmodule OMG.Performance.ByzantineEvents do
   @spec watcher_synchronize(keyword()) :: :ok
   def watcher_synchronize(opts \\ []) do
     root_chain_height = Keyword.get(opts, :root_chain_height, nil)
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
+    service = Keyword.get(opts, :service, nil)
+
     _ = Logger.info("Waiting for the watcher to synchronize")
-    :ok = WaitFor.ok(fn -> watcher_synchronized?(root_chain_height, watcher_url) end, :infinity)
+
+    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height, service) end, 500_000)
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
@@ -191,9 +216,10 @@ defmodule OMG.Performance.ByzantineEvents do
   """
   @spec get_byzantine_events() :: list(map())
   def get_byzantine_events() do
-    watcher_url = Application.fetch_env!(:omg_performance, :watcher_url)
-    {:ok, status_response} = WatcherClient.get_status(watcher_url)
-    status_response[:byzantine_events]
+    {:ok, status_response} =
+      WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
+
+    Jason.decode!(status_response.body)["data"]["byzantine_events"]
   end
 
   @doc """
@@ -216,7 +242,7 @@ defmodule OMG.Performance.ByzantineEvents do
   defp map_contract_transaction(enumberable, transaction_function) do
     enumberable
     |> Enum.map(transaction_function)
-    |> Task.async_stream(&Support.DevHelper.transact_sync!(&1, timeout: :infinity),
+    |> Task.async_stream(&Ethereum.transact_sync(&1, 200_000),
       timeout: :infinity,
       max_concurrency: 10_000
     )
@@ -224,30 +250,47 @@ defmodule OMG.Performance.ByzantineEvents do
     |> List.last()
   end
 
-  # This function is prepared to be called in `WaitFor.ok`.
+  # This function is prepared to be called in `Sync`.
   # It repeatedly ask for Watcher's `/status.get` until Watcher consume mined block
-  defp watcher_synchronized?(root_chain_height, watcher_url) do
-    {:ok, status} = WatcherClient.get_status(watcher_url)
+  defp watcher_synchronized?(root_chain_height, service) do
+    {:ok, status_response} =
+      WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
+
+    status = Jason.decode!(status_response.body)["data"]
 
     with true <- watcher_synchronized_to_mined_block?(status),
-         true <- root_chain_synced?(root_chain_height, status) do
+         true <- root_chain_synced?(root_chain_height, status, service) do
       :ok
     else
       _ -> :repeat
     end
   end
 
-  defp root_chain_synced?(nil, _), do: true
+  defp root_chain_synced?(nil, _, _), do: true
 
-  defp root_chain_synced?(root_chain_height, status) do
+  defp root_chain_synced?(root_chain_height, status, nil) do
     status
-    |> Access.get(:services_synced_heights)
+    |> Map.get("services_synced_heights")
+    |> Enum.reject(fn height ->
+      service = height["service"]
+      # these service heights are stuck on circle ci, but they work fine locally
+      # I think ci machin is not powerful enough
+      service == "block_getter" || service == "exit_finalizer" || service == "ife_exit_finalizer"
+    end)
     |> Enum.all?(&(&1["height"] >= root_chain_height))
   end
 
+  defp root_chain_synced?(root_chain_height, status, service) do
+    heights = Map.get(status, "services_synced_heights")
+
+    found_root_chain_height = Enum.find(heights, fn height -> height["service"] == service end)
+
+    found_root_chain_height && found_root_chain_height["height"] >= root_chain_height
+  end
+
   defp watcher_synchronized_to_mined_block?(%{
-         last_mined_child_block_number: last_mined_child_block_number,
-         last_validated_child_block_number: last_validated_child_block_number
+         "last_mined_child_block_number" => last_mined_child_block_number,
+         "last_validated_child_block_number" => last_validated_child_block_number
        })
        when last_mined_child_block_number == last_validated_child_block_number and
               last_mined_child_block_number > 0 do
@@ -255,5 +298,7 @@ defmodule OMG.Performance.ByzantineEvents do
     true
   end
 
-  defp watcher_synchronized_to_mined_block?(_), do: false
+  defp watcher_synchronized_to_mined_block?(_params) do
+    :not_synchronized
+  end
 end
