@@ -101,8 +101,6 @@ config :omg_eth,
   eth_node: :geth,
   run_test_eth_dev_node: true
 
-config :omg_performance, watcher_url: "localhost:7435"
-
 config :omg_status,
   metrics: false,
   environment: :test,

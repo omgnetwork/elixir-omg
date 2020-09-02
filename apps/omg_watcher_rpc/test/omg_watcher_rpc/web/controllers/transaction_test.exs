@@ -1067,36 +1067,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:alice, :more_utxos, :blocks_inserter]
-    test "does not return txbytes when spend owner is not provided", %{alice: alice, test_server: context} do
-      payment = 100
-      alice_addr = Encoding.to_hex(alice.addr)
-
-      prepare_test_server(context, @fee_response)
-
-      assert %{
-               "transactions" => [
-                 %{
-                   "txbytes" => nil,
-                   "outputs" => [
-                     %{"amount" => ^payment, "currency" => @eth_hex, "owner" => nil},
-                     %{"currency" => @eth_hex, "owner" => ^alice_addr}
-                   ]
-                 }
-               ]
-             } =
-               WatcherHelper.success?(
-                 "transaction.create",
-                 %{
-                   "owner" => Encoding.to_hex(alice.addr),
-                   "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex}
-                   ],
-                   "fee" => %{"currency" => @default_fee_currency}
-                 }
-               )
-    end
-
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "total number of outputs exceeds allowed outputs returns custom error", %{
       alice: alice,
@@ -1289,10 +1259,13 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _payment_3 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
       _payment_and_fee = insert(:txoutput, amount: 15, currency: @eth, owner: alice.addr)
 
+      alice_addr_hex = Encoding.to_hex(alice.addr)
+      bob_addr_hex = Encoding.to_hex(bob.addr)
+
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 40, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 40, "currency" => @eth_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1301,7 +1274,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
@@ -1309,6 +1282,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                      %{"amount" => 10, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
                      %{"amount" => 15, "currency" => @eth_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 40, "currency" => @eth_hex, "owner" => ^bob_addr_hex}
                    ]
                  }
                ]
@@ -1323,14 +1299,17 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       _payment_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
       _payment_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
-      _fee_1 = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _fee_1 = insert(:txoutput, amount: @default_fee_amount, currency: @eth, owner: alice.addr)
       _stealth_merge_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+
+      alice_addr_hex = Encoding.to_hex(alice.addr)
+      bob_addr_hex = Encoding.to_hex(bob.addr)
 
       # Assert when payment amount exactly matched with input amounts
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 20, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 20, "currency" => @eth_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1339,14 +1318,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 20, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1354,9 +1337,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       # Assert when payment amount doesn't exactly matched with input amounts
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 18, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 18, "currency" => @eth_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1365,14 +1348,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 18, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 12, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1389,14 +1376,17 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       _payment_1 = insert(:txoutput, amount: 5, currency: @other_token, owner: alice.addr)
       _payment_2 = insert(:txoutput, amount: 5, currency: @other_token, owner: alice.addr)
-      _fee = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _fee = insert(:txoutput, amount: @default_fee_amount, currency: @eth, owner: alice.addr)
       _stealth_add_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
+
+      alice_addr_hex = Encoding.to_hex(alice.addr)
+      bob_addr_hex = Encoding.to_hex(bob.addr)
 
       # Assert when payment amount exactly matched with input amounts
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 10, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 10, "currency" => @other_token_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1405,14 +1395,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
                      %{"amount" => 10, "currency" => @eth_hex},
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 5, "currency" => @other_token_hex},
                      %{"amount" => 5, "currency" => @other_token_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 10, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1420,9 +1414,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
       # Assert when payment amount doesn't exactly matched with input amounts
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 8, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 8, "currency" => @other_token_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1431,14 +1425,19 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
                      %{"amount" => 10, "currency" => @eth_hex},
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 5, "currency" => @other_token_hex},
                      %{"amount" => 5, "currency" => @other_token_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 8, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 10, "currency" => @eth_hex, "owner" => ^alice_addr_hex},
+                     %{"amount" => 2, "currency" => @other_token_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1452,15 +1451,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       prepare_test_server(context, @fee_response)
 
       _payment_1 = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
-      _fee = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _fee = insert(:txoutput, amount: @default_fee_amount, currency: @eth, owner: alice.addr)
       _stealth_add_1 = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
       _stealth_add_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
 
+      alice_addr_hex = Encoding.to_hex(alice.addr)
+      bob_addr_hex = Encoding.to_hex(bob.addr)
+
       # Assert when payment amount exactly matched with input amounts
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 30, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 30, "currency" => @eth_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1469,24 +1471,28 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
                      %{"amount" => 10, "currency" => @eth_hex},
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 20, "currency" => @eth_hex},
                      %{"amount" => 30, "currency" => @eth_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
              } = WatcherHelper.success?("transaction.create", params)
 
-      # Assert when payment amount exactly matched with input amounts
+      # Assert when payment amount doesn't exactly matched with input amounts
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 28, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 28, "currency" => @eth_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1495,14 +1501,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
                      %{"amount" => 10, "currency" => @eth_hex},
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 20, "currency" => @eth_hex},
                      %{"amount" => 30, "currency" => @eth_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 28, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 32, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1518,15 +1528,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       prepare_test_server(context, @fee_response)
 
       _payment_1 = insert(:txoutput, amount: 30, currency: @other_token, owner: alice.addr)
-      _fee = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _fee = insert(:txoutput, amount: @default_fee_amount, currency: @eth, owner: alice.addr)
       _stealth_add_1 = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
       _stealth_add_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
 
+      alice_addr_hex = Encoding.to_hex(alice.addr)
+      bob_addr_hex = Encoding.to_hex(bob.addr)
+
       # Assert when payment amount exactly matched with input amounts
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 30, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 30, "currency" => @other_token_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1535,24 +1548,28 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
                      %{"amount" => 20, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 30, "currency" => @other_token_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 30, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
              } = WatcherHelper.success?("transaction.create", params)
 
-      # Assert when payment amount exactly matched with input amounts
+      # Assert when payment amount doesn't exactly matched with input amounts
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 28, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 28, "currency" => @other_token_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1561,14 +1578,19 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
                      %{"amount" => 20, "currency" => @eth_hex},
                      %{"amount" => 10, "currency" => @eth_hex},
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 30, "currency" => @other_token_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 28, "currency" => @other_token_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex},
+                     %{"amount" => 2, "currency" => @other_token_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]
@@ -1581,14 +1603,17 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       bob = OMG.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
-      _fee = insert(:txoutput, amount: 5, currency: @eth, owner: alice.addr)
+      _fee = insert(:txoutput, amount: @default_fee_amount, currency: @eth, owner: alice.addr)
       _payment = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
       _merge_1 = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
 
+      alice_addr_hex = Encoding.to_hex(alice.addr)
+      bob_addr_hex = Encoding.to_hex(bob.addr)
+
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => alice_addr_hex,
         "payments" => [
-          %{"amount" => 20, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+          %{"amount" => 20, "currency" => @eth_hex, "owner" => bob_addr_hex}
         ],
         "fee" => %{"currency" => @eth_hex}
       }
@@ -1597,13 +1622,17 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "transactions" => [
                  %{
                    "fee" => %{
-                     "amount" => 5,
+                     "amount" => @default_fee_amount,
                      "currency" => @eth_hex
                    },
                    "inputs" => [
                      %{"amount" => 20, "currency" => @eth_hex},
-                     %{"amount" => 5, "currency" => @eth_hex},
+                     %{"amount" => @default_fee_amount, "currency" => @eth_hex},
                      %{"amount" => 30, "currency" => @eth_hex}
+                   ],
+                   "outputs" => [
+                     %{"amount" => 20, "currency" => @eth_hex, "owner" => ^bob_addr_hex},
+                     %{"amount" => 30, "currency" => @eth_hex, "owner" => ^alice_addr_hex}
                    ]
                  }
                ]

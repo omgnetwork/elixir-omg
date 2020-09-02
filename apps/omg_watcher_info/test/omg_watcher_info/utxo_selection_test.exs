@@ -86,7 +86,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxo_list}} end)
 
-      assert UtxoSelection.funds_sufficient?(constructed_argument) ==
+      assert UtxoSelection.funds_sufficient(constructed_argument) ==
                {:error,
                 {:insufficient_funds,
                  [
@@ -113,7 +113,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
               %{
                 @eth => [eth_utxo],
                 @other_token => [other_token_utxo]
-              }} = UtxoSelection.funds_sufficient?(constructed_argument)
+              }} = UtxoSelection.funds_sufficient(constructed_argument)
     end
   end
 

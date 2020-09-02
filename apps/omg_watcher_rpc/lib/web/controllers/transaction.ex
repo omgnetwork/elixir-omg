@@ -23,6 +23,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   alias OMG.Watcher.API.Transaction, as: SecurityApiTransaction
   alias OMG.WatcherInfo.API.Transaction, as: InfoApiTransaction
   alias OMG.WatcherInfo.OrderFeeFetcher
+  alias OMG.WatcherInfo.Transaction, as: TransactionCreator
   alias OMG.WatcherRPC.Web.Validator
 
   @doc """
@@ -78,7 +79,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
          {:ok, order} <- OrderFeeFetcher.add_fee_to_order(order) do
       order
       |> InfoApiTransaction.create()
-      |> InfoApiTransaction.include_typed_data()
+      |> TransactionCreator.include_typed_data()
       |> api_response(conn, :create)
     end
   end

@@ -24,35 +24,18 @@ defmodule OMG.WatcherInfo.API.Transaction do
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
-  alias OMG.WatcherInfo.UtxoSelection
+  alias OMG.WatcherInfo.Transaction, as: TransactionCreator
 
   require Utxo
   require Transaction.Payment
 
   @default_transactions_limit 200
-  @empty_metadata <<0::256>>
-  @max_outputs Transaction.Payment.max_outputs()
+  @type create_t() :: TransactionCreator.create_t() | {:error, {:insufficient_funds, list(map())}}
 
-  @type create_t() ::
-          {:ok, nonempty_list(transaction_t())}
-          | {:error, {:insufficient_funds, list(map())}}
-          | {:error, :too_many_inputs}
-          | {:error, :too_many_outputs}
-          | {:error, :empty_transaction}
-
-  @type order_t() :: %{
-          owner: Crypto.address_t(),
-          payments: nonempty_list(UtxoSelection.payment_t()),
-          metadata: binary() | nil,
-          fee: UtxoSelection.fee_t()
-        }
-
-  @type utxos_map_t() :: %{UtxoSelection.currency_t() => UtxoSelection.utxo_list_t()}
-  @type inputs_t() :: {:ok, utxos_map_t()} | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
   @type transaction_t() :: %{
           inputs: nonempty_list(%DB.TxOutput{}),
-          outputs: nonempty_list(UtxoSelection.payment_t()),
-          fee: UtxoSelection.fee_t(),
+          outputs: nonempty_list(TransactionCreator.payment_t()),
+          fee: TransactionCreator.fee_t(),
           txbytes: Transaction.tx_bytes() | nil,
           metadata: Transaction.metadata(),
           sign_hash: Crypto.hash_t() | nil,
@@ -108,246 +91,16 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
-  @spec create(order_t()) :: create_t()
+  @spec create(TransactionCreator.order_t()) :: create_t()
   def create(order) do
-    with {:ok, inputs} <-
-           order.owner
-           |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
-           |> select_inputs(order) do
-      create_transaction(inputs, order)
+    case order.owner
+         |> DB.TxOutput.get_sorted_grouped_utxos()
+         |> TransactionCreator.select_inputs(order) do
+      {:ok, inputs} ->
+        TransactionCreator.create(inputs, order)
+
+      err ->
+        err
     end
-  end
-
-  @spec include_typed_data(UtxoSelection.advice_t()) :: UtxoSelection.advice_t()
-  def include_typed_data({:error, _} = err), do: err
-
-  def include_typed_data({:ok, txs}),
-    do: {
-      :ok,
-      %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
-    }
-
-  @spec merge(map()) :: create_t()
-  def merge(%{address: address, currency: currency} = _constraints) do
-    merge_inputs =
-      address
-      |> DB.TxOutput.get_sorted_grouped_utxos(:asc)
-      |> Map.get(currency, [])
-
-    case merge_inputs do
-      [_single_input] ->
-        {:error, :single_input_for_ccy}
-
-      inputs ->
-        {:ok, generate_merge_transactions(inputs)}
-    end
-  end
-
-  def merge(%{utxo_positions: utxo_positions}) do
-    with {:ok, merge_inputs} <- utxo_positions_to_merge_inputs(utxo_positions) do
-      case validate_merge_inputs(merge_inputs) do
-        {:error, error} ->
-          {:error, error}
-
-        {:ok, inputs} ->
-          {:ok, generate_merge_transactions(inputs)}
-      end
-    end
-  end
-
-  # Given an `order`, finds spender's inputs sufficient to perform a payment.
-  # If also provided with receiver's address, creates and encodes a transaction.
-  @spec select_inputs(utxos_map_t(), order_t()) :: inputs_t()
-  defp select_inputs(utxos, %{payments: payments, fee: fee}) do
-    token_utxo_selection =
-      payments
-      |> UtxoSelection.needed_funds(fee)
-      |> UtxoSelection.select_utxo(utxos)
-
-    with {:ok, funds} <- UtxoSelection.funds_sufficient?(token_utxo_selection) do
-      utxo_count =
-        funds
-        |> Stream.map(fn {_, utxos} -> length(utxos) end)
-        |> Enum.sum()
-
-      case utxo_count do
-        n when n <= Transaction.Payment.max_inputs() ->
-          stealth_merged_utxos =
-            utxos
-            |> UtxoSelection.prioritize_merge_utxos(funds)
-            |> UtxoSelection.add_utxos_for_stealth_merge(Map.new(funds))
-
-          {:ok, stealth_merged_utxos}
-
-        _ ->
-          {:error, :too_many_inputs}
-      end
-    end
-  end
-
-  defp utxo_positions_to_merge_inputs(utxo_positions) do
-    Enum.reduce_while(utxo_positions, {:ok, []}, fn encoded_position, {:ok, acc} ->
-      case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
-        nil -> {:halt, {:error, :input_not_found}}
-        input -> {:cont, {:ok, [input | acc]}}
-      end
-    end)
-  end
-
-  defp validate_merge_inputs(inputs) do
-    with {:ok, inputs} <- single_owner(inputs),
-         {:ok, inputs} <- no_single_input_for_currency(inputs) do
-      {:ok, inputs}
-    end
-  end
-
-  defp single_owner(inputs) do
-    case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
-      1 -> {:ok, inputs}
-      _ -> {:error, :multiple_input_owners}
-    end
-  end
-
-  defp no_single_input_for_currency(inputs) do
-    inputs
-    |> Enum.group_by(fn utxo -> utxo.currency end)
-    |> Enum.any?(fn {_ccy, inputs} -> length(inputs) < 2 end)
-    |> case do
-      true -> {:error, :single_input_for_ccy}
-      false -> {:ok, inputs}
-    end
-  end
-
-  defp generate_merge_transactions(merge_inputs) do
-    merge_inputs
-    |> Stream.chunk_every(@max_outputs)
-    |> Enum.flat_map(fn input_set ->
-      case input_set do
-        [_single_input] ->
-          []
-
-        inputs ->
-          {:ok, transaction} = create_merge(inputs)
-          transaction
-      end
-    end)
-  end
-
-  defp create_merge(inputs) do
-    %{currency: currency, owner: owner} = List.first(inputs)
-
-    create_transaction([{currency, inputs}], %{
-      fee: %{amount: 0, currency: currency},
-      metadata: @empty_metadata,
-      owner: owner,
-      payments: []
-    })
-  end
-
-  defp add_type_specs(%{inputs: inputs, outputs: outputs, metadata: metadata}) do
-    alias OMG.TypedDataHash
-
-    message =
-      [
-        create_inputs(inputs),
-        create_outputs(outputs),
-        [metadata: metadata || @empty_metadata]
-      ]
-      |> Enum.concat()
-      |> Map.new()
-
-    %{
-      domain: TypedDataHash.Config.domain_data_from_config(),
-      message: message
-    }
-    |> Map.merge(TypedDataHash.Types.eip712_types_specification())
-  end
-
-  defp create_inputs(inputs) do
-    inputs
-    |> Stream.map(fn input -> %{blknum: input.blknum, txindex: input.txindex, oindex: input.oindex} end)
-    |> Stream.concat(Stream.repeatedly(fn -> %{blknum: 0, txindex: 0, oindex: 0} end))
-    |> (fn input -> Enum.zip([:input0, :input1, :input2, :input3], input) end).()
-  end
-
-  defp create_outputs(outputs) do
-    zero_addr = OMG.Eth.zero_address()
-    empty_gen = fn -> %{owner: zero_addr, currency: zero_addr, amount: 0} end
-
-    outputs
-    |> Stream.concat(Stream.repeatedly(empty_gen))
-    |> (fn output -> Enum.zip([:output0, :output1, :output2, :output3], output) end).()
-  end
-
-  defp create_transaction(utxos_per_token, %{
-         owner: owner,
-         payments: payments,
-         metadata: metadata,
-         fee: fee
-       }) do
-    rests =
-      utxos_per_token
-      |> Stream.map(fn {token, utxos} ->
-        outputs =
-          [fee | payments]
-          |> Stream.filter(fn %{currency: currency} -> currency == token end)
-          |> Stream.map(fn %{amount: amount} -> amount end)
-          |> Enum.sum()
-
-        inputs = utxos |> Stream.map(fn %{amount: amount} -> amount end) |> Enum.sum()
-        %{amount: inputs - outputs, owner: owner, currency: token}
-      end)
-      |> Enum.filter(fn %{amount: amount} -> amount > 0 end)
-
-    outputs = payments ++ rests
-
-    inputs =
-      utxos_per_token
-      |> Enum.map(fn {_, utxos} -> utxos end)
-      |> List.flatten()
-
-    cond do
-      Enum.count(outputs) > Transaction.Payment.max_outputs() ->
-        {:error, :too_many_outputs}
-
-      Enum.empty?(inputs) ->
-        {:error, :empty_transaction}
-
-      true ->
-        raw_tx = create_raw_transaction(inputs, outputs, metadata)
-
-        {:ok,
-         [
-           %{
-             inputs: inputs,
-             outputs: outputs,
-             fee: fee,
-             metadata: metadata,
-             txbytes: create_txbytes(raw_tx),
-             sign_hash: compute_sign_hash(raw_tx)
-           }
-         ]}
-    end
-  end
-
-  defp create_raw_transaction(inputs, outputs, metadata) do
-    if Enum.any?(outputs, fn %{owner: owner} -> owner == nil end),
-      do: nil,
-      else:
-        Transaction.Payment.new(
-          Enum.map(inputs, fn input -> {input.blknum, input.txindex, input.oindex} end),
-          Enum.map(outputs, fn output -> {output.owner, output.currency, output.amount} end),
-          metadata || @empty_metadata
-        )
-  end
-
-  defp create_txbytes(tx) do
-    with tx when not is_nil(tx) <- tx,
-         do: Transaction.raw_txbytes(tx)
-  end
-
-  defp compute_sign_hash(tx) do
-    with tx when not is_nil(tx) <- tx,
-         do: TypedDataHash.hash_struct(tx)
   end
 end

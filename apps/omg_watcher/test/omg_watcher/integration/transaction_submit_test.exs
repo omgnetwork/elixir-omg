@@ -61,7 +61,6 @@ defmodule OMG.Watcher.Integration.TransactionSubmitTest do
     }
 
     %{
-      "result" => "complete",
       "transactions" => [
         %{
           "sign_hash" => sign_hash,
