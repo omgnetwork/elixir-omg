@@ -1,0 +1,7 @@
+<<<<<<< HEAD
+=======
+[submodule "priv/cabbage"]
+	path = priv/cabbage
+	url = https://github.com/omgnetwork/specs.git
+        branch = master
+>>>>>>> 1992805b... chore: add feefeed docker to elixir-omg setup (#1700)
