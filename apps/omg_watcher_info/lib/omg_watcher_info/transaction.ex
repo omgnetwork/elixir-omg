@@ -89,10 +89,9 @@ defmodule OMG.WatcherInfo.Transaction do
   end
 
   @doc """
-  Given selected utxos and order, create inputs and outputs, then returns either {:error, reason} or {:ok, %{result: result, transactions: transactions}}.
+  Given selected utxos and order, create inputs and outputs, then returns either {:error, reason} or transactions.
 
-  - Returns {:ok, %{result: :intermediate, transactions: transactions}} when requires inputs more than `Transaction.Payment.max_inputs()`.
-  - Returns {:ok, %{result: :complete, transactions: transactions}} when the inputs look good.
+  - Returns transactions when the inputs look good.
   - Returns an error when any of the following conditions is met:
     1. A number of outputs overs maximum.
     2. An inputs are empty.
@@ -109,15 +108,9 @@ defmodule OMG.WatcherInfo.Transaction do
       Enum.empty?(inputs) ->
         {:error, :empty_transaction}
 
-      Enum.count(inputs) > Transaction.Payment.max_inputs() ->
-        inputs
-        |> generate_merge_transactions()
-        |> respond(:intermediate)
-
       true ->
         raw_tx = create_raw_transaction(inputs, outputs, order.metadata)
 
-        respond({:ok,
         [
           %{
             inputs: inputs,
@@ -127,7 +120,7 @@ defmodule OMG.WatcherInfo.Transaction do
             txbytes: Transaction.raw_txbytes(raw_tx),
             sign_hash: TypedDataHash.hash_struct(raw_tx)
           }
-        ]}, :complete)
+        ]
     end
   end
 
@@ -140,7 +133,7 @@ defmodule OMG.WatcherInfo.Transaction do
       %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
 
-  defp generate_merge_transactions(merge_inputs) do
+  def generate_merge_transactions(merge_inputs) do
     merge_inputs
     |> Stream.chunk_every(@max_outputs)
     |> Enum.flat_map(fn input_set ->
@@ -230,9 +223,4 @@ defmodule OMG.WatcherInfo.Transaction do
     |> Stream.concat(Stream.repeatedly(empty_gen))
     |> (fn output -> Enum.zip([:output0, :output1, :output2, :output3], output) end).()
   end
-
-  defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}
-
-  defp respond(transactions, result) when is_list(transactions),
-    do: {:ok, %{result: result, transactions: transactions}}
 end
