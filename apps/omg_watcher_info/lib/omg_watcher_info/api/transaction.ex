@@ -126,9 +126,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
       |> respond(:complete)
   end
 
-  defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}
-
-  defp respond(transactions, result) when is_list(transactions),
-    do: {:ok, %{result: result, transactions: transactions}}
+  defp respond({:ok, transactions}, result), do: {:ok, %{result: result, transactions: transactions}}
+  defp respond(error, _), do: error
 
 end

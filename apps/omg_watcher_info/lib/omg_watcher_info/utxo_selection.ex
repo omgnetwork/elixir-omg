@@ -26,7 +26,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   require Transaction.Payment
 
   @type currency_t() :: Transaction.Payment.currency()
-  @type advice_t() :: utxos_map_t() | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
   @type utxos_map_t() :: %{currency_t() => utxo_list_t()}
   @type utxo_list_t() :: list(%DB.TxOutput{})
 

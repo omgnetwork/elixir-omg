@@ -985,6 +985,67 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
+    test "advice on merge single token tx", %{
+      alice: alice,
+      bob: bob,
+      blocks_inserter: blocks_inserter,
+      test_server: context
+    } do
+      alice_balance = balance_in_token(alice.addr, @eth)
+      max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
+
+      payment = max_spendable + 10
+
+      prepare_test_server(context, @fee_response)
+
+      assert %{
+               "result" => "intermediate",
+               "transactions" => transactions
+             } =
+               WatcherHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"currency" => @default_fee_currency}
+                 }
+               )
+
+      make_payments(7000, alice, Enum.map(transactions, & &1["txbytes"]), blocks_inserter)
+
+      assert alice_balance == balance_in_token(alice.addr, @eth)
+      assert max_amount_spendable_in_single_tx(alice.addr, @eth) >= payment
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "advice on merge does not merge single utxo", %{alice: alice, bob: bob, test_server: context} do
+      max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
+
+      payment = max_spendable + 1
+
+      prepare_test_server(context, @fee_response)
+
+      assert %{
+               "result" => "intermediate",
+               "transactions" => [transaction]
+             } =
+               WatcherHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"currency" => @default_fee_currency}
+                 }
+               )
+
+      assert OMG.State.Transaction.Payment.max_inputs() == length(transaction["inputs"])
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
     test "allows to pay other token tx with fee in different currency",
          %{alice: alice, bob: bob, blocks_inserter: blocks_inserter, test_server: context} do
       alice_eth = balance_in_token(alice.addr, @eth)
@@ -1174,36 +1235,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } == WatcherHelper.no_success?("transaction.create", params)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns an error when need more than 4 inputs to satisfy payments and fee", %{
-      test_server: context
-    } do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-      prepare_test_server(context, @fee_response)
-
-      _payment_1 = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-      _payment_2 = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-      _payment_3 = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-      _payment_4 = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-      _payment_5_fee = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
-
-      params = %{
-        "owner" => Encoding.to_hex(alice.addr),
-        "payments" => [
-          %{"amount" => 495, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
-        ],
-        "fee" => %{"currency" => @eth_hex}
-      }
-
-      assert %{
-               "code" => "transaction.create:too_many_inputs",
-               "description" =>
-                 "The number of inputs required to cover the payment and fee exceeds the maximum allowed.",
-               "object" => "error"
-             } == WatcherHelper.no_success?("transaction.create", params)
-    end
-
     defp balance_in_token(address, token) do
       currency = Encoding.to_hex(token)
 
@@ -1235,6 +1266,18 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       response
       |> TestServer.make_response()
       |> TestServer.with_response(context, "/fees.all")
+    end
+
+    defp max_amount_spendable_in_single_tx(address, token) do
+      currency = Encoding.to_hex(token)
+
+      address
+      |> WatcherHelper.get_utxos()
+      |> Stream.filter(&(&1["currency"] == currency))
+      |> Enum.sort_by(& &1["amount"], &>=/2)
+      |> Stream.take(Transaction.Payment.max_inputs())
+      |> Stream.map(& &1["amount"])
+      |> Enum.sum()
     end
   end
 
