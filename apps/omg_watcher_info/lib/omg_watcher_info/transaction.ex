@@ -143,8 +143,7 @@ defmodule OMG.WatcherInfo.Transaction do
           []
 
         inputs ->
-          {:ok, transaction} = create_merge(inputs)
-          transaction
+          create_merge(inputs)
       end
     end)
   end
