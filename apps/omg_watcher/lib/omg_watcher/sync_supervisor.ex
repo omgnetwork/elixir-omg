@@ -114,7 +114,6 @@ defmodule OMG.Watcher.SyncSupervisor do
          [name: :exit_finalized, enrich: false],
          [name: :exit_challenged, enrich: false],
          [name: :in_flight_exit_started, enrich: true],
-         [name: :in_flight_exit_deleted, enrich: false],
          [name: :in_flight_exit_input_piggybacked, enrich: false],
          [name: :in_flight_exit_output_piggybacked, enrich: false],
          [name: :in_flight_exit_challenged, enrich: true],
@@ -213,15 +212,6 @@ defmodule OMG.Watcher.SyncSupervisor do
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
         get_events_callback: &EthereumEventAggregator.in_flight_exit_withdrawn/2,
         process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
-      ),
-      EthereumEventListener.prepare_child(
-        metrics_collection_interval: metrics_collection_interval,
-        ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
-        contract_deployment_height: contract_deployment_height,
-        service_name: :in_flight_exit_deleted_processor,
-        synced_height_update_key: :last_ife_exit_deleted_eth_height,
-        get_events_callback: &EthereumEventAggregator.in_flight_exit_deleted/2,
-        process_events_callback: &Watcher.ExitProcessor.delete_in_flight_exits/1
       ),
       {StatusCache, [event_bus: OMG.Bus, ets: status_cache()]},
       {ChildManager, [monitor: Monitor]}

@@ -52,7 +52,6 @@ defmodule OMG.Watcher.CoordinatorSetup do
        ],
        exit_challenger: [waits_for: :exit_processor, finality_margin: finality_margin],
        in_flight_exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
-       in_flight_exit_deleted_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
        piggyback_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
        competitor_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
        challenges_responds_processor: [waits_for: :competitor_processor, finality_margin: finality_margin],
