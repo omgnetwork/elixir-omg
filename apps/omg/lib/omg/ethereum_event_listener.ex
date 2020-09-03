@@ -101,7 +101,7 @@ defmodule OMG.EthereumEventListener do
       ) do
     _ = Logger.info("Starting #{inspect(__MODULE__)} for #{service_name}.")
 
-    {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
+    {:ok, last_event_block_height} = get_last_event_block_height(update_key)
 
     # we don't need to ever look at earlier than contract deployment
     last_event_block_height = max(last_event_block_height, contract_deployment_height)
@@ -197,4 +197,18 @@ defmodule OMG.EthereumEventListener do
   end
 
   defp publish_events([]), do: :ok
+
+  # fix for unset :last_ife_exit_deleted_eth_height
+  # on envs that do not init database before deployment
+  defp get_last_event_block_height(:last_ife_exit_deleted_eth_height) do
+    case OMG.DB.get_single_value(:last_ife_exit_deleted_eth_height) do
+      {:ok, value} ->
+        {:ok, value}
+
+      :not_found ->
+        {:ok, 0}
+    end
+  end
+
+  defp get_last_event_block_height(update_key), do: OMG.DB.get_single_value(update_key)
 end
