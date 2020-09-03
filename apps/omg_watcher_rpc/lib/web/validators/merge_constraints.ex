@@ -24,40 +24,27 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
 
   require OMG.State.Transaction.Payment
 
-  defp get_constraints(params) do
-    case params do
-      %{"address" => _, "currency" => _} ->
-        [
-          {"address", [:address], :address},
-          {"currency", [:currency], :currency}
-        ]
-
-      %{"utxo_positions" => _} ->
-        [{"utxo_positions", [min_length: 2, list: &to_utxo_pos/1], :utxo_positions}]
-
-      _ ->
-        {:error, :operation_bad_request}
-    end
-  end
-
   @doc """
   Parses and validates request body for `/transaction.merge`
   """
   @spec parse(map()) :: {:ok, map()} | Base.validation_error_t()
   def parse(params) do
-    case get_constraints(params) do
-      {:error, error} ->
-        {:error, error}
-
-      constraints ->
-        validate_params(params, constraints)
+    with {:ok, constraints} <- get_constraints(params),
+         {:ok, result} <- Helpers.validate_constraints(params, constraints) do
+      {:ok, Map.new(result)}
     end
   end
 
-  defp validate_params(params, constraints) do
-    case Helpers.validate_constraints(params, constraints) do
-      {:ok, result} -> {:ok, Map.new(result)}
-      error -> error
+  defp get_constraints(params) do
+    case params do
+      %{"address" => _, "currency" => _} ->
+        {:ok, [{"address", [:address], :address}, {"currency", [:currency], :currency}]}
+
+      %{"utxo_positions" => _} ->
+        {:ok, [{"utxo_positions", [min_length: 2, list: &to_utxo_pos/1], :utxo_positions}]}
+
+      _ ->
+        {:error, :operation_bad_request}
     end
   end
 
