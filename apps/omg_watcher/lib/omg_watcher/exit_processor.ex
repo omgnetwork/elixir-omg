@@ -88,7 +88,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def delete_in_flight_exits([]), do: {:ok, []}
 
   def delete_in_flight_exits(in_flight_exit_deleted_events) do
-    GenServer.call(__MODULE__, {:delete_in_flight_exits, in_flight_exit_deleted_events}, @timeout)
+    GenServer.call(__MODULE__, {:in_flight_exits_deleted, in_flight_exit_deleted_events}, @timeout)
   end
 
   @doc """

@@ -506,25 +506,25 @@ defmodule OMG.Eth.RootChain.AbiTest do
   test "if in flight exit deleted can be decoded" do
     in_flight_exit_deleted_log = %{
       :event_signature => "InFlightExitDeleted(uint160)",
-      "address" => "0x89afce326e7da55647d22e24336c6a2816c99f6b",
-      "blockHash" => "0xa27ed6299f3d74954e2c32629a5d807743627f8e57f83c8cbeaa4351da73f597",
-      "blockNumber" => "0x3e8",
+      "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
+      "blockHash" => "0xcafbc4b710c5fab8f3d719f65053637407231ecde31a859f1709e3478a2eda54",
+      "blockNumber" => "0x14a",
       "data" => "0x",
-      "logIndex" => "0x0",
+      "logIndex" => "0x2",
       "removed" => false,
       "topics" => [
         "0x1991c4c350498b0cc937c6a08bc5bdecf2e4fdd9d918052a880f102e43dbe45c",
-        "0x00000000000000000000000000d1d291fd21f1899f4c9d621f65dd1e0aa2355d"
+        "0x000000000000000000000000003fd275046f2823936fd97c1e3c8b225464d7f1"
       ],
       "transactionHash" => "0xbe310ade41278c5607620311b79363aa520ac46c7ba754bf3027d501c5a95f40",
       "transactionIndex" => "0x0"
     }
 
     assert Abi.decode_log(in_flight_exit_deleted_log) == %{
-             eth_height: 1000,
+             eth_height: 330,
              event_signature: "InFlightExitDeleted(uint160)",
-             exit_id: 4_679_199_003_952_701_118_642_806_135_853_996_264_334_177_629,
-             log_index: 0,
+             exit_id: 1_423_280_346_484_099_708_949_144_162_169_101_241_792_387_057,
+             log_index: 2,
              root_chain_txhash:
                <<190, 49, 10, 222, 65, 39, 140, 86, 7, 98, 3, 17, 183, 147, 99, 170, 82, 10, 196, 108, 123, 167, 84,
                  191, 48, 39, 213, 1, 197, 169, 95, 64>>
