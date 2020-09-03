@@ -128,10 +128,10 @@ defmodule OMG.WatcherInfo.Transaction do
   @spec include_typed_data(create_t()) :: create_t()
   def include_typed_data({:error, _} = err), do: err
 
-  def include_typed_data({:ok, %{transactions: txs}}),
+  def include_typed_data({:ok, %{result: result, transactions: txs}}),
     do: {
       :ok,
-      %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
+      %{result: result, transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
 
   def generate_merge_transactions(merge_inputs) do
