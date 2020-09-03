@@ -42,6 +42,8 @@ defmodule OMG.WatcherInfo.API.Transaction do
           typed_data: TypedDataHash.Types.typedDataSignRequest_t()
         }
 
+  @type utxo_position_list_t() :: list(String.t())
+
   @doc """
   Retrieves a specific transaction by id
   """
@@ -140,6 +142,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
+  @spec generate_merge_transactions_by_currency(list()) :: {:ok, list()} | {:error, atom()}
   defp generate_merge_transactions_by_currency(inputs) do
     inputs
     |> Enum.group_by(fn input -> input.currency end)
@@ -174,6 +177,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     |> respond(:complete)
   end
 
+  @spec get_merge_inputs(list()) :: {:ok, list()} | {:error, atom()}
   defp get_merge_inputs(utxo_positions) do
     Enum.reduce_while(utxo_positions, {:ok, []}, fn encoded_position, {:ok, acc} ->
       case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
@@ -183,8 +187,9 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end)
   end
 
-  defp no_duplicate_positions(positions_list) do
-    Enum.reduce_while(positions_list, {:ok, %{}}, fn position, {:ok, acc} ->
+  @spec no_duplicate_positions(list()) :: {:ok, map()} | {:error, atom()}
+  defp no_duplicate_positions(utxo_positions) do
+    Enum.reduce_while(utxo_positions, {:ok, %{}}, fn position, {:ok, acc} ->
       case Map.has_key?(acc, position) do
         true -> {:halt, {:error, :duplicate_input_positions}}
         false -> {:cont, {:ok, Map.put(acc, position, true)}}
@@ -192,6 +197,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end)
   end
 
+  @spec single_owner(list()) :: :ok | {:error, atom()}
   defp single_owner(inputs) do
     case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
       1 -> :ok
