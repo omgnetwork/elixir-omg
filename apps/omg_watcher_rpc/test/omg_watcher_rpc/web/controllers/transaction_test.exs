@@ -1937,6 +1937,23 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "returns expected error if there is only one input for the given address and currency", %{alice: alice} do
+      alice_hex = Encoding.to_hex(alice.addr)
+
+      insert(:txoutput)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+
+      assert %{"code" => "merge:no_possible_merge_combination"} =
+               WatcherHelper.no_success?(
+                 "transaction.merge",
+                 %{
+                   "address" => alice_hex,
+                   "currency" => @eth_hex
+                 }
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "valid utxo positions returns correctly formed merge transactions", %{alice: alice} do
       alice_hex = Encoding.to_hex(alice.addr)
 
@@ -2061,6 +2078,50 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  "transaction.merge",
                  %{
                    "utxo_positions" => [position_1, position_2, position_3, position_4, position_5, position_6]
+                 }
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "returns expected error if duplicate inputs given", %{alice: alice} do
+      insert(:txoutput)
+      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth) |> encoded_position_from_insert()
+
+      assert %{"code" => "merge:duplicate_input_positions"} =
+               WatcherHelper.no_success?(
+                 "transaction.merge",
+                 %{
+                   "utxo_positions" => [position_1, position_1]
+                 }
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "returns expected error if there is more than one owner for a currency", %{alice: alice, bob: bob} do
+      insert(:txoutput)
+      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: bob.addr, currency: @eth) |> encoded_position_from_insert()
+
+      assert %{"code" => "merge:multiple_input_owners"} =
+               WatcherHelper.no_success?(
+                 "transaction.merge",
+                 %{
+                   "utxo_positions" => [position_1, position_2]
+                 }
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "returns expected error if only single outputs per currency are given", %{alice: alice} do
+      insert(:txoutput)
+      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: alice.addr, currency: @other_token) |> encoded_position_from_insert()
+
+      assert %{"code" => "merge:no_possible_merge_combination"} =
+               WatcherHelper.no_success?(
+                 "transaction.merge",
+                 %{
+                   "utxo_positions" => [position_1, position_2]
                  }
                )
     end

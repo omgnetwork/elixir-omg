@@ -107,15 +107,18 @@ defmodule OMG.WatcherInfo.API.Transaction do
   end
 
   @spec merge(map()) :: create_t()
-  def merge(%{address: address, currency: currency} = _constraints) do
+  def merge(%{address: address, currency: currency}) do
     merge_inputs =
       address
       |> DB.TxOutput.get_sorted_grouped_utxos(:asc)
       |> Map.get(currency, [])
 
     case merge_inputs do
+      [] ->
+        {:error, :no_inputs_found}
+
       [_single_input] ->
-        {:error, :single_input_for_ccy}
+        {:error, :no_possible_merge_combination}
 
       inputs ->
         {:ok, TransactionCreator.generate_merge_transactions(inputs)}
@@ -123,15 +126,33 @@ defmodule OMG.WatcherInfo.API.Transaction do
   end
 
   def merge(%{utxo_positions: utxo_positions}) do
-    with {:ok, merge_inputs} <- get_merge_inputs(utxo_positions) do
-      case validate_merge_inputs(merge_inputs) do
-        {:error, error} ->
-          {:error, error}
+    with {:ok, _} <- no_duplicate_positions(utxo_positions),
+         {:ok, inputs} <- get_merge_inputs(utxo_positions),
+         {:ok, transactions} <- generate_merge_transactions_by_currency(inputs) do
+      flattened_transaction_list = List.flatten(transactions)
 
-        {:ok, inputs} ->
-          {:ok, TransactionCreator.generate_merge_transactions(inputs)}
+      if Enum.empty?(flattened_transaction_list) do
+        # Return an error instead of empty list if user passes one position per currency.
+        {:error, :no_possible_merge_combination}
+      else
+        {:ok, flattened_transaction_list}
       end
     end
+  end
+
+  defp generate_merge_transactions_by_currency(inputs) do
+    inputs
+    |> Enum.group_by(fn input -> input.currency end)
+    |> Enum.reduce_while({:ok, []}, fn {_ccy, inputs}, {:ok, acc} ->
+      case single_owner(inputs) do
+        :ok ->
+          transactions = TransactionCreator.generate_merge_transactions(inputs)
+          {:cont, {:ok, [transactions | acc]}}
+
+        {:error, error} ->
+          {:halt, {:error, error}}
+      end
+    end)
   end
 
   defp get_utxos_count(inputs) do
@@ -156,33 +177,25 @@ defmodule OMG.WatcherInfo.API.Transaction do
   defp get_merge_inputs(utxo_positions) do
     Enum.reduce_while(utxo_positions, {:ok, []}, fn encoded_position, {:ok, acc} ->
       case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
-        nil -> {:halt, {:error, :input_not_found}}
+        nil -> {:halt, {:error, :position_not_found}}
         input -> {:cont, {:ok, [input | acc]}}
       end
     end)
   end
 
-  defp validate_merge_inputs(inputs) do
-    with {:ok, inputs} <- single_owner(inputs),
-         {:ok, inputs} <- no_single_input_for_currency(inputs) do
-      {:ok, inputs}
-    end
+  defp no_duplicate_positions(positions_list) do
+    Enum.reduce_while(positions_list, {:ok, %{}}, fn position, {:ok, acc} ->
+      case Map.has_key?(acc, position) do
+        true -> {:halt, {:error, :duplicate_input_positions}}
+        false -> {:cont, {:ok, Map.put(acc, position, true)}}
+      end
+    end)
   end
 
   defp single_owner(inputs) do
     case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
-      1 -> {:ok, inputs}
+      1 -> :ok
       _ -> {:error, :multiple_input_owners}
-    end
-  end
-
-  defp no_single_input_for_currency(inputs) do
-    inputs
-    |> Enum.group_by(fn utxo -> utxo.currency end)
-    |> Enum.any?(fn {_ccy, inputs} -> length(inputs) < 2 end)
-    |> case do
-      true -> {:error, :single_input_for_ccy}
-      false -> {:ok, inputs}
     end
   end
 
