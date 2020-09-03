@@ -13,38 +13,23 @@
 # limitations under the License.
 
 defmodule OMG.DB.ReleaseTasks.InitKeysWithValuesTest do
-  use ExUnit.Case, async: false
+  use OMG.DB.RocksDBCase, async: false
   alias OMG.DB.ReleaseTasks.InitKeysWithValues
+  alias OMG.DB.RocksDB
 
-  setup_all do
-    _ = :ets.new(:test_table, [:public, :named_table])
-    []
+  test ":last_ife_exit_deleted_eth_height is set if it wasn't set previously", %{
+    db_pid: db_server_name
+  } do
+    assert [] == InitKeysWithValues.load([], db_server_name: db_server_name)
+    assert {:ok, 0} == RocksDB.get_single_value(:last_ife_exit_deleted_eth_height, db_server_name)
   end
 
-  test ":last_ife_exit_deleted_eth_height is set if it wasn't set previously", %{test: test_name} do
-    defmodule test_name do
-      def get_single_value(:last_ife_exit_deleted_eth_height), do: :not_found
-
-      def multi_update([{:put, :last_ife_exit_deleted_eth_height, init_val}]) do
-        _ = :ets.insert(:test_table, {Atom.to_string(:last_ife_exit_deleted_eth_height), init_val})
-        :ok
-      end
-    end
-
-    assert [] == InitKeysWithValues.load([], db_module: test_name)
-
-    ets_key = Atom.to_string(:last_ife_exit_deleted_eth_height)
-
-    assert [{ets_key, 0}] == :ets.lookup(:test_table, ets_key)
-  end
-
-  test "value under :last_ife_exit_deleted_eth_height is not changed if it wasn't set previously", %{test: test_name} do
-    defmodule test_name do
-      def get_single_value(:last_ife_exit_deleted_eth_height), do: {:ok, 1}
-
-      def multi_update([{:put, _key, _init_val}]), do: flunk("Must not be called")
-    end
-
-    assert [] == InitKeysWithValues.load([], db_module: test_name)
+  test "value under :last_ife_exit_deleted_eth_height is not changed if it wasn't set previously", %{
+    db_pid: db_server_name
+  } do
+    initial_value = 5
+    :ok = RocksDB.multi_update([{:put, :last_ife_exit_deleted_eth_height, initial_value}], db_server_name)
+    assert [] == InitKeysWithValues.load([], db_server_name: db_server_name)
+    assert {:ok, initial_value} == RocksDB.get_single_value(:last_ife_exit_deleted_eth_height, db_server_name)
   end
 end

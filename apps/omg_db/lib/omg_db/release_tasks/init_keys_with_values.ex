@@ -19,22 +19,22 @@ defmodule OMG.DB.ReleaseTasks.InitKeysWithValues do
   @behaviour Config.Provider
   require Logger
 
-  @init_heights_config [last_ife_exit_deleted_eth_height: 0]
+  @keys_to_values [last_ife_exit_deleted_eth_height: 0]
 
   def init(args) do
     args
   end
 
-  def load(config, db_module: db_module) do
+  def load(config, db_server_name: db_server_name) do
     _ = on_load()
 
     :ok =
       Enum.each(
-        @init_heights_config,
+        @keys_to_values,
         fn {key, init_val} ->
-          case db_module.get_single_value(key) do
+          case OMG.DB.RocksDB.get_single_value(key, db_server_name) do
             :not_found ->
-              :ok = db_module.multi_update([{:put, key, init_val}])
+              :ok = OMG.DB.RocksDB.multi_update([{:put, key, init_val}], db_server_name)
               _ = Logger.info("#{key} not set. Setting it to #{init_val}")
               :ok
 
@@ -49,6 +49,6 @@ defmodule OMG.DB.ReleaseTasks.InitKeysWithValues do
 
   defp on_load() do
     {:ok, _} = Application.ensure_all_started(:logger)
-    {:ok, _} = Application.ensure_all_started(:omg_db)
+    _ = Application.load(:omg_db)
   end
 end
