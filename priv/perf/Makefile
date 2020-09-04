@@ -9,7 +9,7 @@ start-services:
 	cd ../../ && \
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init-contracts && \
 	cd priv/perf/ && \
-	docker-compose -f ../../docker-compose.yml up -d
+	docker-compose -f ../../docker-compose.yml -f ../../docker-compose.feefeed.yml up -d
 
 stop-services:
 	docker-compose down

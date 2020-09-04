@@ -538,23 +538,19 @@ jobs:
       - run:
           name: Start daemon services
           command: |
-            SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && docker-compose -f ./docker-compose.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            cd priv/perf
+            make start-services || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - install_elixir_and_check_docker_status
       - run:
           name: Run load test
           command: |
-            export $(cat ./localchain_contract_addresses.env | xargs)
             cd priv/perf
             make init
             make test
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
-            export $(cat ./localchain_contract_addresses.env | xargs)
             cd priv/perf
-            # run format ONLY on formatted code so that it cleans up quoted atoms because
-            # we cannot exclude folders to --warnings-as-errors
-            mix format apps/*_api/lib/*_api/model/*.ex
             make format-code-check-warnings
       - save_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
