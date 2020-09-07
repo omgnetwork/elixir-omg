@@ -5,8 +5,6 @@ services:
       - FEE_ADAPTER=feed
       - FEE_FEED_URL=http://172.27.0.107:4000/api/v1
     depends_on:
-      nginx:
-        condition: service_healthy
       feefeed:
         condition: service_healthy
 
