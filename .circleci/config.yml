@@ -63,9 +63,10 @@ commands:
   make_docker_images:
     description: Builds docker images
     steps:
-      - run: make docker-child_chain
-      - run: make docker-watcher
-      - run: make docker-watcher_info
+      - run: echo "[debug] skipping real building docker files...."
+      # - run: make docker-child_chain
+      # - run: make docker-watcher
+      # - run: make docker-watcher_info
 
   install_elixir_and_check_docker_status:
     description: Installs elixir and checks if docker is healthy
@@ -539,7 +540,13 @@ jobs:
           name: Start daemon services
           command: |
             cd priv/perf
-            make start-services || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make start-services
+      - run:
+          name: docker services logs
+          background: true
+          command: |
+            cd priv/perf
+            make log-services
       - install_elixir_and_check_docker_status
       - run:
           name: Run load test

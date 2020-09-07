@@ -3,7 +3,7 @@ list:
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
 
 clean:
-	docker-compose down && docker volume prune --force
+	docker-compose -f ../../docker-compose.yml -f ../../docker-compose.feefeed.yml down && docker volume prune --force
 
 start-services:
 	cd ../../ && \
@@ -12,7 +12,10 @@ start-services:
 	docker-compose -f ../../docker-compose.yml -f ../../docker-compose.feefeed.yml up -d
 
 stop-services:
-	docker-compose down
+	docker-compose -f ../../docker-compose.yml -f ../../docker-compose.feefeed.yml down
+
+log-services:
+	docker-compose -f ../../docker-compose.yml -f ../../docker-compose.feefeed.yml logs -f childchain feefeed watcher watcher_info geth
 
 init:
 	. scripts/generate_api_client.sh
