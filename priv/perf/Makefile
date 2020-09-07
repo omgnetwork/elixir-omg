@@ -16,8 +16,6 @@ stop-services:
 
 init:
 	. scripts/generate_api_client.sh
-	# run format ONLY on formatted code so that it cleans up quoted atoms because
-	mix format apps/*_api/lib/*_api/model/*.ex
 	mix deps.get
 
 test: # runs test against child chain and geth provided in test docker containers

@@ -551,6 +551,9 @@ jobs:
           name: (Perf) Format generated code and check for warnings
           command: |
             cd priv/perf
+            # run format ONLY on formatted code so that it cleans up quoted atoms because
+            # we cannot exclude folders to --warnings-as-errors
+            mix format apps/*_api/lib/*_api/model/*.ex
             make format-code-check-warnings
       - save_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
