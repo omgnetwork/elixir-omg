@@ -888,158 +888,163 @@ workflows:
       - barebuild_macos
       - test_barebone_release:
           requires: [build]
-  build-test-deploy:
+  debug:
     jobs:
-      - build:
-          filters: &all_branches_and_tags
-            branches:
-              only: /.+/
-            tags:
-              only: /.+/
-      - test_barebone_release:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - notify_services:
-          requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
-          filters:
-            branches:
-              only:
-                - master
-      - coveralls_report:
-          requires:
-            - child_chain_coveralls_and_integration_tests
-            - watcher_coveralls_and_integration_tests
-            - watcher_info_coveralls_and_integration_tests
-            - common_coveralls_and_integration_tests
-            - test
-      - child_chain_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - watcher_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - watcher_info_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - common_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - test_docker_compose_release:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - test_docker_compose_performance:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - test_docker_compose_reorg:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - audit_deps:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - lint:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - lint_version:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - sobelow:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - dialyzer:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - test:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - property_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      # Publish in case of master branch, version branches and version tags.
-      - publish_child_chain:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-              lint_version,
-              audit_deps
-            ]
-          filters: &master_and_version_branches_and_all_tags
-            branches:
-              only:
-                - master
-                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-                - /^v[0-9]+\.[0-9]+/
-            tags:
-              only:
-                - /.+/
-      - publish_watcher:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-              lint_version,
-              audit_deps
-            ]
-          filters: *master_and_version_branches_and_all_tags
-      - publish_watcher_info:
-          requires:
-            [
-              child_chain_coveralls_and_integration_tests,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-              lint_version,
-              audit_deps
-            ]
-          filters: *master_and_version_branches_and_all_tags
-      # Release deploy to development in case of master branch.
-      - deploy_child_chain:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
-      - deploy_watcher:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
-      - deploy_watcher_info:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
-      # Increase chart version for new release
-      - increase_chart_version_childchain:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters: &only_release_tag
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                # eg. v1.0.3-pre.0, v1.0.3, ...
-                - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
-      - increase_chart_version_watcher:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters: *only_release_tag
-      - increase_chart_version_watcher_info:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters: *only_release_tag
+      - test_barebone_release
+      - test_docker_compose_performance
+
+  # build-test-deploy:
+  #   jobs:
+  #     - build:
+  #         filters: &all_branches_and_tags
+  #           branches:
+  #             only: /.+/
+  #           tags:
+  #             only: /.+/
+  #     - test_barebone_release:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - notify_services:
+  #         requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #     - coveralls_report:
+  #         requires:
+  #           - child_chain_coveralls_and_integration_tests
+  #           - watcher_coveralls_and_integration_tests
+  #           - watcher_info_coveralls_and_integration_tests
+  #           - common_coveralls_and_integration_tests
+  #           - test
+  #     - child_chain_coveralls_and_integration_tests:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - watcher_coveralls_and_integration_tests:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - watcher_info_coveralls_and_integration_tests:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - common_coveralls_and_integration_tests:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - test_docker_compose_release:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - test_docker_compose_performance:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - test_docker_compose_reorg:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - audit_deps:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - lint:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - lint_version:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - sobelow:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - dialyzer:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - test:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     - property_tests:
+  #         requires: [build]
+  #         filters: *all_branches_and_tags
+  #     # Publish in case of master branch, version branches and version tags.
+  #     - publish_child_chain:
+  #         requires:
+  #           [
+  #             child_chain_coveralls_and_integration_tests,
+  #             watcher_coveralls_and_integration_tests,
+  #             watcher_info_coveralls_and_integration_tests,
+  #             common_coveralls_and_integration_tests,
+  #             test,
+  #             property_tests,
+  #             dialyzer,
+  #             lint,
+  #             lint_version,
+  #             audit_deps
+  #           ]
+  #         filters: &master_and_version_branches_and_all_tags
+  #           branches:
+  #             only:
+  #               - master
+  #               # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+  #               - /^v[0-9]+\.[0-9]+/
+  #           tags:
+  #             only:
+  #               - /.+/
+  #     - publish_watcher:
+  #         requires:
+  #           [
+  #             child_chain_coveralls_and_integration_tests,
+  #             watcher_coveralls_and_integration_tests,
+  #             watcher_info_coveralls_and_integration_tests,
+  #             common_coveralls_and_integration_tests,
+  #             test,
+  #             property_tests,
+  #             dialyzer,
+  #             lint,
+  #             lint_version,
+  #             audit_deps
+  #           ]
+  #         filters: *master_and_version_branches_and_all_tags
+  #     - publish_watcher_info:
+  #         requires:
+  #           [
+  #             child_chain_coveralls_and_integration_tests,
+  #             watcher_coveralls_and_integration_tests,
+  #             watcher_info_coveralls_and_integration_tests,
+  #             common_coveralls_and_integration_tests,
+  #             test,
+  #             property_tests,
+  #             dialyzer,
+  #             lint,
+  #             lint_version,
+  #             audit_deps
+  #           ]
+  #         filters: *master_and_version_branches_and_all_tags
+  #     # Release deploy to development in case of master branch.
+  #     - deploy_child_chain:
+  #         requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #     - deploy_watcher:
+  #         requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #     - deploy_watcher_info:
+  #         requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #     # Increase chart version for new release
+  #     - increase_chart_version_childchain:
+  #         requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+  #         filters: &only_release_tag
+  #           branches:
+  #             ignore: /.*/
+  #           tags:
+  #             only:
+  #               # eg. v1.0.3-pre.0, v1.0.3, ...
+  #               - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+  #     - increase_chart_version_watcher:
+  #         requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+  #         filters: *only_release_tag
+  #     - increase_chart_version_watcher_info:
+  #         requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+  #         filters: *only_release_tag
