@@ -22,9 +22,7 @@ init:
 	mix deps.get
 
 test: # runs test against child chain and geth provided in test docker containers
-	export $(cat ../../localchain_contract_addresses.env | xargs)
 	LOAD_TEST_FAUCET_PRIVATE_KEY=0xd885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce mix test --trace
 
 format-code-check-warnings:
-	export $(cat ../../localchain_contract_addresses.env | xargs)
 	LOAD_TEST_FAUCET_PRIVATE_KEY=0xd885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
