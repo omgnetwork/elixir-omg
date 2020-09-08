@@ -29,10 +29,9 @@ defmodule OMG.WatcherInfo.Transaction do
   @max_outputs Transaction.Payment.max_outputs()
 
   @type create_t() ::
-          {:ok, nonempty_list(transaction_t())}
-          | {:error, :too_many_inputs}
-          | {:error, :too_many_outputs}
-          | {:error, :empty_transaction}
+    {:ok, nonempty_list(transaction_t())}
+    | {:error, :too_many_outputs}
+    | {:error, :empty_transaction}
 
   @type fee_t() :: %{
           currency: UtxoSelection.currency_t(),
@@ -56,13 +55,13 @@ defmodule OMG.WatcherInfo.Transaction do
 
   @type order_t() :: %{
           owner: Crypto.address_t(),
-          payments: nonempty_list(payment_t()),
+          payments: list(payment_t()),
           metadata: binary() | nil,
           fee: fee_t()
         }
 
   @type utxos_map_t() :: %{UtxoSelection.currency_t() => UtxoSelection.utxo_list_t()}
-  @type inputs_t() :: {:ok, utxos_map_t()} | {:error, {:insufficient_funds, list(map())}} | {:error, :too_many_inputs}
+  @type inputs_t() :: {:ok, utxos_map_t()} | {:error, {:insufficient_funds, list(map())}}
 
   @doc """
   Given an `order`, finds spender's inputs sufficient to perform a payment.
@@ -134,6 +133,7 @@ defmodule OMG.WatcherInfo.Transaction do
       %{result: result, transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
 
+  @spec generate_merge_transactions(UtxoSelection.utxo_list_t()) :: list(transaction_t())
   def generate_merge_transactions(merge_inputs) do
     merge_inputs
     |> Stream.chunk_every(@max_outputs)
@@ -148,15 +148,25 @@ defmodule OMG.WatcherInfo.Transaction do
     end)
   end
 
+  @spec create_merge(UtxoSelection.utxo_list_t()) :: list(transaction_t())
   defp create_merge(inputs) do
     %{currency: currency, owner: owner} = List.first(inputs)
 
-    create([{currency, inputs}], %{
+    case create(%{currency => inputs}, %{
       fee: %{amount: 0, currency: currency},
       metadata: @empty_metadata,
       owner: owner,
       payments: []
-    })
+    }) do
+      {:error, :empty_transaction} ->
+        []
+
+      {:error, :too_many_outputs} ->
+        []
+
+      {:ok, transactions} ->
+        transactions
+    end
   end
 
   defp build_inputs(utxos_per_token) do

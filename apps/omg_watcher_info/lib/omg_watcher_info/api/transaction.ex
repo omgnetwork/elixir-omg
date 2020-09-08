@@ -31,7 +31,15 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
   @default_transactions_limit 200
 
-  @type create_t() :: TransactionCreator.create_t() | {:error, {:insufficient_funds, list(map())}}
+  @type create_t() ::
+          {:ok,
+           %{
+             result: :complete | :intermediate,
+             transactions: nonempty_list(transaction_t())
+           }}
+          | {:error, :too_many_outputs}
+          | {:error, :empty_transaction}
+          | {:error, {:insufficient_funds, list(map())}}
 
   @type transaction_t() :: %{
           inputs: nonempty_list(%DB.TxOutput{}),
@@ -109,24 +117,31 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
   defp get_utxos_count(inputs) do
     inputs
-      |> Enum.map(fn {_, utxos} -> utxos end)
-      |> List.flatten()
-      |> Enum.count
+    |> Enum.map(fn {_, utxos} -> utxos end)
+    |> List.flatten()
+    |> Enum.count()
   end
 
   defp create_transaction(utxos_count, inputs, _order) when utxos_count > Transaction.Payment.max_inputs() do
-    inputs
-      |> TransactionCreator.generate_merge_transactions()
-      |> respond(:intermediate)
+    transactions =
+      inputs
+      |> Enum.map(fn {_currency, inputs} ->
+        TransactionCreator.generate_merge_transactions(inputs)
+      end)
+      |> List.flatten()
+
+    respond({:ok, transactions}, :intermediate)
+    # inputs
+    #   |> TransactionCreator.generate_merge_transactions()
+    #   |> respond(:intermediate)
   end
 
   defp create_transaction(_utxos_count, inputs, order) do
     inputs
-      |> TransactionCreator.create(order)
-      |> respond(:complete)
+    |> TransactionCreator.create(order)
+    |> respond(:complete)
   end
 
   defp respond({:ok, transactions}, result), do: {:ok, %{result: result, transactions: transactions}}
   defp respond(error, _), do: error
-
 end
