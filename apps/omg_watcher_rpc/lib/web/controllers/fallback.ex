@@ -65,10 +65,9 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       code: "transaction.create:too_many_outputs",
       description: "Total number of payments + change + fees exceed maximum allowed outputs."
     },
-    no_possible_merge_combination: %{
-      code: "merge:no_possible_merge_combination",
-      description:
-        "Only one input found for the given address and currency, or only one UTXO position per currency provided."
+    single_input: %{
+      code: "merge:single_input",
+      description: "Only one input found for the given address and currency."
     },
     empty_transaction: %{
       code: "transaction.create:empty_transaction",

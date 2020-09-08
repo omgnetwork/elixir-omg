@@ -1803,7 +1803,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   describe "/transaction.merge" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "address currency params return expected result", %{alice: alice} do
+    test "returns a merge transaction for the given currency", %{alice: alice} do
       alice_hex = Encoding.to_hex(alice.addr)
 
       insert(:txoutput)
@@ -1856,7 +1856,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "address currency params returns multiple valid transactions", %{alice: alice} do
+    test "returns multiple valid merge transactions if more than four UTXOs for the given currency", %{alice: alice} do
       alice_hex = Encoding.to_hex(alice.addr)
 
       insert(:txoutput)
@@ -1943,7 +1943,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       insert(:txoutput)
       _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
 
-      assert %{"code" => "merge:no_possible_merge_combination"} =
+      assert %{
+               "code" => "merge:single_input",
+               "description" => "Only one input found for the given address and currency."
+             } =
                WatcherHelper.no_success?(
                  "transaction.merge",
                  %{
@@ -1954,7 +1957,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "valid utxo positions returns correctly formed merge transactions", %{alice: alice} do
+    test "request with valid UTXO positions returns correctly formed merge transaction", %{alice: alice} do
       alice_hex = Encoding.to_hex(alice.addr)
 
       insert(:txoutput)
@@ -2003,87 +2006,63 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "valid utxo positions returns correctly forms multiple merge transactions", %{alice: alice} do
-      alice_hex = Encoding.to_hex(alice.addr)
-
+    test "does not accept a request with more than four UTXO positions", %{alice: alice} do
       insert(:txoutput)
       position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
       position_2 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
       position_3 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
       position_4 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
       position_5 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
-      position_6 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
 
-      assert %{
-               "transactions" => [
-                 %{
-                   "typed_data" => _,
-                   "txbytes" => _,
-                   "inputs" => [
-                     %{
-                       "amount" => 1,
-                       "currency" => @eth_hex,
-                       "owner" => ^alice_hex
-                     },
-                     %{
-                       "amount" => 1,
-                       "currency" => @eth_hex,
-                       "owner" => ^alice_hex
-                     },
-                     %{
-                       "amount" => 1,
-                       "currency" => @eth_hex,
-                       "owner" => ^alice_hex
-                     },
-                     %{
-                       "amount" => 1,
-                       "currency" => @eth_hex,
-                       "owner" => ^alice_hex
-                     }
-                   ],
-                   "outputs" => [
-                     %{
-                       "amount" => 4,
-                       "currency" => @eth_hex,
-                       "owner" => ^alice_hex
-                     }
-                   ]
-                 },
-                 %{
-                   "typed_data" => _,
-                   "txbytes" => _,
-                   "inputs" => [
-                     %{
-                       "amount" => 1,
-                       "currency" => @eth_hex,
-                       "owner" => ^alice_hex
-                     },
-                     %{
-                       "amount" => 1,
-                       "currency" => @eth_hex,
-                       "owner" => ^alice_hex
-                     }
-                   ],
-                   "outputs" => [
-                     %{
-                       "amount" => 2,
-                       "currency" => @eth_hex,
-                       "owner" => ^alice_hex
-                     }
-                   ]
+      result =
+        WatcherHelper.no_success?(
+          "transaction.merge",
+          %{
+            "utxo_positions" => [position_1, position_2, position_3, position_4, position_5]
+          }
+        )
+
+      assert result == %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "utxo_positions",
+                   "validator" => "{:max_length, 4}"
                  }
-               ]
-             } =
-               WatcherHelper.success?(
-                 "transaction.merge",
-                 %{
-                   "utxo_positions" => [position_1, position_2, position_3, position_4, position_5, position_6]
-                 }
-               )
+               },
+               "object" => "error"
+             }
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "returns expected error if duplicate inputs given", %{alice: alice} do
+    test "does not accept a request with less than two UTXO positions", %{alice: alice} do
+      insert(:txoutput)
+      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
+
+      result =
+        WatcherHelper.no_success?(
+          "transaction.merge",
+          %{
+            "utxo_positions" => [position_1]
+          }
+        )
+
+      assert result == %{
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "utxo_positions",
+                   "validator" => "{:min_length, 2}"
+                 }
+               },
+               "object" => "error"
+             }
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "does not accept duplicate input positions", %{alice: alice} do
       insert(:txoutput)
       position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth) |> encoded_position_from_insert()
 
@@ -2112,12 +2091,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "returns expected error if only single outputs per currency are given", %{alice: alice} do
+    test "returns expected error if there is more than one currency", %{alice: alice} do
       insert(:txoutput)
       position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth) |> encoded_position_from_insert()
       position_2 = :txoutput |> insert(owner: alice.addr, currency: @other_token) |> encoded_position_from_insert()
 
-      assert %{"code" => "merge:no_possible_merge_combination"} =
+      assert %{"code" => "merge:multiple_currencies"} =
                WatcherHelper.no_success?(
                  "transaction.merge",
                  %{
