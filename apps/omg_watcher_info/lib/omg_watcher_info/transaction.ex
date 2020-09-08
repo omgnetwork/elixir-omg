@@ -83,12 +83,11 @@ defmodule OMG.WatcherInfo.Transaction do
   """
   @spec select_inputs(utxos_map_t(), order_t()) :: inputs_t()
   def select_inputs(utxos, %{payments: payments, fee: fee}) do
-    token_utxo_selection =
-      payments
-      |> UtxoSelection.needed_funds(fee)
-      |> UtxoSelection.select_utxo(utxos)
-
-    case UtxoSelection.funds_sufficient(token_utxo_selection) do
+    payments
+    |> UtxoSelection.needed_funds(fee)
+    |> UtxoSelection.select_utxo(utxos)
+    |> UtxoSelection.funds_sufficient()
+    |> case do
       {:ok, funds} ->
         stealth_merge_utxos =
           utxos
