@@ -98,7 +98,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       selected_utxos =
         utxos
         |> Map.get(token, [])
-        |> find_utxos(need)
+        |> find_utxos_by_token(need)
 
       {token, selected_utxos}
     end)
