@@ -27,11 +27,11 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
   @doc """
   Parses and validates request body for `/transaction.merge`
   """
-  @spec parse(map()) :: {:ok, map()} | Base.validation_error_t()
+  @spec parse(map()) :: {:ok, Keyword.t()} | Base.validation_error_t()
   def parse(params) do
     with {:ok, constraints} <- get_constraints(params),
          {:ok, result} <- Helpers.validate_constraints(params, constraints) do
-      {:ok, Map.new(result)}
+      {:ok, result}
     end
   end
 

@@ -125,7 +125,7 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
         :txoutput |> insert(owner: @alice, currency: @currency_1, amount: 1) |> encoded_position_from_insert()
 
       {:ok, [%{inputs: inputs, outputs: outputs}]} =
-        Transaction.merge(%{utxo_positions: [position_1, position_2, position_3]})
+        Transaction.merge([{:utxo_positions, [position_1, position_2, position_3]}])
 
       assert length(inputs) == 3
       assert [%{amount: 3, currency: @currency_1, owner: @alice}] = outputs
@@ -137,7 +137,7 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
 
       position_1 = :txoutput |> insert() |> encoded_position_from_insert()
 
-      assert Transaction.merge(%{utxo_positions: [position_1, position_1]}) ==
+      assert Transaction.merge([{:utxo_positions, [position_1, position_1]}]) ==
                {:error, :duplicate_input_positions}
     end
 
@@ -151,7 +151,7 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
 
       empty_position = insert(:txoutput) |> Map.update!(:blknum, fn n -> n + 1 end) |> encoded_position_from_insert()
 
-      assert Transaction.merge(%{utxo_positions: [position_1, position_2, position_3, empty_position]}) ==
+      assert Transaction.merge([{:utxo_positions, [position_1, position_2, position_3, empty_position]}]) ==
                {:error, :position_not_found}
     end
 
@@ -163,7 +163,7 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       position_2 = :txoutput |> insert(owner: @alice, currency: @currency_1) |> encoded_position_from_insert()
       position_3 = :txoutput |> insert(owner: @bob, currency: @currency_1) |> encoded_position_from_insert()
 
-      assert Transaction.merge(%{utxo_positions: [position_1, position_2, position_3]}) ==
+      assert Transaction.merge([{:utxo_positions, [position_1, position_2, position_3]}]) ==
                {:error, :multiple_input_owners}
     end
 
@@ -175,7 +175,7 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       position_2 = :txoutput |> insert(owner: @alice, currency: @currency_1) |> encoded_position_from_insert()
       position_3 = :txoutput |> insert(owner: @alice, currency: @currency_2) |> encoded_position_from_insert()
 
-      assert Transaction.merge(%{utxo_positions: [position_1, position_2, position_3]}) ==
+      assert Transaction.merge([{:utxo_positions, [position_1, position_2, position_3]}]) ==
                {:error, :multiple_currencies}
     end
   end

@@ -38,10 +38,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
 
       {:ok, constraints} = MergeConstraints.parse(request_data)
 
-      assert constraints == %{
-               address: Encoding.from_hex(@alice),
-               currency: Encoding.from_hex(@eth)
-             }
+      assert constraints == [{:currency, Encoding.from_hex(@eth)}, {:address, Encoding.from_hex(@alice)}]
     end
 
     test "fails on address and currency constraint when address not in right format" do
@@ -69,9 +66,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
 
       {:ok, constraints} = MergeConstraints.parse(request_data)
 
-      assert constraints == %{
-               utxo_positions: [1, 2]
-             }
+      assert constraints == [{:utxo_positions, [1, 2]}]
     end
 
     test "fails when given less than two positions" do

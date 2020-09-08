@@ -108,8 +108,16 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  @spec merge(map()) :: create_t()
-  def merge(%{address: address, currency: currency}) do
+  @doc """
+  Converts parameter keyword list to a map before passing it to multi-clause "handle_merge/`1"
+  """
+  @spec merge(Keyword.t()) :: create_t()
+  def merge(parameters) do
+    parameters |> Map.new() |> handle_merge()
+  end
+
+  @spec handle_merge(map()) :: create_t()
+  defp handle_merge(%{address: address, currency: currency}) do
     merge_inputs =
       address
       |> DB.TxOutput.get_sorted_grouped_utxos(:asc)
@@ -127,7 +135,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  def merge(%{utxo_positions: utxo_positions}) do
+  defp handle_merge(%{utxo_positions: utxo_positions}) do
     with {:ok, inputs} <- get_merge_inputs(utxo_positions),
          :ok <- no_duplicates(inputs),
          :ok <- single_owner(inputs),
