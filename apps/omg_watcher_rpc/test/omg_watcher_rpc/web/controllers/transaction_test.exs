@@ -318,7 +318,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = Encoding.to_hex(alice.addr)
+      address = Encoding.to_hex(alice)
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
@@ -339,7 +339,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = Encoding.to_hex(alice)
       carol_addr = Encoding.to_hex(carol.addr)
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 2}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
@@ -361,7 +361,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = Encoding.to_hex(alice.addr)
+      address = Encoding.to_hex(alice)
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
@@ -378,7 +378,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = Encoding.to_hex(alice.addr)
+      address = Encoding.to_hex(alice)
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
@@ -395,7 +395,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = Encoding.to_hex(alice.addr)
+      address = Encoding.to_hex(alice)
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] = transaction_all_result(%{"address" => address})
     end
@@ -462,7 +462,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
          ]}
       ])
 
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = Encoding.to_hex(alice)
 
       assert {
                [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}],
@@ -642,7 +642,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   describe "/transaction.submit with structural transaction" do
     deffixture typed_data_request(alice, bob) do
       contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = Encoding.to_hex(alice)
       bob_addr = Encoding.to_hex(bob.addr)
 
       %{
@@ -780,7 +780,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       alice_to_bob = 100
       metadata = (alice.addr <> bob.addr) |> OMG.Crypto.hash() |> Encoding.to_hex()
 
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = Encoding.to_hex(alice)
       bob_addr = Encoding.to_hex(bob.addr)
       blknum = 5000
       creating_txhash = inserted_txs |> Enum.at(0) |> elem(2) |> Encoding.to_hex()
@@ -851,7 +851,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [%{"amount" => 100, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}],
                    "fee" => %{"currency" => @default_fee_currency},
                    "metadata" => Encoding.to_hex(<<123::256>>)
@@ -903,7 +903,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [%{"amount" => 100, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}],
                    "fee" => %{"currency" => @default_fee_currency},
                    "metadata" => metadata_hex
@@ -931,7 +931,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [
                      %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
@@ -968,7 +968,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [
                      %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)},
                      %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
@@ -1002,7 +1002,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [
                      %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
@@ -1033,7 +1033,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [
                      %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
@@ -1060,7 +1060,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  %{
                    "owner" => Encoding.to_hex(bob.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice)}
                    ],
                    "fee" => %{"currency" => @default_fee_currency}
                  }
@@ -1085,7 +1085,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [
                      %{"amount" => 1, "currency" => @other_token_hex, "owner" => bob_addr},
                      %{"amount" => 2, "currency" => @other_token_hex, "owner" => bob_addr},
@@ -1119,7 +1119,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [],
                    "fee" => %{"currency" => @other_token_hex}
                  }
@@ -1130,7 +1130,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :more_utxos]
     test "empty transaction without payments list is not allowed", %{alice: alice, test_server: context} do
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = Encoding.to_hex(alice)
 
       prepare_test_server(context, %{
         @str_tx_type => [
@@ -1160,10 +1160,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     @tag fixtures: [:alice, :more_utxos]
     test "returns an error when requester is equal to all the outputs owner", %{alice: alice} do
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => Encoding.to_hex(alice),
         "payments" => [
-          %{"amount" => 1, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice.addr)},
-          %{"amount" => 1, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice.addr)}
+          %{"amount" => 1, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice)},
+          %{"amount" => 1, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice)}
         ],
         "fee" => %{"currency" => @default_fee_currency}
       }
@@ -1190,7 +1190,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _payment_5_fee = insert(:txoutput, amount: 100, currency: @eth, owner: alice.addr)
 
       params = %{
-        "owner" => Encoding.to_hex(alice.addr),
+        "owner" => Encoding.to_hex(alice),
         "payments" => [
           %{"amount" => 495, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
         ],
@@ -1259,7 +1259,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _payment_3 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
       _payment_and_fee = insert(:txoutput, amount: 15, currency: @eth, owner: alice.addr)
 
-      alice_addr_hex = Encoding.to_hex(alice.addr)
+      alice_addr_hex = Encoding.to_hex(alice)
       bob_addr_hex = Encoding.to_hex(bob.addr)
 
       params = %{
@@ -1302,7 +1302,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _fee_1 = insert(:txoutput, amount: @default_fee_amount, currency: @eth, owner: alice.addr)
       _stealth_merge_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
 
-      alice_addr_hex = Encoding.to_hex(alice.addr)
+      alice_addr_hex = Encoding.to_hex(alice)
       bob_addr_hex = Encoding.to_hex(bob.addr)
 
       # Assert when payment amount exactly matched with input amounts
@@ -1379,7 +1379,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _fee = insert(:txoutput, amount: @default_fee_amount, currency: @eth, owner: alice.addr)
       _stealth_add_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
 
-      alice_addr_hex = Encoding.to_hex(alice.addr)
+      alice_addr_hex = Encoding.to_hex(alice)
       bob_addr_hex = Encoding.to_hex(bob.addr)
 
       # Assert when payment amount exactly matched with input amounts
@@ -1455,7 +1455,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _stealth_add_1 = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
       _stealth_add_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
 
-      alice_addr_hex = Encoding.to_hex(alice.addr)
+      alice_addr_hex = Encoding.to_hex(alice)
       bob_addr_hex = Encoding.to_hex(bob.addr)
 
       # Assert when payment amount exactly matched with input amounts
@@ -1532,7 +1532,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _stealth_add_1 = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
       _stealth_add_2 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
 
-      alice_addr_hex = Encoding.to_hex(alice.addr)
+      alice_addr_hex = Encoding.to_hex(alice)
       bob_addr_hex = Encoding.to_hex(bob.addr)
 
       # Assert when payment amount exactly matched with input amounts
@@ -1607,7 +1607,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       _payment = insert(:txoutput, amount: 20, currency: @eth, owner: alice.addr)
       _merge_1 = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
 
-      alice_addr_hex = Encoding.to_hex(alice.addr)
+      alice_addr_hex = Encoding.to_hex(alice)
       bob_addr_hex = Encoding.to_hex(bob.addr)
 
       params = %{
@@ -1643,7 +1643,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   describe "/transaction.create validation" do
     @tag fixtures: [:alice, :more_utxos]
     test "incorrect payment in payment list", %{alice: alice} do
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = Encoding.to_hex(alice)
 
       assert %{
                "object" => "error",
@@ -1668,7 +1668,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :more_utxos]
     test "too many payments attempted", %{alice: alice} do
-      alice_addr = Encoding.to_hex(alice.addr)
+      alice_addr = Encoding.to_hex(alice)
       too_many_payments = List.duplicate(%{"amount" => 1, "currency" => @other_token_hex, "owner" => alice_addr}, 5)
 
       assert %{
@@ -1724,7 +1724,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [],
                    "fee" => %{"currency" => @eth_hex},
                    "metadata" => "no-a-hex"
@@ -1748,7 +1748,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => "not-a-list",
                    "fee" => %{"currency" => @eth_hex}
                  }
@@ -1771,7 +1771,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => [],
                    "fee" => %{"currency" => "123"}
                  }
@@ -1794,7 +1794,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                WatcherHelper.no_success?(
                  "transaction.create",
                  %{
-                   "owner" => Encoding.to_hex(alice.addr),
+                   "owner" => Encoding.to_hex(alice),
                    "payments" => []
                  }
                )
@@ -1802,17 +1802,29 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   end
 
   describe "/transaction.merge" do
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    setup do
+      alice = OMG.TestHelper.generate_entity()
+      bob = OMG.TestHelper.generate_entity()
+
+      state = %{
+        alice: Map.get(alice, :addr),
+        bob: Map.get(bob, :addr)
+      }
+
+      {:ok, state}
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a merge transaction for the given currency", %{alice: alice} do
-      alice_hex = Encoding.to_hex(alice.addr)
+      alice_hex = Encoding.to_hex(alice)
 
       insert(:txoutput)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @other_token, owner: alice)
 
       assert %{
                "transactions" => [
@@ -1855,17 +1867,17 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns multiple valid merge transactions if more than four UTXOs for the given currency", %{alice: alice} do
-      alice_hex = Encoding.to_hex(alice.addr)
+      alice_hex = Encoding.to_hex(alice)
 
       insert(:txoutput)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
 
       assert %{
                "transactions" => [
@@ -1936,12 +1948,12 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns expected error if there is only one input for the given address and currency", %{alice: alice} do
-      alice_hex = Encoding.to_hex(alice.addr)
+      alice_hex = Encoding.to_hex(alice)
 
       insert(:txoutput)
-      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice.addr)
+      _ = insert(:txoutput, amount: 1, currency: @eth, owner: alice)
 
       assert %{
                "code" => "merge:single_input",
@@ -1956,14 +1968,14 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "request with valid UTXO positions returns correctly formed merge transaction", %{alice: alice} do
-      alice_hex = Encoding.to_hex(alice.addr)
+      alice_hex = Encoding.to_hex(alice)
 
       insert(:txoutput)
-      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
-      position_2 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
-      position_3 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_1 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_3 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
 
       assert %{
                "transactions" => [
@@ -2005,14 +2017,14 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "does not accept a request with more than four UTXO positions", %{alice: alice} do
       insert(:txoutput)
-      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
-      position_2 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
-      position_3 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
-      position_4 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
-      position_5 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_1 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_3 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_4 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_5 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
 
       result =
         WatcherHelper.no_success?(
@@ -2035,10 +2047,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              }
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "does not accept a request with less than two UTXO positions", %{alice: alice} do
       insert(:txoutput)
-      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth, amount: 1) |> encoded_position_from_insert()
+      position_1 = :txoutput |> insert(owner: alice, currency: @eth, amount: 1) |> encoded_position_from_insert()
 
       result =
         WatcherHelper.no_success?(
@@ -2061,10 +2073,10 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              }
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "does not accept duplicate input positions", %{alice: alice} do
       insert(:txoutput)
-      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth) |> encoded_position_from_insert()
+      position_1 = :txoutput |> insert(owner: alice, currency: @eth) |> encoded_position_from_insert()
 
       assert %{"code" => "merge:duplicate_input_positions"} =
                WatcherHelper.no_success?(
@@ -2075,11 +2087,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns expected error if there is more than one owner for a currency", %{alice: alice, bob: bob} do
       insert(:txoutput)
-      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth) |> encoded_position_from_insert()
-      position_2 = :txoutput |> insert(owner: bob.addr, currency: @eth) |> encoded_position_from_insert()
+      position_1 = :txoutput |> insert(owner: alice, currency: @eth) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: bob, currency: @eth) |> encoded_position_from_insert()
 
       assert %{"code" => "merge:multiple_input_owners"} =
                WatcherHelper.no_success?(
@@ -2090,11 +2102,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                )
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns expected error if there is more than one currency", %{alice: alice} do
       insert(:txoutput)
-      position_1 = :txoutput |> insert(owner: alice.addr, currency: @eth) |> encoded_position_from_insert()
-      position_2 = :txoutput |> insert(owner: alice.addr, currency: @other_token) |> encoded_position_from_insert()
+      position_1 = :txoutput |> insert(owner: alice, currency: @eth) |> encoded_position_from_insert()
+      position_2 = :txoutput |> insert(owner: alice, currency: @other_token) |> encoded_position_from_insert()
 
       assert %{"code" => "merge:multiple_currencies"} =
                WatcherHelper.no_success?(
