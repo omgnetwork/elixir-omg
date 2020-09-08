@@ -120,7 +120,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
         {:error, :no_inputs_found}
 
       [_single_input] ->
-        {:error, :no_possible_merge_combination}
+        {:error, :single_input}
 
       inputs ->
         {:ok, TransactionCreator.generate_merge_transactions(inputs)}
@@ -128,34 +128,12 @@ defmodule OMG.WatcherInfo.API.Transaction do
   end
 
   def merge(%{utxo_positions: utxo_positions}) do
-    with {:ok, _} <- no_duplicate_positions(utxo_positions),
-         {:ok, inputs} <- get_merge_inputs(utxo_positions),
-         {:ok, transactions} <- generate_merge_transactions_by_currency(inputs) do
-      flattened_transaction_list = List.flatten(transactions)
-
-      if Enum.empty?(flattened_transaction_list) do
-        # Return an error instead of empty list if user passes one position per currency.
-        {:error, :no_possible_merge_combination}
-      else
-        {:ok, flattened_transaction_list}
-      end
+    with {:ok, inputs} <- get_merge_inputs(utxo_positions),
+         :ok <- no_duplicates(inputs),
+         :ok <- single_owner(inputs),
+         :ok <- single_currency(inputs) do
+      {:ok, TransactionCreator.generate_merge_transactions(inputs)}
     end
-  end
-
-  @spec generate_merge_transactions_by_currency(list()) :: {:ok, list()} | {:error, atom()}
-  defp generate_merge_transactions_by_currency(inputs) do
-    inputs
-    |> Enum.group_by(fn input -> input.currency end)
-    |> Enum.reduce_while({:ok, []}, fn {_ccy, inputs}, {:ok, acc} ->
-      case single_owner(inputs) do
-        :ok ->
-          transactions = TransactionCreator.generate_merge_transactions(inputs)
-          {:cont, {:ok, [transactions | acc]}}
-
-        {:error, error} ->
-          {:halt, {:error, error}}
-      end
-    end)
   end
 
   defp get_utxos_count(inputs) do
@@ -187,14 +165,15 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end)
   end
 
-  @spec no_duplicate_positions(list()) :: {:ok, map()} | {:error, atom()}
-  defp no_duplicate_positions(utxo_positions) do
-    Enum.reduce_while(utxo_positions, {:ok, %{}}, fn position, {:ok, acc} ->
-      case Map.has_key?(acc, position) do
-        true -> {:halt, {:error, :duplicate_input_positions}}
-        false -> {:cont, {:ok, Map.put(acc, position, true)}}
-      end
-    end)
+  @spec no_duplicates(list()) :: :ok | {:error, atom()}
+  defp no_duplicates(inputs) do
+    inputs
+    |> Enum.uniq()
+    |> length()
+    |> case do
+      n when n == length(inputs) -> :ok
+      _ -> {:error, :duplicate_input_positions}
+    end
   end
 
   @spec single_owner(list()) :: :ok | {:error, atom()}
@@ -202,6 +181,14 @@ defmodule OMG.WatcherInfo.API.Transaction do
     case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
       1 -> :ok
       _ -> {:error, :multiple_input_owners}
+    end
+  end
+
+  @spec single_currency(list()) :: :ok | {:error, atom()}
+  defp single_currency(inputs) do
+    case inputs |> Enum.uniq_by(fn input -> input.currency end) |> length() do
+      1 -> :ok
+      _ -> {:error, :multiple_currencies}
     end
   end
 

@@ -41,7 +41,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
         {:ok, [{"address", [:address], :address}, {"currency", [:currency], :currency}]}
 
       %{"utxo_positions" => _} ->
-        {:ok, [{"utxo_positions", [min_length: 2, list: &to_utxo_pos/1], :utxo_positions}]}
+        {:ok, [{"utxo_positions", [min_length: 2, max_length: 4, list: &to_utxo_pos/1], :utxo_positions}]}
 
       _ ->
         {:error, :operation_bad_request}
