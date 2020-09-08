@@ -31,7 +31,7 @@ defmodule OMG.DB.RocksDB.Server do
           name: GenServer.name()
         }
   @doc """
-  Initializes an empty LevelDB instance explicitly, so we can have control over it.
+  Initializes an empty RocksDB instance explicitly, so we can have control over it.
   NOTE: `init` here is to init the GenServer and that assumes that `init_storage` has already been called
   """
   @spec init_storage(binary) :: :ok | {:error, atom}
