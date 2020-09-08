@@ -37,18 +37,16 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   """
   @spec prioritize_merge_utxos(utxos_map_t(), utxos_map_t()) :: utxo_list_t()
   def prioritize_merge_utxos(utxos, selected_utxos) do
-    selected_utxo_hashes =
-      selected_utxos
-      |> Enum.flat_map(fn {_ccy, utxos} -> utxos end)
-      |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
-
-    case selected_utxo_hashes do
-      hashes_map when hashes_map == %{} ->
+    selected_utxos
+    |> Enum.flat_map(fn {_ccy, utxos} -> utxos end)
+    |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
+    |> case do
+      hashes_map when map_size(hashes_map) == 0 ->
         []
 
-      _ ->
+      hashes_map ->
         selected_utxos
-        |> Enum.map(&prioritize_utxos_by_currency(&1, utxos, selected_utxo_hashes))
+        |> Enum.map(&prioritize_utxos_by_currency(&1, utxos, hashes_map))
         |> Enum.sort_by(&length/1, :desc)
         |> Enum.map(fn ccy_group -> Enum.slice(ccy_group, 0, 3) end)
         |> List.flatten()
@@ -97,24 +95,30 @@ defmodule OMG.WatcherInfo.UtxoSelection do
           list({currency_t(), {integer, utxo_list_t()}})
   def select_utxo(needed_funds, utxos) do
     Enum.map(needed_funds, fn {token, need} ->
-      token_utxos = Map.get(utxos, token, [])
+      selected_utxos =
+        utxos
+        |> Map.get(token, [])
+        |> find_utxos(need)
 
-      {token,
-       case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
-         nil ->
-           Enum.reduce_while(token_utxos, {need, []}, fn
-             _, {need, acc} when need <= 0 ->
-               {:halt, {need, acc}}
-
-             %DB.TxOutput{amount: amount} = utxo, {need, acc} ->
-               {:cont, {need - amount, [utxo | acc]}}
-           end)
-
-         utxo ->
-           {0, [utxo]}
-       end}
+      {token, selected_utxos}
     end)
   end
+
+  defp find_utxos_by_token(token_utxos, need) do
+    case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
+      nil ->
+        recursively_find_utxos(token_utxos, need, [])
+
+      utxo ->
+        {0, [utxo]}
+    end
+  end
+
+  defp recursively_find_utxos(_, need, selected_utxos) when need <= 0, do: {need, selected_utxos}
+  defp recursively_find_utxos([], need, _), do: {need, []}
+
+  defp recursively_find_utxos([utxo | utxos], need, selected_utxos),
+    do: recursively_find_utxos(utxos, need - utxo.amount, [utxo | selected_utxos])
 
   @doc """
   Sums up payable amount by token, including the fee.

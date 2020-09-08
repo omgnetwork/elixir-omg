@@ -27,6 +27,7 @@ defmodule OMG.WatcherInfo.Transaction do
 
   @empty_metadata <<0::256>>
   @max_outputs Transaction.Payment.max_outputs()
+  @merge_fee 0
 
   @type create_t() ::
           {:ok, nonempty_list(transaction_t())}
@@ -141,11 +142,12 @@ defmodule OMG.WatcherInfo.Transaction do
   @spec include_typed_data(create_t()) :: create_typed_data_t()
   def include_typed_data({:error, _} = err), do: err
 
-  def include_typed_data({:ok, %{result: result, transactions: txs}}),
-    do: {
+  def include_typed_data({:ok, %{result: result, transactions: txs}}) do
+    {
       :ok,
       %{result: result, transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
+  end
 
   @spec generate_merge_transactions(UtxoSelection.utxo_list_t()) :: list(transaction_t())
   def generate_merge_transactions(merge_inputs) do
@@ -167,7 +169,7 @@ defmodule OMG.WatcherInfo.Transaction do
     %{currency: currency, owner: owner} = List.first(inputs)
 
     case create(%{currency => inputs}, %{
-           fee: %{amount: 0, currency: currency},
+           fee: %{amount: @merge_fee, currency: currency},
            metadata: @empty_metadata,
            owner: owner,
            payments: []
