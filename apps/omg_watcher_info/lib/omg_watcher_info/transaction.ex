@@ -29,9 +29,14 @@ defmodule OMG.WatcherInfo.Transaction do
   @max_outputs Transaction.Payment.max_outputs()
 
   @type create_t() ::
-    {:ok, nonempty_list(transaction_t())}
-    | {:error, :too_many_outputs}
-    | {:error, :empty_transaction}
+          {:ok, nonempty_list(transaction_t())}
+          | {:error, :too_many_outputs}
+          | {:error, :empty_transaction}
+
+  @type create_typed_data_t() ::
+          {:ok, nonempty_list(transaction_with_typed_data_t())}
+          | {:error, :too_many_outputs}
+          | {:error, :empty_transaction}
 
   @type fee_t() :: %{
           currency: UtxoSelection.currency_t(),
@@ -44,6 +49,15 @@ defmodule OMG.WatcherInfo.Transaction do
         }
 
   @type transaction_t() :: %{
+          inputs: nonempty_list(%DB.TxOutput{}),
+          outputs: nonempty_list(payment_t()),
+          fee: fee_t(),
+          txbytes: Transaction.tx_bytes() | nil,
+          metadata: Transaction.metadata(),
+          sign_hash: Crypto.hash_t() | nil
+        }
+
+  @type transaction_with_typed_data_t() :: %{
           inputs: nonempty_list(%DB.TxOutput{}),
           outputs: nonempty_list(payment_t()),
           fee: fee_t(),
@@ -111,20 +125,21 @@ defmodule OMG.WatcherInfo.Transaction do
       true ->
         raw_tx = create_raw_transaction(inputs, outputs, order.metadata)
 
-        {:ok, [
-          %{
-            inputs: inputs,
-            outputs: outputs,
-            fee: order.fee,
-            metadata: order.metadata,
-            txbytes: Transaction.raw_txbytes(raw_tx),
-            sign_hash: TypedDataHash.hash_struct(raw_tx)
-          }
-        ]}
+        {:ok,
+         [
+           %{
+             inputs: inputs,
+             outputs: outputs,
+             fee: order.fee,
+             metadata: order.metadata,
+             txbytes: Transaction.raw_txbytes(raw_tx),
+             sign_hash: TypedDataHash.hash_struct(raw_tx)
+           }
+         ]}
     end
   end
 
-  @spec include_typed_data(create_t()) :: create_t()
+  @spec include_typed_data(create_t()) :: create_typed_data_t()
   def include_typed_data({:error, _} = err), do: err
 
   def include_typed_data({:ok, %{result: result, transactions: txs}}),
@@ -153,11 +168,11 @@ defmodule OMG.WatcherInfo.Transaction do
     %{currency: currency, owner: owner} = List.first(inputs)
 
     case create(%{currency => inputs}, %{
-      fee: %{amount: 0, currency: currency},
-      metadata: @empty_metadata,
-      owner: owner,
-      payments: []
-    }) do
+           fee: %{amount: 0, currency: currency},
+           metadata: @empty_metadata,
+           owner: owner,
+           payments: []
+         }) do
       {:error, :empty_transaction} ->
         []
 

@@ -35,21 +35,11 @@ defmodule OMG.WatcherInfo.API.Transaction do
           {:ok,
            %{
              result: :complete | :intermediate,
-             transactions: nonempty_list(transaction_t())
+             transactions: nonempty_list(TransactionCreator.transaction_with_typed_data_t())
            }}
           | {:error, :too_many_outputs}
           | {:error, :empty_transaction}
           | {:error, {:insufficient_funds, list(map())}}
-
-  @type transaction_t() :: %{
-          inputs: nonempty_list(%DB.TxOutput{}),
-          outputs: nonempty_list(TransactionCreator.payment_t()),
-          fee: TransactionCreator.fee_t(),
-          txbytes: Transaction.tx_bytes() | nil,
-          metadata: Transaction.metadata(),
-          sign_hash: Crypto.hash_t() | nil,
-          typed_data: TypedDataHash.Types.typedDataSignRequest_t()
-        }
 
   @doc """
   Retrieves a specific transaction by id
@@ -131,9 +121,6 @@ defmodule OMG.WatcherInfo.API.Transaction do
       |> List.flatten()
 
     respond({:ok, transactions}, :intermediate)
-    # inputs
-    #   |> TransactionCreator.generate_merge_transactions()
-    #   |> respond(:intermediate)
   end
 
   defp create_transaction(_utxos_count, inputs, order) do
