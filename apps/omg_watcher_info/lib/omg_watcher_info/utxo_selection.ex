@@ -114,12 +114,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end
   end
 
-  defp recursively_find_utxos(_, need, selected_utxos) when need <= 0, do: {need, selected_utxos}
-  defp recursively_find_utxos([], need, _), do: {need, []}
-
-  defp recursively_find_utxos([utxo | utxos], need, selected_utxos),
-    do: recursively_find_utxos(utxos, need - utxo.amount, [utxo | selected_utxos])
-
   @doc """
   Sums up payable amount by token, including the fee.
   """
@@ -164,6 +158,12 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         {:error, {:insufficient_funds, missing_funds}}
     end
   end
+
+  defp recursively_find_utxos(_, need, selected_utxos) when need <= 0, do: {need, selected_utxos}
+  defp recursively_find_utxos([], need, _), do: {need, []}
+
+  defp recursively_find_utxos([utxo | utxos], need, selected_utxos),
+    do: recursively_find_utxos(utxos, need - utxo.amount, [utxo | selected_utxos])
 
   @spec filter_unselected(utxo_list_t(), %{currency_t() => boolean()}) :: utxo_list_t()
   defp filter_unselected(available_utxos, selected_utxo_hashes) do
