@@ -97,7 +97,7 @@
 
 ## [v1.0.2](https://github.com/omgnetwork/elixir-omg/tree/v1.0.2) (2020-06-30)
 
-[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.2-pre.0...v1.0.2)
+[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.0-pre.2...v1.0.1)
 
 ### Enhancements
 
