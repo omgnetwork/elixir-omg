@@ -85,9 +85,12 @@ defmodule OMG.WatcherInfo.Transaction do
   @spec select_inputs(utxos_map_t(), order_t()) :: inputs_t()
   def select_inputs(utxos, %{payments: payments, fee: fee}) do
     payments
-    |> UtxoSelection.calculate_net_amount(fee) # calculate total amount to satisfy payments and fee.
-    |> UtxoSelection.select_utxos(utxos) # tries to find utxos that satisfies payments and fee.
-    |> UtxoSelection.review_selected_utxos() # review if utxos can satisfy payments and fee
+    # calculate net amount to satisfy payments and fee.
+    |> UtxoSelection.calculate_net_amount(fee)
+    # tries to find utxos that satisfy net amount.
+    |> UtxoSelection.select_utxos(utxos)
+    # review if utxos satisfy net amount.
+    |> UtxoSelection.review_selected_utxos()
     |> case do
       {:ok, funds} ->
         stealth_merge_utxos =
@@ -227,11 +230,13 @@ defmodule OMG.WatcherInfo.Transaction do
       |> Enum.concat()
       |> Map.new()
 
-    %{
-      domain: TypedDataHash.Config.domain_data_from_config(),
-      message: message
-    }
-    |> Map.merge(TypedDataHash.Types.eip712_types_specification())
+    Map.merge(
+      %{
+        domain: TypedDataHash.Config.domain_data_from_config(),
+        message: message
+      },
+      TypedDataHash.Types.eip712_types_specification()
+    )
   end
 
   defp create_inputs(inputs) do
