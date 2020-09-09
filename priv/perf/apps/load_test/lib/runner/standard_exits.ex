@@ -43,7 +43,7 @@ defmodule LoadTest.Runner.StandardExits do
     _ = Exit.add_exit_queue(1, Encoding.to_binary(test_currency), faucet, gas_price)
 
     [
-      {{config.concurrent_sessions, LoadTest.Scenario.ManyStandardExits},
+      {{config.concurrent_sessions, [LoadTest.Scenario.ManyStandardExits, LoadTest.Scenario.WatcherStatus]},
        %{
          gas_price: gas_price,
          test_currency: test_currency
