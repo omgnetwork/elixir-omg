@@ -86,15 +86,15 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   end
 
   @doc """
-  Given the available set of UTXOs and the needed amount by currency, tries to find a UTXO that satisfies the payment with no change.
+  Given the available set of UTXOs and the net amount by currency, tries to find a UTXO that satisfies the payment with no change.
   If this fails, starts to collect UTXOs (starting from the largest amount) until the payment is covered.
   Returns {currency, { variance, [utxos] }}. A `variance` greater than zero means insufficient funds.
   The ordering of UTXOs in descending order of amount is implicitly assumed for this algorithm to work deterministically.
   """
-  @spec select_utxo(%{currency_t() => pos_integer()}, utxos_map_t()) ::
+  @spec select_utxos(%{currency_t() => pos_integer()}, utxos_map_t()) ::
           list({currency_t(), {integer, utxo_list_t()}})
-  def select_utxo(needed_funds, utxos) do
-    Enum.map(needed_funds, fn {token, need} ->
+  def select_utxos(net_amount, utxos) do
+    Enum.map(net_amount, fn {token, need} ->
       selected_utxos =
         utxos
         |> Map.get(token, [])
@@ -117,10 +117,10 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   @doc """
   Sums up payable amount by token, including the fee.
   """
-  @spec needed_funds(list(TransactionCreator.payment_t()), %{amount: pos_integer(), currency: currency_t()}) ::
+  @spec calculate_net_amount(list(TransactionCreator.payment_t()), %{amount: pos_integer(), currency: currency_t()}) ::
           %{currency_t() => pos_integer()}
-  def needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
-    needed_funds =
+  def calculate_net_amount(payments, %{currency: fee_currency, amount: fee_amount}) do
+    net_amount_map =
       payments
       |> Enum.group_by(fn payment -> payment.currency end)
       |> Stream.map(fn {token, payment} ->
@@ -128,18 +128,18 @@ defmodule OMG.WatcherInfo.UtxoSelection do
       end)
       |> Map.new()
 
-    Map.update(needed_funds, fee_currency, fee_amount, fn amount -> amount + fee_amount end)
+    Map.update(net_amount_map, fee_currency, fee_amount, fn amount -> amount + fee_amount end)
   end
 
   @doc """
   Checks if the result of `select_utxos/2` covers the amount(s) of the transaction order.
   """
-  @spec funds_sufficient([
+  @spec review_selected_utxos([
           {currency :: currency_t(), {variance :: integer(), selected_utxos :: utxo_list_t()}}
         ]) ::
           {:ok, utxos_map_t()}
           | {:error, {:insufficient_funds, [%{token: String.t(), missing: pos_integer()}]}}
-  def funds_sufficient(utxo_selection) do
+  def review_selected_utxos(utxo_selection) do
     missing_funds =
       utxo_selection
       |> Stream.filter(fn {_currency, {variance, _selected_utxos}} -> variance > 0 end)

@@ -29,7 +29,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   @eth OMG.Eth.zero_address()
   @other_token <<127::160>>
 
-  describe "needed_funds/2" do
+  describe "calculate_net_amount/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns a correct map when payment_currency != fee_currency" do
       payment_currency = @eth
@@ -51,7 +51,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       assert %{
                payment_currency => 1_000,
                fee_currency => 2_000
-             } == UtxoSelection.needed_funds(payments, fee)
+             } == UtxoSelection.calculate_net_amount(payments, fee)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -73,12 +73,12 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       assert %{
                payment_currency => 3_000
-             } == UtxoSelection.needed_funds(payments, fee)
+             } == UtxoSelection.calculate_net_amount(payments, fee)
     end
   end
 
-  describe "funds_sufficient/1" do
-    test "should return the expected error if UTXOs do not cover the amount of the transaction order" do
+  describe "review_selected_utxos/1" do
+    test "should return the expected error if selected UTXOs do not cover the amount of the transaction order" do
       variances = %{@eth => 5, @other_token => 10}
 
       # UTXO list is empty for simplicty as the error response does not need it.
@@ -86,7 +86,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       constructed_argument = Enum.map([@eth, @other_token], fn ccy -> {ccy, {variances[ccy], utxo_list}} end)
 
-      assert UtxoSelection.funds_sufficient(constructed_argument) ==
+      assert UtxoSelection.review_selected_utxos(constructed_argument) ==
                {:error,
                 {:insufficient_funds,
                  [
@@ -117,10 +117,10 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
     end
   end
 
-  describe "select_utxo/2" do
+  describe "select_utxos/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the expected utxos if UTXOs cover `needed_funds" do
-      needed_funds = %{
+    test "returns the expected utxos if UTXOs cover `calculate_net_amount" do
+      net_amount = %{
         @eth => 2_000
       }
 
@@ -129,12 +129,12 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-      assert [{@eth, {-200, utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
+      assert [{@eth, {-200, utxos}}] = UtxoSelection.select_utxos(net_amount, utxos)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the expected utxos if any of UTXOs exactly matched `needed_funds`" do
-      needed_funds = %{
+    test "returns the expected utxos if any of UTXOs exactly matched `net_amount`" do
+      net_amount = %{
         @eth => 2_000
       }
 
@@ -142,12 +142,12 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-      assert [{@eth, {0, utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
+      assert [{@eth, {0, utxos}}] = UtxoSelection.select_utxos(net_amount, utxos)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns positive variance if UTXOs don't cover `needed_funds`" do
-      needed_funds = %{
+    test "returns positive variance if UTXOs don't cover `net_amount`" do
+      net_amount = %{
         @eth => 2_000
       }
 
@@ -156,7 +156,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice)
 
-      assert [{@eth, {1_000, _utxos}}] = UtxoSelection.select_utxo(needed_funds, utxos)
+      assert [{@eth, {1_000, _utxos}}] = UtxoSelection.select_utxos(net_amount, utxos)
     end
   end
 

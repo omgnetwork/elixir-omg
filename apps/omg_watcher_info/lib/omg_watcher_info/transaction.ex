@@ -85,9 +85,9 @@ defmodule OMG.WatcherInfo.Transaction do
   @spec select_inputs(utxos_map_t(), order_t()) :: inputs_t()
   def select_inputs(utxos, %{payments: payments, fee: fee}) do
     payments
-    |> UtxoSelection.needed_funds(fee)
-    |> UtxoSelection.select_utxo(utxos)
-    |> UtxoSelection.funds_sufficient()
+    |> UtxoSelection.calculate_net_amount(fee) # calculate total amount to satisfy payments and fee.
+    |> UtxoSelection.select_utxos(utxos) # tries to find utxos that satisfies payments and fee.
+    |> UtxoSelection.review_selected_utxos() # review if utxos can satisfy payments and fee
     |> case do
       {:ok, funds} ->
         stealth_merge_utxos =
