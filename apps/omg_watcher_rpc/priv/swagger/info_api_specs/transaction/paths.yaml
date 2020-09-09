@@ -38,8 +38,11 @@ transaction.merge:
       tags:
         - Transaction
       summary: Constructs merge transactions.
-      description: >
-        Given owner and currency, or a list of utxo positions, creates and encodes merge transactions for the caller.
+      description: |
+        - Given address and currency parameters, returns a list of merge transactions for correspondng 
+        UTXOs – grouped in ascending order of value. 
+        - Given between two and four UTXO positions, returns a merge transaction for the corresponding
+        UTXOs. (These UTXOs must have the same owner and currency)
       operationId: mergeTransaction
       requestBody:
         $ref: 'request_bodies.yaml#/MergeTransactionsBodySchema'
