@@ -23,21 +23,19 @@ defmodule LoadTest.Scenario.StartStandardExit do
 
   use Chaperon.Scenario
 
+  alias Chaperon.Session
   alias LoadTest.ChildChain.Exit
-  alias LoadTest.Ethereum.Account
-  alias LoadTest.Service.Faucet
 
   def run(session) do
     exiter = config(session, [:exiter])
     utxo = config(session, [:utxo])
     gas_price = config(session, [:gas_price])
-    exit_utxo(utxo, exiter, gas_price)
-    session
-  end
 
-  def exit_utxo(utxo, exiter, gas_price) do
-    utxo
-    |> Exit.wait_for_exit_data()
-    |> Exit.start_exit(exiter, gas_price)
+    tx_hash =
+      utxo
+      |> Exit.wait_for_exit_data()
+      |> Exit.start_exit(exiter, gas_price)
+
+    Session.assign(session, tx_hash: tx_hash)
   end
 end

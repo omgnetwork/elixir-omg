@@ -22,9 +22,9 @@ defmodule LoadTest.Scenario.ManyStandardExits do
 
   use Chaperon.Scenario
 
-  alias LoadTest.ChildChain.Exit
+  alias LoadTest.ChildChain.WatcherSync
+  alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
-  alias LoadTest.Service.Faucet
 
   @gas_start_exit 500_000
   @standard_exit_bond 14_000_000_000_000_000
@@ -52,9 +52,16 @@ defmodule LoadTest.Scenario.ManyStandardExits do
     :ok = LoadTest.ChildChain.Utxos.wait_for_utxo(exiter.addr, session.assigned.utxo)
 
     # Start a standard exit on each of the exiter's utxos
-    exiter.addr
-    |> LoadTest.ChildChain.Utxos.get_utxos()
-    |> Enum.each(&exit_utxo(session, &1, exiter))
+    session =
+      exiter.addr
+      |> LoadTest.ChildChain.Utxos.get_utxos()
+      |> Enum.map(&exit_utxo(session, &1, exiter))
+      |> List.last()
+
+    last_tx_hash = session.assigned.tx_hash
+    {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} = Ethereum.transact_sync(last_tx_hash)
+
+    :ok = WatcherSync.watcher_synchronize(root_chain_height: last_exit_height)
 
     log_info(session, "Many Standard Exits Test done.")
   end

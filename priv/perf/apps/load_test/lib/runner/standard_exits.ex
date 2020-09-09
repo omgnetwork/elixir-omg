@@ -14,15 +14,22 @@
 
 defmodule LoadTest.Runner.StandardExits do
   @moduledoc """
+  Runs the Standard Exit load test scenarios.
+
+  Run with `mix test apps/load_test/test/load_tests/runner/standard_exit_test.exs`
+
+  The ManyStandardExits scenarios first creates and funds a new address, then
+  creates many utxos and then starts an exits on each one. It then waits for the
+  Watcher to sync with the root chain.
+
+  Finally, it calls Watcher status.get to measure the timing.
+
   """
   use Chaperon.LoadTest
 
   alias ExPlasma.Encoding
   alias LoadTest.ChildChain.Exit
   alias LoadTest.Service.Faucet
-  alias LoadTest.Ethereum.Account
-
-  @eth <<0::160>>
 
   @default_config %{
     concurrent_sessions: 1,

@@ -87,8 +87,6 @@ defmodule LoadTest.ChildChain.Exit do
     }
 
     {:ok, tx_hash} = Ethereum.send_raw_transaction(tx, from)
-
-    Ethereum.transact_sync(tx_hash)
     tx_hash
   end
 
@@ -118,7 +116,7 @@ defmodule LoadTest.ChildChain.Exit do
     end
   end
 
-  defp wait_for_exit_queue(vault_id, token, 0), do: exit(1)
+  defp wait_for_exit_queue(_vault_id, _token, 0), do: exit(1)
 
   defp wait_for_exit_queue(vault_id, token, counter) do
     if has_exit_queue?(vault_id, token) do

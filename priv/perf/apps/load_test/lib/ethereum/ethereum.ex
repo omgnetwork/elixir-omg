@@ -26,7 +26,6 @@ defmodule LoadTest.Ethereum do
   alias LoadTest.Ethereum.Transaction.Signature
 
   @about_4_blocks_time 120_000
-  @eth_amount_to_fund trunc(:math.pow(10, 18) * 0.1)
 
   @type hash_t() :: <<_::256>>
 
@@ -116,8 +115,6 @@ defmodule LoadTest.Ethereum do
 
     Abi.decode_function(data, signature)
   end
-
-  defp send_transaction(txmap), do: Ethereumex.HttpClient.eth_send_transaction(txmap)
 
   defp eth_receipt(txhash, timeout) do
     f = fn ->
