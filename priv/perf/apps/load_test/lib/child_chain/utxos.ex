@@ -16,23 +16,28 @@ defmodule LoadTest.ChildChain.Utxos do
   @moduledoc """
   Utility functions for utxos
   """
+  require Logger
+
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Transaction
-  alias LoadTest.Connection.WatcherInfo, as: Connection
-  alias WatcherInfoAPI.Api
-  alias WatcherInfoAPI.Model
+
+  @poll_interval 1_000
 
   @doc """
   Returns an addresses utxos.
   """
   @spec get_utxos(Utxo.address_binary()) :: list(Utxo.t())
   def get_utxos(address) do
-    body = %Model.AddressBodySchema1{
+    body = %WatcherInfoAPI.Model.AddressBodySchema1{
       address: Encoding.to_hex(address)
     }
 
-    {:ok, response} = Api.Account.account_get_utxos(Connection.client(), body)
+    {:ok, response} =
+      WatcherInfoAPI.Api.Account.account_get_utxos(
+        LoadTest.Connection.WatcherInfo.client(),
+        body
+      )
 
     utxos = Jason.decode!(response.body)["data"]
 
@@ -96,5 +101,17 @@ defmodule LoadTest.ChildChain.Utxos do
       )
 
     utxo
+  end
+
+  def wait_for_utxo(address, utxo) do
+    utxos = get_utxos(address)
+
+    if Enum.find(utxos, fn x -> Utxo.pos(x) == Utxo.pos(utxo) end) do
+      :ok
+    else
+      _ = Logger.info("Waiting for utxo")
+      Process.sleep(@poll_interval)
+      wait_for_utxo(address, utxo)
+    end
   end
 end

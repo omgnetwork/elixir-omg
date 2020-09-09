@@ -12,9 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.PerformanceTest do
-  @moduledoc false
+defmodule LoadTest.Scenario.FundAccountRootchain do
+  @moduledoc """
+  Funds an account with some ether from the faucet on the rootchain.
 
-  use ExUnit.Case, async: false
-  doctest LoadTest.Performance
+  ## configuration values
+  - `account` the account to fund
+  - `amount` the amount to fund (in wei)
+  """
+
+  use Chaperon.Scenario
+
+  alias Chaperon.Session
+  alias LoadTest.Service.Faucet
+
+  @spec run(Session.t()) :: Session.t()
+  def run(session) do
+    account = config(session, [:account])
+    amount = config(session, [:amount])
+    {:ok, _} = Faucet.fund_root_chain_account(account, amount)
+    session
+  end
 end

@@ -9,7 +9,7 @@ config :load_test,
   watcher_info_url: "http://localhost:7534",
   faucet_deposit_amount: trunc(:math.pow(10, 18) * 10),
   # fee testing setup: https://github.com/omgnetwork/fee-rules-public/blob/master/fee_rules.json
-  fee_amount: 75,
+  fee_amount: 1,
   utxo_load_test_config: %{
     concurrent_sessions: 10,
     utxos_to_create_per_session: 5,
@@ -23,4 +23,8 @@ config :load_test,
     concurrent_sessions: 2,
     iterations: 2,
     merge_scenario_sessions: true
+  },
+  standard_exit_test_config: %{
+    concurrent_sessions: 1,
+    exits_per_session: 4
   }
