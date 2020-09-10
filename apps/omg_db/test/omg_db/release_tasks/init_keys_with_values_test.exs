@@ -31,8 +31,8 @@ defmodule OMG.DB.ReleaseTasks.InitKeysWithValuesTest do
     {:ok, _} = Application.ensure_all_started(:omg_db)
     :ok = RocksDB.multi_update([{:delete, :last_ife_exit_deleted_eth_height, 0}])
 
-    assert [] == InitKeysWithValues.load([], db_server_name: OMG.DB.RocksDB.Server)
-    assert {:ok, 0} == RocksDB.get_single_value(:last_ife_exit_deleted_eth_height)
+    assert InitKeysWithValues.run() == :ok
+    assert RocksDB.get_single_value(:last_ife_exit_deleted_eth_height) == {:ok, 0}
   end
 
   test "value under :last_ife_exit_deleted_eth_height is not changed if it was already set", %{
@@ -44,11 +44,11 @@ defmodule OMG.DB.ReleaseTasks.InitKeysWithValuesTest do
     initial_value = 5
     :ok = RocksDB.multi_update([{:put, :last_ife_exit_deleted_eth_height, initial_value}])
 
-    assert [] == InitKeysWithValues.load([], db_server_name: OMG.DB.RocksDB.Server)
-    assert {:ok, initial_value} == RocksDB.get_single_value(:last_ife_exit_deleted_eth_height)
+    assert InitKeysWithValues.run() == :ok
+    assert RocksDB.get_single_value(:last_ife_exit_deleted_eth_height) == {:ok, initial_value}
   end
 
   test "does not fail when omg db is not started" do
-    assert [] == InitKeysWithValues.load([], db_server_name: OMG.DB.RocksDB.Server)
+    assert InitKeysWithValues.run() == :ok
   end
 end
