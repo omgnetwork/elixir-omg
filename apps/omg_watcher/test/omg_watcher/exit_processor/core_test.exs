@@ -335,42 +335,4 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       db_value_map
     end
   end
-
-  describe "delete_in_flight_exits/2" do
-    test "returns deleted utxos and database updates", %{processor_empty: processor, alice: alice} do
-      ife_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}])
-      ife_id1 = 1
-      tx_hash1 = Transaction.raw_txhash(ife_exit_tx1)
-      ife_exit_tx2 = TestHelper.create_recovered([{2, 0, 1, alice}, {2, 0, 2, alice}], @eth, [{alice, 9}])
-      ife_id2 = 2
-      ife_exit_tx3 = TestHelper.create_recovered([{3, 0, 1, alice}, {3, 0, 2, alice}], @eth, [{alice, 9}])
-      ife_id3 = 3
-      tx_hash3 = Transaction.raw_txhash(ife_exit_tx3)
-
-      {_processor, deleted_utxos, db_updates} =
-        processor
-        |> start_ife_from(ife_exit_tx1, exit_id: ife_id1)
-        |> start_ife_from(ife_exit_tx2, exit_id: ife_id2)
-        |> start_ife_from(ife_exit_tx3, exit_id: ife_id3)
-        |> Core.delete_in_flight_exits([%{exit_id: ife_id1}, %{exit_id: ife_id3}])
-
-      assert Enum.sort(deleted_utxos) ==
-               Enum.sort([{:utxo_position, 3, 0, 1}, {:utxo_position, 3, 0, 2}, {:utxo_position, 1, 0, 0}])
-
-      assert Enum.sort(db_updates) ==
-               Enum.sort([{:delete, :in_flight_exit_info, tx_hash1}, {:delete, :in_flight_exit_info, tx_hash3}])
-    end
-
-    test "deletes in-flight exits from processor", %{processor_empty: processor, alice: alice} do
-      ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}])
-      ife_id = 1
-
-      {processor, _deleted_utxos, _db_updates} =
-        processor
-        |> start_ife_from(ife_exit_tx, exit_id: ife_id)
-        |> Core.delete_in_flight_exits([%{exit_id: ife_id}])
-
-      assert Enum.empty?(processor.in_flight_exits)
-    end
-  end
 end
