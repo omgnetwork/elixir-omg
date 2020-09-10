@@ -22,7 +22,7 @@ defmodule LoadTest.ChildChain.Utxos do
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Transaction
 
-  @poll_interval 1_000
+  @poll_interval 2_000
 
   @doc """
   Returns an addresses utxos.
@@ -103,7 +103,14 @@ defmodule LoadTest.ChildChain.Utxos do
     utxo
   end
 
-  def wait_for_utxo(address, utxo) do
+  @doc """
+  Retries until the utxo is found.
+  """
+  @spec wait_for_utxo(Utxo.address_binary(), Utxo.t(), pos_integer()) :: :ok
+  def wait_for_utxo(address, utxo, counter \\ 100)
+  def wait_for_utxo(_address, _utxo, 0), do: :error
+
+  def wait_for_utxo(address, utxo, counter) do
     utxos = get_utxos(address)
 
     if Enum.find(utxos, fn x -> Utxo.pos(x) == Utxo.pos(utxo) end) do
@@ -111,7 +118,7 @@ defmodule LoadTest.ChildChain.Utxos do
     else
       _ = Logger.info("Waiting for utxo")
       Process.sleep(@poll_interval)
-      wait_for_utxo(address, utxo)
+      wait_for_utxo(address, utxo, counter - 1)
     end
   end
 end

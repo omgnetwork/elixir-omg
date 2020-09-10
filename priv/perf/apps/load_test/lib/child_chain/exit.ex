@@ -1,3 +1,17 @@
+# Copyright 2019-2020 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule LoadTest.ChildChain.Exit do
   @moduledoc """
   Utility functions for exits on a child chain.
@@ -48,16 +62,19 @@ defmodule LoadTest.ChildChain.Exit do
   @doc """
   Retries until the exit data of a utxo is found.
   """
-  @spec wait_for_exit_data(Utxo.t()) :: any()
-  def wait_for_exit_data(utxo_pos) do
+  @spec wait_for_exit_data(Utxo.t(), pos_integer()) :: any()
+  def wait_for_exit_data(utxo_pos, counter \\ 10)
+  def wait_for_exit_data(_, 0), do: :error
+
+  def wait_for_exit_data(utxo_pos, counter) do
     data = get_exit_data(utxo_pos)
 
     if data.proof do
       data
     else
-      _ = Logger.debug("Waiting for exit data")
+      _ = Logger.info("Waiting for exit data")
       Process.sleep(@poll_interval)
-      wait_for_exit_data(utxo_pos)
+      wait_for_exit_data(utxo_pos, counter - 1)
     end
   end
 
