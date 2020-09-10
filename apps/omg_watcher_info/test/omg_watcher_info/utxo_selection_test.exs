@@ -113,13 +113,13 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
               %{
                 @eth => [eth_utxo],
                 @other_token => [other_token_utxo]
-              }} = UtxoSelection.funds_sufficient(constructed_argument)
+              }} = UtxoSelection.review_selected_utxos(constructed_argument)
     end
   end
 
   describe "select_utxos/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns the expected utxos if UTXOs cover `calculate_net_amount" do
+    test "returns the expected utxos if UTXOs cover `net_amount`" do
       net_amount = %{
         @eth => 2_000
       }
