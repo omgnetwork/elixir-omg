@@ -30,7 +30,9 @@ defmodule LoadTest.Common.ExtendedPerftestTest do
     ntxs = 3000
     senders = Generators.generate_users(2)
 
-    assert :ok = ExtendedPerftest.start(ntxs, senders, destdir: destdir)
+    fee_amount = Application.fetch_env!(:load_test, :fee_amount)
+
+    assert :ok = ExtendedPerftest.start(ntxs, senders, fee_amount, destdir: destdir)
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * length(senders))

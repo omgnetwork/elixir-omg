@@ -32,17 +32,17 @@ defmodule LoadTest.Common.SenderManager do
   @doc """
   Starts the sender's manager process
   """
-  @spec start_link_all_senders(pos_integer(), list(), keyword()) :: pid
-  def start_link_all_senders(ntx_to_send, utxos, opts) do
-    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, utxos, opts}, name: __MODULE__)
+  @spec start_link_all_senders(pos_integer(), list(), pos_integer(), keyword()) :: pid
+  def start_link_all_senders(ntx_to_send, utxos, fee_amount, opts) do
+    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, utxos, fee_amount, opts}, name: __MODULE__)
     mypid
   end
 
   @doc """
   Starts sender processes
   """
-  @spec init({pos_integer(), list(), keyword()}) :: {:ok, map()}
-  def init({ntx_to_send, utxos, opts}) do
+  @spec init({pos_integer(), list(), pos_integer(), keyword()}) :: {:ok, map()}
+  def init({ntx_to_send, utxos, fee_amount, opts}) do
     Process.flag(:trap_exit, true)
     _ = Logger.debug("init called with utxos: #{inspect(length(utxos))}, ntx_to_send: #{inspect(ntx_to_send)}")
 
@@ -50,7 +50,7 @@ defmodule LoadTest.Common.SenderManager do
       utxos
       |> Enum.with_index(1)
       |> Enum.map(fn {utxo, seqnum} ->
-        {:ok, pid} = LoadTest.Common.SenderServer.start_link({seqnum, utxo, ntx_to_send, opts})
+        {:ok, pid} = LoadTest.Common.SenderServer.start_link({seqnum, utxo, ntx_to_send, fee_amount, opts})
         {seqnum, pid}
       end)
 
@@ -63,6 +63,7 @@ defmodule LoadTest.Common.SenderManager do
     {:ok,
      %{
        senders: senders,
+       fee_amount: fee_amount,
        events: [],
        block_times: [],
        goal: ntx_to_send,

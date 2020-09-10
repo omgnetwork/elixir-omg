@@ -1,0 +1,64 @@
+version: "2.3"
+services:
+  childchain:
+    environment:
+      - FEE_ADAPTER=feed
+      - FEE_FEED_URL=http://172.27.0.107:4000/api/v1
+    depends_on:
+      feefeed:
+        condition: service_healthy
+
+  postgres_feefeed:
+    image: postgres:12.2-alpine
+    ports:
+      - "5433:5432"
+    restart: always
+    healthcheck:
+      test: pg_isready -U feefeed
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    environment:
+      POSTGRES_USER: feefeed
+      POSTGRES_PASSWORD: feefeed
+      POSTGRES_DB: feefeed
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.106
+
+  feefeed:
+    image: "omisego/feefeed:latest"
+    command: "start"
+    container_name: feefeed
+    environment:
+      - GITHUB_TOKEN=""
+      - GITHUB_ORGANISATION=omgnetwork
+      - GITHUB_REPO=fee-rules-public
+      - GITHUB_BRANCH=master
+      - RULES_FETCH_INTERVAL=20
+      - RATES_FETCH_INTERVAL=20
+      - GITHUB_FILENAME=fee_rules
+      - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.106:5432/feefeed
+      - SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
+      - DATADOG_DISABLED=true
+      - DATADOG_HOST="localhost"
+      - ETHEREUM_NODE_URL=http://172.27.0.102:80
+    ports:
+      - "4000:4000"
+    expose:
+      - "4000"
+    depends_on:
+      postgres_feefeed:
+        condition: service_healthy
+      nginx:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: curl localhost:4000
+      interval: 30s
+      timeout: 1s
+      retries: 5
+      start_period: 30s
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.107

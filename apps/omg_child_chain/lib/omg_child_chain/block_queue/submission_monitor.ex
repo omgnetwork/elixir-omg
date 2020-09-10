@@ -21,6 +21,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
   require Logger
 
   defstruct pending_blocks: [],
+            last_mined_blknum: 0,
             root_chain_height: 0,
             stall_threshold_blocks: 4,
             alarm_module: nil,
@@ -31,6 +32,7 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
 
   @type t() :: %__MODULE__{
           pending_blocks: [pending_block()],
+          last_mined_blknum: non_neg_integer(),
           root_chain_height: non_neg_integer(),
           stall_threshold_blocks: pos_integer(),
           alarm_module: module(),
@@ -87,16 +89,26 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
     {:noreply, %{state | root_chain_height: new_height}}
   end
 
-  # Listens for a block being submitted and add it to monitoring if it hasn't been tracked
+  # Listens for :block_submitting and adds its blknum to monitoring if it's not being monitored.
+  #
+  # Sometimes a block is resubmitted even after it's been mined on the rootchain due to
+  # rootchain node and network latency. So we ignore the submitting blknums that are below
+  # :last_mined_blknum while add the rest to monitoring.
+  def handle_info({:internal_event_bus, :block_submitting, blknum}, %{last_mined_blknum: mined} = state)
+      when blknum <= mined do
+    {:noreply, state}
+  end
+
+  # Monitors the rest of :block_submitting that are not mined yet
   def handle_info({:internal_event_bus, :block_submitting, blknum}, state) do
     pending_blocks = add_new_blknum(state.pending_blocks, blknum, state.root_chain_height)
     {:noreply, %{state | pending_blocks: pending_blocks}}
   end
 
-  # Listens for a block that got submitted and drop it from monitoring
+  # Listens for a block that got mined and drops it from monitoring
   def handle_info({:internal_event_bus, :block_submitted, blknum}, state) do
     pending_blocks = remove_blknum(state.pending_blocks, blknum)
-    {:noreply, %{state | pending_blocks: pending_blocks}}
+    {:noreply, %{state | pending_blocks: pending_blocks, last_mined_blknum: blknum}}
   end
 
   # Ignore unrelated events
@@ -131,9 +143,10 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitor do
     end
   end
 
+  # Remove all pending_blknum that are below or equal to the given mined blknum
   @spec remove_blknum([{blknum(), any()}], blknum()) :: [pending_block()]
-  defp remove_blknum(pending_blocks, blknum) do
-    Enum.reject(pending_blocks, fn {pending_blknum, _} -> pending_blknum == blknum end)
+  defp remove_blknum(pending_blocks, mined_blknum) do
+    Enum.reject(pending_blocks, fn {pending_blknum, _} -> pending_blknum <= mined_blknum end)
   end
 
   #

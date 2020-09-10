@@ -64,7 +64,23 @@ defmodule OMG.ChildChain.BlockQueue.SubmissionMonitorTest do
       # Push the height just below the stalling height
       _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, context.stall_threshold_blocks - 1})
 
-      # Wait for 10x the check interval to make sure it really does not get raised again.
+      # Wait for 10x the check interval to make sure the alarm really does not get raised.
+      refute_receive(:got_raise_alarm, context.check_interval_ms * 10)
+    end)
+  end
+
+  test "does not raise :block_submit_stalled alarm when the submitting block is below the last mined block", context do
+    capture_log(fn ->
+      # Inform the monitor of a mined block
+      _ = send(context.monitor, {:internal_event_bus, :block_submitted, 2000})
+
+      # Inform the monitor of a pending block lower than the mined block
+      _ = send(context.monitor, {:internal_event_bus, :block_submitting, 1000})
+
+      # Push the height to the stalling height
+      _ = send(context.monitor, {:internal_event_bus, :ethereum_new_height, context.stall_threshold_blocks})
+
+      # Wait for 10x the check interval to make sure the alarm really does not get raised.
       refute_receive(:got_raise_alarm, context.check_interval_ms * 10)
     end)
   end

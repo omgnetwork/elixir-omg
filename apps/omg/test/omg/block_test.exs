@@ -48,6 +48,23 @@ defmodule OMG.BlockTest do
              }
     end
 
+    @tag fixtures: [:stable_alice, :stable_bob]
+    test "correctly calculates hash for a lot of transactions", %{
+      stable_alice: alice,
+      stable_bob: bob
+    } do
+      transactions =
+        Enum.map(1..64_000, fn index ->
+          TestHelper.create_recovered([{1, index, index, alice}], eth(), [{bob, 100}])
+        end)
+
+      block = Block.hashed_txs_at(transactions, 10)
+
+      assert block.hash ==
+               <<12, 40, 202, 7, 16, 175, 119, 138, 7, 95, 8, 3, 148, 93, 162, 168, 136, 226, 196, 236, 83, 62, 220, 75,
+                 59, 52, 6, 18, 249, 52, 124, 228>>
+    end
+
     test "handles an empty list of transactions" do
       assert Block.hashed_txs_at([], 10) == %Block{
                hash:
