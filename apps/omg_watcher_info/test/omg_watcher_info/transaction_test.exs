@@ -175,7 +175,9 @@ defmodule OMG.WatcherInfo.TransactionTest do
 
       {:ok, transactions} = Transaction.create(utxos_per_token, order)
 
-      assert {:ok, %{transactions: transactions}} = Transaction.include_typed_data({:ok, transactions})
+      assert {:ok, %{transactions: transactions}} =
+               Transaction.include_typed_data({:ok, %{transactions: transactions, result: :complete}})
+
       assert Enum.all?(transactions, &Map.has_key?(&1, :typed_data))
     end
   end
