@@ -17,9 +17,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Module provides API for transactions
   """
 
-  alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.TypedDataHash
   alias OMG.Utils.Paginator
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
