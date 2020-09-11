@@ -1,0 +1,25 @@
+name: Enforce changelog labels
+
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled]
+    branches: [master]
+
+jobs:
+  enforce-changelog-label:
+    runs-on: ubuntu-latest
+    env:
+      # When updating the labels here, also update the `configure-sections` of the `.github_changelog_generator` file
+      ONE_OF_LABELS: "api|enhancement|breaking|bug|chore|documentation"
+    steps:
+      - name: Check the PR for a changelog label
+        id: check-changelog-label
+        run: |
+          set -o xtrace
+
+          # Using the issues API instead of pulls because it can return only the labels
+          curl "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/labels" \
+          | grep -o '"name": "[^"]*' \
+          | cut -d'"' -f4 \
+          | grep -E $ONE_OF_LABELS \
+          || (echo "::error::The PR is missing a valid changelog label. Label the PR with one of: ${ONE_OF_LABELS//|/, }." && exit 1)

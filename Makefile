@@ -279,7 +279,7 @@ test-child_chain:
 # Documentation
 #
 changelog:
-	github_changelog_generator -u omisego -p elixir-omg
+	github_changelog_generator --user omgnetwork --project elixir-omg
 
 .PHONY: changelog
 
@@ -427,7 +427,7 @@ docker-remote-childchain:
 ###
 start-services:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
-	docker-compose up geth nginx postgres
+	docker-compose -f ./docker-compose.yml -f ./docker-compose.feefeed.yml up postgres_feefeed feefeed geth nginx postgres
 
 start-child_chain:
 	. ${OVERRIDING_VARIABLES} && \

@@ -45,19 +45,6 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
     }
   end
 
-  @spec in_flight_exit_deleted() :: ABI.FunctionSelector.t()
-  def in_flight_exit_deleted() do
-    %ABI.FunctionSelector{
-      function: "InFlightExitDeleted",
-      input_names: ["exitId"],
-      inputs_indexed: [true],
-      method_id: <<25, 145, 196, 195>>,
-      returns: [],
-      type: :event,
-      types: [uint: 160]
-    }
-  end
-
   @spec in_flight_exit_challenged() :: ABI.FunctionSelector.t()
   def in_flight_exit_challenged() do
     %ABI.FunctionSelector{
