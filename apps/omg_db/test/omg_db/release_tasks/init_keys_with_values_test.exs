@@ -21,26 +21,25 @@ defmodule OMG.DB.ReleaseTasks.InitKeysWithValuesTest do
   setup do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = Server.init_storage(dir)
-    {:ok, %{db_dir: dir}}
+    :ok = Application.put_env(:omg_db, :path, dir, persistent: true)
+    {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+
+    on_exit(fn ->
+      :ok = Application.put_env(:omg_db, :path, nil)
+      Enum.map(started_apps, fn app -> _ = Application.stop(app) end)
+    end)
+
+    {:ok, %{}}
   end
 
-  test ":last_ife_exit_deleted_eth_height is set if it wasn't set previously", %{
-    db_dir: db_path
-  } do
-    _ = Application.put_env(:omg_db, :path, db_path)
-    {:ok, _} = Application.ensure_all_started(:omg_db)
+  test ":last_ife_exit_deleted_eth_height is set if it wasn't set previously" do
     :ok = RocksDB.multi_update([{:delete, :last_ife_exit_deleted_eth_height, 0}])
 
     assert InitKeysWithValues.run() == :ok
     assert RocksDB.get_single_value(:last_ife_exit_deleted_eth_height) == {:ok, 0}
   end
 
-  test "value under :last_ife_exit_deleted_eth_height is not changed if it was already set", %{
-    db_dir: db_path
-  } do
-    _ = Application.put_env(:omg_db, :path, db_path)
-    {:ok, _} = Application.ensure_all_started(:omg_db)
-
+  test "value under :last_ife_exit_deleted_eth_height is not changed if it was already set" do
     initial_value = 5
     :ok = RocksDB.multi_update([{:put, :last_ife_exit_deleted_eth_height, initial_value}])
 
@@ -49,6 +48,9 @@ defmodule OMG.DB.ReleaseTasks.InitKeysWithValuesTest do
   end
 
   test "does not fail when omg db is not started" do
+    :ok = Application.stop(:omg_db)
+    :ok = Application.put_env(:omg_db, :path, nil)
+
     assert InitKeysWithValues.run() == :ok
   end
 end
