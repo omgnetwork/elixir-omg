@@ -120,7 +120,7 @@ defmodule OMG.Umbrella.MixProject do
             {OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval, []},
             {OMG.Eth.ReleaseTasks.SetEthereumStalledSyncThreshold, []},
             {OMG.ChildChain.ReleaseTasks.SetBlockSubmitMaxGasPrice, []},
-            {OMG.ChildChain.ReleaseTasks.SetBlockSubmitWhenNTxs, []},
+            {OMG.ChildChain.ReleaseTasks.SetBlockSubmitAfterNTxs, []},
             {OMG.ChildChain.ReleaseTasks.SetFeeClaimerAddress, []},
             {OMG.ChildChain.ReleaseTasks.SetFeeBufferDuration, []},
             {OMG.ChildChain.ReleaseTasks.SetFeeFileAdapterOpts, []},

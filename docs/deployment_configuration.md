@@ -24,7 +24,7 @@
 
 - "BLOCK_SUBMIT_MAX_GAS_PRICE" - The maximum gas price to use for block submission. The first block submission after application boot will use the max price. The gas price gradually adjusts on subsequent blocks to reach the current optimum price . Defaults to `20000000000` (20 Gwei).
 - "BLOCK_SUBMIT_EVERY_NTH" - submits block every `N` Ethereum blocks (unless block is empty). Default is 1 (plasma block in each Ethereum block).
-- "BLOCK_SUBMIT_WHEN_N_TXS" - triggers block submission quicker than above n-Ethereum blocks if there are already `N` pending transactions.
+- "BLOCK_SUBMIT_AFTER_N_TXS" - triggers block submission quicker than above n-Ethereum blocks if there are already `N` pending transactions.
 - "FEE_ADAPTER" - The adapter to use to populate the fee specs. Either `file` or `feed` (case-insensitive). Defaults to `file` with an empty fee specs.
 - "FEE_CLAIMER_ADDRESS" - 20-bytes HEX-encoded string of Ethereum address of Fee Claimer.
 - "FEE_BUFFER_DURATION_MS" - Buffer period during which a fee is still valid after being updated.

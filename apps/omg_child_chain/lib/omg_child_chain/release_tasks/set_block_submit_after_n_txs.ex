@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ChildChain.ReleaseTasks.SetBlockSubmitWhenNTxs do
+defmodule OMG.ChildChain.ReleaseTasks.SetBlockSubmitAfterNTxs do
   @moduledoc false
   @behaviour Config.Provider
   require Logger
 
   @app :omg_child_chain
-  @config_key :block_submit_when_n_txs
-  @env_var_name "BLOCK_SUBMIT_WHEN_N_TXS"
+  @config_key :block_submit_after_n_txs
+  @env_var_name "BLOCK_SUBMIT_AFTER_N_TXS"
 
   def init(args) do
     args
