@@ -63,7 +63,6 @@ commands:
   make_docker_images:
     description: Builds docker images
     steps:
-      - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
 
@@ -313,8 +312,6 @@ jobs:
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r .
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_bus
-      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_child_chain
-      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_child_chain_rpc --router apps/omg_child_chain_rpc/lib/omg_child_chain_rpc/web/router.ex
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_db
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_eth
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_status

@@ -148,54 +148,8 @@ defmodule OMG.TestHelper do
 
   def sign_encode(%{} = tx, priv_keys), do: tx |> DevCrypto.sign(priv_keys) |> Transaction.Signed.encode()
 
-  def sign_recover!(%{} = tx, priv_keys),
-    do: tx |> sign_encode(priv_keys) |> Transaction.Recovered.recover_from!()
-
-  @doc """
-  Always creates file in the priv/ folder of the application.
-  """
-  @spec write_fee_file(%{Crypto.address_t() => map()} | binary()) :: {:ok, binary}
-  def write_fee_file(map_or_content, file_path \\ nil)
-
-  def write_fee_file(map, file_path) when is_map(map) do
-    {:ok, json} =
-      map
-      |> Enum.map(fn {tx_type, fees} ->
-        {Integer.to_string(tx_type), parse_fees(fees)}
-      end)
-      |> Enum.into(%{})
-      |> Jason.encode()
-
-    write_fee_file(json, file_path)
-  end
-
-  def write_fee_file(content, file_path) do
-    path =
-      case file_path do
-        nil -> "#{:code.priv_dir(:omg_child_chain)}/test_fees_file-#{System.monotonic_time()}"
-        _ -> file_path
-      end
-
-    :ok = File.write(path, content, [:write])
-    {:ok, path}
-  end
-
-  defp parse_fees(fees) do
-    fees
-    |> Enum.map(fn {"0x" <> _ = token, fee} ->
-      {token,
-       %{
-         amount: fee.amount,
-         subunit_to_unit: fee.subunit_to_unit,
-         pegged_amount: fee.pegged_amount,
-         pegged_currency: fee.pegged_currency,
-         pegged_subunit_to_unit: fee.pegged_subunit_to_unit,
-         updated_at: fee.updated_at,
-         symbol: "token",
-         type: "fixed"
-       }}
-    end)
-    |> Map.new()
+  def sign_recover!(%{} = tx, priv_keys) do
+    tx |> sign_encode(priv_keys) |> Transaction.Recovered.recover_from!()
   end
 
   defp get_private_keys(inputs),

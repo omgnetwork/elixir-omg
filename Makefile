@@ -27,13 +27,13 @@ help:
 	@echo "DOCKER DEVELOPMENT"
 	@echo "------------------"
 	@echo ""
-	@echo "  - \`make docker-build-start-cluster\`: build child_chain, watcher and watcher_info images \c"
+	@echo "  - \`make docker-build-start-cluster\`: watcher and watcher_info images \c"
 	@echo "from your current code base, then start a cluster with these freshly built images."
 	@echo ""
-	@echo " - \`make docker-build\`" build child_chain, watcher and watcher_info images from your current code base
+	@echo " - \`make docker-build\`" watcher and watcher_info images from your current code base
 	@echo ""
-	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\` or \c"
-	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
+	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\`"
+	@echo "replaces containers with your code changes\c"
 	@echo "for rapid development."
 	@echo ""
 	@echo "  - \`make docker-nuke\`: wipe docker clean, including containers, images, networks \c"
