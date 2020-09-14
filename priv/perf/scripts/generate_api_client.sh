@@ -23,10 +23,9 @@ echo "Generating childchain clients..."
 echo "------------------------------------------------------"
 docker run --rm \
     -v ${PWD}/apps:/apps \
-    -v ${PWD}/../../apps/omg_child_chain_rpc/priv/swagger/:/swagger \
     --user $(id -u):$(id -g) \
     openapitools/openapi-generator-cli generate \
-    -i /swagger/operator_api_specs.yaml \
+    -i https://raw.githubusercontent.com/omgnetwork/grandfather/master/apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml?token=AATWQG6U2GJE3VHVMVDEDWK7NCGYE \
     -g elixir \
     -o /apps/child_chain_api/
 

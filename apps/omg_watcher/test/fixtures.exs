@@ -19,56 +19,7 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.Utils.LoggerExt
 
-  alias OMG.Eth
   alias OMG.Status.Alert.Alarm
-  alias OMG.TestHelper
-
-  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
-
-  deffixture fee_file(token) do
-    # ensuring that the child chain handles the token (esp. fee-wise)
-
-    enc_eth = Eth.Encoding.to_hex(OMG.Eth.zero_address())
-
-    {:ok, file_path} =
-      TestHelper.write_fee_file(%{
-        @payment_tx_type => %{
-          enc_eth => %{
-            amount: 1,
-            pegged_amount: 1,
-            subunit_to_unit: 1_000_000_000_000_000_000,
-            pegged_currency: "USD",
-            pegged_subunit_to_unit: 100,
-            updated_at: DateTime.utc_now()
-          },
-          token => %{
-            amount: 2,
-            pegged_amount: 1,
-            subunit_to_unit: 1_000_000_000_000_000_000,
-            pegged_currency: "USD",
-            pegged_subunit_to_unit: 100,
-            updated_at: DateTime.utc_now()
-          }
-        }
-      })
-
-    old_value = Application.fetch_env!(:omg_child_chain, :fee_adapter)
-
-    :ok =
-      Application.put_env(
-        :omg_child_chain,
-        :fee_adapter,
-        {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: file_path]},
-        persistent: true
-      )
-
-    on_exit(fn ->
-      :ok = File.rm(file_path)
-      :ok = Application.put_env(:omg_child_chain, :fee_adapter, old_value)
-    end)
-
-    file_path
-  end
 
   deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized
