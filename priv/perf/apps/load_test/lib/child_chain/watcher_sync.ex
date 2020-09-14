@@ -67,7 +67,7 @@ defmodule LoadTest.ChildChain.WatcherSync do
     |> Enum.reject(fn height ->
       service = height["service"]
       # these service heights are stuck on circle ci, but they work fine locally
-      # I think ci machin is not powerful enough
+      # I think ci machine is not powerful enough
       service == "block_getter" || service == "exit_finalizer" || service == "ife_exit_finalizer"
     end)
     |> Enum.all?(&(&1["height"] >= root_chain_height))

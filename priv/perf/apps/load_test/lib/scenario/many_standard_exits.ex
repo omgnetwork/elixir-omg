@@ -25,6 +25,7 @@ defmodule LoadTest.Scenario.ManyStandardExits do
   alias LoadTest.ChildChain.WatcherSync
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
+  alias LoadTest.Service.Faucet
 
   @gas_start_exit 500_000
   @standard_exit_bond 14_000_000_000_000_000
@@ -38,7 +39,7 @@ defmodule LoadTest.Scenario.ManyStandardExits do
     amount = (@gas_start_exit * gas_price + @standard_exit_bond) * exits_per_session
 
     # Fund the exiter with some root chain eth
-    session = run_scenario(session, LoadTest.Scenario.FundAccountRootchain, %{account: exiter.addr, amount: amount})
+    {:ok, _} = Faucet.fund_root_chain_account(exiter.addr, amount)
 
     # Create many utxos on the child chain
     session =
