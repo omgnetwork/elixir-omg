@@ -429,17 +429,6 @@ start-services:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose -f ./docker-compose.yml -f ./docker-compose.feefeed.yml up feefeed geth nginx postgres
 
-start-child_chain:
-	. ${OVERRIDING_VARIABLES} && \
-	echo "Building Child Chain" && \
-	make build-child_chain-${BAREBUILD_ENV} && \
-	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
-	echo "Init Child Chain DB" && \
-	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()"
-	echo "Run Child Chain" && \
-	. ${OVERRIDING_VARIABLES} && \
-	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
-
 start-watcher:
 	. ${OVERRIDING_VARIABLES} && \
 	echo "Building Watcher" && \

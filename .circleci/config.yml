@@ -78,6 +78,8 @@ commands:
   setup_childchain:
     description: "Setups Child chain for watcher tests"
     steps:
+      - run: docker-compose down
+      - run: rm -rf data/
       - run:
           name: Setup data dir
           command: |
@@ -85,7 +87,6 @@ commands:
       - run:
           name: Pull down snapshot
           command: SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20 make init_test
-      - docker_login
       - run: |
           echo -e "FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.test.json\n$(cat fees_setup.env)" > fees_setup.env
           echo "FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.test.json" >> fees_setup.env
@@ -354,157 +355,77 @@ jobs:
       - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: invalid_exit_1_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_2:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: invalid_exit_2_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_3:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: block_getter_1_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_4:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: block_getter_2_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_5:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: block_getter_3_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_6:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: block_getter_4_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_7:
-      machine:
-        image: ubuntu-1604:201903-01
-      environment:
-        MIX_ENV: test
-      steps:
-        - checkout
-        - setup_childchain
-        - run:
-            name: Integration Tests & Coveralls Part Watcher
-            environment:
-              DOCKER_GETH: true
-            command: |
-              mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_8:
-      machine:
-        image: ubuntu-1604:201903-01
-      environment:
-        MIX_ENV: test
-      steps:
-        - checkout
-        - setup_childchain
-        - run:
-            name: Integration Tests & Coveralls Part Watcher
-            environment:
-              DOCKER_GETH: true
-            command: |
-              mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_9:
-      machine:
-        image: ubuntu-1604:201903-01
-      environment:
-        MIX_ENV: test
-      steps:
-        - checkout
-        - setup_childchain
-        - run:
-            name: Integration Tests & Coveralls Part Watcher
-            environment:
-              DOCKER_GETH: true
-            command: |
-              mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_10:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: in_flight_exit_test_1_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: in_flight_exit_test_2_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: in_flight_exit_test_3_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: in_flight_exit_test_4_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/in_flight_exit_test_4_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_11:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: in_flight_exit_test.exs
           environment:
             DOCKER_GETH: true
           command: |
@@ -1121,26 +1042,6 @@ workflows:
           requires: [build]
           filters: *all_branches_and_tags
       - watcher_mix_based_childchain_1:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_2:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_3:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_4:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_5:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_6:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_7:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_8:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_9:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_10:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_11:
           filters: *all_branches_and_tags
       - publish_watcher:
           requires:

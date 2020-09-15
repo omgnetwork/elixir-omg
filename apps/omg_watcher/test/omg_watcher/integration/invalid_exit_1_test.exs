@@ -17,6 +17,7 @@ defmodule OMG.Watcher.Integration.InvalidExit1Test do
   use ExUnit.Case, async: false
   use OMG.Fixtures
   use Plug.Test
+  use OMG.Watcher.Integration.Fixtures
 
   alias OMG.Utxo
   alias OMG.Watcher.Event
