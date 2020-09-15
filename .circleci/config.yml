@@ -97,17 +97,6 @@ commands:
           name: Standup Geth and Child Chain
           command: docker-compose up geth childchain postgres
           background: true
-      - install_elixir
-      - install_deps
-      - run:
-          name: Compile
-          environment:
-            MIX_ENV: test
-          command: |
-            set -e
-            make deps-elixir-omg
-            mix compile
-          no_output_timeout: 2400
 
   install_elixir:
     description: Installs elixir and checks if docker is healthy
@@ -356,6 +345,17 @@ jobs:
     steps:
       - checkout
       - setup_childchain
+      - install_elixir
+      - install_deps
+      - run:
+          name: Compile
+          environment:
+            MIX_ENV: test
+          command: |
+            set -e
+            make deps-elixir-omg
+            mix compile
+          no_output_timeout: 2400
       - run:
           name: invalid_exit_1_test.exs
           environment:
@@ -806,13 +806,13 @@ jobs:
             make start-watcher OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
           background: true
           no_output_timeout: 2400
-      - run:
-          name: Run Watcher Info
-          command: |
-            set -e
-            make start-watcher_info OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
-          background: true
-          no_output_timeout: 2400
+      # - run:
+      #     name: Run Watcher Info
+      #     command: |
+      #       set -e
+      #       make start-watcher_info OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
+      #     background: true
+      #     no_output_timeout: 2400
       - run:
           name: Print docker and process states
           command: |
