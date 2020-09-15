@@ -926,7 +926,10 @@ workflows:
           requires: [build]
           filters: *all_branches_and_tags
       - notify_services:
-          requires: [deploy_watcher, deploy_watcher_info, deploy_child_chain]
+          requires:
+            - increase_chart_version_childchain_master
+            - increase_chart_version_watcher_master
+            - increase_chart_version_watcher_info_master
           filters:
             branches:
               only:
