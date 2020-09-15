@@ -104,12 +104,11 @@ defmodule OMG.ChildChain.Integration.Fixtures do
 
   defp prepare_deposits(alice, token_addr) do
     some_value = 10
-
     {:ok, _} = DevHelper.import_unlock_fund(alice)
 
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value)
     token_addr = Encoding.from_hex(token_addr)
-    {:ok, _} = Eth.Token.mint(alice.addr, some_value, token_addr) |> DevHelper.transact_sync!()
+    {:ok, _} = alice.addr |> Eth.Token.mint(some_value, token_addr) |> DevHelper.transact_sync!()
     token_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value, token_addr)
 
     {deposit_blknum, token_deposit_blknum}

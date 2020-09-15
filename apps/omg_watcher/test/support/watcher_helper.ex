@@ -155,12 +155,8 @@ defmodule Support.WatcherHelper do
     end
   end
 
-  def get_exit_data(blknum, txindex, oindex),
-    do: get_exit_data(Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)))
-
-  def get_exit_data(encoded_position) do
-    data = success?("utxo.get_exit_data", %{utxo_pos: encoded_position})
-    decode16(data, ["txbytes", "proof"])
+  def get_exit_data(blknum, txindex, oindex) do
+    get_exit_data(Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)))
   end
 
   def get_exit_challenge(blknum, txindex, oindex) do
@@ -247,5 +243,10 @@ defmodule Support.WatcherHelper do
         logs -> {:halt, logs}
       end
     end)
+  end
+
+  defp get_exit_data(encoded_position) do
+    data = success?("utxo.get_exit_data", %{utxo_pos: encoded_position})
+    decode16(data, ["txbytes", "proof"])
   end
 end

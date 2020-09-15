@@ -51,13 +51,15 @@ defmodule OMG.State.Transaction.Validator do
     end
   end
 
-  defp dispatch_validation(state, %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Payment{}}} = tx, fees),
-    do: Validator.Payment.can_apply_tx(state, tx, fees)
+  defp dispatch_validation(state, %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Payment{}}} = tx, fees) do
+    Validator.Payment.can_apply_tx(state, tx, fees)
+  end
 
   defp dispatch_validation(
          state,
          %Transaction.Recovered{signed_tx: %{raw_tx: %Transaction.Fee{}}} = tx,
          _fees
-       ),
-       do: Validator.FeeClaim.can_claim_fees(state, tx)
+       ) do
+    Validator.FeeClaim.can_claim_fees(state, tx)
+  end
 end

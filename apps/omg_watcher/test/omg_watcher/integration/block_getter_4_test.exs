@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.BlockGetterTest do
+defmodule OMG.Watcher.Integration.BlockGetter4Test do
   @moduledoc """
   This test is intended to be the major smoke/integration test of the Watcher
 
@@ -37,51 +37,33 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @timeout 40_000
   @eth OMG.Eth.zero_address()
 
-  @moduletag :integration
-  @moduletag :watcher
+  @moduletag :mix_based_child_chain
 
   @moduletag timeout: 100_000
 
-  @tag fixtures: [:in_beam_watcher, :test_server]
-  test "hash of returned block does not match hash submitted to the root chain", %{test_server: context} do
-    different_hash = <<0::256>>
-    block_with_incorrect_hash = %{OMG.Block.hashed_txs_at([], 1000) | hash: different_hash}
-
-    # from now on the child chain server is broken until end of test
-    route =
-      BadChildChainServer.prepare_route_to_inject_bad_block(
-        context,
-        block_with_incorrect_hash,
-        different_hash
-      )
-
-    :sys.replace_state(BlockGetter, fn state ->
-      config = state.config
-      new_config = %{config | child_chain_url: "http://localhost:#{route.port}"}
-      %{state | config: new_config}
-    end)
-
-    # checking if both machines and humans learn about the byzantine condition
-    assert WatcherHelper.capture_log(fn ->
-             {:ok, _txhash} = Eth.submit_block(different_hash, 1, 20_000_000_000)
-             IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
-           end) =~ inspect({:error, :incorrect_hash})
-  end
-
-  @tag fixtures: [:in_beam_watcher, :alice, :test_server]
-  test "bad transaction with not existing utxo, detected by interactions with State", %{
-    alice: alice,
-    test_server: context
+  @tag fixtures: [:in_beam_watcher, :test_server, :stable_alice, :stable_alice_deposits]
+  test "operator claimed fees incorrectly (too much | little amount, not collected token)", %{
+    stable_alice: alice,
+    test_server: context,
+    stable_alice_deposits: {deposit_blknum, _}
   } do
-    # preparing block with invalid transaction
-    recovered = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    block_with_incorrect_transaction = OMG.Block.hashed_txs_at([recovered], 1000)
+    Process.sleep(11_000)
+    fee_claimer = OMG.Configuration.fee_claimer_address()
+
+    # preparing transactions for a fake block that overclaim fees
+    txs = [
+      OMG.TestHelper.create_recovered([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}]),
+      OMG.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 8}]),
+      OMG.TestHelper.create_recovered_fee_tx(1000, fee_claimer, @eth, 3)
+    ]
+
+    block_overclaiming_fees = OMG.Block.hashed_txs_at(txs, 1000)
 
     # from now on the child chain server is broken until end of test
     route =
       BadChildChainServer.prepare_route_to_inject_bad_block(
         context,
-        block_with_incorrect_transaction
+        block_overclaiming_fees
       )
 
     :sys.replace_state(BlockGetter, fn state ->
@@ -90,12 +72,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       %{state | config: new_config}
     end)
 
-    invalid_block_hash = block_with_incorrect_transaction.hash
-
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->
-             {:ok, _txhash} = Eth.submit_block(invalid_block_hash, 1, 20_000_000_000)
+             {:ok, _txhash} = Eth.submit_block(block_overclaiming_fees.hash, 1, 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
-           end) =~ inspect(:tx_execution)
+           end) =~ inspect({:tx_execution, :claimed_and_collected_amounts_mismatch})
   end
 end
