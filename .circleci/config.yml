@@ -78,6 +78,8 @@ commands:
   setup_childchain:
     description: "Setups Child chain for watcher tests"
     steps:
+      # otherwise docker compose down errors with ERROR: Couldn't find env file
+      - run: touch localchain_contract_addresses.env
       - run: docker-compose down
       - run: rm -rf data/
       - run:
