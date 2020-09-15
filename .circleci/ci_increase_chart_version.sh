@@ -26,20 +26,17 @@ set -x
 [ -z "$GITHUB_API_TOKEN" ] && echo "GITHUB_API_TOKEN should be set" && exit 1
 
 
-echo "increase chart version: chart [${CHART_NAME}], appVersion: [${APP_VERSION}], update_dev: [${UPDATE_DEV}]
+echo "increase chart version: chart [${CHART_NAME}], appVersion: [${APP_VERSION}], update_dev: [${UPDATE_DEV}]"
 
 curl --location --request POST "https://api.github.com/repos/omgnetwork/${HELM_CHART_REPO}/dispatches" \
 --header "Accept: application/vnd.github.v3+json" \
 --header "authorization: token ${GITHUB_API_TOKEN}" \
 --header "Content-Type: application/json" \
---data-raw "{ \
+--data-raw " { \
     \"event_type\": \"increase-chart-version\", \
     \"client_payload\": { \
         \"chart_name\": \"${CHART_NAME}\", \
-        \"app_version\": \"${APP_VERSION}\" \
+        \"app_version\": \"${APP_VERSION}\", \
         \"update_dev\": \"${UPDATE_DEV}\" \
     } \
 }"
-
-
-
