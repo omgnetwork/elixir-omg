@@ -1036,11 +1036,11 @@ workflows:
           filters: *master_and_version_branches_and_all_tags
       # Increase chart version for master, this will end up trigger deployment on dev
       - increase_chart_version_childchain_master:
-        requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-        filters: &only_master
-          branches:
-            only:
-              - master
+          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
+          filters: &only_master
+            branches:
+              only:
+                - master
       - increase_chart_version_watcher_master:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
           filters: *only_master
