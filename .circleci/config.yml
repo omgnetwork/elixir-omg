@@ -877,13 +877,6 @@ jobs:
             - "_build/dev/"
             - "_build/dev/"
       - run:
-          name: Run Child Chain
-          command: |
-            set -e
-            make start-child_chain OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
-          background: true
-          no_output_timeout: 2400
-      - run:
           name: Run Watcher
           command: |
             set -e
@@ -898,25 +891,33 @@ jobs:
           background: true
           no_output_timeout: 2400
       - run:
-          name: Install specs
-          command: |
-            cd priv/cabbage
-            make install
-            make generate_api_code
-            mix deps.get
-      - run:
           name: Print docker and process states
           command: |
             docker ps
             ps axww | grep watcher
             ps axww | grep watcher_info
             ps axww | grep child_chain
-      - run: sh .circleci/status.sh
-      - run:
-          name: Run specs
-          command: |
-            cd priv/cabbage
-            mix test
+      - run: |
+          attempt_counter=0
+          max_attempts=25
+          until $(curl --output /dev/null --silent --head --fail http://localhost:7434/alarm.get); do
+            if [ ${attempt_counter} -eq ${max_attempts} ];then
+              echo "Max attempts reached"
+              exit 1
+            fi
+            printf '.'
+            attempt_counter=$(($attempt_counter+1))
+            sleep 5
+          done
+          until $(curl --output /dev/null --silent --head --fail http://localhost:7534/alarm.get); do
+            if [ ${attempt_counter} -eq ${max_attempts} ];then
+              echo "Max attempts reached"
+              exit 1
+            fi
+            printf '.'
+            attempt_counter=$(($attempt_counter+1))
+            sleep 5
+          done
 
   publish_watcher:
     machine:
