@@ -97,6 +97,20 @@ commands:
           name: Standup Geth and Child Chain
           command: docker-compose up geth childchain postgres
           background: true
+      - run: 
+          name: Has Childchain started?
+          command: |
+          attempt_counter=0
+          max_attempts=25
+          until $(curl --output /dev/null --silent --head --fail http://localhost:9656/alarm.get); do
+            if [ ${attempt_counter} -eq ${max_attempts} ];then
+              echo "Max attempts reached"
+              exit 1
+            fi
+            printf '.'
+            attempt_counter=$(($attempt_counter+1))
+            sleep 5
+          done
 
   install_elixir:
     description: Installs elixir and checks if docker is healthy
@@ -337,7 +351,7 @@ jobs:
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
-  watcher_mix_based_childchain_1:
+  watcher_mix_based_childchain:
     machine:
       image: ubuntu-1604:201903-01
     environment:
@@ -806,13 +820,13 @@ jobs:
             make start-watcher OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
           background: true
           no_output_timeout: 2400
-      # - run:
-      #     name: Run Watcher Info
-      #     command: |
-      #       set -e
-      #       make start-watcher_info OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
-      #     background: true
-      #     no_output_timeout: 2400
+      - run:
+          name: Run Watcher Info
+          command: |
+            set -e
+            make start-watcher_info OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
+          background: true
+          no_output_timeout: 2400
       - run:
           name: Print docker and process states
           command: |
@@ -820,7 +834,9 @@ jobs:
             ps axww | grep watcher
             ps axww | grep watcher_info
             ps axww | grep child_chain
-      - run: |
+      - run: 
+          name: Has Watcher started?
+          command: |
           attempt_counter=0
           max_attempts=25
           until $(curl --output /dev/null --silent --head --fail http://localhost:7434/alarm.get); do
@@ -832,6 +848,11 @@ jobs:
             attempt_counter=$(($attempt_counter+1))
             sleep 5
           done
+      - run: 
+          name: Has Watcher Info started?
+          command: |
+          attempt_counter=0
+          max_attempts=25
           until $(curl --output /dev/null --silent --head --fail http://localhost:7534/alarm.get); do
             if [ ${attempt_counter} -eq ${max_attempts} ];then
               echo "Max attempts reached"
@@ -840,7 +861,8 @@ jobs:
             printf '.'
             attempt_counter=$(($attempt_counter+1))
             sleep 5
-          done
+          done          
+         
 
   publish_watcher:
     machine:
@@ -1043,7 +1065,7 @@ workflows:
       - property_tests:
           requires: [build]
           filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_1:
+      - watcher_mix_based_childchain:
           filters: *all_branches_and_tags
       - publish_watcher:
           requires:
