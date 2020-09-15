@@ -15,9 +15,7 @@ Required env vars:
 - GITHUB_API_TOKEN
 """
 
-set -e
-set -x
-
+set -ex
 
 [ -z "$CHART_NAME" ] && echo "CHART_NAME should be set" && exit 1
 [ -z "$APP_VERSION" ] && echo "APP_VERSION should be set" && exit 1
@@ -27,6 +25,9 @@ set -x
 
 
 echo "increase chart version: chart [${CHART_NAME}], appVersion: [${APP_VERSION}], update_dev: [${UPDATE_DEV}]"
+
+echo "add (random 1-10s) jitter to the call to make concurrent GH action jobs in helm repo more stable"
+sleep $(( RANDOM % 10 + 1 ))s
 
 curl --location --request POST "https://api.github.com/repos/omgnetwork/${HELM_CHART_REPO}/dispatches" \
 --header "Accept: application/vnd.github.v3+json" \
