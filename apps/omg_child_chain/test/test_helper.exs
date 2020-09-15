@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [common: true, integration: true, property: true, wrappers: true])
+ExUnit.configure(
+  exclude: [mix_based_child_chain: true, common: true, integration: true, property: true, wrappers: true]
+)
+
 ExUnitFixtures.start()
 # loading all fixture files from the whole umbrella project
 ExUnitFixtures.load_fixture_files()
