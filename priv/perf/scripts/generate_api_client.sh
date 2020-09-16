@@ -25,7 +25,7 @@ docker run --rm \
     -v ${PWD}/apps:/apps \
     --user $(id -u):$(id -g) \
     openapitools/openapi-generator-cli generate \
-    -i https://raw.githubusercontent.com/omgnetwork/grandfather/master/apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml?token=AATWQG6U2GJE3VHVMVDEDWK7NCGYE \
+    -i https://raw.githubusercontent.com/omgnetwork/omg-childchain-v1/master/apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml \
     -g elixir \
     -o /apps/child_chain_api/
 
