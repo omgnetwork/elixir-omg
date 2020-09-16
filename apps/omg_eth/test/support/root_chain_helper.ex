@@ -51,7 +51,7 @@ defmodule Support.RootChainHelper do
       |> Keyword.put(:value, @standard_exit_bond)
 
     contract = from_hex(Configuration.contracts().payment_exit_game)
-    backend = Application.fetch_env!(:omg_eth, :eth_node)
+    backend = :geth
 
     TransactionHelper.contract_transact(
       backend,

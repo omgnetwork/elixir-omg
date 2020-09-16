@@ -40,9 +40,10 @@ defmodule OMG.Watcher.Integration.TestHelper do
   def wait_for_block_fetch(block_number, timeout) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
-      if elem(State.get_status(), 0) <= block_number,
-        do: :repeat,
-        else: {:ok, block_number}
+      case elem(State.get_status(), 0) do
+        blknum when blknum < block_number -> :repeat
+        _ -> {:ok, block_number}
+      end
     end
     |> WaitFor.ok(timeout)
 
