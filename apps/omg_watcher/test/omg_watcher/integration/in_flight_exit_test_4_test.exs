@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.InFlightExitTest do
+defmodule OMG.Watcher.Integration.InFlightExit4Test do
   @moduledoc """
   This needs to go away real soon.
   """
@@ -31,40 +31,28 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
   require Utxo
 
-  @timeout 40_000
   @eth OMG.Eth.zero_address()
   @hex_eth "0x0000000000000000000000000000000000000000"
 
   @moduletag :mix_based_child_chain
   # bumping the timeout to three minutes for the tests here, as they do a lot of transactions to Ethereum to test
-  @moduletag timeout: 240_000
+  @moduletag timeout: 180_000
 
+  # NOTE: if https://github.com/omisego/elixir-omg/issues/994 is taken care of, this behavior will change, see comments
+  #       therein.
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :token, :alice_deposits]
-  test "finalization of utxo double-spent in state leaves in-flight exit active and invalid; warns",
+  test "finalization of output from non-included IFE tx - all is good",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     Process.sleep(12_000)
     DevHelper.import_unlock_fund(bob)
 
-    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 4}])
-    ife1 = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+    _ = exit_in_flight_and_wait_for_ife(tx, alice)
+    piggyback_and_process_exits(tx, 1, :output, bob)
 
-    %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
-    invalidating_tx = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 4}])
-    %{"blknum" => invalidating_blknum} = WatcherHelper.submit(invalidating_tx)
-    IntegrationTest.wait_for_block_fetch(invalidating_blknum, @timeout)
-
-    _ = exit_in_flight_and_wait_for_ife(ife1, alice)
-
-    # checking if both machines and humans learn about the byzantine condition
-    assert WatcherHelper.capture_log(fn ->
-             # :output type
-             _ = piggyback_and_process_exits(tx, 0, alice)
-           end) =~ "Invalid in-flight exit finalization"
-
-    assert %{"in_flight_exits" => [_], "byzantine_events" => byzantine_events} = WatcherHelper.success?("/status.get")
-    # invalid piggyback is past sla margin, unchallenged_piggyback event is emitted
-    assert [%{"event" => "unchallenged_piggyback"}, %{"event" => "invalid_piggyback"}] =
-             Enum.filter(byzantine_events, &(&1["event"] != "piggyback_available"))
+    expected_events = []
+    :ok = wait_for(expected_events)
+    :ok = wait_for_empty_in_flight_exits()
   end
 
   defp exit_in_flight(%Transaction.Signed{} = tx, exiting_user) do
@@ -90,14 +78,52 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     DevHelper.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
   end
 
-  defp piggyback_and_process_exits(%Transaction.Signed{raw_tx: raw_tx}, index, output_owner) do
+  defp piggyback_and_process_exits(%Transaction.Signed{raw_tx: raw_tx}, index, piggyback_type, output_owner) do
     raw_tx_bytes = Transaction.raw_txbytes(raw_tx)
 
     {:ok, %{"status" => "0x1"}} =
-      raw_tx_bytes
-      |> RootChainHelper.piggyback_in_flight_exit_on_output(index, output_owner.addr)
+      case piggyback_type do
+        :input ->
+          RootChainHelper.piggyback_in_flight_exit_on_input(raw_tx_bytes, index, output_owner.addr)
+
+        :output ->
+          RootChainHelper.piggyback_in_flight_exit_on_output(raw_tx_bytes, index, output_owner.addr)
+      end
       |> DevHelper.transact_sync!()
 
     :ok = IntegrationTest.process_exits(1, @hex_eth, output_owner)
+  end
+
+  defp wait_for(expected_events) do
+    Enum.reduce_while(1..1000, 0, fn x, acc ->
+      events =
+        "/status.get" |> WatcherHelper.success?() |> Map.get("byzantine_events") |> Enum.map(&Map.take(&1, ["event"]))
+
+      case events do
+        ^expected_events ->
+          {:halt, :ok}
+
+        _ ->
+          Process.sleep(10)
+
+          {:cont, acc + x}
+      end
+    end)
+  end
+
+  defp wait_for_empty_in_flight_exits() do
+    Enum.reduce_while(1..1000, 0, fn x, acc ->
+      ife = "/status.get" |> WatcherHelper.success?() |> Map.get("in_flight_exits")
+
+      case ife do
+        [] ->
+          {:halt, :ok}
+
+        _ ->
+          Process.sleep(10)
+
+          {:cont, acc + x}
+      end
+    end)
   end
 end

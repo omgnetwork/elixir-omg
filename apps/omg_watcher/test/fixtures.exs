@@ -70,91 +70,18 @@ defmodule OMG.Watcher.Fixtures do
     file_path
   end
 
-  deffixture mix_based_child_chain(contract, fee_file) do
-    _ = contract
-
-    db_path = Briefly.create!(directory: true)
-
-    Logger.debug("Starting db_init")
-
-    exexec_opts_for_mix = [
-      stdout: :stream,
-      cd: [Mix.Project.build_path(), "../../"] |> Path.join() |> Path.expand(),
-      env: %{"MIX_ENV" => to_string(Mix.env())},
-      # group 0 will create a new process group, equal to the OS pid of that process
-      group: 0,
-      kill_group: true
-    ]
-
-    {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
-      Exexec.run_link(
-        "mix run --no-start -e ':ok = OMG.DB.init(\"#{db_path}\")' 2>&1\n",
-        exexec_opts_for_mix
-      )
-
-    Enum.each(db_out, &log_output("db_init", &1))
-
-    child_chain_mix_cmd = " mix xomg.child_chain.start --logger info --db \"#{db_path}\" --fee \"#{fee_file}\" 2>&1"
-
-    Logger.info("Starting child_chain")
-
-    {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
-      Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
-
-    wait_for_start(child_chain_out, "Running OMG.ChildChainRPC.Web.Endpoint", 20_000, &log_output("child_chain", &1))
-
-    Task.async(fn -> Enum.each(child_chain_out, &log_output("child_chain", &1)) end)
-
-    on_exit(fn ->
-      # NOTE see DevGeth.stop/1 for details
-      _ = Process.monitor(child_chain_proc)
-
-      :ok =
-        case Exexec.stop_and_wait(child_chain_proc) do
-          :normal ->
-            :ok
-
-          :shutdown ->
-            :ok
-
-          :noproc ->
-            :ok
-
-          other ->
-            _ = Logger.warn("Child chain stopped with an unexpected reason")
-            other
-        end
-
-      File.rm_rf(db_path)
-    end)
-
-    :ok
-  end
-
-  defp wait_for_start(outstream, look_for, timeout, logger_fn) do
-    # Monitors the stdout coming out of a process for signal of successful startup
-    waiting_task_function = fn ->
-      outstream
-      |> Stream.map(logger_fn)
-      |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
-      |> Enum.to_list()
-    end
-
-    waiting_task_function
-    |> Task.async()
-    |> Task.await(timeout)
-
-    :ok
-  end
-
-  defp log_output(prefix, line) do
-    Logger.debug("#{prefix}: " <> line)
-    line
-  end
-
   deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized
     _ = contract
+
+    case System.get_env("DOCKER_GETH") do
+      nil ->
+        :ok
+
+      _ ->
+        # have to hack my way out of this so that we can migrate the watcher integration tests out
+        Application.put_env(:omg_watcher, :exit_processor_sla_margin, 40)
+    end
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_security_watcher} = Application.ensure_all_started(:omg_watcher)
