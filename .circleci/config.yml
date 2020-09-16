@@ -782,17 +782,6 @@ jobs:
           path: current_release/
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
-  increase_chart_version_childchain_master:
-    docker:
-      - image: cimg/base:2020.01
-    environment:
-      CHART_NAME: childchain
-      HELM_CHART_REPO: helm-development
-      UPDATE_DEV: true
-    steps:
-      - checkout
-      - run: APP_VERSION="$(echo "$CIRCLE_SHA1" | head -c 7)" sh .circleci/ci_increase_chart_version.sh
-
   increase_chart_version_watcher_master:
     docker:
       - image: cimg/base:2020.01
@@ -1038,18 +1027,18 @@ workflows:
             ]
           filters: *master_and_version_branches_and_all_tags
       # Increase chart version for master, this will end up trigger deployment on dev
-      - increase_chart_version_childchain_master:
+      - increase_chart_version_watcher_master:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters: &only_master
+          filters:
             branches:
               only:
                 - master
-      - increase_chart_version_watcher_master:
-          requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters: *only_master
       - increase_chart_version_watcher_info_master:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
-          filters: *only_master
+          filters:
+            branches:
+              only:
+                - master
       # Increase chart version for new release
       - increase_chart_version_childchain_release:
           requires: [publish_child_chain, publish_watcher, publish_watcher_info]
