@@ -428,7 +428,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       do: is_older?(seen_in_pos, oldest_competitor_pos)
 
   @doc """
-  Converts integer to in-flight exit contract id
+  Converts integer to contract's in-flight exit id
   """
   @spec to_contract_id(non_neg_integer) :: <<_::192>>
   def to_contract_id(id), do: <<id::192>>

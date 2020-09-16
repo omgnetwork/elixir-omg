@@ -31,7 +31,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeysWithValues do
         Enum.each(@keys_to_values, &set_single_value/1)
 
       {:error, _} ->
-        _ = Logger.info("Failed to start OMG.DB, proably database is not initialized")
+        _ = Logger.info("DB not initialized yet, no action required")
         :ok
     end
   end
@@ -40,7 +40,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeysWithValues do
     case OMG.DB.RocksDB.get_single_value(key) do
       :not_found ->
         :ok = OMG.DB.RocksDB.multi_update([{:put, key, init_val}])
-        _ = Logger.info("#{key} not set. Setting it to #{init_val}")
+        _ = Logger.info("#{key} not set. Setting it to #{inspect(init_val)}")
         :ok
 
       {:ok, _} ->
