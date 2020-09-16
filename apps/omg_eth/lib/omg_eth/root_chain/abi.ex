@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule OMG.Eth.RootChain.Abi do
   @moduledoc """
-  Functions that provide ethereum log decoding 
+  Functions that provide ethereum log decoding
   """
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain.AbiEventSelector
