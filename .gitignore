@@ -46,9 +46,6 @@ env/
 # Elixirls data directory
 .elixir_ls
 
-#test files
-/apps/omg_child_chain/priv/test_fees_file*
-
 # VS Code config file
 .vscode/
 
@@ -60,7 +57,6 @@ docker-compose.override.yml
 .sobelow
 
 #generated applications and source
-priv/apps/child_chain_api
 priv/apps/watcher_info_api
 priv/apps/watcher_security_critical_api
 
