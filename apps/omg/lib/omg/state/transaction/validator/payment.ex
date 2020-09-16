@@ -38,16 +38,13 @@ defmodule OMG.State.Transaction.Validator.Payment do
 
   @spec can_apply_tx(state :: Core.t(), tx :: Transaction.Recovered.t(), fees :: Fees.optional_fee_t()) ::
           {:ok, map()} | {{:error, can_apply_error()}, Core.t()}
-  def can_apply_tx(
-        %Core{utxos: utxos} = state,
-        %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx,
-        fees
-      ) do
+  def can_apply_tx(state, tx, fees) do
+    %Transaction.Recovered{signed_tx: %{raw_tx: raw_tx}, witnesses: witnesses} = tx
     inputs = Transaction.get_inputs(tx)
 
     with true <- not state.fee_claiming_started || {:error, :payments_rejected_during_fee_claiming},
          :ok <- inputs_not_from_future_block?(state, inputs),
-         {:ok, outputs_spent} <- UtxoSet.get_by_inputs(utxos, inputs),
+         {:ok, outputs_spent} <- UtxoSet.get_by_inputs(state.utxos, inputs),
          :ok <- authorized?(outputs_spent, witnesses),
          {:ok, implicit_paid_fee_by_currency} <- Transaction.Protocol.can_apply?(raw_tx, outputs_spent),
          :ok <- Fees.check_if_covered(implicit_paid_fee_by_currency, fees) do

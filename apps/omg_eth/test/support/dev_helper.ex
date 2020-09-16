@@ -44,11 +44,11 @@ defmodule Support.DevHelper do
     - :faucet - the address to send the test ETH from, assumed to be unlocked and have the necessary funds
     - :initial_funds_wei - the amount of test ETH that will be granted to every generated user
   """
-  def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
-    {:ok, account_enc} = create_account_from_secret(Configuration.eth_node(), account_priv, @passphrase)
+  def import_unlock_fund(account, opts \\ []) do
+    {:ok, account_enc} = create_account_from_secret(account, @passphrase)
     {:ok, _} = fund_address_from_faucet(account_enc, opts)
 
-    {:ok, from_hex(account_enc)}
+    {:ok, account_enc}
   end
 
   @doc """
@@ -63,9 +63,17 @@ defmodule Support.DevHelper do
       txhash
       |> WaitFor.eth_receipt(timeout)
       |> case do
-        {:ok, %{"status" => "0x1"} = receipt} -> {:ok, receipt |> Map.update!("blockNumber", &int_from_hex(&1))}
-        {:ok, %{"status" => "0x0"} = receipt} -> {:error, receipt |> Map.put("reason", get_reason(txhash))}
-        other -> other
+        {:ok, %{"status" => "0x1"} = receipt} ->
+          {:ok, Map.update!(receipt, "blockNumber", &int_from_hex(&1))}
+
+        {:ok, %{"status" => "0x0"} = receipt} ->
+          case get_reason(txhash) do
+            "Exit queue exists" -> {:ok, Map.update!(receipt, "blockNumber", &int_from_hex(&1))}
+            reason -> {:error, Map.put(receipt, "reason", reason)}
+          end
+
+        other ->
+          other
       end
   end
 
@@ -102,19 +110,17 @@ defmodule Support.DevHelper do
     WaitFor.ok(f, timeout)
   end
 
-  def create_account_from_secret(:ganache, secret, passphrase),
-    do: do_create_account_from_secret("personal_importRawKey", Eth.Encoding.to_hex(secret), passphrase)
+  def create_account_from_secret(account, passphrase) do
+    method_name = "personal_importRawKey"
+    secret = Base.encode16(account.priv)
 
-  def create_account_from_secret(:geth, secret, passphrase),
-    do: do_create_account_from_secret("personal_importRawKey", Base.encode16(secret), passphrase)
+    case Ethereumex.HttpClient.request(method_name, [secret, passphrase], []) do
+      {:ok, response} ->
+        {:ok, response}
 
-  def create_account_from_secret(:parity, secret, passphrase) when byte_size(secret) == 64,
-    do: do_create_account_from_secret("parity_newAccountFromSecret", Eth.Encoding.to_hex(secret), passphrase)
-
-  # private
-
-  defp do_create_account_from_secret(method_name, secret, passphrase) do
-    {:ok, _} = Ethereumex.HttpClient.request(method_name, [secret, passphrase], [])
+      {:error, %{"code" => -32_000, "message" => "account already exists"}} ->
+        {:ok, "0x" <> Base.encode16(account.addr)}
+    end
   end
 
   defp fund_address_from_faucet(account_enc, opts) do
@@ -139,18 +145,7 @@ defmodule Support.DevHelper do
   end
 
   defp unlock_if_possible(account_enc) do
-    unlock_if_possible(account_enc, Configuration.eth_node())
-  end
-
-  # ganache works the same as geth in this aspect
-  defp unlock_if_possible(account_enc, :ganache), do: unlock_if_possible(account_enc, :geth)
-
-  defp unlock_if_possible(account_enc, :geth) do
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, @passphrase, 0], [])
-  end
-
-  defp unlock_if_possible(_account_enc, :parity) do
-    :dont_bother_will_use_personal_sendTransaction
+    Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, @passphrase, 0], [])
   end
 
   # gets the `revert` reason for a failed transaction by txhash
