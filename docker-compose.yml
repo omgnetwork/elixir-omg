@@ -16,7 +16,7 @@ services:
       retries: 5
     networks:
       chain_net:
-        ipv4_address: 172.27.0.106
+        ipv4_address: 172.27.0.100
 
   geth:
     image: ethereum/client-go:v1.9.12
@@ -41,7 +41,6 @@ services:
             --datadir data/ \
             --syncmode 'full' \
             --networkid 1337 \
-            --gasprice '1' \
             --keystore=./data/geth/keystore/ \
             --password /tmp/geth-blank-password \
             --unlock "0,1" \
@@ -182,7 +181,7 @@ services:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.27.0.102:80
       - CHILD_CHAIN_URL=http://172.27.0.103:9656
-      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.106:5432/omisego_dev
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.100:5432/omisego_dev
       - PORT=7534
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
