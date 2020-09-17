@@ -107,7 +107,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     # config:
     child_block_interval: nil,
     block_submit_every_nth: 1,
-    block_submit_when_n_txs: :infinity,
+    block_submit_after_n_txs: :infinity,
     finality_threshold: 12,
     gas_price_adj_params: %GasPriceAdjustment{}
   ]
@@ -132,7 +132,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
           block_submit_every_nth: pos_integer(),
           # configure to trigger forming a child chain block when there are this many pending transactions.
           # Defaults to `:infinity` which means - pending transaction count takes no effect on block forming.
-          block_submit_when_n_txs: pos_integer() | atom(),
+          block_submit_after_n_txs: pos_integer() | atom(),
           # depth of max reorg we take into account
           finality_threshold: pos_integer(),
           # the gas price adjustment strategy parameters
@@ -532,7 +532,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
            parent_height: parent_height,
            last_enqueued_block_at_height: last_enqueued_block_at_height,
            block_submit_every_nth: block_submit_every_nth,
-           block_submit_when_n_txs: block_submit_when_n_txs,
+           block_submit_after_n_txs: block_submit_after_n_txs,
            wait_for_enqueue: wait_for_enqueue
          },
          pending_txs_count
@@ -540,7 +540,7 @@ defmodule OMG.ChildChain.BlockQueue.Core do
     # e.g. if we're at 15th Ethereum block now, last enqueued was at 14th, we're submitting a child chain block on every
     # single Ethereum block (`block_submit_every_nth` == 1), then we could form a new block (`it_is_time` is `true`)
     it_is_time = parent_height - last_enqueued_block_at_height >= block_submit_every_nth
-    block_fulfilled = pending_txs_count >= block_submit_when_n_txs
+    block_fulfilled = pending_txs_count >= block_submit_after_n_txs
     is_empty_block = pending_txs_count == 0
     should_form_block = (it_is_time or block_fulfilled) and !wait_for_enqueue and !is_empty_block
 

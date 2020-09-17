@@ -378,7 +378,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "transaction count below the threshold does not form block", %{empty: empty} do
       assert {:dont_form_block, _} =
                empty
-               |> Map.put(:block_submit_when_n_txs, 100)
+               |> Map.put(:block_submit_after_n_txs, 100)
                |> Core.enqueue_block("1", 1000, 1)
                |> Core.check_block_fulfilled(99)
     end
@@ -386,7 +386,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "transaction count at threshold triggers block formation", %{empty: empty} do
       queue =
         empty
-        |> Map.put(:block_submit_when_n_txs, 100)
+        |> Map.put(:block_submit_after_n_txs, 100)
         |> Core.enqueue_block("1", 1000, 1)
 
       assert {:do_form_block, _} = Core.check_block_fulfilled(queue, 100)
@@ -396,7 +396,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "transaction count does not interfere with ethereum height", %{empty: empty} do
       queue =
         empty
-        |> Map.put(:block_submit_when_n_txs, 100)
+        |> Map.put(:block_submit_after_n_txs, 100)
         |> Core.enqueue_block("1", 1000, 1)
 
       assert {:dont_form_block, _} =
@@ -412,7 +412,7 @@ defmodule OMG.ChildChain.BlockQueue.CoreTest do
     test "does not form block when previous submission is awaiting", %{empty: empty} do
       queue =
         empty
-        |> Map.put(:block_submit_when_n_txs, 100)
+        |> Map.put(:block_submit_after_n_txs, 100)
         |> Core.enqueue_block("1", 1000, 0)
         |> Map.put(:wait_for_enqueue, true)
 

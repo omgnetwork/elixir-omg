@@ -104,7 +104,7 @@ defmodule OMG.ChildChain.BlockQueue do
     _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Encoding.to_hex(top_mined_hash))}")
 
     block_submit_every_nth = Keyword.fetch!(args, :block_submit_every_nth)
-    block_submit_when_n_txs = Keyword.fetch!(args, :block_submit_when_n_txs)
+    block_submit_after_n_txs = Keyword.fetch!(args, :block_submit_after_n_txs)
     block_submit_max_gas_price = Keyword.fetch!(args, :block_submit_max_gas_price)
     gas_price_adj_params = %GasPriceAdjustment{max_gas_price: block_submit_max_gas_price}
 
@@ -116,7 +116,7 @@ defmodule OMG.ChildChain.BlockQueue do
         parent_height: parent_height,
         child_block_interval: child_block_interval,
         block_submit_every_nth: block_submit_every_nth,
-        block_submit_when_n_txs: block_submit_when_n_txs,
+        block_submit_after_n_txs: block_submit_after_n_txs,
         finality_threshold: finality_threshold,
         gas_price_adj_params: gas_price_adj_params
       )
@@ -142,7 +142,7 @@ defmodule OMG.ChildChain.BlockQueue do
     {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
     _ =
-      if is_number(block_submit_when_n_txs) do
+      if is_number(block_submit_after_n_txs) do
         block_fulfillment_check_interval_ms = Keyword.fetch!(args, :block_fulfillment_check_interval_ms)
         {:ok, _} = :timer.send_interval(block_fulfillment_check_interval_ms, self(), :check_block_fulfillment)
       end
