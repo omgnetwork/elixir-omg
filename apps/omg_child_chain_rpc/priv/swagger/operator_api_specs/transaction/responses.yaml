@@ -1,6 +1,0 @@
-TransactionSubmitResponse:
-  description: Transaction submission successful response
-  content:
-    application/json:
-      schema:
-        $ref: 'response_schemas.yaml#/TransactionSubmitResponseSchema'

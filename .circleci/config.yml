@@ -63,7 +63,6 @@ commands:
   make_docker_images:
     description: Builds docker images
     steps:
-      - run: make docker-child_chain
       - run: make docker-watcher
       - run: make docker-watcher_info
 
@@ -79,6 +78,10 @@ commands:
   setup_childchain:
     description: "Setups Child chain for watcher tests"
     steps:
+      # otherwise docker compose down errors with ERROR: Couldn't find env file
+      - run: touch localchain_contract_addresses.env
+      - run: docker-compose down
+      - run: sudo rm -rf data/
       - run:
           name: Setup data dir
           command: |
@@ -86,7 +89,6 @@ commands:
       - run:
           name: Pull down snapshot
           command: SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20 make init_test
-      - docker_login
       - run: |
           echo -e "FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.test.json\n$(cat fees_setup.env)" > fees_setup.env
           echo "FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.test.json" >> fees_setup.env
@@ -95,17 +97,20 @@ commands:
           name: Standup Geth and Child Chain
           command: docker-compose up geth childchain postgres
           background: true
-      - install_elixir
-      - install_deps
-      - run:
-          name: Compile
-          environment:
-            MIX_ENV: test
+      - run: 
+          name: Has Childchain started?
           command: |
-            set -e
-            make deps-elixir-omg
-            mix compile
-          no_output_timeout: 2400
+            attempt_counter=0
+            max_attempts=25
+            until $(curl --output /dev/null --silent --head --fail http://localhost:9656/alarm.get); do
+              if [ ${attempt_counter} -eq ${max_attempts} ];then
+                echo "Max attempts reached"
+                exit 1
+              fi
+              printf '.'
+              attempt_counter=$(($attempt_counter+1))
+              sleep 5
+            done
 
   install_elixir:
     description: Installs elixir and checks if docker is healthy
@@ -115,7 +120,7 @@ commands:
       - run:
           name: Install Erlang and Elixir
           command: |
-            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.8.0
             echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
             source $BASH_ENV
             asdf plugin-add erlang || asdf plugin-update erlang
@@ -313,8 +318,6 @@ jobs:
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r .
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_bus
-      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_child_chain
-      - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_child_chain_rpc --router apps/omg_child_chain_rpc/lib/omg_child_chain_rpc/web/router.ex
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_db
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_eth
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_status
@@ -348,7 +351,7 @@ jobs:
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
-  watcher_mix_based_childchain_1:
+  watcher_mix_based_childchain:
     machine:
       image: ubuntu-1604:201903-01
     environment:
@@ -356,158 +359,89 @@ jobs:
     steps:
       - checkout
       - setup_childchain
+      - install_elixir
+      - install_deps
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: Compile
+          environment:
+            MIX_ENV: test
+          command: |
+            set -e
+            make deps-elixir-omg
+            mix compile
+          no_output_timeout: 2400
+      - run:
+          name: invalid_exit_1_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_2:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: invalid_exit_2_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_3:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: block_getter_1_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_4:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: block_getter_2_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_5:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: block_getter_3_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_6:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: block_getter_4_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_7:
-      machine:
-        image: ubuntu-1604:201903-01
-      environment:
-        MIX_ENV: test
-      steps:
-        - checkout
-        - setup_childchain
-        - run:
-            name: Integration Tests & Coveralls Part Watcher
-            environment:
-              DOCKER_GETH: true
-            command: |
-              mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_8:
-      machine:
-        image: ubuntu-1604:201903-01
-      environment:
-        MIX_ENV: test
-      steps:
-        - checkout
-        - setup_childchain
-        - run:
-            name: Integration Tests & Coveralls Part Watcher
-            environment:
-              DOCKER_GETH: true
-            command: |
-              mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_9:
-      machine:
-        image: ubuntu-1604:201903-01
-      environment:
-        MIX_ENV: test
-      steps:
-        - checkout
-        - setup_childchain
-        - run:
-            name: Integration Tests & Coveralls Part Watcher
-            environment:
-              DOCKER_GETH: true
-            command: |
-              mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_10:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: in_flight_exit_test_1_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: in_flight_exit_test_2_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: in_flight_exit_test_3_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: in_flight_exit_test_4_test.exs
           environment:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/in_flight_exit_test_4_test.exs --include mix_based_child_chain
-
-  watcher_mix_based_childchain_11:
-    machine:
-      image: ubuntu-1604:201903-01
-    environment:
-      MIX_ENV: test
-    steps:
-      - checkout
       - setup_childchain
       - run:
-          name: Integration Tests & Coveralls Part Watcher
+          name: in_flight_exit_test.exs
           environment:
             DOCKER_GETH: true
           command: |
@@ -844,23 +778,7 @@ jobs:
           command: make start-services
           background: true
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
-      - restore_cache:
-          key: v2-asdf-install
-      - run:
-          name: Install Erlang and Elixir
-          command: |
-            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.7.4
-            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
-            source $BASH_ENV
-            asdf plugin-add erlang || asdf plugin-update erlang
-            asdf plugin-add elixir || asdf plugin-update elixir
-            asdf install
-          no_output_timeout: 2400
-      - save_cache:
-          key: v2-asdf-install
-          paths:
-            - ~/.asdf
-            - ~/.asdf-vm
+      - install_elixir
       - install_deps
       - run: make install-hex-rebar
       - restore_cache:
@@ -880,13 +798,6 @@ jobs:
             - "_build/dev/"
             - "_build/dev/"
       - run:
-          name: Run Child Chain
-          command: |
-            set -e
-            make start-child_chain OVERRIDING_START=start_iex OVERRIDING_VARIABLES=./bin/variables_test_barebone
-          background: true
-          no_output_timeout: 2400
-      - run:
           name: Run Watcher
           command: |
             set -e
@@ -901,25 +812,41 @@ jobs:
           background: true
           no_output_timeout: 2400
       - run:
-          name: Install specs
-          command: |
-            cd priv/cabbage
-            make install
-            make generate_api_code
-            mix deps.get
-      - run:
           name: Print docker and process states
           command: |
             docker ps
             ps axww | grep watcher
             ps axww | grep watcher_info
             ps axww | grep child_chain
-      - run: sh .circleci/status.sh
-      - run:
-          name: Run specs
+      - run: 
+          name: Has Watcher started?
           command: |
-            cd priv/cabbage
-            mix test
+            attempt_counter=0
+            max_attempts=25
+            until $(curl --output /dev/null --silent --head --fail http://localhost:7434/alarm.get); do
+              if [ ${attempt_counter} -eq ${max_attempts} ];then
+                echo "Max attempts reached"
+                exit 1
+              fi
+              printf '.'
+              attempt_counter=$(($attempt_counter+1))
+              sleep 5
+            done
+      - run: 
+          name: Has Watcher Info started?
+          command: |
+            attempt_counter=0
+            max_attempts=25
+            until $(curl --output /dev/null --silent --head --fail http://localhost:7534/alarm.get); do
+              if [ ${attempt_counter} -eq ${max_attempts} ];then
+                echo "Max attempts reached"
+                exit 1
+              fi
+              printf '.'
+              attempt_counter=$(($attempt_counter+1))
+              sleep 5
+            done          
+         
 
   publish_watcher:
     machine:
@@ -1126,31 +1053,13 @@ workflows:
       - property_tests:
           requires: [build]
           filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_1:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_2:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_3:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_4:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_5:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_6:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_7:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_8:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_9:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_10:
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain_11:
+      - watcher_mix_based_childchain:
           filters: *all_branches_and_tags
       - publish_watcher:
           requires:
             [
+              test_barebone_release,
+              test_docker_compose_release,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
@@ -1173,6 +1082,8 @@ workflows:
       - publish_watcher_info:
           requires:
             [
+              test_barebone_release,
+              test_docker_compose_release,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
