@@ -69,12 +69,14 @@ defmodule LoadTest.ChildChain.Exit do
   def wait_for_exit_data(utxo_pos, counter) do
     data = get_exit_data(utxo_pos)
 
-    if data.proof do
-      data
-    else
-      _ = Logger.info("Waiting for exit data")
-      Process.sleep(@poll_interval)
-      wait_for_exit_data(utxo_pos, counter - 1)
+    case data.proof do
+      nil ->
+        _ = Logger.info("Waiting for exit data")
+        Process.sleep(@poll_interval)
+        wait_for_exit_data(utxo_pos, counter - 1)
+
+      _ ->
+        data
     end
   end
 
