@@ -437,6 +437,7 @@ start-watcher:
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
 	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeysWithValues.run()" && \
 	echo "Run Watcher" && \
 	. ${OVERRIDING_VARIABLES} && \
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
@@ -449,6 +450,7 @@ start-watcher_info:
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher Info DBs" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeysWithValues.run()" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.EthereumTasks.run()" && \
 	echo "Run Watcher Info" && \

@@ -75,6 +75,11 @@ defmodule OMG.Eth.RootChain.Fields do
     reduce_naming(data, contracts_naming)
   end
 
+  def rename(data, %ABI.FunctionSelector{function: "InFlightExitDeleted"}) do
+    contracts_naming = [{"exitId", :exit_id}]
+    reduce_naming(data, contracts_naming)
+  end
+
   def rename(data, %ABI.FunctionSelector{function: "InFlightExitChallenged"}) do
     contracts_naming = [
       {"challenger", :challenger},
