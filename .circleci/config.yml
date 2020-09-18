@@ -884,47 +884,49 @@ jobs:
           path: current_release/
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
 
-  increase_chart_version_childchain:
-    docker:
-      - image: cimg/base:2020.01
-    environment:
-      CHART_NAME: childchain
-      HELM_CHART_REPO: helm-development
-    steps:
-      - checkout
-      - run: sh .circleci/ci_increase_chart_version.sh
-
-  increase_chart_version_watcher:
+  increase_chart_version_watcher_master:
     docker:
       - image: cimg/base:2020.01
     environment:
       CHART_NAME: watcher
       HELM_CHART_REPO: helm-development
+      UPDATE_DEV: true
     steps:
       - checkout
-      - run: sh .circleci/ci_increase_chart_version.sh
+      - run: APP_VERSION="$(echo "$CIRCLE_SHA1" | head -c 7)" sh .circleci/ci_increase_chart_version.sh
 
-  increase_chart_version_watcher_info:
+  increase_chart_version_watcher_info_master:
     docker:
       - image: cimg/base:2020.01
     environment:
       CHART_NAME: watcher-info
       HELM_CHART_REPO: helm-development
+      UPDATE_DEV: true
     steps:
       - checkout
-      - run: sh .circleci/ci_increase_chart_version.sh
+      - run: APP_VERSION="$(echo "$CIRCLE_SHA1" | head -c 7)" sh .circleci/ci_increase_chart_version.sh
 
-  deploy_watcher:
-    executor: deployer
+  increase_chart_version_watcher_release:
+    docker:
+      - image: cimg/base:2020.01
+    environment:
+      CHART_NAME: watcher
+      HELM_CHART_REPO: helm-development
+      UPDATE_DEV: false
     steps:
       - checkout
-      - run: DEPLOY=watcher sh .circleci/ci_deploy.sh
+      - run: APP_VERSION="${CIRCLE_TAG#*v}" sh .circleci/ci_increase_chart_version.sh
 
-  deploy_watcher_info:
-    executor: deployer
+  increase_chart_version_watcher_info_release:
+    docker:
+      - image: cimg/base:2020.01
+    environment:
+      CHART_NAME: watcher-info
+      HELM_CHART_REPO: helm-development
+      UPDATE_DEV: false
     steps:
       - checkout
-      - run: DEPLOY=watcher_info sh .circleci/ci_deploy.sh
+      - run: APP_VERSION="${CIRCLE_TAG#*v}" sh .circleci/ci_increase_chart_version.sh
 
   coveralls_report:
     docker:
@@ -1002,7 +1004,9 @@ workflows:
       - test_barebone_release:
           filters: *all_branches_and_tags
       - notify_services:
-          requires: [deploy_watcher, deploy_watcher_info]
+          requires:
+            - increase_chart_version_watcher_master
+            - increase_chart_version_watcher_info_master
           filters:
             branches:
               only:
@@ -1091,21 +1095,21 @@ workflows:
               audit_deps
             ]
           filters: *master_and_version_branches_and_all_tags
-      # Release deploy to development in case of master branch.
-      - deploy_watcher:
+      # Increase chart version for master, this will end up trigger deployment on dev
+      - increase_chart_version_watcher_master:
           requires: [publish_watcher, publish_watcher_info]
           filters:
             branches:
               only:
                 - master
-      - deploy_watcher_info:
+      - increase_chart_version_watcher_info_master:
           requires: [publish_watcher, publish_watcher_info]
           filters:
             branches:
               only:
                 - master
       # Increase chart version for new release
-      - increase_chart_version_childchain:
+      - increase_chart_version_watcher_release:
           requires: [publish_watcher, publish_watcher_info]
           filters: &only_release_tag
             branches:
@@ -1114,9 +1118,6 @@ workflows:
               only:
                 # eg. v1.0.3-pre.0, v1.0.3, ...
                 - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
-      - increase_chart_version_watcher:
-          requires: [publish_watcher, publish_watcher_info]
-          filters: *only_release_tag
-      - increase_chart_version_watcher_info:
+      - increase_chart_version_watcher_info_release:
           requires: [publish_watcher, publish_watcher_info]
           filters: *only_release_tag
