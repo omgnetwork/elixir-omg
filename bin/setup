@@ -13,10 +13,10 @@ install_linux_deps() {
   echo $flavor
   case $flavor in
     debian|ubuntu)
-      sudo apt-get install -y $LINUX_DEPS libgmp-dev erlang-dev build-essential libssl-dev libncurses5-dev unzip lsb-release software-properties-common
+      sudo apt-get install -y $LINUX_DEPS libgmp-dev erlang-dev build-essential libssl-dev libncurses5-dev unzip lsb-release software-properties-common libcap-dev
       ;;
     fedora|centos)
-      sudo yum install $LINUX_DEPS gmp-devel
+      sudo yum install $LINUX_DEPS gmp-devel libcap-devel
       ;;
     *)
       fancy_echo "Unrecognized distribution $flavor"
