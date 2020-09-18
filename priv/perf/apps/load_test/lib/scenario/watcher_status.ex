@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.PerformanceTest do
-  @moduledoc false
+defmodule LoadTest.Scenario.WatcherStatus do
+  @moduledoc """
+  Calls Watcher status.get
+  """
+  use Chaperon.Scenario
 
-  use ExUnit.Case, async: false
-  doctest LoadTest.Performance
+  alias Chaperon.Session
+
+  def run(session) do
+    {:ok, response} = WatcherSecurityCriticalAPI.Api.Status.status_get(LoadTest.Connection.WatcherSecurity.client())
+    watcher_status = Jason.decode!(response.body)
+    Session.assign(session, watcher_status: watcher_status)
+  end
 end
