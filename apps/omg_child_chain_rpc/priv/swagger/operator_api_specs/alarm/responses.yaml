@@ -1,6 +1,0 @@
-AlarmResponse:
-  description: System alarms
-  content:
-    application/json:
-      schema:
-        $ref: 'response_schemas.yaml#/AlarmResponseSchema'

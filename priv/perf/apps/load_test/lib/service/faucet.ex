@@ -38,6 +38,7 @@ defmodule LoadTest.Service.Faucet do
   alias LoadTest.ChildChain.Deposit
   alias LoadTest.ChildChain.Transaction
   alias LoadTest.ChildChain.Utxos
+  alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
 
   # Submitting a transaction to the childchain can fail if it is under heavy load,
@@ -53,6 +54,14 @@ defmodule LoadTest.Service.Faucet do
           utxos: map()
         }
   defstruct [:faucet_account, :fee, :faucet_deposit_amount, :deposit_finality_margin, :gas_price, utxos: %{}]
+
+  @doc """
+  Sends funds to an account on the rootchain.
+  """
+  @spec fund_root_chain_account(<<_::160>>, pos_integer()) :: Utxo.t()
+  def fund_root_chain_account(receiver, amount) do
+    GenServer.call(__MODULE__, {:fund_root_chain, receiver, amount}, :infinity)
+  end
 
   @doc """
   Sends funds to an account on the childchain.
@@ -137,6 +146,22 @@ defmodule LoadTest.Service.Faucet do
     updated_state = Map.put(state, :utxos, Map.put(state.utxos, currency, next_faucet_utxo))
 
     {:reply, {:ok, user_utxo}, updated_state}
+  end
+
+  def handle_call({:fund_root_chain, receiver, amount}, _from, state) do
+    Logger.debug("Funding user #{Encoding.to_hex(receiver)} with #{amount} on root chain}")
+
+    tx = %LoadTest.Ethereum.Transaction{
+      to: receiver,
+      value: amount,
+      gas_price: state.gas_price,
+      gas_limit: 21_000
+    }
+
+    {:ok, tx_hash} = Ethereum.send_raw_transaction(tx, state.faucet_account)
+    {:ok, _} = Ethereum.transact_sync(tx_hash)
+
+    {:reply, {:ok, tx_hash}, state}
   end
 
   def handle_call({:merge_utxos, currency}, _from, state) do

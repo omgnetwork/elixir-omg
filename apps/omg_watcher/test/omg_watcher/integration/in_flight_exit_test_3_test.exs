@@ -19,8 +19,8 @@ defmodule OMG.Watcher.Integration.InFlightExit3Test do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
-  use OMG.ChildChain.Integration.Fixtures
   use Plug.Test
+  use OMG.Watcher.Integration.Fixtures
 
   alias OMG.State.Transaction
   alias OMG.Utxo
