@@ -97,7 +97,7 @@ commands:
           name: Standup Geth and Child Chain
           command: docker-compose up geth childchain postgres
           background: true
-      - run: 
+      - run:
           name: Has Childchain started?
           command: |
             attempt_counter=0
@@ -600,6 +600,7 @@ jobs:
   test_docker_compose_release:
     machine:
       image: ubuntu-1604:201903-01
+    parallelism: 4
     steps:
       - checkout
       - run:
@@ -638,7 +639,9 @@ jobs:
             mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
             mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
             mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
-            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
+            echo &("configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split)
+            "configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split > /tmp/tests-to-run
+            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test --only $(cat /tmp/tests-to-run)
       - save_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
@@ -756,7 +759,7 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test --only reorg --trace
+            mix test --only deposit --trace
           no_output_timeout: 30m
 
   test_barebone_release:
@@ -818,7 +821,7 @@ jobs:
             ps axww | grep watcher
             ps axww | grep watcher_info
             ps axww | grep child_chain
-      - run: 
+      - run:
           name: Has Watcher started?
           command: |
             attempt_counter=0
@@ -832,7 +835,7 @@ jobs:
               attempt_counter=$(($attempt_counter+1))
               sleep 5
             done
-      - run: 
+      - run:
           name: Has Watcher Info started?
           command: |
             attempt_counter=0
@@ -845,8 +848,8 @@ jobs:
               printf '.'
               attempt_counter=$(($attempt_counter+1))
               sleep 5
-            done          
-         
+            done
+
 
   publish_watcher:
     machine:
@@ -1001,123 +1004,123 @@ workflows:
               only: /.+/
             tags:
               only: /.+/
-      - test_barebone_release:
-          filters: *all_branches_and_tags
-      - notify_services:
-          requires:
-            - increase_chart_version_watcher_master
-            - increase_chart_version_watcher_info_master
-          filters:
-            branches:
-              only:
-                - master
-      - coveralls_report:
-          requires:
-            - watcher_coveralls_and_integration_tests
-            - watcher_info_coveralls_and_integration_tests
-            - common_coveralls_and_integration_tests
-            - test
-      - watcher_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - watcher_info_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - common_coveralls_and_integration_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
+      # - test_barebone_release:
+      #     filters: *all_branches_and_tags
+      # - notify_services:
+      #     requires:
+      #       - increase_chart_version_watcher_master
+      #       - increase_chart_version_watcher_info_master
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # - coveralls_report:
+      #     requires:
+      #       - watcher_coveralls_and_integration_tests
+      #       - watcher_info_coveralls_and_integration_tests
+      #       - common_coveralls_and_integration_tests
+      #       - test
+      # - watcher_coveralls_and_integration_tests:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - watcher_info_coveralls_and_integration_tests:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - common_coveralls_and_integration_tests:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
       - test_docker_compose_release:
           filters: *all_branches_and_tags
-      - test_docker_compose_performance:
-          filters: *all_branches_and_tags
-      - test_docker_compose_reorg:
-          filters: *all_branches_and_tags
-      - audit_deps:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - lint:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - lint_version:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - sobelow:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - dialyzer:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - test:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - property_tests:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - watcher_mix_based_childchain:
-          filters: *all_branches_and_tags
-      - publish_watcher:
-          requires:
-            [
-              test_barebone_release,
-              test_docker_compose_release,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-              lint_version,
-              audit_deps
-            ]
-          filters: &master_and_version_branches_and_all_tags
-            branches:
-              only:
-                - master
-                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-                - /^v[0-9]+\.[0-9]+/
-            tags:
-              only:
-                - /.+/
-      - publish_watcher_info:
-          requires:
-            [
-              test_barebone_release,
-              test_docker_compose_release,
-              watcher_coveralls_and_integration_tests,
-              watcher_info_coveralls_and_integration_tests,
-              common_coveralls_and_integration_tests,
-              test,
-              property_tests,
-              dialyzer,
-              lint,
-              lint_version,
-              audit_deps
-            ]
-          filters: *master_and_version_branches_and_all_tags
-      # Increase chart version for master, this will end up trigger deployment on dev
-      - increase_chart_version_watcher_master:
-          requires: [publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
-      - increase_chart_version_watcher_info_master:
-          requires: [publish_watcher, publish_watcher_info]
-          filters:
-            branches:
-              only:
-                - master
-      # Increase chart version for new release
-      - increase_chart_version_watcher_release:
-          requires: [publish_watcher, publish_watcher_info]
-          filters: &only_release_tag
-            branches:
-              ignore: /.*/
-            tags:
-              only:
-                # eg. v1.0.3-pre.0, v1.0.3, ...
-                - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
-      - increase_chart_version_watcher_info_release:
-          requires: [publish_watcher, publish_watcher_info]
-          filters: *only_release_tag
+      # - test_docker_compose_performance:
+      #     filters: *all_branches_and_tags
+      # - test_docker_compose_reorg:
+      #     filters: *all_branches_and_tags
+      # - audit_deps:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - lint:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - lint_version:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - sobelow:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - dialyzer:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - test:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - property_tests:
+      #     requires: [build]
+      #     filters: *all_branches_and_tags
+      # - watcher_mix_based_childchain:
+      #     filters: *all_branches_and_tags
+      # - publish_watcher:
+      #     requires:
+      #       [
+      #         test_barebone_release,
+      #         test_docker_compose_release,
+      #         watcher_coveralls_and_integration_tests,
+      #         watcher_info_coveralls_and_integration_tests,
+      #         common_coveralls_and_integration_tests,
+      #         test,
+      #         property_tests,
+      #         dialyzer,
+      #         lint,
+      #         lint_version,
+      #         audit_deps
+      #       ]
+      #     filters: &master_and_version_branches_and_all_tags
+      #       branches:
+      #         only:
+      #           - master
+      #           # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+      #           - /^v[0-9]+\.[0-9]+/
+      #       tags:
+      #         only:
+      #           - /.+/
+      # - publish_watcher_info:
+      #     requires:
+      #       [
+      #         test_barebone_release,
+      #         test_docker_compose_release,
+      #         watcher_coveralls_and_integration_tests,
+      #         watcher_info_coveralls_and_integration_tests,
+      #         common_coveralls_and_integration_tests,
+      #         test,
+      #         property_tests,
+      #         dialyzer,
+      #         lint,
+      #         lint_version,
+      #         audit_deps
+      #       ]
+      #     filters: *master_and_version_branches_and_all_tags
+      # # Increase chart version for master, this will end up trigger deployment on dev
+      # - increase_chart_version_watcher_master:
+      #     requires: [publish_watcher, publish_watcher_info]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # - increase_chart_version_watcher_info_master:
+      #     requires: [publish_watcher, publish_watcher_info]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      # # Increase chart version for new release
+      # - increase_chart_version_watcher_release:
+      #     requires: [publish_watcher, publish_watcher_info]
+      #     filters: &only_release_tag
+      #       branches:
+      #         ignore: /.*/
+      #       tags:
+      #         only:
+      #           # eg. v1.0.3-pre.0, v1.0.3, ...
+      #           - /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      # - increase_chart_version_watcher_info_release:
+      #     requires: [publish_watcher, publish_watcher_info]
+      #     filters: *only_release_tag
