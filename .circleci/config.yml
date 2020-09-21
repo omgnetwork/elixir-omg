@@ -629,7 +629,9 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test
+            echo &("configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split)
+            "configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split > /tmp/tests-to-run
+            mix test --only $(cat /tmp/tests-to-run)
       - run:
           name: (Cabbage) Format generated code and check for warnings
           command: |
@@ -639,9 +641,7 @@ jobs:
             mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
             mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
             mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
-            echo &("configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split)
-            "configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split > /tmp/tests-to-run
-            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test --only $(cat /tmp/tests-to-run)
+            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
       - save_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
