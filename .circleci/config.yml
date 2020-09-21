@@ -631,7 +631,7 @@ jobs:
             mix deps.get
             echo $(circleci tests split ./tags.txt)
             circleci tests split ./tags.txt > /tmp/tests-to-run
-            mix test --exclude test --include $(cat /tmp/tests-to-run)
+            mix test --exclude test $(cat /tmp/tests-to-run)
       - run:
           name: (Cabbage) Format generated code and check for warnings
           command: |
