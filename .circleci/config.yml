@@ -629,7 +629,7 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            echo &("configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split)
+            echo $("configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split)
             "configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" | circleci tests split > /tmp/tests-to-run
             mix test --only $(cat /tmp/tests-to-run)
       - run:
