@@ -629,7 +629,6 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            echo "configuration deposit fee in_flight_exit invalid_standard_exits service_name standard_exits transactions watcher_info_api watcher_status" > tags.txt
             echo $(circleci tests split ./tags.txt)
             circleci tests split ./tags.txt > /tmp/tests-to-run
             mix test --only $(cat /tmp/tests-to-run)
