@@ -629,6 +629,7 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
+            grep -r "@moduletag" ./apps/itest/ | awk '{print "--include " $3}' | tr -d ':' > tags.txt
             echo $(circleci tests split ./tags.txt)
             circleci tests split ./tags.txt > /tmp/tests-to-run
             mix test --exclude test $(cat /tmp/tests-to-run)
