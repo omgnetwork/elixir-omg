@@ -200,7 +200,8 @@ defmodule LoadTest.Service.Faucet do
   defp deposit(faucet_account, amount, currency, deposit_finality_margin, gas_price) do
     Logger.debug("Not enough funds in the faucet, depositing #{amount} from the root chain")
 
-    {:ok, utxo} = Deposit.deposit_from(faucet_account, amount, currency, deposit_finality_margin, gas_price)
+    options = [gas_price: gas_price, deposit_finality_margin: deposit_finality_margin]
+    {:ok, utxo} = Deposit.deposit_from(faucet_account, amount, currency, options)
     utxo
   end
 end

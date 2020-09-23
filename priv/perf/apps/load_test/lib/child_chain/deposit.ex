@@ -32,21 +32,30 @@ defmodule LoadTest.ChildChain.Deposit do
   If currency is ETH, funds will be deposited into the EthVault.
   If currency is ERC20, 'approve()' will be called before depositing funds into the Erc20Vault.
 
-  Returns the utxo created by the deposit.
+  Returns the utxo created by the deposit or the hash of the the deposit transaction.
   """
   @spec deposit_from(
           LoadTest.Ethereum.Account.t(),
           pos_integer(),
           LoadTest.Ethereum.Account.t(),
-          pos_integer(),
-          pos_integer()
+          Keyword.t()
         ) :: Utxo.t()
-  def deposit_from(%Account{} = depositor, amount, currency, deposit_finality_margin, gas_price) do
+  def deposit_from(%Account{} = depositor, amount, currency, options \\ []) do
+    deposit_finality_margin = Keyword.get(options, :deposit_finality_margin, 1)
+    gas_price = Keyword.get(options, :gas_price, 180_000)
+    return = Keyword.get(options, :return, :utxo)
+
     deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}
+
     {:ok, deposit} = Deposit.new(deposit_utxo)
-    {:ok, {deposit_blknum, eth_blknum}} = send_deposit(deposit, depositor, amount, currency, gas_price)
+    {:ok, {deposit_blknum, eth_blknum, eth_blkhash}} = send_deposit(deposit, depositor, amount, currency, gas_price)
+
     :ok = wait_deposit_finality(eth_blknum, deposit_finality_margin)
-    Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
+
+    case return do
+      :utxo -> Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
+      _ -> eth_blkhash
+    end
   end
 
   defp send_deposit(deposit, account, value, @eth, gas_price) do
@@ -84,7 +93,7 @@ defmodule LoadTest.ChildChain.Deposit do
     %{"topics" => [_topic, _addr, blknum | _]} =
       Enum.find(logs, fn %{"address" => address} -> address == vault_address end)
 
-    {:ok, {Encoding.to_int(blknum), eth_blknum}}
+    {:ok, {Encoding.to_int(blknum), eth_blknum, tx_hash}}
   end
 
   defp wait_deposit_finality(deposit_eth_blknum, finality_margin) do
