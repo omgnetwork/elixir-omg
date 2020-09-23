@@ -53,12 +53,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
     end
   end
 
-  defp prioritize_utxos_by_currency({currency, _utxos}, utxos, selected_utxo_hashes) do
-    utxos[currency]
-    |> filter_unselected(selected_utxo_hashes)
-    |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
-  end
-
   @doc """
   Given a map of UTXOs sufficient for the transaction and a set of available UTXOs,
   adds UTXOs to the transaction for "stealth merge" until the limit is reached or
@@ -102,16 +96,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
       {token, selected_utxos}
     end)
-  end
-
-  defp find_utxos_by_token(token_utxos, need) do
-    case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
-      nil ->
-        recursively_find_utxos(token_utxos, need, [])
-
-      utxo ->
-        {0, [utxo]}
-    end
   end
 
   @doc """
@@ -164,6 +148,23 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
   defp recursively_find_utxos([utxo | utxos], need, selected_utxos),
     do: recursively_find_utxos(utxos, need - utxo.amount, [utxo | selected_utxos])
+
+
+  defp find_utxos_by_token(token_utxos, need) do
+    case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
+      nil ->
+        recursively_find_utxos(token_utxos, need, [])
+
+      utxo ->
+        {0, [utxo]}
+    end
+  end
+
+  defp prioritize_utxos_by_currency({currency, _utxos}, utxos, selected_utxo_hashes) do
+    utxos[currency]
+    |> filter_unselected(selected_utxo_hashes)
+    |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
+  end
 
   @spec filter_unselected(utxo_list_t(), %{currency_t() => boolean()}) :: utxo_list_t()
   defp filter_unselected(available_utxos, selected_utxo_hashes) do
