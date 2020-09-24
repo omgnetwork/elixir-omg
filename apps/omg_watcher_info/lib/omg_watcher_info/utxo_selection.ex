@@ -149,7 +149,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   defp recursively_find_utxos([utxo | utxos], need, selected_utxos),
     do: recursively_find_utxos(utxos, need - utxo.amount, [utxo | selected_utxos])
 
-
   defp find_utxos_by_token(token_utxos, need) do
     case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
       nil ->
