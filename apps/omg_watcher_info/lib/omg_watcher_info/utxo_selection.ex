@@ -31,16 +31,17 @@ defmodule OMG.WatcherInfo.UtxoSelection do
 
   @doc """
   Defines and prioritises available UTXOs for stealth merge based on the available and selected sets.
-  - Excludes currenices not already used in the transaction and UTXOs in the selected set.
+  - Excludes currencies not already used in the transaction and UTXOs in the selected set.
   - Prioritises currencies that have the largest number of UTXOs
   - Sorts by ascending order of UTXO value within the currency groupings ("dust first").
   """
   @spec prioritize_merge_utxos(utxos_map_t(), utxos_map_t()) :: utxo_list_t()
   def prioritize_merge_utxos(utxos, selected_utxos) do
-    selected_utxos
+    utxos_hash = selected_utxos
     |> Enum.flat_map(fn {_ccy, utxos} -> utxos end)
     |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
-    |> case do
+
+    case utxos_hash do
       hashes_map when map_size(hashes_map) == 0 ->
         []
 
@@ -48,7 +49,7 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         selected_utxos
         |> Enum.map(&prioritize_utxos_by_currency(&1, utxos, hashes_map))
         |> Enum.sort_by(&length/1, :desc)
-        |> Enum.map(fn ccy_group -> Enum.slice(ccy_group, 0, 3) end)
+        |> Enum.map(fn currency_utxos -> Enum.slice(currency_utxos, 0, 3) end)
         |> List.flatten()
     end
   end
