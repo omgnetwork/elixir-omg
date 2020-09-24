@@ -110,12 +110,9 @@ defmodule OMG.WatcherInfo.API.Transaction do
   end
 
   defp create_transaction(utxos_count, inputs, _order) when utxos_count > Transaction.Payment.max_inputs() do
-    transactions =
-      inputs
-      |> Enum.map(fn {_currency, token_inputs} ->
-        TransactionCreator.generate_merge_transactions(token_inputs)
+    transactions = Enum.reduce(inputs, [], fn {_, token_inputs}, acc ->
+        TransactionCreator.generate_merge_transactions(token_inputs) ++ acc
       end)
-      |> List.flatten()
 
     respond({:ok, transactions}, :intermediate)
   end
