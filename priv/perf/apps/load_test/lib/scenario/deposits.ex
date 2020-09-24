@@ -17,6 +17,10 @@ defmodule LoadTest.Scenario.Deposits do
 
   alias Chaperon.Session
   alias LoadTest.ChildChain.Deposit
+  alias LoadTest.Ethereum
+  alias LoadTest.Ethereum.Account
+
+  alias LoadTest.Service.Faucet
 
   @spec run(Session.t()) :: Session.t()
   def run(session) do
@@ -36,23 +40,47 @@ defmodule LoadTest.Scenario.Deposits do
   end
 
   def create_deposit(session) do
-    from_address = config(session, [:chain_config, :from_address])
-    to_address = config(session, [:chain_config, :to_address])
     token = config(session, [:chain_config, :token])
     amount = config(session, [:chain_config, :amount])
+    initial_balance = amount + 500_000_000_000
 
-    txhash = Deposit.deposit_from(from_address, amount, token, return: :txhash)
+    {:ok, from_address} = Account.new()
+    {:ok, to_address} = Account.new()
+    {:ok, _} = Faucet.fund_root_chain_account(from_address.addr, initial_balance)
 
-    # balance = Client.get_exact_balance(alice_account, expecting_amount)
+    txhash = Deposit.deposit_from(from_address, amount, token, return: :txhash, deposit_finality_margin: 10)
+    gas_used = Ethereum.get_gas_used(txhash)
 
-    # {:ok, [sign_hash, typed_data, _txbytes]} =
-    #   Client.create_transaction(
-    #     Currency.to_wei(amount),
-    #     alice_account,
-    #     bob_account
-    #   )
+    with :ok <- fetch_childchain_balance(from_address, amount, token, :wrong_childchain_balance_after_deposit),
+         :ok <-
+           fetch_rootchain_balance(
+             from_address,
+             initial_balance - amount - gas_used,
+             token,
+             :wrong_rootchain_balance_after_deposit
+           ) do
+      session
+    else
+      error ->
+        Session.abort(session, error)
+    end
+  end
 
-    # _ = Client.submit_transaction(typed_data, sign_hash, [alice_pkey, alice_pkey])
-    session
+  defp fetch_childchain_balance(account, amount, token, error) do
+    childchain_balance = Ethereum.fetch_balance(account.addr, amount, token)
+
+    case childchain_balance["amount"] do
+      ^amount -> :ok
+      _ -> error
+    end
+  end
+
+  defp fetch_rootchain_balance(account, amount, token, error) do
+    rootchain_balance = Ethereum.fetch_rootchain_balance(account.addr, token)
+
+    case rootchain_balance do
+      ^amount -> :ok
+      _ -> error
+    end
   end
 end

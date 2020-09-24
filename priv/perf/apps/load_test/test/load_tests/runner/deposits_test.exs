@@ -22,23 +22,19 @@ defmodule LoadTest.Runner.DepositsTest do
   alias LoadTest.Service.Faucet
 
   test "deposits test" do
-    {:ok, from} = Account.new()
-    {:ok, to} = Account.new()
-    {:ok, _} = Faucet.fund_root_chain_account(from.addr, 105_000_000_000_000_000)
     token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
-    amount = 1_000_000_000_000_000
+    amount = 1_000_000_000_000
 
     config = %{
       chain_config: %{
-        from_address: from,
-        to_address: to,
         token: token,
         amount: amount
       },
       run_config: %{
         tps: 1,
-        period_in_seconds: 100
-      }
+        period_in_seconds: 5
+      },
+      timeout: 60_000
     }
 
     Chaperon.run_load_test(LoadTest.Runner.Deposits, print_results: true, config: config)

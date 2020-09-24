@@ -49,6 +49,23 @@ defmodule LoadTest.Ethereum do
     end
   end
 
+  @spec get_gas_used(String.t()) :: non_neg_integer()
+  def get_gas_used(receipt_hash) do
+    result =
+      {Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash),
+       Ethereumex.HttpClient.eth_get_transaction_by_hash(receipt_hash)}
+
+    case result do
+      {{:ok, %{"gasUsed" => gas_used}}, {:ok, %{"gasPrice" => gas_price}}} ->
+        {gas_price_value, ""} = gas_price |> String.replace_prefix("0x", "") |> Integer.parse(16)
+        {gas_used_value, ""} = gas_used |> String.replace_prefix("0x", "") |> Integer.parse(16)
+        gas_price_value * gas_used_value
+
+      {{:ok, nil}, {:ok, nil}} ->
+        0
+    end
+  end
+
   @doc """
   Waits until transaction is mined
   Returns transaction receipt updated with Ethereum block number in which the transaction was mined
@@ -106,6 +123,115 @@ defmodule LoadTest.Ethereum do
     end
 
     Sync.repeat_until_success(f, timeout)
+  end
+
+  def fetch_balance(address, amount, currency \\ <<0::160>>) do
+    fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency), 10)
+  end
+
+  def fetch_rootchain_balance(address, <<0::160>>) do
+    root_chain_get_eth_balance(Encoding.to_hex(address), 10)
+  end
+
+  def fetch_rootchain_balance(address, currency) do
+    root_chain_get_erc20_balance(Encoding.to_hex(address), Encoding.to_hex(currency), 10)
+  end
+
+  defp root_chain_get_eth_balance(address, 0) do
+    {:ok, initial_balance} = eth_account_get_balance(address)
+    {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    initial_balance
+  end
+
+  defp root_chain_get_eth_balance(address, counter) do
+    response = eth_account_get_balance(address)
+
+    case response do
+      {:ok, initial_balance} ->
+        {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+        initial_balance
+
+      _ ->
+        Process.sleep(1_000)
+        root_chain_get_eth_balance(address, counter - 1)
+    end
+  end
+
+  defp eth_account_get_balance(address) do
+    Ethereumex.HttpClient.eth_get_balance(address)
+  end
+
+  defp root_chain_get_erc20_balance(address, currency, 0) do
+    do_root_chain_get_erc20_balance(address, currency)
+  end
+
+  defp root_chain_get_erc20_balance(address, currency, counter) do
+    case do_root_chain_get_erc20_balance(address, currency) do
+      {:ok, balance} ->
+        balance
+
+      _ ->
+        Process.sleep(1_000)
+        root_chain_get_erc20_balance(address, currency, counter - 1)
+    end
+  end
+
+  defp do_root_chain_get_erc20_balance(address, currency) do
+    data = ABI.encode("balanceOf(address)", [Encoding.to_binary(address)])
+
+    case Ethereumex.HttpClient.eth_call(%{to: Encoding.to_hex(currency), data: Encoding.to_hex(data)}) do
+      {:ok, result} ->
+        balance =
+          result
+          |> Encoding.to_binary()
+          |> ABI.TypeDecoder.decode([{:uint, 256}])
+          |> hd()
+
+        {:ok, balance}
+
+      error ->
+        error
+    end
+  end
+
+  defp fetch_balance(address, amount, currency, counter) do
+    response =
+      case account_get_balances(address) do
+        {:ok, response} ->
+          decoded_response = Jason.decode!(response.body)
+          Enum.find(decoded_response["data"], fn data -> data["currency"] == currency end)
+
+        _ ->
+          # socket closed etc.
+          :error
+      end
+
+    case response do
+      # empty response is considered no account balance!
+      nil when amount == 0 ->
+        nil
+
+      %{"amount" => ^amount} = balance ->
+        balance
+
+      error ->
+        if counter == 0 do
+          error
+        else
+          Process.sleep(1_000)
+
+          fetch_balance(address, amount, currency, counter - 1)
+        end
+    end
+  end
+
+  defp account_get_balances(address) do
+    WatcherInfoAPI.Api.Account.account_get_balance(
+      LoadTest.Connection.WatcherInfo.client(),
+      %{
+        address: address
+      }
+    )
   end
 
   defp get_external_data(address, signature, params) do
