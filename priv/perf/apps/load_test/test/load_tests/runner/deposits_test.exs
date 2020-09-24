@@ -23,7 +23,7 @@ defmodule LoadTest.Runner.DepositsTest do
 
   test "deposits test" do
     token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
-    amount = 1_000_000_000_000
+    amount = 1_000_000_000_000_000_000
 
     config = %{
       chain_config: %{

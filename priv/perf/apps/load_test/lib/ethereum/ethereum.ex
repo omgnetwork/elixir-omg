@@ -137,6 +137,109 @@ defmodule LoadTest.Ethereum do
     root_chain_get_erc20_balance(Encoding.to_hex(address), Encoding.to_hex(currency), 10)
   end
 
+  def create_transaction(amount_in_wei, input_address, output_address, currency \\ <<0::160>>, tries \\ 120) do
+    transaction = %WatcherInfoAPI.Model.CreateTransactionsBodySchema{
+      owner: Encoding.to_hex(input_address),
+      payments: [
+        %WatcherInfoAPI.Model.TransactionCreatePayments{
+          amount: amount_in_wei,
+          currency: Encoding.to_hex(currency),
+          owner: Encoding.to_hex(output_address)
+        }
+      ],
+      fee: %WatcherInfoAPI.Model.TransactionCreateFee{currency: Encoding.to_hex(currency)}
+    }
+
+    {:ok, response} =
+      WatcherInfoAPI.Api.Transaction.create_transaction(LoadTest.Connection.WatcherInfo.client(), transaction)
+
+    result = Jason.decode!(response.body)["data"]
+    process_transaction_result(result, amount_in_wei, input_address, output_address, currency, tries)
+  end
+
+  def submit_transaction(typed_data, sign_hash, private_keys) do
+    signatures =
+      Enum.map(private_keys, fn private_key ->
+        sign_hash
+        |> Encoding.to_binary()
+        |> Encoding.signature_digest(private_key)
+        |> Encoding.to_hex()
+      end)
+
+    typed_data_signed = Map.put_new(typed_data, "signatures", signatures)
+
+    submit_typed(typed_data_signed)
+  end
+
+  defp submit_typed(typed_data_signed, retry_count \\ 120)
+
+  defp submit_typed(typed_data_signed, 0), do: execute_submit_typed(typed_data_signed)
+
+  defp submit_typed(typed_data_signed, counter) do
+    {:ok, response} = execute_submit_typed(typed_data_signed)
+    decoded_response = Jason.decode!(response.body)["data"]
+
+    case decoded_response do
+      %{"messages" => %{"code" => "submit:utxo_not_found"}} ->
+        Process.sleep(1_000)
+        submit_typed(typed_data_signed, counter - 1)
+
+      %{"messages" => %{"code" => "operation:service_unavailable"}} ->
+        Process.sleep(1_000)
+        submit_typed(typed_data_signed, counter - 1)
+
+      %{"txhash" => _} ->
+        Itest.ApiModel.SubmitTransactionResponse.to_struct(decoded_response)
+    end
+  end
+
+  defp execute_submit_typed(typed_data_signed) do
+    WatcherInfoAPI.Api.Transaction.submit_typed(LoadTest.Connection.WatcherInfo.new(), typed_data_signed)
+  end
+
+  defp process_transaction_result(
+         %{
+           "result" => "complete",
+           "transactions" => [
+             %{
+               "sign_hash" => sign_hash,
+               "typed_data" => typed_data,
+               "txbytes" => txbytes
+             }
+           ]
+         },
+         _amount_in_wei,
+         _input_address,
+         _output_address,
+         _currency,
+         _tries
+       ) do
+    {:ok, [sign_hash, typed_data, txbytes]}
+  end
+
+  defp process_transaction_result(
+         %{"code" => "create:client_error", "messages" => %{"code" => "operation:service_unavailable"}} = result,
+         _amount_in_wei,
+         _input_address,
+         _output_address,
+         _currency,
+         0
+       ) do
+    result
+  end
+
+  defp process_transaction_result(
+         %{"code" => "create:client_error", "messages" => %{"code" => "operation:service_unavailable"}},
+         amount_in_wei,
+         input_address,
+         output_address,
+         currency,
+         tries
+       ) do
+    Process.sleep(1_000)
+    create_transaction(amount_in_wei, input_address, output_address, currency, tries - 1)
+  end
+
   defp root_chain_get_eth_balance(address, 0) do
     {:ok, initial_balance} = eth_account_get_balance(address)
     {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)

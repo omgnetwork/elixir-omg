@@ -51,19 +51,36 @@ defmodule LoadTest.Scenario.Deposits do
     txhash = Deposit.deposit_from(from_address, amount, token, return: :txhash, deposit_finality_margin: 10)
     gas_used = Ethereum.get_gas_used(txhash)
 
-    with :ok <- fetch_childchain_balance(from_address, amount, token, :wrong_childchain_balance_after_deposit),
+    with :ok <-
+           fetch_childchain_balance(from_address, amount, token, :wrong_childchain_from_balance_after_deposit),
          :ok <-
            fetch_rootchain_balance(
              from_address,
              initial_balance - amount - gas_used,
              token,
              :wrong_rootchain_balance_after_deposit
-           ) do
+           ),
+         _ <- send_amount_on_childchain(from_address, to_address, token, amount),
+         :ok <- fetch_childchain_balance(from_address, 0, token, :wrong_childchain_from_balance_after_sending_deposit),
+         :ok <- fetch_childchain_balance(to_address, amount, token, :wrong_childchain_to_balance_after_sending_deposit) do
       session
     else
       error ->
         Session.abort(session, error)
     end
+  end
+
+  defp send_amount_on_childchain(from, to, token, amount) do
+    {:ok, [sign_hash, typed_data, _txbytes]} =
+      Ethereum.create_transaction(
+        amount,
+        from.addr,
+        to.addr,
+        token
+      )
+
+    # from account needs to sign 2 inputs of 1 Eth, 1 for Bob and 1 for the fees
+    _ = Ethereum.submit_transaction(typed_data, sign_hash, [from.priv, to.priv])
   end
 
   defp fetch_childchain_balance(account, amount, token, error) do
