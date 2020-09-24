@@ -190,9 +190,7 @@ defmodule OMG.WatcherInfo.Transaction do
   end
 
   defp build_inputs(utxos_per_token) do
-    utxos_per_token
-    |> Enum.map(fn {_, utxos} -> utxos end)
-    |> List.flatten()
+    Enum.reduce(utxos_per_token, [], fn {_, utxos}, acc -> utxos ++ acc end)
   end
 
   defp build_outputs(utxos_per_token, order) do
