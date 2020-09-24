@@ -90,9 +90,11 @@ defmodule OMG.WatcherInfo.API.Transaction do
   """
   @spec create(TransactionCreator.order_t()) :: create_t()
   def create(order) do
-    case order.owner
-         |> DB.TxOutput.get_sorted_grouped_utxos()
-         |> TransactionCreator.select_inputs(order) do
+    owner_inputs = order.owner
+      |> DB.TxOutput.get_sorted_grouped_utxos()
+      |> TransactionCreator.select_inputs(order)
+
+    case owner_inputs do
       {:ok, inputs} ->
         inputs
         |> get_utxos_count()
