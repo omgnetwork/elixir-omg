@@ -21,6 +21,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   import OMG.WatcherInfo.Factory, only: [build: 1, with_deposit: 1, insert: 1, insert: 2, with_inputs: 2, with_outputs: 2]
 
+  alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
@@ -1824,9 +1825,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   end
 
   defp make_payments(blknum, spender, txs_bytes, blocks_inserter) when is_list(txs_bytes) do
-    alias OMG.DevCrypto
-    alias OMG.State.Transaction
-
     recovered_txs =
       Enum.map(txs_bytes, fn "0x" <> tx ->
         raw_tx = tx |> Base.decode16!(case: :lower) |> Transaction.decode!()
