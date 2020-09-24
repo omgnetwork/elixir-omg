@@ -19,8 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
-  # only: [build: 1, with_deposit: 1, insert: 1, with_inputs: 2, with_outputs: 2]
-  import OMG.WatcherInfo.Factory
+  import OMG.WatcherInfo.Factory, only: [build: 1, with_deposit: 1, insert: 1, insert: 2, with_inputs: 2, with_outputs: 2]
 
   alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
@@ -33,8 +32,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias Support.WatcherHelper
 
   require OMG.State.Transaction.Payment
-  import OMG.WatcherInfo.Factory
-
   require Utxo
 
   @eth OMG.Eth.zero_address()
@@ -571,24 +568,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
              } ==
                WatcherHelper.no_success?("transaction.all", %{"address" => too_short_address})
     end
-  end
-
-  defp transaction_all_with_paging(body) do
-    %{
-      "success" => true,
-      "data" => data,
-      "data_paging" => paging
-    } = WatcherHelper.rpc_call("transaction.all", body, 200)
-
-    {data, paging}
-  end
-
-  defp transaction_all_result(body \\ nil) do
-    {result, paging} = transaction_all_with_paging(body)
-
-    assert @default_data_paging == paging
-
-    result
   end
 
   describe "/transaction.submit with binary-encoded transaction" do
@@ -1239,51 +1218,6 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                "description" => "This endpoint cannot be used to create merge or split transactions."
              } == WatcherHelper.no_success?("transaction.create", params)
     end
-
-    defp balance_in_token(address, token) do
-      currency = Encoding.to_hex(token)
-
-      Enum.find_value(WatcherHelper.get_balance(address), 0, fn
-        %{"currency" => ^currency, "amount" => amount} -> amount
-        _ -> false
-      end)
-    end
-
-    defp make_payments(blknum, spender, txs_bytes, blocks_inserter) when is_list(txs_bytes) do
-      alias OMG.DevCrypto
-      alias OMG.State.Transaction
-
-      recovered_txs =
-        Enum.map(txs_bytes, fn "0x" <> tx ->
-          raw_tx = tx |> Base.decode16!(case: :lower) |> Transaction.decode!()
-          n_inputs = raw_tx |> Transaction.get_inputs() |> length
-
-          raw_tx
-          |> DevCrypto.sign(List.duplicate(spender.priv, n_inputs))
-          |> Transaction.Signed.encode()
-          |> Transaction.Recovered.recover_from!()
-        end)
-
-      blocks_inserter.([{blknum, recovered_txs}])
-    end
-
-    defp prepare_test_server(context, response) do
-      response
-      |> TestServer.make_response()
-      |> TestServer.with_response(context, "/fees.all")
-    end
-
-    defp max_amount_spendable_in_single_tx(address, token) do
-      currency = Encoding.to_hex(token)
-
-      address
-      |> WatcherHelper.get_utxos()
-      |> Stream.filter(&(&1["currency"] == currency))
-      |> Enum.sort_by(& &1["amount"], &>=/2)
-      |> Stream.take(Transaction.Payment.max_inputs())
-      |> Stream.map(& &1["amount"])
-      |> Enum.sum()
-    end
   end
 
   describe "/transaction.create stealth add inputs" do
@@ -1860,5 +1794,68 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       nil -> nil
       hash -> Encoding.to_hex(hash)
     end
+  end
+
+  defp transaction_all_with_paging(body) do
+    %{
+      "success" => true,
+      "data" => data,
+      "data_paging" => paging
+    } = WatcherHelper.rpc_call("transaction.all", body, 200)
+
+    {data, paging}
+  end
+
+  defp transaction_all_result(body \\ nil) do
+    {result, paging} = transaction_all_with_paging(body)
+
+    assert @default_data_paging == paging
+
+    result
+  end
+
+  defp balance_in_token(address, token) do
+    currency = Encoding.to_hex(token)
+
+    Enum.find_value(WatcherHelper.get_balance(address), 0, fn
+      %{"currency" => ^currency, "amount" => amount} -> amount
+      _ -> false
+    end)
+  end
+
+  defp make_payments(blknum, spender, txs_bytes, blocks_inserter) when is_list(txs_bytes) do
+    alias OMG.DevCrypto
+    alias OMG.State.Transaction
+
+    recovered_txs =
+      Enum.map(txs_bytes, fn "0x" <> tx ->
+        raw_tx = tx |> Base.decode16!(case: :lower) |> Transaction.decode!()
+        n_inputs = raw_tx |> Transaction.get_inputs() |> length
+
+        raw_tx
+        |> DevCrypto.sign(List.duplicate(spender.priv, n_inputs))
+        |> Transaction.Signed.encode()
+        |> Transaction.Recovered.recover_from!()
+      end)
+
+    blocks_inserter.([{blknum, recovered_txs}])
+  end
+
+  defp prepare_test_server(context, response) do
+    response
+    |> TestServer.make_response()
+    |> TestServer.with_response(context, "/fees.all")
+  end
+
+  defp max_amount_spendable_in_single_tx(address, token) do
+    currency = Encoding.to_hex(token)
+
+    address
+    |> WatcherHelper.get_utxos()
+    |> Stream.filter(&(&1["currency"] == currency))
+    |> Enum.sort_by(& &1["amount"], &>=/2)
+    |> Stream.take(Transaction.Payment.max_inputs())
+    |> Stream.map(& &1["amount"])
+    |> Enum.sum()
   end
 end
