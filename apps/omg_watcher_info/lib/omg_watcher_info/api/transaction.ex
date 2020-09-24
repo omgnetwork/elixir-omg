@@ -90,7 +90,8 @@ defmodule OMG.WatcherInfo.API.Transaction do
   """
   @spec create(TransactionCreator.order_t()) :: create_t()
   def create(order) do
-    owner_inputs = order.owner
+    owner_inputs =
+      order.owner
       |> DB.TxOutput.get_sorted_grouped_utxos()
       |> TransactionCreator.select_inputs(order)
 
@@ -110,9 +111,16 @@ defmodule OMG.WatcherInfo.API.Transaction do
   end
 
   defp create_transaction(utxos_count, inputs, _order) when utxos_count > Transaction.Payment.max_inputs() do
-    transactions = Enum.reduce(inputs, [], fn {_, token_inputs}, acc ->
-        TransactionCreator.generate_merge_transactions(token_inputs) ++ acc
+    transactions =
+      Enum.reduce(inputs, [], fn {_, token_inputs}, acc ->
+        merged_transactions =
+          token_inputs
+          |> TransactionCreator.generate_merge_transactions()
+          |> Enum.reverse()
+
+        merged_transactions ++ acc
       end)
+      |> Enum.reverse()
 
     respond({:ok, transactions}, :intermediate)
   end

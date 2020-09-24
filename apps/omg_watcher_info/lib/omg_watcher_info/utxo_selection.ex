@@ -37,9 +37,10 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   """
   @spec prioritize_merge_utxos(utxos_map_t(), utxos_map_t()) :: utxo_list_t()
   def prioritize_merge_utxos(utxos, selected_utxos) do
-    utxos_hash = selected_utxos
-    |> Enum.flat_map(fn {_ccy, utxos} -> utxos end)
-    |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
+    utxos_hash =
+      selected_utxos
+      |> Enum.flat_map(fn {_ccy, utxos} -> utxos end)
+      |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
 
     case utxos_hash do
       hashes_map when map_size(hashes_map) == 0 ->

@@ -84,13 +84,14 @@ defmodule OMG.WatcherInfo.Transaction do
   """
   @spec select_inputs(utxos_map_t(), order_t()) :: inputs_t()
   def select_inputs(utxos, %{payments: payments, fee: fee}) do
-    reviewed_selected_utxos = payments
-    # calculates net amount to satisfy payments and fee.
-    |> UtxoSelection.calculate_net_amount(fee)
-    # tries to select utxos that satisfy net amount.
-    |> UtxoSelection.select_utxos(utxos)
-    # reviews if selected utxos satisfy net amount.
-    |> UtxoSelection.review_selected_utxos()
+    reviewed_selected_utxos =
+      payments
+      # calculates net amount to satisfy payments and fee.
+      |> UtxoSelection.calculate_net_amount(fee)
+      # tries to select utxos that satisfy net amount.
+      |> UtxoSelection.select_utxos(utxos)
+      # reviews if selected utxos satisfy net amount.
+      |> UtxoSelection.review_selected_utxos()
 
     case reviewed_selected_utxos do
       {:ok, funds} ->
@@ -190,7 +191,9 @@ defmodule OMG.WatcherInfo.Transaction do
   end
 
   defp build_inputs(utxos_per_token) do
-    Enum.reduce(utxos_per_token, [], fn {_, utxos}, acc -> utxos ++ acc end)
+    utxos_per_token
+    |> Enum.reduce([], fn {_, utxos}, acc -> Enum.reverse(utxos) ++ acc end)
+    |> Enum.reverse()
   end
 
   defp build_outputs(utxos_per_token, order) do

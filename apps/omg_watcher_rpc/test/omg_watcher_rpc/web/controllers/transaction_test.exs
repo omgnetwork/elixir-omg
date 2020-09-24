@@ -19,7 +19,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
-  import OMG.WatcherInfo.Factory, only: [build: 1, with_deposit: 1, insert: 1, insert: 2, with_inputs: 2, with_outputs: 2]
+  import OMG.WatcherInfo.Factory,
+    only: [build: 1, with_deposit: 1, insert: 1, insert: 2, with_inputs: 2, with_outputs: 2]
 
   alias OMG.DevCrypto
   alias OMG.State.Transaction
