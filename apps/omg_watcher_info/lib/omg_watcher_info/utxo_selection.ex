@@ -50,8 +50,9 @@ defmodule OMG.WatcherInfo.UtxoSelection do
         selected_utxos
         |> Enum.map(&prioritize_utxos_by_currency(&1, utxos, hashes_map))
         |> Enum.sort_by(&length/1, :desc)
-        |> Enum.map(fn currency_utxos -> Enum.slice(currency_utxos, 0, 3) end)
-        |> List.flatten()
+        |> Enum.map(fn currency_utxos -> currency_utxos |> Enum.slice(0, 3) |> Enum.reverse() end)
+        |> Enum.reduce(fn utxos, acc -> utxos ++ acc end)
+        |> Enum.reverse()
     end
   end
 
