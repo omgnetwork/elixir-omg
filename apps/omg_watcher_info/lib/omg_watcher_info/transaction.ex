@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.Transaction do
   @moduledoc """
-  Module create transaction from selected utxos and order.
+  Module creates transaction from selected utxos and order.
   """
 
   alias OMG.Crypto
