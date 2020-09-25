@@ -126,7 +126,7 @@ defmodule LoadTest.Ethereum do
   end
 
   def fetch_balance(address, amount, currency \\ <<0::160>>) do
-    fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency), 10)
+    fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency), 60)
   end
 
   def fetch_rootchain_balance(address, <<0::160>>) do
@@ -161,14 +161,38 @@ defmodule LoadTest.Ethereum do
     signatures =
       Enum.map(private_keys, fn private_key ->
         sign_hash
-        |> Encoding.to_binary()
-        |> Encoding.signature_digest(private_key)
+        |> to_binary()
+        |> signature_digest(private_key)
         |> Encoding.to_hex()
       end)
 
     typed_data_signed = Map.put_new(typed_data, "signatures", signatures)
 
     submit_typed(typed_data_signed)
+  end
+
+  defp to_binary(hex) do
+    hex
+    |> String.replace_prefix("0x", "")
+    |> String.upcase()
+    |> Base.decode16!()
+  end
+
+  defp signature_digest(hash_digest, private_key_binary) do
+    {:ok, <<r::size(256), s::size(256)>>, recovery_id} =
+      :libsecp256k1.ecdsa_sign_compact(
+        hash_digest,
+        private_key_binary,
+        :default,
+        <<>>
+      )
+
+    # EIP-155
+    # See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+    base_recovery_id = 27
+    recovery_id = base_recovery_id + recovery_id
+
+    <<r::integer-size(256), s::integer-size(256), recovery_id::integer-size(8)>>
   end
 
   defp submit_typed(typed_data_signed, retry_count \\ 120)
@@ -189,12 +213,12 @@ defmodule LoadTest.Ethereum do
         submit_typed(typed_data_signed, counter - 1)
 
       %{"txhash" => _} ->
-        Itest.ApiModel.SubmitTransactionResponse.to_struct(decoded_response)
+        decoded_response
     end
   end
 
   defp execute_submit_typed(typed_data_signed) do
-    WatcherInfoAPI.Api.Transaction.submit_typed(LoadTest.Connection.WatcherInfo.new(), typed_data_signed)
+    WatcherInfoAPI.Api.Transaction.submit_typed(LoadTest.Connection.WatcherInfo.client(), typed_data_signed)
   end
 
   defp process_transaction_result(

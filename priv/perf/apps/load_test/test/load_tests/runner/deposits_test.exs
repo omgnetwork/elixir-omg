@@ -21,6 +21,7 @@ defmodule LoadTest.Runner.DepositsTest do
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Faucet
 
+  @timeout :infinity
   test "deposits test" do
     token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
     amount = 1_000_000_000_000_000_000
@@ -34,7 +35,7 @@ defmodule LoadTest.Runner.DepositsTest do
         tps: 1,
         period_in_seconds: 5
       },
-      timeout: 60_000
+      timeout: :infinity
     }
 
     Chaperon.run_load_test(LoadTest.Runner.Deposits, print_results: true, config: config)
