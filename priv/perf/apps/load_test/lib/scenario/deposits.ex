@@ -66,10 +66,21 @@ defmodule LoadTest.Scenario.Deposits do
          # :ok <-
          #   fetch_childchain_balance(from_address, amount, token, :wrong_childchain_from_balance_after_sending_deposit),
          :ok <- fetch_childchain_balance(to_address, amount, token, :wrong_childchain_to_balance_after_sending_deposit) do
-      session
+      Session.add_metric(
+        session,
+        {:call, {__MODULE__, "success_rate"}},
+        1
+      )
     else
       error ->
-        Session.abort(session, error)
+        log_error(session, "#{__MODULE__} failed with #{error}")
+
+        session
+        |> Session.add_metric(
+          {:call, {__MODULE__, "success_rate"}},
+          0
+        )
+        |> Session.add_error(:test, error)
     end
   end
 
