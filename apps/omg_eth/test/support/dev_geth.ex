@@ -49,32 +49,22 @@ defmodule OMG.Eth.DevGeth do
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
             --allow-insecure-unlock \
             --mine --datadir #{datadir} 2>&1)
-    pid = launch(geth)
+    _pid = launch(geth)
 
     {:ok, :ready} = WaitFor.eth_rpc(20_000)
 
-    on_exit = fn -> stop_geth(pid) end
+    on_exit = fn ->
+      Exexec.run("pkill -9 geth")
+    end
 
     {:ok, on_exit}
-  end
-
-  def ready?(pid) do
-    GenServer.call(pid, :ready?)
-  end
-
-  def stop_geth(pid) do
-    GenServer.cast(pid, :stop)
-  end
-
-  def start_link(cmd) do
-    GenServer.start_link(__MODULE__, cmd)
   end
 
   @impl true
   def init(cmd) do
     _ = Logger.debug("Starting geth")
 
-    {:ok, geth_proc, os_proc} = Exexec.run(cmd, stdout: true, kill_command: "pkill -9 geth")
+    {:ok, geth_proc, os_proc} = Exexec.run(cmd, stdout: true)
 
     {:ok, %{geth_proc: geth_proc, os_proc: os_proc, ready?: false}}
   end
@@ -100,25 +90,10 @@ defmodule OMG.Eth.DevGeth do
     {:reply, state.ready?, state}
   end
 
-  @impl true
-  def handle_cast(:stop, state) do
-    stop(state.geth_proc)
-
-    {:noreply, state}
-  end
-
   # PRIVATE
 
-  defp stop(pid) do
-    # NOTE: monitor is required to stop_and_wait, don't know why? `monitor: true` on run doesn't work
-    _ = Process.monitor(pid)
-
-    {:exit_status, 35_072} = Exexec.stop_and_wait(pid)
-    :ok
-  end
-
   defp launch(cmd) do
-    {:ok, pid} = __MODULE__.start_link(cmd)
+    {:ok, pid} = start_link(cmd)
 
     waiting_task_function = fn ->
       wait_for_rpc(pid)
@@ -138,5 +113,13 @@ defmodule OMG.Eth.DevGeth do
       Process.sleep(1_000)
       ready?(pid)
     end
+  end
+
+  defp start_link(cmd) do
+    GenServer.start_link(__MODULE__, cmd)
+  end
+
+  defp ready?(pid) do
+    GenServer.call(pid, :ready?)
   end
 end
