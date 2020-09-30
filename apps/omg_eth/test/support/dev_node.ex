@@ -22,13 +22,10 @@ defmodule Support.DevNode do
     OMG.Eth.DevGeth.start()
   end
 
-  def wait_for_start(outstream, look_for, timeout, logger_fn \\ &default_logger/1) do
+  def wait_for_start(out_pid, look_for, timeout) do
     # Monitors the stdout coming out of a process for signal of successful startup
     waiting_task_function = fn ->
-      outstream
-      |> Stream.map(logger_fn)
-      |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
-      |> Enum.to_list()
+      wait_for_message(out_pid, look_for)
     end
 
     waiting_task_function
@@ -38,8 +35,16 @@ defmodule Support.DevNode do
     :ok
   end
 
-  def default_logger(line) do
-    _ = Logger.debug("eth node: " <> line)
-    line
+  def wait_for_message(ps_os_pid, expected) do
+    receive do
+      {:stdout, ^ps_os_pid, stdout} ->
+        if String.contains?(stdout, expected) do
+          :ok
+        else
+          wait_for_message(ps_os_pid, expected)
+        end
+    after
+      30_000 -> :error
+    end
   end
 end

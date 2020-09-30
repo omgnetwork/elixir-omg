@@ -36,14 +36,13 @@ defmodule OMG.Eth.DevGeth do
     geth = ~s(geth --miner.gastarget 7500000 \
             --nodiscover \
             --maxpeers 0 \
-            --miner.gasprice \"10\" \
-            --datadir /data/ \
+            --miner.gasprice "10" \
             --syncmode 'full' \
             --networkid 1337 \
             --gasprice '1' \
             --keystore #{keystore} \
             --password /tmp/geth-blank-password \
-            --unlock \"0,1\" \
+            --unlock "0,1" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts='*' --rpcport=8545 \
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
             --allow-insecure-unlock \
@@ -70,15 +69,9 @@ defmodule OMG.Eth.DevGeth do
   defp launch(cmd) do
     _ = Logger.debug("Starting geth")
 
-    {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
-      Exexec.run(cmd, stdout: :stream, kill_command: "pkill -9 geth")
+    {:ok, geth_proc, os_proc} = Exexec.run(cmd, stdout: true, kill_command: "pkill -9 geth")
 
-    wait_for_geth_start(geth_out)
-
-    _ =
-      if Application.get_env(:omg_eth, :node_logging_in_debug) do
-        %Task{} = Task.async(fn -> Enum.each(geth_out, &Support.DevNode.default_logger/1) end)
-      end
+    wait_for_geth_start(os_proc)
 
     geth_proc
   end
