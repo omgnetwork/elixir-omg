@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.Eth.DevGeth do
+  use GenServer
+
   @moduledoc """
   Helper module for deployment of contracts to dev geth.
   """
@@ -47,13 +49,62 @@ defmodule OMG.Eth.DevGeth do
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
             --allow-insecure-unlock \
             --mine --datadir #{datadir} 2>&1)
-    geth_pid = launch(geth)
+    pid = launch(geth)
 
     {:ok, :ready} = WaitFor.eth_rpc(20_000)
 
-    on_exit = fn -> stop(geth_pid) end
+    on_exit = fn -> stop_geth(pid) end
 
     {:ok, on_exit}
+  end
+
+  def ready?(pid) do
+    GenServer.call(pid, :ready?)
+  end
+
+  def stop_geth(pid) do
+    GenServer.cast(pid, :stop)
+  end
+
+  def start_link(cmd) do
+    GenServer.start_link(__MODULE__, cmd)
+  end
+
+  @impl true
+  def init(cmd) do
+    _ = Logger.debug("Starting geth")
+
+    {:ok, geth_proc, os_proc} = Exexec.run(cmd, stdout: true, kill_command: "pkill -9 geth")
+
+    {:ok, %{geth_proc: geth_proc, os_proc: os_proc, ready?: false}}
+  end
+
+  @impl true
+  def handle_info({:stdout, pid, stdout}, %{os_proc: pid} = state) do
+    new_state =
+      if String.contains?(stdout, "IPC endpoint opened") do
+        Map.put(state, :ready?, true)
+      else
+        state
+      end
+
+    if Application.get_env(:omg_eth, :node_logging_in_debug) do
+      _ = Logger.debug("eth node: " <> stdout)
+    end
+
+    {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_call(:ready?, _from, state) do
+    {:reply, state.ready?, state}
+  end
+
+  @impl true
+  def handle_cast(:stop, state) do
+    stop(state.geth_proc)
+
+    {:noreply, state}
   end
 
   # PRIVATE
@@ -67,31 +118,25 @@ defmodule OMG.Eth.DevGeth do
   end
 
   defp launch(cmd) do
-    _ = Logger.debug("Starting geth")
+    {:ok, pid} = __MODULE__.start_link(cmd)
 
-    {:ok, geth_proc, os_proc} = Exexec.run(cmd, stdout: true, kill_command: "pkill -9 geth")
+    waiting_task_function = fn ->
+      wait_for_rpc(pid)
+    end
 
-    wait_for_geth_start(os_proc)
+    waiting_task_function
+    |> Task.async()
+    |> Task.await(15_000)
 
-    geth_proc
+    pid
   end
 
-  defp wait_for_geth_start(ps_os_pid, count \\ 15) do
-    receive do
-      {:stdout, ^ps_os_pid, stdout} ->
-        cond do
-          String.contains?(stdout, "IPC endpoint opened") ->
-            :ok
-
-          count > 0 ->
-            Process.sleep(1_000)
-            wait_for_geth_start(ps_os_pid, count - 1)
-
-          true ->
-            :error
-        end
-    after
-      30_000 -> :error
+  defp wait_for_rpc(pid) do
+    if ready?(pid) do
+      :ok
+    else
+      Process.sleep(1_000)
+      ready?(pid)
     end
   end
 end
