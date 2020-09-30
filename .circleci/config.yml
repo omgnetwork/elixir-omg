@@ -97,7 +97,7 @@ commands:
           name: Standup Geth and Child Chain
           command: docker-compose up geth childchain postgres
           background: true
-      - run: 
+      - run:
           name: Has Childchain started?
           command: |
             attempt_counter=0
@@ -600,6 +600,7 @@ jobs:
   test_docker_compose_release:
     machine:
       image: ubuntu-1604:201903-01
+    parallelism: 4
     steps:
       - checkout
       - run:
@@ -628,7 +629,10 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test
+            grep -r "@moduletag" ./apps/itest/ | awk '{print "--include " $3}' | tr -d ':' > tags.txt
+            echo $(circleci tests split ./tags.txt)
+            circleci tests split ./tags.txt > /tmp/tests-to-run
+            mix test --exclude test $(cat /tmp/tests-to-run)
       - run:
           name: (Cabbage) Format generated code and check for warnings
           command: |
@@ -756,7 +760,7 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test --only reorg --trace
+            mix test --only deposit --trace
           no_output_timeout: 30m
 
   test_barebone_release:
@@ -818,7 +822,7 @@ jobs:
             ps axww | grep watcher
             ps axww | grep watcher_info
             ps axww | grep child_chain
-      - run: 
+      - run:
           name: Has Watcher started?
           command: |
             attempt_counter=0
@@ -832,7 +836,7 @@ jobs:
               attempt_counter=$(($attempt_counter+1))
               sleep 5
             done
-      - run: 
+      - run:
           name: Has Watcher Info started?
           command: |
             attempt_counter=0
@@ -845,8 +849,8 @@ jobs:
               printf '.'
               attempt_counter=$(($attempt_counter+1))
               sleep 5
-            done          
-         
+            done
+
 
   publish_watcher:
     machine:
