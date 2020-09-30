@@ -21,30 +21,4 @@ defmodule Support.DevNode do
   def start() do
     OMG.Eth.DevGeth.start()
   end
-
-  def wait_for_start(out_pid, look_for, timeout) do
-    # Monitors the stdout coming out of a process for signal of successful startup
-    waiting_task_function = fn ->
-      wait_for_message(out_pid, look_for)
-    end
-
-    waiting_task_function
-    |> Task.async()
-    |> Task.await(timeout)
-
-    :ok
-  end
-
-  def wait_for_message(ps_os_pid, expected) do
-    receive do
-      {:stdout, ^ps_os_pid, stdout} ->
-        if String.contains?(stdout, expected) do
-          :ok
-        else
-          wait_for_message(ps_os_pid, expected)
-        end
-    after
-      30_000 -> :error
-    end
-  end
 end

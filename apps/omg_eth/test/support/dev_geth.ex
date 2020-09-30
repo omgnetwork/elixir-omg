@@ -76,7 +76,22 @@ defmodule OMG.Eth.DevGeth do
     geth_proc
   end
 
-  defp wait_for_geth_start(geth_out) do
-    Support.DevNode.wait_for_start(geth_out, "IPC endpoint opened", 15_000)
+  defp wait_for_geth_start(ps_os_pid, count \\ 15) do
+    receive do
+      {:stdout, ^ps_os_pid, stdout} ->
+        cond do
+          String.contains?(stdout, "IPC endpoint opened") ->
+            :ok
+
+          count > 0 ->
+            Process.sleep(1_000)
+            wait_for_geth_start(ps_os_pid, count - 1)
+
+          true ->
+            :error
+        end
+    after
+      30_000 -> :error
+    end
   end
 end
