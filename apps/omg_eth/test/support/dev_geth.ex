@@ -107,11 +107,11 @@ defmodule OMG.Eth.DevGeth do
   end
 
   defp wait_for_rpc(pid) do
-    if wait_for_geth_rpc?(pid) do
+    if ready?(pid) do
       :ok
     else
       Process.sleep(1_000)
-      ready?(pid)
+      wait_for_rpc?(pid)
     end
   end
 
@@ -119,7 +119,7 @@ defmodule OMG.Eth.DevGeth do
     GenServer.start_link(__MODULE__, cmd)
   end
 
-  defp wait_for_geth_rpc?(pid) do
+  defp ready?(pid) do
     GenServer.call(pid, :ready?)
   end
 end
