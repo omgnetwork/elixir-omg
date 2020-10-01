@@ -78,9 +78,11 @@ defmodule OMG.Eth.DevGeth do
         state
       end
 
-    if Application.get_env(:omg_eth, :node_logging_in_debug) do
-      _ = Logger.debug("eth node: " <> stdout)
-    end
+    _ =
+      case Application.get_env(:omg_eth, :node_logging_in_debug) do
+        true -> Logger.debug("eth node: " <> stdout)
+        _ -> :ok
+      end
 
     {:noreply, new_state}
   end
