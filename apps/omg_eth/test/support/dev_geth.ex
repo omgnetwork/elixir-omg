@@ -95,11 +95,11 @@ defmodule OMG.Eth.DevGeth do
   defp launch(cmd) do
     {:ok, pid} = start_link(cmd)
 
-    waiting_task_function = fn ->
+    waiting_task = fn ->
       wait_for_rpc(pid)
     end
 
-    waiting_task_function
+    waiting_task
     |> Task.async()
     |> Task.await(15_000)
 
@@ -107,7 +107,7 @@ defmodule OMG.Eth.DevGeth do
   end
 
   defp wait_for_rpc(pid) do
-    if ready?(pid) do
+    if wait_for_geth_rpc?(pid) do
       :ok
     else
       Process.sleep(1_000)
@@ -119,7 +119,7 @@ defmodule OMG.Eth.DevGeth do
     GenServer.start_link(__MODULE__, cmd)
   end
 
-  defp ready?(pid) do
+  defp wait_for_geth_rpc?(pid) do
     GenServer.call(pid, :ready?)
   end
 end
