@@ -111,7 +111,7 @@ defmodule OMG.Eth.DevGeth do
       :ok
     else
       Process.sleep(1_000)
-      wait_for_rpc?(pid)
+      wait_for_rpc(pid)
     end
   end
 
