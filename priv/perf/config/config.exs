@@ -44,16 +44,16 @@ config :logger, :console,
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id, :trace_id, :span_id]
 
-config :ui,
-  ecto_repos: [Ui.Repo]
+config :front,
+  ecto_repos: [Front.Repo]
 
 # Configures the endpoint
-config :ui, UiWeb.Endpoint,
+config :front, FrontWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "m2/97AhzR7Ed4h0ogCmJcuy/0qUwaRzRxWaqYAtHAkAYhiD3Lb0w3Lpg6FVNXJ4d",
-  render_errors: [view: UiWeb.ErrorView, accepts: ~w(html json), layout: false],
-  pubsub_server: Ui.PubSub,
-  live_view: [signing_salt: "jg8Zm4rt"]
+  secret_key_base: "ozDFL6Hr0KLUEh4i55m+YBO4ukTTagoGM8i2ju9i8pXaFGfjZuTHx56R+wseZhtg",
+  render_errors: [view: FrontWeb.ErrorView, accepts: ~w(json), layout: false],
+  pubsub_server: Front.PubSub,
+  live_view: [signing_salt: "qSCz/ACR"]
 
 # Configures Elixir's Logger
 config :logger, :console,
