@@ -19,6 +19,7 @@ defmodule LoadTest.Scenario.Deposits do
   alias LoadTest.ChildChain.Deposit
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
+  alias LoadTest.MonitoringProcess
 
   alias LoadTest.Service.Faucet
 
@@ -42,6 +43,7 @@ defmodule LoadTest.Scenario.Deposits do
   def create_deposit(session) do
     token = config(session, [:chain_config, :token])
     amount = config(session, [:chain_config, :amount])
+    monitoring_process = config(session, [:run_config, :monitoring_process])
     initial_balance = 3 * amount
 
     {:ok, from_address} = Account.new()
@@ -66,6 +68,8 @@ defmodule LoadTest.Scenario.Deposits do
          # :ok <-
          #   fetch_childchain_balance(from_address, amount, token, :wrong_childchain_from_balance_after_sending_deposit),
          :ok <- fetch_childchain_balance(to_address, amount, token, :wrong_childchain_to_balance_after_sending_deposit) do
+      :ok = MonitoringProcess.record_metrics(monitoring_process, %{status: :ok})
+
       Session.add_metric(
         session,
         {:call, {__MODULE__, "success_rate"}},
@@ -74,6 +78,8 @@ defmodule LoadTest.Scenario.Deposits do
     else
       error ->
         log_error(session, "#{__MODULE__} failed with #{error}")
+
+        :ok = MonitoringProcess.record_metrics(monitoring_process, %{status: :error})
 
         session
         |> Session.add_metric(
