@@ -10,15 +10,27 @@
 
 ### Bug fixes
 
+- fix: handle metrics for in flight exit deleted processor [\#1742](https://github.com/omgnetwork/elixir-omg/pull/1742) ([pgebal](https://github.com/pgebal))
 - revert: reverts ife deletion commits [\#1725](https://github.com/omgnetwork/elixir-omg/pull/1725) ([pgebal](https://github.com/pgebal))
+- fix: set :last\_ife\_exit\_deleted\_eth\_height on deplyment if it's not set yet [\#1720](https://github.com/omgnetwork/elixir-omg/pull/1720) ([pgebal](https://github.com/pgebal))
 - fix: fix in-flight exit deleted bug and add tests [\#1714](https://github.com/omgnetwork/elixir-omg/pull/1714) ([pgebal](https://github.com/pgebal))
 - fix: block submission stall monitor should ignore block\_submitting that are already mined [\#1703](https://github.com/omgnetwork/elixir-omg/pull/1703) ([unnawut](https://github.com/unnawut))
 
 ### Chores
 
+- Chore: parallelize tests by tags [\#1744](https://github.com/omgnetwork/elixir-omg/pull/1744) ([ayrat555](https://github.com/ayrat555))
+- Chore: use exexec from upstream [\#1743](https://github.com/omgnetwork/elixir-omg/pull/1743) ([ayrat555](https://github.com/ayrat555))
+- Chore: try to fix flaky reorg tests [\#1739](https://github.com/omgnetwork/elixir-omg/pull/1739) ([ayrat555](https://github.com/ayrat555))
+- move dev env deployment job to helm repo [\#1738](https://github.com/omgnetwork/elixir-omg/pull/1738) ([boolafish](https://github.com/boolafish))
+- Inomurko/remove child chain [\#1737](https://github.com/omgnetwork/elixir-omg/pull/1737) ([InoMurko](https://github.com/InoMurko))
+- Kevsul/standard exit perf test [\#1732](https://github.com/omgnetwork/elixir-omg/pull/1732) ([kevsul](https://github.com/kevsul))
+- update change log v1.0.4 [\#1731](https://github.com/omgnetwork/elixir-omg/pull/1731) ([jarindr](https://github.com/jarindr))
+- chore: add test for 64\_000 txs block hash [\#1729](https://github.com/omgnetwork/elixir-omg/pull/1729) ([ayrat555](https://github.com/ayrat555))
 - Allow to run docker-compose without feefeed docker [\#1726](https://github.com/omgnetwork/elixir-omg/pull/1726) ([boolafish](https://github.com/boolafish))
+- rm mix based chch part 1 [\#1716](https://github.com/omgnetwork/elixir-omg/pull/1716) ([InoMurko](https://github.com/InoMurko))
 - feat: reintroduce automated changelog [\#1708](https://github.com/omgnetwork/elixir-omg/pull/1708) ([unnawut](https://github.com/unnawut))
 - add feefeed docker to elixir-omg setup [\#1700](https://github.com/omgnetwork/elixir-omg/pull/1700) ([boolafish](https://github.com/boolafish))
+- auto trigger chart version bump [\#1695](https://github.com/omgnetwork/elixir-omg/pull/1695) ([boolafish](https://github.com/boolafish))
 - move omg\_performance json rpc tests to perf project [\#1691](https://github.com/omgnetwork/elixir-omg/pull/1691) ([ayrat555](https://github.com/ayrat555))
 
 ## [v1.0.4](https://github.com/omgnetwork/elixir-omg/tree/v1.0.4) (2020-09-03)
@@ -46,7 +58,6 @@
 ### Chores
 
 - bump version 1.0.4 [\#1722](https://github.com/omgnetwork/elixir-omg/pull/1722) ([jarindr](https://github.com/jarindr))
-- auto trigger chart version bump [\#1695](https://github.com/omgnetwork/elixir-omg/pull/1695) ([boolafish](https://github.com/boolafish))
 - bump phoenix [\#1680](https://github.com/omgnetwork/elixir-omg/pull/1680) ([InoMurko](https://github.com/InoMurko))
 - chore: increase timeouts for childchain healthchecks [\#1671](https://github.com/omgnetwork/elixir-omg/pull/1671) ([ayrat555](https://github.com/ayrat555))
 - fix integration tests [\#1654](https://github.com/omgnetwork/elixir-omg/pull/1654) ([ayrat555](https://github.com/ayrat555))
@@ -70,12 +81,12 @@
 
 ### Enhancements
 
+- global block get interval [\#1576](https://github.com/omgnetwork/elixir-omg/pull/1576) ([InoMurko](https://github.com/InoMurko))
 - Add block processing queue to watcher info [\#1560](https://github.com/omgnetwork/elixir-omg/pull/1560) ([mederic-p](https://github.com/mederic-p))
 
 ### Bug fixes
 
 - remove trace decorator from OMG.WatcherInfo.DB.EthEvent.get/1 [\#1640](https://github.com/omgnetwork/elixir-omg/pull/1640) ([ayrat555](https://github.com/ayrat555))
-- get call\_data and rename it [\#1635](https://github.com/omgnetwork/elixir-omg/pull/1635) ([InoMurko](https://github.com/InoMurko))
 - fix: handle "transaction underpriced" and other unknown server error responses [\#1617](https://github.com/omgnetwork/elixir-omg/pull/1617) ([unnawut](https://github.com/unnawut))
 
 ### Chores
@@ -83,7 +94,6 @@
 - chore: change log and version file change for v1.0.3 [\#1638](https://github.com/omgnetwork/elixir-omg/pull/1638) ([boolafish](https://github.com/boolafish))
 - sync v1.0.2 back to master [\#1626](https://github.com/omgnetwork/elixir-omg/pull/1626) ([boolafish](https://github.com/boolafish))
 - enable margin [\#1622](https://github.com/omgnetwork/elixir-omg/pull/1622) ([InoMurko](https://github.com/InoMurko))
-- Auto PR with Auto merge for syncing master-v2 [\#1604](https://github.com/omgnetwork/elixir-omg/pull/1604) ([souradeep-das](https://github.com/souradeep-das))
 - integrate spandex ecto [\#1602](https://github.com/omgnetwork/elixir-omg/pull/1602) ([ayrat555](https://github.com/ayrat555))
 - Revert "explain analyze updates \(\#1569\)" [\#1601](https://github.com/omgnetwork/elixir-omg/pull/1601) ([boolafish](https://github.com/boolafish))
 - feat: sync v1.0.1 changes back to master [\#1599](https://github.com/omgnetwork/elixir-omg/pull/1599) ([unnawut](https://github.com/unnawut))
@@ -94,6 +104,11 @@
 ### Documentation updates
 
 - Update request body swagger [\#1609](https://github.com/omgnetwork/elixir-omg/pull/1609) ([jarindr](https://github.com/jarindr))
+- Update README.md [\#1564](https://github.com/omgnetwork/elixir-omg/pull/1564) ([InoMurko](https://github.com/InoMurko))
+
+### Untagged pull requests
+
+- Typo fix [\#1607](https://github.com/omgnetwork/elixir-omg/pull/1607) ([dmitrydao](https://github.com/dmitrydao))
 
 ## [v1.0.2](https://github.com/omgnetwork/elixir-omg/tree/v1.0.2) (2020-06-30)
 
@@ -101,7 +116,6 @@
 
 ### Enhancements
 
-- global block get interval [\#1576](https://github.com/omgnetwork/elixir-omg/pull/1576) ([InoMurko](https://github.com/InoMurko))
 - install telemetry handler for authority balance [\#1567](https://github.com/omgnetwork/elixir-omg/pull/1567) ([InoMurko](https://github.com/InoMurko))
 - restart strategy [\#1565](https://github.com/omgnetwork/elixir-omg/pull/1565) ([InoMurko](https://github.com/InoMurko))
 
@@ -116,17 +130,14 @@
 - chore: bump version in VERSION file [\#1613](https://github.com/omgnetwork/elixir-omg/pull/1613) ([boolafish](https://github.com/boolafish))
 - docs: v1.0.2 change logs [\#1611](https://github.com/omgnetwork/elixir-omg/pull/1611) ([boolafish](https://github.com/boolafish))
 - chore: merge master back to v1.0.2 [\#1606](https://github.com/omgnetwork/elixir-omg/pull/1606) ([boolafish](https://github.com/boolafish))
+- Auto PR with Auto merge for syncing master-v2 [\#1604](https://github.com/omgnetwork/elixir-omg/pull/1604) ([souradeep-das](https://github.com/souradeep-das))
 - chore: minor fixes [\#1584](https://github.com/omgnetwork/elixir-omg/pull/1584) ([boolafish](https://github.com/boolafish))
 - explain analyze updates [\#1569](https://github.com/omgnetwork/elixir-omg/pull/1569) ([InoMurko](https://github.com/InoMurko))
 - Sync v1.0.0 [\#1563](https://github.com/omgnetwork/elixir-omg/pull/1563) ([T-Dnzt](https://github.com/T-Dnzt))
 
-### Documentation updates
-
-- Update README.md [\#1564](https://github.com/omgnetwork/elixir-omg/pull/1564) ([InoMurko](https://github.com/InoMurko))
-
 ## [v1.0.1](https://github.com/omgnetwork/elixir-omg/tree/v1.0.1) (2020-06-18)
 
-[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.1-pre.0...v1.0.1)
+[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.0-pre.2...v1.0.1)
 
 ### Chores
 
