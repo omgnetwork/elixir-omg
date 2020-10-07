@@ -16,7 +16,6 @@ defmodule LoadTest.TestCase.Deposits do
   alias LoadTest.ChildChain.Deposit
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
-  alias LoadTest.MonitoringProcess
   alias LoadTest.Service.Faucet
   alias LoadTest.TestCase
 

@@ -20,7 +20,6 @@ defmodule LoadTest.TestCase.DepositsTest do
   alias ExPlasma.Encoding
   alias LoadTest.TestCase.Deposits
 
-  @timeout :infinity
   test "runs deposit test" do
     token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
     amount = 1_000_000_000_000_000_000
