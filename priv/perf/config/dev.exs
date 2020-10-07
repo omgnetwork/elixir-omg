@@ -2,8 +2,8 @@ use Mix.Config
 
 # Configure your database
 config :front, Front.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: "omisego_dev",
+  password: "omisego_dev",
   database: "front_dev",
   hostname: "localhost",
   show_sensitive_data_on_connection_error: true,
