@@ -12,32 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Runner.DepositsTest do
+defmodule LoadTest.TestCase.DepositsTest do
   use ExUnit.Case
 
   @moduletag :deposits
 
   alias ExPlasma.Encoding
-  alias LoadTest.Ethereum.Account
-  alias LoadTest.Service.Faucet
+  alias LoadTest.TestCase.Deposits
 
   @timeout :infinity
   test "deposits test" do
     token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
     amount = 1_000_000_000_000_000_000
 
-    config = %{
-      chain_config: %{
-        token: token,
-        amount: amount
-      },
-      run_config: %{
-        tps: 1,
-        period_in_seconds: 5
-      },
-      timeout: :infinity
-    }
+    params = [
+      rate: 10,
+      token: token,
+      amount: amount,
+      id: :deposits_test,
+      test_period: 100_000,
+      start_period: 40_000,
+      adjust_period: 200_000,
+      rate_period: 30_000
+    ]
 
-    Chaperon.run_load_test(LoadTest.Runner.Deposits, print_results: true, config: config)
+    Deposits.run(params)
   end
 end

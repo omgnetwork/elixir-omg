@@ -12,38 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Scenario.Deposits do
-  use Chaperon.Scenario
-
-  alias Chaperon.Session
+defmodule LoadTest.TestCase.Deposits do
   alias LoadTest.ChildChain.Deposit
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
   alias LoadTest.MonitoringProcess
-
   alias LoadTest.Service.Faucet
 
-  @spec run(Session.t()) :: Session.t()
-  def run(session) do
-    tps = config(session, [:run_config, :tps])
-    period_in_seconds = config(session, [:run_config, :period_in_seconds])
+  @spec run(Keyword.t()) :: any()
+  def run(params) do
+    test_period = Keyword.fetch!(params, :test_period)
+    func = fn -> create_deposit(params) end
+    params_with_func = Keyword.put(params, :func, func)
 
-    total_number_of_transactions = tps * period_in_seconds
-    period_in_mseconds = period_in_seconds * 1_000
+    {:ok, _pid} = Hornet.start(params_with_func)
 
-    session
-    |> cc_spread(
-      :create_deposit,
-      total_number_of_transactions,
-      period_in_mseconds
-    )
-    |> await_all(:create_deposit)
+    Process.sleep(test_period)
+
+    :ok = Hornet.stop(params[:id])
   end
 
-  def create_deposit(session) do
-    token = config(session, [:chain_config, :token])
-    amount = config(session, [:chain_config, :amount])
-    monitoring_process = config(session, [:run_config, :monitoring_process])
+  def create_deposit(params) do
+    token = Keyword.fetch!(params, :token)
+    amount = Keyword.fetch!(params, :amount)
+    # monitoring_process = config(session, [:run_config, :monitoring_process])
     initial_balance = 3 * amount
 
     {:ok, from_address} = Account.new()
@@ -68,25 +60,12 @@ defmodule LoadTest.Scenario.Deposits do
          # :ok <-
          #   fetch_childchain_balance(from_address, amount, token, :wrong_childchain_from_balance_after_sending_deposit),
          :ok <- fetch_childchain_balance(to_address, amount, token, :wrong_childchain_to_balance_after_sending_deposit) do
-      :ok = MonitoringProcess.record_metrics(monitoring_process, %{status: :ok})
-
-      Session.add_metric(
-        session,
-        {:call, {__MODULE__, "success_rate"}},
-        1
-      )
+      # :ok = MonitoringProcess.record_metrics(monitoring_process, %{status: :ok})
     else
       error ->
-        log_error(session, "#{__MODULE__} failed with #{error}")
+        error
 
-        :ok = MonitoringProcess.record_metrics(monitoring_process, %{status: :error})
-
-        session
-        |> Session.add_metric(
-          {:call, {__MODULE__, "success_rate"}},
-          0
-        )
-        |> Session.add_error(:test, error)
+        # :ok = MonitoringProcess.record_metrics(monitoring_process, %{status: :error})
     end
   end
 
