@@ -21,25 +21,4 @@ defmodule Support.DevNode do
   def start() do
     OMG.Eth.DevGeth.start()
   end
-
-  def wait_for_start(outstream, look_for, timeout, logger_fn \\ &default_logger/1) do
-    # Monitors the stdout coming out of a process for signal of successful startup
-    waiting_task_function = fn ->
-      outstream
-      |> Stream.map(logger_fn)
-      |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
-      |> Enum.to_list()
-    end
-
-    waiting_task_function
-    |> Task.async()
-    |> Task.await(timeout)
-
-    :ok
-  end
-
-  def default_logger(line) do
-    _ = Logger.debug("eth node: " <> line)
-    line
-  end
 end
