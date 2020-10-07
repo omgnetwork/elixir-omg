@@ -21,21 +21,12 @@ defmodule LoadTest.TestCase.DepositsTest do
   alias LoadTest.TestCase.Deposits
 
   @timeout :infinity
-  test "deposits test" do
+  test "runs deposit test" do
     token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
     amount = 1_000_000_000_000_000_000
 
-    params = [
-      rate: 10,
-      token: token,
-      amount: amount,
-      id: :deposits_test,
-      test_period: 100_000,
-      start_period: 40_000,
-      adjust_period: 200_000,
-      rate_period: 30_000
-    ]
+    params = [token: token, amount: amount]
 
-    Deposits.run(params)
+    assert %{status: :ok} = Deposits.run(params)
   end
 end

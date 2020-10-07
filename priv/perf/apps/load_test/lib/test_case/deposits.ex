@@ -18,24 +18,21 @@ defmodule LoadTest.TestCase.Deposits do
   alias LoadTest.Ethereum.Account
   alias LoadTest.MonitoringProcess
   alias LoadTest.Service.Faucet
+  alias LoadTest.TestCase
 
-  @spec run(Keyword.t()) :: any()
+  @behaviour TestCase
+
+  @impl TestCase
   def run(params) do
-    test_period = Keyword.fetch!(params, :test_period)
-    func = fn -> create_deposit(params) end
-    params_with_func = Keyword.put(params, :func, func)
-
-    {:ok, _pid} = Hornet.start(params_with_func)
-
-    Process.sleep(test_period)
-
-    :ok = Hornet.stop(params[:id])
+    create_deposit(params)
+  rescue
+    _error ->
+      %{state: :error, type: :runtime_error}
   end
 
-  def create_deposit(params) do
+  defp create_deposit(params) do
     token = Keyword.fetch!(params, :token)
     amount = Keyword.fetch!(params, :amount)
-    # monitoring_process = config(session, [:run_config, :monitoring_process])
     initial_balance = 3 * amount
 
     {:ok, from_address} = Account.new()
@@ -57,15 +54,11 @@ defmodule LoadTest.TestCase.Deposits do
              :wrong_rootchain_balance_after_deposit
            ),
          _ <- send_amount_on_childchain(from_address, to_address, token, amount),
-         # :ok <-
-         #   fetch_childchain_balance(from_address, amount, token, :wrong_childchain_from_balance_after_sending_deposit),
          :ok <- fetch_childchain_balance(to_address, amount, token, :wrong_childchain_to_balance_after_sending_deposit) do
-      # :ok = MonitoringProcess.record_metrics(monitoring_process, %{status: :ok})
+      %{status: :ok}
     else
       error ->
-        error
-
-        # :ok = MonitoringProcess.record_metrics(monitoring_process, %{status: :error})
+        %{status: :error, type: error}
     end
   end
 
