@@ -222,46 +222,33 @@ defmodule LoadTest.Ethereum do
   end
 
   defp process_transaction_result(
-         %{
-           "result" => "complete",
-           "transactions" => [
-             %{
-               "sign_hash" => sign_hash,
-               "typed_data" => typed_data,
-               "txbytes" => txbytes
-             }
-           ]
-         },
-         _amount_in_wei,
-         _input_address,
-         _output_address,
-         _currency,
-         _tries
-       ) do
-    {:ok, [sign_hash, typed_data, txbytes]}
-  end
-
-  defp process_transaction_result(
-         %{"code" => "create:client_error", "messages" => %{"code" => "operation:service_unavailable"}} = result,
-         _amount_in_wei,
-         _input_address,
-         _output_address,
-         _currency,
-         0
-       ) do
-    result
-  end
-
-  defp process_transaction_result(
-         %{"code" => "create:client_error", "messages" => %{"code" => "operation:service_unavailable"}},
+         result,
          amount_in_wei,
          input_address,
          output_address,
          currency,
          tries
        ) do
-    Process.sleep(1_000)
-    create_transaction(amount_in_wei, input_address, output_address, currency, tries - 1)
+    case {result, tries} do
+      {%{"code" => "create:client_error", "messages" => %{"code" => "operation:service_unavailable"}}, 0} ->
+        {:error, result}
+
+      {%{
+         "result" => "complete",
+         "transactions" => [
+           %{
+             "sign_hash" => sign_hash,
+             "typed_data" => typed_data,
+             "txbytes" => txbytes
+           }
+         ]
+       }, _} ->
+        {:ok, [sign_hash, typed_data, txbytes]}
+
+      _ ->
+        Process.sleep(1_000)
+        create_transaction(amount_in_wei, input_address, output_address, currency, tries - 1)
+    end
   end
 
   defp root_chain_get_eth_balance(address, 0) do
