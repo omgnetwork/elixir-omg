@@ -2,11 +2,11 @@ defmodule FrontWeb.Router do
   use FrontWeb, :router
 
   pipeline :api do
-    plug :accepts, ["json"]
+    plug(:accepts, ["json"])
   end
 
   scope "/api", FrontWeb do
-    pipe_through :api
+    pipe_through(:api)
   end
 
   # Enables LiveDashboard only for development
@@ -20,8 +20,8 @@ defmodule FrontWeb.Router do
     import Phoenix.LiveDashboard.Router
 
     scope "/" do
-      pipe_through [:fetch_session, :protect_from_forgery]
-      live_dashboard "/dashboard", metrics: FrontWeb.Telemetry
+      pipe_through([:fetch_session, :protect_from_forgery])
+      live_dashboard("/dashboard", metrics: FrontWeb.Telemetry)
     end
   end
 end
