@@ -27,13 +27,13 @@ help:
 	@echo "DOCKER DEVELOPMENT"
 	@echo "------------------"
 	@echo ""
-	@echo "  - \`make docker-build-start-cluster\`: build child_chain, watcher and watcher_info images \c"
+	@echo "  - \`make docker-build-start-cluster\`: watcher and watcher_info images \c"
 	@echo "from your current code base, then start a cluster with these freshly built images."
 	@echo ""
-	@echo " - \`make docker-build\`" build child_chain, watcher and watcher_info images from your current code base
+	@echo " - \`make docker-build\`" watcher and watcher_info images from your current code base
 	@echo ""
-	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\` or \c"
-	@echo "\`make docker-update-child_chain\`: replaces containers with your code changes\c"
+	@echo "  - \`make docker-update-watcher\`, \`make docker-update-watcher_info\`"
+	@echo "replaces containers with your code changes\c"
 	@echo "for rapid development."
 	@echo ""
 	@echo "  - \`make docker-nuke\`: wipe docker clean, including containers, images, networks \c"
@@ -279,7 +279,7 @@ test-child_chain:
 # Documentation
 #
 changelog:
-	github_changelog_generator -u omisego -p elixir-omg
+	github_changelog_generator --user omgnetwork --project elixir-omg
 
 .PHONY: changelog
 
@@ -427,18 +427,7 @@ docker-remote-childchain:
 ###
 start-services:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
-	docker-compose up geth nginx postgres
-
-start-child_chain:
-	. ${OVERRIDING_VARIABLES} && \
-	echo "Building Child Chain" && \
-	make build-child_chain-${BAREBUILD_ENV} && \
-	rm -f ./_build/${BAREBUILD_ENV}/rel/child_chain/var/sys.config || true && \
-	echo "Init Child Chain DB" && \
-	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()"
-	echo "Run Child Chain" && \
-	. ${OVERRIDING_VARIABLES} && \
-	_build/${BAREBUILD_ENV}/rel/child_chain/bin/child_chain $(OVERRIDING_START)
+	docker-compose -f ./docker-compose.yml -f ./docker-compose.feefeed.yml up feefeed geth nginx postgres
 
 start-watcher:
 	. ${OVERRIDING_VARIABLES} && \
@@ -448,6 +437,7 @@ start-watcher:
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
 	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeysWithValues.run()" && \
 	echo "Run Watcher" && \
 	. ${OVERRIDING_VARIABLES} && \
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)
@@ -460,6 +450,7 @@ start-watcher_info:
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher_info/var/sys.config || true && \
 	echo "Init Watcher Info DBs" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeysWithValues.run()" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.InitPostgresqlDB.migrate()" && \
 	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.WatcherInfo.ReleaseTasks.EthereumTasks.run()" && \
 	echo "Run Watcher Info" && \

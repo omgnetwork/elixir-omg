@@ -134,6 +134,7 @@ defmodule OMG.DB do
       :child_top_block_number,
       # watcher
       :last_block_getter_eth_height,
+      :last_ife_exit_deleted_eth_height,
       # watcher and child chain
       :last_depositor_eth_height,
       :last_exiter_eth_height,

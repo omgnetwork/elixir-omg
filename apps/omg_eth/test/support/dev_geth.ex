@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.Eth.DevGeth do
+  use GenServer
+
   @moduledoc """
   Helper module for deployment of contracts to dev geth.
   """
@@ -36,53 +38,90 @@ defmodule OMG.Eth.DevGeth do
     geth = ~s(geth --miner.gastarget 7500000 \
             --nodiscover \
             --maxpeers 0 \
-            --miner.gasprice \"10\" \
-            --datadir /data/ \
+            --miner.gasprice "10" \
             --syncmode 'full' \
             --networkid 1337 \
             --gasprice '1' \
             --keystore #{keystore} \
             --password /tmp/geth-blank-password \
-            --unlock \"0,1\" \
+            --unlock "0,1" \
             --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts='*' --rpcport=8545 \
             --ws --wsaddr 0.0.0.0 --wsorigins='*' \
             --allow-insecure-unlock \
             --mine --datadir #{datadir} 2>&1)
-    geth_pid = launch(geth)
+    _pid = launch(geth)
 
     {:ok, :ready} = WaitFor.eth_rpc(20_000)
 
-    on_exit = fn -> stop(geth_pid) end
+    on_exit = fn ->
+      Exexec.run("pkill -9 geth")
+    end
 
     {:ok, on_exit}
   end
 
-  # PRIVATE
-
-  defp stop(pid) do
-    # NOTE: monitor is required to stop_and_wait, don't know why? `monitor: true` on run doesn't work
-    _ = Process.monitor(pid)
-    {:exit_status, 35_072} = Exexec.stop_and_wait(pid)
-    :ok
-  end
-
-  defp launch(cmd) do
+  @impl true
+  def init(cmd) do
     _ = Logger.debug("Starting geth")
 
-    {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
-      Exexec.run(cmd, stdout: :stream, kill_command: "pkill -9 geth")
+    {:ok, geth_proc, os_proc} = Exexec.run(cmd, stdout: true)
 
-    wait_for_geth_start(geth_out)
-
-    _ =
-      if Application.get_env(:omg_eth, :node_logging_in_debug) do
-        %Task{} = Task.async(fn -> Enum.each(geth_out, &Support.DevNode.default_logger/1) end)
-      end
-
-    geth_proc
+    {:ok, %{geth_proc: geth_proc, os_proc: os_proc, ready?: false}}
   end
 
-  defp wait_for_geth_start(geth_out) do
-    Support.DevNode.wait_for_start(geth_out, "IPC endpoint opened", 15_000)
+  @impl true
+  def handle_info({:stdout, pid, stdout}, %{os_proc: pid} = state) do
+    new_state =
+      if String.contains?(stdout, "IPC endpoint opened") do
+        Map.put(state, :ready?, true)
+      else
+        state
+      end
+
+    _ =
+      case Application.get_env(:omg_eth, :node_logging_in_debug) do
+        true -> Logger.debug("eth node: " <> stdout)
+        _ -> :ok
+      end
+
+    {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_call(:ready?, _from, state) do
+    {:reply, state.ready?, state}
+  end
+
+  # PRIVATE
+
+  defp launch(cmd) do
+    {:ok, pid} = start_link(cmd)
+
+    waiting_task = fn ->
+      wait_for_rpc(pid)
+    end
+
+    waiting_task
+    |> Task.async()
+    |> Task.await(15_000)
+
+    pid
+  end
+
+  defp wait_for_rpc(pid) do
+    if ready?(pid) do
+      :ok
+    else
+      Process.sleep(1_000)
+      wait_for_rpc(pid)
+    end
+  end
+
+  defp start_link(cmd) do
+    GenServer.start_link(__MODULE__, cmd)
+  end
+
+  defp ready?(pid) do
+    GenServer.call(pid, :ready?)
   end
 end

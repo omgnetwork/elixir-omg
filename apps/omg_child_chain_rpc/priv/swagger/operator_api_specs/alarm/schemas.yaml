@@ -1,9 +1,0 @@
-AlarmSchema:
-  type: array
-  items:
-    anyOf:
-      - $ref: 'alarms_schema.yml#/components/schemas/ethereum_connection_error'
-      - $ref: 'alarms_schema.yml#/components/schemas/invalid_fee_source'
-      - $ref: 'alarms_schema.yml#/components/schemas/statsd_client_connection'
-      - $ref: 'alarms_schema.yml#/components/schemas/system_memory_high_watermark'
-      - $ref: 'alarms_schema.yml#/components/schemas/disk_almost_full'

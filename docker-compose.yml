@@ -6,9 +6,10 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: omisego_dev
-      POSTGRES_PASSWORD: omisego_dev
-      POSTGRES_DB: omisego_dev
+      POSTGRES_USER: omisegodev
+      POSTGRES_PASSWORD: omisegodev
+    volumes:
+      - ./docker/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
     healthcheck:
       test: pg_isready -U omisego_dev
       interval: 5s
@@ -16,7 +17,7 @@ services:
       retries: 5
     networks:
       chain_net:
-        ipv4_address: 172.27.0.106
+        ipv4_address: 172.27.0.107
 
   geth:
     image: ethereum/client-go:v1.9.12
@@ -89,6 +90,7 @@ services:
     container_name: childchain
     env_file:
       - ./localchain_contract_addresses.env
+      - ./fees_setup.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.27.0.102:80
@@ -98,12 +100,6 @@ services:
       - DB_PATH=/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
-      - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
-      - FEE_ADAPTER=file
-      - STORED_FEE_UPDATE_INTERVAL_MINUTES=1
-      - FEE_CHANGE_TOLERANCE_PERCENT=1
-      - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
-      - FEE_BUFFER_DURATION_MS=30000
       - LOGGER_BACKEND=console
       - RELEASE_COOKIE=development
       - NODE_HOST=127.0.0.1
@@ -181,7 +177,7 @@ services:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.27.0.102:80
       - CHILD_CHAIN_URL=http://172.27.0.103:9656
-      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.106:5432/omisego_dev
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_dev
       - PORT=7534
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog

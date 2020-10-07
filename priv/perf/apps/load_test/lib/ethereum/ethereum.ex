@@ -26,7 +26,6 @@ defmodule LoadTest.Ethereum do
   alias LoadTest.Ethereum.Transaction.Signature
 
   @about_4_blocks_time 120_000
-  @eth_amount_to_fund trunc(:math.pow(10, 18) * 0.1)
 
   @type hash_t() :: <<_::256>>
 
@@ -58,30 +57,6 @@ defmodule LoadTest.Ethereum do
   def transact_sync(txhash, timeout \\ @about_4_blocks_time) do
     {:ok, %{"status" => "0x1"} = receipt} = eth_receipt(txhash, timeout)
     {:ok, Map.update!(receipt, "blockNumber", &Encoding.to_int(&1))}
-  end
-
-  def create_account_from_secret(secret, passphrase) do
-    Ethereumex.HttpClient.request("personal_importRawKey", [Base.encode16(secret), passphrase], [])
-  end
-
-  def unlock_account(addr, passphrase) do
-    Ethereumex.HttpClient.request("personal_unlockAccount", [addr, passphrase, 0], [])
-  end
-
-  def fund_address_from_default_faucet(account, opts) do
-    {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()
-    defaults = [faucet: default_faucet, initial_funds_wei: @eth_amount_to_fund]
-
-    %{faucet: faucet, initial_funds_wei: initial_funds_wei} =
-      defaults
-      |> Keyword.merge(opts)
-      |> Enum.into(%{})
-
-    params = %{from: faucet, to: Encoding.to_hex(account.addr), value: Encoding.to_hex(initial_funds_wei)}
-
-    {:ok, tx_fund} = send_transaction(params)
-
-    transact_sync(tx_fund)
   end
 
   def block_hash(mined_num) do
@@ -140,8 +115,6 @@ defmodule LoadTest.Ethereum do
 
     Abi.decode_function(data, signature)
   end
-
-  defp send_transaction(txmap), do: Ethereumex.HttpClient.eth_send_transaction(txmap)
 
   defp eth_receipt(txhash, timeout) do
     f = fn ->
