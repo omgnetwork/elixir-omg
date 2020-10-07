@@ -3,8 +3,12 @@ defmodule Front.Aggregator do
 
   require Logger
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, [])
+  alias Front.Repo.TestRun
+
+  @dump_interval 5_000
+
+  def start_link(key) do
+    GenServer.start_link(__MODULE__, key)
   end
 
   def record_metrics(pid, params) do
@@ -15,9 +19,21 @@ defmodule Front.Aggregator do
     GenServer.call(pid, :state)
   end
 
+  def dump(pid) do
+    GenServer.cast(pid, :dump)
+  end
+
+  def finish(pid) do
+    GenServer.cast(pid, :finish)
+  end
+
   @impl true
-  def init(_) do
-    {:ok, %{transactions_count: 0, errors_count: 0, errors: %{}}}
+  def init(key) do
+    test_run = key |> to_string() |> TestRun.create!()
+
+    {:ok, _timer} = :timer.send_interval(@dump_interval, :dump)
+
+    {:ok, {test_run, %{transactions_count: 0, errors_count: 0, errors: %{}}}}
   end
 
   @impl true
@@ -26,7 +42,7 @@ defmodule Front.Aggregator do
   end
 
   @impl true
-  def handle_cast({:record_metrics, data}, state) do
+  def handle_cast({:record_metrics, data}, {test_run, state}) do
     transactions_count = state.transactions_count + 1
 
     {errors_count, errors} = maybe_add_new_error(state, data)
@@ -38,7 +54,28 @@ defmodule Front.Aggregator do
         transactions_count: transactions_count
     }
 
-    {:noreply, new_state}
+    {:noreply, {test_run, new_state}}
+  end
+
+  @impl true
+  def handle_cast(:dump, {test_run, state}) do
+    updated_test_run = TestRun.update!(test_run, %{data: state})
+
+    {:noreply, {updated_test_run, state}}
+  end
+
+  @impl true
+  def handle_cast(:finish, {test_run, state}) do
+    updated_test_run = TestRun.update!(test_run, %{state: "finished"})
+
+    {:noreply, {updated_test_run, state}}
+  end
+
+  @impl true
+  def handle_info(:dump, {test_run, state}) do
+    updated_test_run = TestRun.update!(test_run, %{data: state})
+
+    {:noreply, {updated_test_run, state}}
   end
 
   defp maybe_add_new_error(state, %{status: :ok}) do

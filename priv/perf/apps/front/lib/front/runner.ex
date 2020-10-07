@@ -12,7 +12,12 @@ defmodule Front.Runner do
   ]
 
   def run(module, params) do
-    {:ok, aggregator} = Aggregator.start_link()
+    runner_params =
+      params
+      |> Keyword.fetch!(:runner_params)
+      |> validate_run_params()
+
+    {:ok, aggregator} = Aggregator.start_link(runner_params[:id])
     test_params = Keyword.fetch!(params, :test_params)
 
     func = fn ->
@@ -21,13 +26,7 @@ defmodule Front.Runner do
       Aggregator.record_metrics(aggregator, result)
     end
 
-    runner_params =
-      params
-      |> Keyword.fetch!(:runner_params)
-      |> validate_run_params()
-      |> Keyword.put(:func, func)
-
-    {:ok, _pid} = Hornet.start(runner_params)
+    {:ok, _pid} = runner_params |> Keyword.put(:func, func) |> Hornet.start()
 
     aggregator
   end

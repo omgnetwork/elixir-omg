@@ -1,5 +1,5 @@
 defmodule Front.RunnerTest do
-  use ExUnit.Case
+  use Front.DataCase
 
   alias Front.{Aggregator, Runner}
 
@@ -22,8 +22,9 @@ defmodule Front.RunnerTest do
 
       Process.sleep(4_000)
 
-      assert %{errors: %{}, errors_count: 0, transactions_count: 3} ==
-               Aggregator.state(aggregator)
+      {_test_run, state} = Aggregator.state(aggregator)
+
+      assert %{errors: %{}, errors_count: 0, transactions_count: 3} == state
     end
   end
 end
