@@ -17,9 +17,7 @@ config :load_test,
   child_chain_url: System.get_env("CHILD_CHAIN_URL"),
   watcher_security_url: System.get_env("WATCHER_SECURITY_URL"),
   watcher_info_url: System.get_env("WATCHER_INFO_URL"),
-  faucet_private_key:
-    System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY") ||
-      "0xd885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce",
+  faucet_private_key: System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY"),
   eth_vault_address: System.get_env("CONTRACT_ADDRESS_ETH_VAULT"),
   contract_address_payment_exit_game: System.get_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"),
   child_block_interval: 1000,
@@ -43,24 +41,5 @@ config :logger, :console,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id, :trace_id, :span_id]
-
-config :front,
-  ecto_repos: [Front.Repo]
-
-# Configures the endpoint
-config :front, FrontWeb.Endpoint,
-  url: [host: "localhost"],
-  secret_key_base: "ozDFL6Hr0KLUEh4i55m+YBO4ukTTagoGM8i2ju9i8pXaFGfjZuTHx56R+wseZhtg",
-  render_errors: [view: FrontWeb.ErrorView, accepts: ~w(json), layout: false],
-  pubsub_server: Front.PubSub,
-  live_view: [signing_salt: "qSCz/ACR"]
-
-# Configures Elixir's Logger
-config :logger, :console,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
-
-# Use Jason for JSON parsing in Phoenix
-config :phoenix, :json_library, Jason
 
 import_config "#{Mix.env()}.exs"
