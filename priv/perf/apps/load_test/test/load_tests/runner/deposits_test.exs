@@ -40,6 +40,5 @@ defmodule LoadTest.Runner.DepositsTest do
     }
 
     Chaperon.run_load_test(LoadTest.Runner.Deposits, print_results: true, config: config)
-    |> IO.inspect(limit: :infinity)
   end
 end
