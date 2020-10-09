@@ -221,14 +221,7 @@ defmodule LoadTest.Ethereum do
     WatcherInfoAPI.Api.Transaction.submit_typed(LoadTest.Connection.WatcherInfo.client(), typed_data_signed)
   end
 
-  defp process_transaction_result(
-         result,
-         amount_in_wei,
-         input_address,
-         output_address,
-         currency,
-         tries
-       ) do
+  defp process_transaction_result(result, amount_in_wei, input_address, output_address, currency, tries) do
     case {result, tries} do
       {%{"code" => "create:client_error", "messages" => %{"code" => "operation:service_unavailable"}}, 0} ->
         {:error, result}
