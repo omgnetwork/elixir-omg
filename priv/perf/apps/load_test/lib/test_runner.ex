@@ -24,8 +24,11 @@ defmodule LoadTest.TestRunner do
     result = Chaperon.run_load_test(runner_module, print_results: true, config: config)
 
     case result.metrics[{:call, {scenario_module, "success_rate"}}][:mean] do
-      1.0 -> System.stop(0)
-      _ -> System.stop(1)
+      1.0 ->
+        System.halt(0)
+
+      _ ->
+        System.halt(1)
     end
   end
 

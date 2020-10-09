@@ -9,14 +9,14 @@ ethereum_client_timeout_ms = 20_000
 
 config :ethereumex,
   http_options: [recv_timeout: ethereum_client_timeout_ms],
-  url: System.get_env("ETHEREUM_RPC_URL")
+  url: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545"
 
 config :load_test,
   pool_size: 5000,
   max_connection: 5000,
-  child_chain_url: System.get_env("CHILD_CHAIN_URL"),
-  watcher_security_url: System.get_env("WATCHER_SECURITY_URL"),
-  watcher_info_url: System.get_env("WATCHER_INFO_URL"),
+  child_chain_url: System.get_env("CHILD_CHAIN_URL") || "http://localhost:9656",
+  watcher_security_url: System.get_env("WATCHER_SECURITY_URL") || "http://localhost:7434",
+  watcher_info_url: System.get_env("WATCHER_INFO_URL") || "http://localhost:7534",
   faucet_private_key: System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY"),
   eth_vault_address: System.get_env("CONTRACT_ADDRESS_ETH_VAULT"),
   contract_address_payment_exit_game: System.get_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"),
