@@ -1,4 +1,7 @@
 defmodule LoadTest.TestRunner.Config do
+  @moduledoc """
+  Command line args parser for TestRunner.
+  """
   alias ExPlasma.Encoding
 
   @tests %{

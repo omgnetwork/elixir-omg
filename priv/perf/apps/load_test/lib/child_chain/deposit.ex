@@ -48,13 +48,13 @@ defmodule LoadTest.ChildChain.Deposit do
     deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}
 
     {:ok, deposit} = Deposit.new(deposit_utxo)
-    {:ok, {deposit_blknum, eth_blknum, eth_blkhash}} = send_deposit(deposit, depositor, amount, currency, gas_price)
+    {:ok, {deposit_blknum, eth_blknum, eth_txhash}} = send_deposit(deposit, depositor, amount, currency, gas_price)
 
     :ok = wait_deposit_finality(eth_blknum, deposit_finality_margin)
 
     case return do
       :utxo -> Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
-      _ -> eth_blkhash
+      _ -> eth_txhash
     end
   end
 

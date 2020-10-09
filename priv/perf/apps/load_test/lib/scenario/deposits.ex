@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule LoadTest.Scenario.Deposits do
+  @moduledoc """
+  The scenario for deposits tests.
+  """
+
   use Chaperon.Scenario
 
   alias Chaperon.Session
