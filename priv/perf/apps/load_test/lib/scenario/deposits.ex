@@ -79,20 +79,13 @@ defmodule LoadTest.Scenario.Deposits do
              token,
              :wrong_childchain_to_balance_after_sending_deposit
            ) do
-      Session.add_metric(
-        session,
-        {:call, {__MODULE__, "success_rate"}},
-        1
-      )
+      Session.add_metric(session, "success_rate", 1)
     else
       error ->
         log_error(session, "#{__MODULE__} failed with #{error}")
 
         session
-        |> Session.add_metric(
-          {:call, {__MODULE__, "success_rate"}},
-          0
-        )
+        |> Session.add_metric("success_rate", 0)
         |> Session.add_error(:test, error)
     end
   end

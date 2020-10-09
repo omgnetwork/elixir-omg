@@ -17,7 +17,9 @@ config :load_test,
   child_chain_url: System.get_env("CHILD_CHAIN_URL") || "http://localhost:9656",
   watcher_security_url: System.get_env("WATCHER_SECURITY_URL") || "http://localhost:7434",
   watcher_info_url: System.get_env("WATCHER_INFO_URL") || "http://localhost:7534",
-  faucet_private_key: System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY"),
+  faucet_private_key:
+    System.get_env("LOAD_TEST_FAUCET_PRIVATE_KEY") ||
+      "0xd885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce",
   eth_vault_address: System.get_env("CONTRACT_ADDRESS_ETH_VAULT"),
   contract_address_payment_exit_game: System.get_env("CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"),
   child_block_interval: 1000,
