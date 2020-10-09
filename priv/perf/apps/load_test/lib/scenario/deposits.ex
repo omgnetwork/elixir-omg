@@ -31,22 +31,42 @@ defmodule LoadTest.Scenario.Deposits do
 
     session
     |> cc_spread(
-      :create_deposit,
+      :create_deposit_and_make_assertions,
       total_number_of_transactions,
       period_in_mseconds
     )
-    |> await_all(:create_deposit)
+    |> await_all(:create_deposit_and_make_assertions)
   end
 
-  def create_deposit(session) do
+  def create_deposit_and_make_assertions(session) do
+    with {:ok, from, to} <- create_accounts(session),
+         :ok <- create_deposit(from, session),
+         :ok <- send_value_to_receiver(from, to, session) do
+      Session.add_metric(session, "success_rate", 1)
+    else
+      error ->
+        log_error(session, "#{__MODULE__} failed with #{inspect(error)}")
+
+        session
+        |> Session.add_metric("success_rate", 0)
+        |> Session.add_error(:test, error)
+    end
+  end
+
+  defp create_accounts(session) do
+    initial_amount = config(session, [:chain_config, :initial_amount])
+    {:ok, from_address} = Account.new()
+    {:ok, to_address} = Account.new()
+
+    {:ok, _} = Faucet.fund_root_chain_account(from_address.addr, initial_amount)
+
+    {:ok, from_address, to_address}
+  end
+
+  defp create_deposit(from_address, session) do
     token = config(session, [:chain_config, :token])
     deposited_amount = config(session, [:chain_config, :deposited_amount])
     initial_amount = config(session, [:chain_config, :initial_amount])
-    transferred_amount = config(session, [:chain_config, :transferred_amount])
-
-    {:ok, from_address} = Account.new()
-    {:ok, to_address} = Account.new()
-    {:ok, _} = Faucet.fund_root_chain_account(from_address.addr, initial_amount)
 
     txhash =
       Deposit.deposit_from(from_address, deposited_amount, token,
@@ -58,35 +78,40 @@ defmodule LoadTest.Scenario.Deposits do
     gas_used = Ethereum.get_gas_used(txhash)
 
     with :ok <-
-           fetch_childchain_balance(
-             from_address,
-             deposited_amount,
-             token,
-             :wrong_childchain_from_balance_after_deposit
+           fetch_childchain_balance(from_address,
+             amount: deposited_amount,
+             token: token,
+             error: :wrong_childchain_from_balance_after_deposit
            ),
          :ok <-
            fetch_rootchain_balance(
              from_address,
-             initial_amount - deposited_amount - gas_used,
-             token,
-             :wrong_rootchain_balance_after_deposit
-           ),
-         _ <- send_amount_on_childchain(from_address, to_address, token, transferred_amount),
+             amount: initial_amount - deposited_amount - gas_used,
+             token: token,
+             error: :wrong_rootchain_balance_after_deposit
+           ) do
+      :ok
+    else
+      error ->
+        error
+    end
+  end
+
+  defp send_value_to_receiver(from_address, to_address, session) do
+    token = config(session, [:chain_config, :token])
+    transferred_amount = config(session, [:chain_config, :transferred_amount])
+
+    with _ <- send_amount_on_childchain(from_address, to_address, token, transferred_amount),
          :ok <-
            fetch_childchain_balance(
              to_address,
-             transferred_amount,
-             token,
-             :wrong_childchain_to_balance_after_sending_deposit
+             amount: transferred_amount,
+             token: token,
+             error: :wrong_childchain_to_balance_after_sending_deposit
            ) do
-      Session.add_metric(session, "success_rate", 1)
+      :ok
     else
-      error ->
-        log_error(session, "#{__MODULE__} failed with #{error}")
-
-        session
-        |> Session.add_metric("success_rate", 0)
-        |> Session.add_error(:test, error)
+      error -> error
     end
   end
 
@@ -102,7 +127,7 @@ defmodule LoadTest.Scenario.Deposits do
     _ = Ethereum.submit_transaction(typed_data, sign_hash, [from.priv])
   end
 
-  defp fetch_childchain_balance(account, amount, token, error) do
+  defp fetch_childchain_balance(account, amount: amount, token: token, error: error) do
     childchain_balance = Ethereum.fetch_balance(account.addr, amount, token)
 
     case childchain_balance["amount"] do
@@ -111,7 +136,7 @@ defmodule LoadTest.Scenario.Deposits do
     end
   end
 
-  defp fetch_rootchain_balance(account, amount, token, error) do
+  defp fetch_rootchain_balance(account, amount: amount, token: token, error: error) do
     rootchain_balance = Ethereum.fetch_rootchain_balance(account.addr, token)
 
     case rootchain_balance do
