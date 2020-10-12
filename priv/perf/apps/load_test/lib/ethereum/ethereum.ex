@@ -120,10 +120,12 @@ defmodule LoadTest.Ethereum do
     Sync.repeat_until_success(f, timeout)
   end
 
+  @spec fetch_balance(Account.addr_t(), non_neg_integer(), Account.addr_t()) :: non_neg_integer() | :error | nil | map()
   def fetch_balance(address, amount, currency \\ <<0::160>>) do
     fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency), 60)
   end
 
+  @spec fetch_rootchain_balance(Account.addr_t(), Account.addr_t()) :: non_neg_integer() | no_return()
   def fetch_rootchain_balance(address, <<0::160>>) do
     root_chain_get_eth_balance(Encoding.to_hex(address), 10)
   end
@@ -131,6 +133,9 @@ defmodule LoadTest.Ethereum do
   def fetch_rootchain_balance(address, currency) do
     root_chain_get_erc20_balance(Encoding.to_hex(address), Encoding.to_hex(currency), 10)
   end
+
+  @spec create_transaction(non_neg_integer(), Account.addr_t(), Account.addr_t(), Account.addr_t(), non_neg_integer()) ::
+          {:ok, [binary()]} | {:error, map()}
 
   def create_transaction(amount_in_wei, input_address, output_address, currency \\ <<0::160>>, tries \\ 120) do
     transaction = %WatcherInfoAPI.Model.CreateTransactionsBodySchema{
@@ -152,6 +157,7 @@ defmodule LoadTest.Ethereum do
     process_transaction_result(result, amount_in_wei, input_address, output_address, currency, tries)
   end
 
+  @spec submit_transaction(binary(), binary(), [binary()]) :: map()
   def submit_transaction(typed_data, sign_hash, private_keys) do
     signatures =
       Enum.map(private_keys, fn private_key ->
