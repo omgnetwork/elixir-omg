@@ -36,6 +36,16 @@ defmodule LoadTest.ChildChain.Deposit do
   If currency is ETH, funds will be deposited into the EthVault.
   If currency is ERC20, 'approve()' will be called before depositing funds into the Erc20Vault.
 
+  This function accepts three required parameters:
+  1. depositor account
+  2. the amount to be deposited
+  3. currency
+
+  Also, it accepts a set of optional parameters as a keyword list:
+  - deposit_finality_margin - the number of verifications
+  - gas_price - gas price of the transaction
+  - return - it can be :utxo or :txhash
+
   Returns the utxo created by the deposit or the hash of the the deposit transaction.
   """
   @spec deposit_from(Account.t(), pos_integer(), Account.t(), Keyword.t()) :: Utxo.t() | binary()
