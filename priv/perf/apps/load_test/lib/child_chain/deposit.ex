@@ -16,6 +16,7 @@ defmodule LoadTest.ChildChain.Deposit do
   @moduledoc """
   Utility functions for deposits on a child chain
   """
+
   require Logger
 
   alias ExPlasma.Encoding
@@ -26,6 +27,9 @@ defmodule LoadTest.ChildChain.Deposit do
 
   @eth <<0::160>>
   @poll_interval 5_000
+  @gas_price 180_000
+  @deposit_finality_margin 1
+
   @doc """
   Deposits funds into the childchain.
 
@@ -34,15 +38,10 @@ defmodule LoadTest.ChildChain.Deposit do
 
   Returns the utxo created by the deposit or the hash of the the deposit transaction.
   """
-  @spec deposit_from(
-          LoadTest.Ethereum.Account.t(),
-          pos_integer(),
-          LoadTest.Ethereum.Account.t(),
-          Keyword.t()
-        ) :: Utxo.t()
+  @spec deposit_from(Account.t(), pos_integer(), Account.t(), Keyword.t()) :: Utxo.t() | binary()
   def deposit_from(%Account{} = depositor, amount, currency, options \\ []) do
-    deposit_finality_margin = Keyword.get(options, :deposit_finality_margin, 1)
-    gas_price = Keyword.get(options, :gas_price, 180_000)
+    deposit_finality_margin = Keyword.get(options, :deposit_finality_margin, @deposit_finality_margin)
+    gas_price = Keyword.get(options, :gas_price, @gas_price)
     return = Keyword.get(options, :return, :utxo)
 
     deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}

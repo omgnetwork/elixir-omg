@@ -51,19 +51,14 @@ defmodule LoadTest.Ethereum do
 
   @spec get_gas_used(String.t()) :: non_neg_integer()
   def get_gas_used(receipt_hash) do
-    result =
+    {{:ok, %{"gasUsed" => gas_used}}, {:ok, %{"gasPrice" => gas_price}}} =
       {Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash),
        Ethereumex.HttpClient.eth_get_transaction_by_hash(receipt_hash)}
 
-    case result do
-      {{:ok, %{"gasUsed" => gas_used}}, {:ok, %{"gasPrice" => gas_price}}} ->
-        {gas_price_value, ""} = gas_price |> String.replace_prefix("0x", "") |> Integer.parse(16)
-        {gas_used_value, ""} = gas_used |> String.replace_prefix("0x", "") |> Integer.parse(16)
-        gas_price_value * gas_used_value
+    {gas_price_value, ""} = gas_price |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    {gas_used_value, ""} = gas_used |> String.replace_prefix("0x", "") |> Integer.parse(16)
 
-      {{:ok, nil}, {:ok, nil}} ->
-        0
-    end
+    gas_price_value * gas_used_value
   end
 
   @doc """
@@ -223,7 +218,7 @@ defmodule LoadTest.Ethereum do
 
   defp process_transaction_result(result, amount_in_wei, input_address, output_address, currency, tries) do
     case {result, tries} do
-      {%{"code" => "create:client_error", "messages" => %{"code" => "operation:service_unavailable"}}, 0} ->
+      {%{"code" => "create:client_error"}, 0} ->
         {:error, result}
 
       {%{
