@@ -240,9 +240,7 @@ defmodule LoadTest.Ethereum do
   end
 
   defp root_chain_get_eth_balance(address, 0) do
-    {:ok, initial_balance} = eth_account_get_balance(address)
-    {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
-    initial_balance
+    raise "failed to fetch root chain balance for #{inspect(address)}"
   end
 
   defp root_chain_get_eth_balance(address, counter) do
