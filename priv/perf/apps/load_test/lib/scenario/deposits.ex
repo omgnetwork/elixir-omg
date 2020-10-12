@@ -14,7 +14,15 @@
 
 defmodule LoadTest.Scenario.Deposits do
   @moduledoc """
-  The scenario for deposits tests.
+  The scenario for deposits tests:
+
+  1. It creates two accounts: the depositor and the receiver.
+  2. It funds depositor with the specified amount on the rootchain.
+  3. It creates deposit for the depositor account on the childchain and
+     checks balances on the rootchain and the childchain after this deposit.
+  4. The depositor account sends the specifed amount on the childchain to the receiver
+     and checks its balance on the childchain.
+
   """
 
   use Chaperon.Scenario
