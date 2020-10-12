@@ -134,7 +134,13 @@ defmodule LoadTest.Ethereum do
     root_chain_get_erc20_balance(Encoding.to_hex(address), Encoding.to_hex(currency), 10)
   end
 
-  @spec create_transaction(non_neg_integer(), Account.addr_t(), Account.addr_t(), Account.addr_t(), non_neg_integer()) ::
+  @spec create_transaction(
+          non_neg_integer(),
+          Account.addr_t(),
+          Account.addr_t(),
+          Account.addr_t(),
+          non_neg_integer()
+        ) ::
           {:ok, [binary()]} | {:error, map()}
 
   def create_transaction(amount_in_wei, input_address, output_address, currency \\ <<0::160>>, tries \\ 120) do
