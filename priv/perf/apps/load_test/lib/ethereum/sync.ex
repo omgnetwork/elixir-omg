@@ -51,7 +51,7 @@ defmodule LoadTest.Ethereum.Sync do
   end
 
   defp repeat(f, message, result) do
-    sleep(message <> "#{inspect(result)}")
+    sleep(message <> " #{inspect(result)}")
     do_repeat_until_success(f, message)
   end
 end

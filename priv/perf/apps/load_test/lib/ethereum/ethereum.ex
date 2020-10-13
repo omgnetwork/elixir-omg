@@ -18,8 +18,6 @@ defmodule LoadTest.Ethereum do
   """
   require Logger
 
-  import LoadTest.Service.Sleeper
-
   alias ExPlasma.Encoding
   alias LoadTest.ChildChain.Abi
   alias LoadTest.Ethereum.NonceTracker
@@ -28,7 +26,7 @@ defmodule LoadTest.Ethereum do
   alias LoadTest.Ethereum.Transaction.Signature
 
   @about_4_blocks_time 120_000
-  @poll_count 60
+  @poll_timeout 60_000
 
   @type hash_t() :: <<_::256>>
 
@@ -125,16 +123,43 @@ defmodule LoadTest.Ethereum do
 
   @spec fetch_balance(Account.addr_t(), non_neg_integer(), Account.addr_t()) :: non_neg_integer() | :error | nil | map()
   def fetch_balance(address, amount, currency \\ <<0::160>>) do
-    fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency), @poll_count)
+    {:ok, result} =
+      Sync.repeat_until_success(
+        fn ->
+          do_fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency))
+        end,
+        @poll_timeout,
+        "Failed to fetch childcahin balance"
+      )
+
+    result
   end
 
   @spec fetch_rootchain_balance(Account.addr_t(), Account.addr_t()) :: non_neg_integer() | no_return()
   def fetch_rootchain_balance(address, <<0::160>>) do
-    root_chain_get_eth_balance(Encoding.to_hex(address), @poll_count)
+    {:ok, initial_balance} =
+      Sync.repeat_until_success(
+        fn ->
+          address
+          |> Encoding.to_hex()
+          |> eth_account_get_balance()
+        end,
+        @poll_timeout,
+        "Failed to fetch eth balance from rootchain"
+      )
+
+    {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    initial_balance
   end
 
   def fetch_rootchain_balance(address, currency) do
-    root_chain_get_erc20_balance(Encoding.to_hex(address), Encoding.to_hex(currency), @poll_count)
+    Sync.repeat_until_success(
+      fn ->
+        do_root_chain_get_erc20_balance(address, currency)
+      end,
+      @poll_timeout,
+      "Failed to fetch erc20 balance from rootchain"
+    )
   end
 
   @spec create_transaction(
@@ -146,24 +171,29 @@ defmodule LoadTest.Ethereum do
         ) ::
           {:ok, [binary()]} | {:error, map()}
 
-  def create_transaction(amount_in_wei, input_address, output_address, currency \\ <<0::160>>, tries \\ 120) do
-    transaction = %WatcherInfoAPI.Model.CreateTransactionsBodySchema{
-      owner: Encoding.to_hex(input_address),
-      payments: [
-        %WatcherInfoAPI.Model.TransactionCreatePayments{
-          amount: amount_in_wei,
-          currency: Encoding.to_hex(currency),
-          owner: Encoding.to_hex(output_address)
-        }
-      ],
-      fee: %WatcherInfoAPI.Model.TransactionCreateFee{currency: Encoding.to_hex(currency)}
-    }
+  def create_transaction(amount_in_wei, input_address, output_address, currency \\ <<0::160>>, timeout \\ 120_000) do
+    func = fn ->
+      transaction = %WatcherInfoAPI.Model.CreateTransactionsBodySchema{
+        owner: Encoding.to_hex(input_address),
+        payments: [
+          %WatcherInfoAPI.Model.TransactionCreatePayments{
+            amount: amount_in_wei,
+            currency: Encoding.to_hex(currency),
+            owner: Encoding.to_hex(output_address)
+          }
+        ],
+        fee: %WatcherInfoAPI.Model.TransactionCreateFee{currency: Encoding.to_hex(currency)}
+      }
 
-    {:ok, response} =
-      WatcherInfoAPI.Api.Transaction.create_transaction(LoadTest.Connection.WatcherInfo.client(), transaction)
+      {:ok, response} =
+        WatcherInfoAPI.Api.Transaction.create_transaction(LoadTest.Connection.WatcherInfo.client(), transaction)
 
-    result = Jason.decode!(response.body)["data"]
-    process_transaction_result(result, amount_in_wei, input_address, output_address, currency, tries)
+      result = Jason.decode!(response.body)["data"]
+
+      process_transaction_result(result)
+    end
+
+    Sync.repeat_until_success(func, timeout, "Failed to created a transaction")
   end
 
   @spec submit_transaction(binary(), binary(), [binary()]) :: map()
@@ -178,7 +208,13 @@ defmodule LoadTest.Ethereum do
 
     typed_data_signed = Map.put_new(typed_data, "signatures", signatures)
 
-    submit_typed(typed_data_signed)
+    Sync.repeat_until_success(
+      fn ->
+        submit_typed(typed_data_signed)
+      end,
+      @poll_timeout,
+      "Failed to submit transaction"
+    )
   end
 
   defp to_binary(hex) do
@@ -205,25 +241,19 @@ defmodule LoadTest.Ethereum do
     <<r::integer-size(256), s::integer-size(256), recovery_id::integer-size(8)>>
   end
 
-  defp submit_typed(typed_data_signed, retry_count \\ 120)
-
-  defp submit_typed(typed_data_signed, 0), do: execute_submit_typed(typed_data_signed)
-
-  defp submit_typed(typed_data_signed, counter) do
+  defp submit_typed(typed_data_signed) do
     {:ok, response} = execute_submit_typed(typed_data_signed)
     decoded_response = Jason.decode!(response.body)["data"]
 
     case decoded_response do
-      %{"messages" => %{"code" => "submit:utxo_not_found"}} ->
-        sleep("Failed to submit transaction #{inspect(decoded_response)}")
-        submit_typed(typed_data_signed, counter - 1)
+      %{"messages" => %{"code" => "submit:utxo_not_found"}} = error ->
+        {:error, error}
 
-      %{"messages" => %{"code" => "operation:service_unavailable"}} ->
-        sleep("Failed to submit transaction #{inspect(decoded_response)}")
-        submit_typed(typed_data_signed, counter - 1)
+      %{"messages" => %{"code" => "operation:service_unavailable"}} = error ->
+        {:error, error}
 
       %{"txhash" => _} ->
-        decoded_response
+        {:ok, decoded_response}
     end
   end
 
@@ -231,64 +261,30 @@ defmodule LoadTest.Ethereum do
     WatcherInfoAPI.Api.Transaction.submit_typed(LoadTest.Connection.WatcherInfo.client(), typed_data_signed)
   end
 
-  defp process_transaction_result(result, amount_in_wei, input_address, output_address, currency, tries) do
-    case {result, tries} do
-      {%{"code" => "create:client_error"}, 0} ->
+  defp process_transaction_result(result) do
+    case result do
+      %{"code" => "create:client_error"} ->
         {:error, result}
 
-      {%{
-         "result" => "complete",
-         "transactions" => [
-           %{
-             "sign_hash" => sign_hash,
-             "typed_data" => typed_data,
-             "txbytes" => txbytes
-           }
-         ]
-       }, _} ->
+      %{
+        "result" => "complete",
+        "transactions" => [
+          %{
+            "sign_hash" => sign_hash,
+            "typed_data" => typed_data,
+            "txbytes" => txbytes
+          }
+        ]
+      } ->
         {:ok, [sign_hash, typed_data, txbytes]}
 
-      _ ->
-        sleep("Failed to create a transaction #{inspect(result)}")
-        create_transaction(amount_in_wei, input_address, output_address, currency, tries - 1)
-    end
-  end
-
-  defp root_chain_get_eth_balance(address, 0) do
-    raise "failed to fetch root chain balance for #{inspect(address)}"
-  end
-
-  defp root_chain_get_eth_balance(address, counter) do
-    response = eth_account_get_balance(address)
-
-    case response do
-      {:ok, initial_balance} ->
-        {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
-        initial_balance
-
-      _ ->
-        sleep("Failed to fetch eth balance from rootchain #{inspect(response)}")
-        root_chain_get_eth_balance(address, counter - 1)
+      error ->
+        {:error, error}
     end
   end
 
   defp eth_account_get_balance(address) do
     Ethereumex.HttpClient.eth_get_balance(address)
-  end
-
-  defp root_chain_get_erc20_balance(address, currency, 0) do
-    do_root_chain_get_erc20_balance(address, currency)
-  end
-
-  defp root_chain_get_erc20_balance(address, currency, counter) do
-    case do_root_chain_get_erc20_balance(address, currency) do
-      {:ok, balance} ->
-        balance
-
-      response ->
-        sleep("Failed to fetch erc20 balance from rootchain #{inspect(response)}")
-        root_chain_get_erc20_balance(address, currency, counter - 1)
-    end
   end
 
   defp do_root_chain_get_erc20_balance(address, currency) do
@@ -309,7 +305,7 @@ defmodule LoadTest.Ethereum do
     end
   end
 
-  defp fetch_balance(address, amount, currency, counter) do
+  defp do_fetch_balance(address, amount, currency) do
     response =
       case account_get_balances(address) do
         {:ok, response} ->
@@ -325,19 +321,13 @@ defmodule LoadTest.Ethereum do
     case response do
       # empty response is considered no account balance!
       nil when amount == 0 ->
-        nil
+        {:ok, nil}
 
       %{"amount" => ^amount} = balance ->
-        balance
+        {:ok, balance}
 
-      error ->
-        if counter == 0 do
-          error
-        else
-          sleep("Failed to fetch balance from the childchain #{inspect(response)}")
-
-          fetch_balance(address, amount, currency, counter - 1)
-        end
+      response ->
+        {:error, response}
     end
   end
 
