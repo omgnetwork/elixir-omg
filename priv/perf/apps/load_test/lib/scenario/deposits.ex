@@ -54,13 +54,13 @@ defmodule LoadTest.Scenario.Deposits do
     with {:ok, from, to} <- create_accounts(session),
          :ok <- create_deposit(from, session),
          :ok <- send_value_to_receiver(from, to, session) do
-      Session.add_metric(session, "success_rate", 1)
+      Session.add_metric(session, "error_rate", 0)
     else
       error ->
         log_error(session, "#{__MODULE__} failed with #{inspect(error)}")
 
         session
-        |> Session.add_metric("success_rate", 0)
+        |> Session.add_metric("error_rate", 1)
         |> Session.add_error(:test, error)
     end
   end

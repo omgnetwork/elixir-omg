@@ -20,28 +20,27 @@ defmodule LoadTest.Runner.DepositsTest do
   alias ExPlasma.Encoding
 
   test "deposits test" do
-    # token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
-    # initial_amount = 500_000_000_000_000_000
-    # deposited_amount = 200_000_000_000_000_000
-    # transferred_amount = 100_000_000_000_000_000
+    token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
+    initial_amount = 500_000_000_000_000_000
+    deposited_amount = 200_000_000_000_000_000
+    transferred_amount = 100_000_000_000_000_000
 
-    # config = %{
-    #   chain_config: %{
-    #     token: token,
-    #     initial_amount: initial_amount,
-    #     deposited_amount: deposited_amount,
-    #     transferred_amount: transferred_amount
-    #   },
-    #   run_config: %{
-    #     tps: 1,
-    #     period_in_seconds: 20
-    #   },
-    #   timeout: :infinity
-    # }
+    config = %{
+      chain_config: %{
+        token: token,
+        initial_amount: initial_amount,
+        deposited_amount: deposited_amount,
+        transferred_amount: transferred_amount
+      },
+      run_config: %{
+        tps: 1,
+        period_in_seconds: 20
+      },
+      timeout: :infinity
+    }
 
-    # result = Chaperon.run_load_test(LoadTest.Runner.Deposits, config: config)
+    result = Chaperon.run_load_test(LoadTest.Runner.Deposits, config: config)
 
-    # assert result.metrics["success_rate"][:mean
-    #                                      ] == 1.0
+    assert result.metrics["error_rate"][:mean] == 0.0
   end
 end
