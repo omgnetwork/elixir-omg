@@ -108,13 +108,17 @@ defmodule LoadTest.ChildChain.Utxos do
   @spec wait_for_utxo(Utxo.address_binary(), Utxo.t(), pos_integer()) :: :ok
   def wait_for_utxo(address, utxo, timeout \\ 100_000) do
     func = fn ->
-      utxos = get_utxos(address)
-
-      if Enum.find(utxos, fn x -> Utxo.pos(x) == Utxo.pos(utxo) end) do
-        :ok
-      end
+      fund_utxo(address, utxo)
     end
 
     Sync.repeat_until_success(func, timeout, "waiting for utxo")
+  end
+
+  defp find_utxo(address, utxo) do
+    utxos = get_utxos(address)
+
+    if Enum.find(utxos, fn x -> Utxo.pos(x) == Utxo.pos(utxo) end) do
+      :ok
+    end
   end
 end
