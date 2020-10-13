@@ -44,6 +44,8 @@ defmodule LoadTest.TestRunner.Config do
     rate_int = String.to_integer(rate)
     period_int = String.to_integer(period)
 
+    if rate_int * period_int > 200_000, do: raise("too many processes")
+
     run_config = %{
       tps: rate_int,
       period_in_seconds: period_int

@@ -27,8 +27,6 @@ defmodule LoadTest.ChildChain.Deposit do
   alias LoadTest.Ethereum.Sync
 
   @eth <<0::160>>
-  @gas_price 180_000
-  @deposit_finality_margin 1
 
   @doc """
   Deposits funds into the childchain.
@@ -41,19 +39,23 @@ defmodule LoadTest.ChildChain.Deposit do
   2. the amount to be deposited
   3. currency
 
-  Also, it accepts a set of optional parameters as a keyword list:
+  Also, it acceptsoptional parameters:
   - deposit_finality_margin - the number of verifications
   - gas_price - gas price of the transaction
   - return - it can be :utxo or :txhash
 
   Returns the utxo created by the deposit or the hash of the the deposit transaction.
   """
-  @spec deposit_from(Account.t(), pos_integer(), Account.t(), Keyword.t()) :: Utxo.t() | binary()
-  def deposit_from(%Account{} = depositor, amount, currency, options \\ []) do
-    deposit_finality_margin = Keyword.get(options, :deposit_finality_margin, @deposit_finality_margin)
-    gas_price = Keyword.get(options, :gas_price, @gas_price)
-    return = Keyword.get(options, :return, :utxo)
-
+  @spec deposit_from(Account.t(), pos_integer(), Account.t(), non_neg_integer(), non_neg_integer, atom()) ::
+          Utxo.t() | binary()
+  def deposit_from(
+        %Account{} = depositor,
+        amount,
+        currency,
+        deposit_finality_margin \\ 5,
+        gas_price \\ 180_000,
+        return \\ :utxo
+      ) do
     deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}
 
     {:ok, deposit} = Deposit.new(deposit_utxo)
