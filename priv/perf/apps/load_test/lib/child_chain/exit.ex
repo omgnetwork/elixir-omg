@@ -72,7 +72,9 @@ defmodule LoadTest.ChildChain.Exit do
       end
     end
 
-    Sync.repeat_until_success(func, timeout, "waiting for exit data")
+    {:ok, result} = Sync.repeat_until_success(func, timeout, "waiting for exit data")
+
+    result
   end
 
   @doc """

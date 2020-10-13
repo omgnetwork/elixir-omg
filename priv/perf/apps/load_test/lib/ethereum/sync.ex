@@ -42,7 +42,6 @@ defmodule LoadTest.Ethereum.Sync do
         return
 
       result ->
-        sleep(message <> "#{inspect(result)}")
         repeat(f, message, result)
     end
   catch

@@ -48,16 +48,16 @@ defmodule LoadTest.ChildChain.Transaction do
           Utxo.address_binary(),
           pos_integer()
         ) :: list(Utxo.t())
-  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries \\ 0)
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries \\ 120_000)
 
-  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries) when byte_size(currency) == 20 do
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, timeout) when byte_size(currency) == 20 do
     change_amount = utxo.amount - amount - fee
     receiver_output = %Utxo{owner: receiver.addr, currency: currency, amount: amount}
-    do_spend(utxo, receiver_output, change_amount, currency, signer, retries)
+    do_spend(utxo, receiver_output, change_amount, currency, signer, timeout)
   end
 
-  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries) do
-    spend_utxo(utxo, amount, fee, signer, receiver, Encoding.to_binary(currency), retries)
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, timeout) do
+    spend_utxo(utxo, amount, fee, signer, receiver, Encoding.to_binary(currency), timeout)
   end
 
   def tx_defaults() do
@@ -77,7 +77,7 @@ defmodule LoadTest.ChildChain.Transaction do
           list(LoadTest.Ethereum.Account.t()),
           pos_integer()
         ) :: list(Utxo.t())
-  def submit_tx(inputs, outputs, signers, retries \\ 10_000) do
+  def submit_tx(inputs, outputs, signers, retries \\ 120_000) do
     {:ok, tx} = Transaction.Payment.new(%{inputs: inputs, outputs: outputs})
 
     keys =
@@ -205,7 +205,10 @@ defmodule LoadTest.ChildChain.Transaction do
   defp parse_uint256(_), do: {:error, :malformed_uint256}
 
   defp try_submit_tx(tx, timeout) do
-    Sync.repeat_until_success(fn -> do_submit_tx(tx) end, timeout, "Failed to submit transaction")
+    {:ok, {blknum, txindex}} =
+      Sync.repeat_until_success(fn -> do_submit_tx(tx) end, timeout, "Failed to submit transaction")
+
+    {:ok, blknum, txindex}
   end
 
   defp do_submit_tx(tx) do
@@ -221,7 +224,7 @@ defmodule LoadTest.ChildChain.Transaction do
     |> case do
       %{"blknum" => blknum, "txindex" => txindex} ->
         _ = Logger.debug("[Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}")
-        {:ok, blknum, txindex}
+        {:ok, {blknum, txindex}}
 
       %{"code" => reason} ->
         _ =

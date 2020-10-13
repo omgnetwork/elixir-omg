@@ -43,7 +43,7 @@ defmodule LoadTest.Service.Faucet do
 
   # Submitting a transaction to the childchain can fail if it is under heavy load,
   # allow the faucet to retry to avoid failing the test prematurely.
-  @fund_child_chain_account_retries 100
+  @fund_child_chain_account_timeout 100_000
 
   @type state :: %__MODULE__{
           faucet_account: Account.t(),
@@ -134,7 +134,7 @@ defmodule LoadTest.Service.Faucet do
         state.faucet_account,
         receiver,
         currency,
-        @fund_child_chain_account_retries
+        @fund_child_chain_account_timeout
       )
 
     [next_faucet_utxo, user_utxo] =
