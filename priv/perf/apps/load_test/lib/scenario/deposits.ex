@@ -136,7 +136,7 @@ defmodule LoadTest.Scenario.Deposits do
         token
       )
 
-    _ = Ethereum.submit_transaction(typed_data, sign_hash, [from.priv])
+   Ethereum.submit_transaction(typed_data, sign_hash, [from.priv])
   end
 
   defp fetch_childchain_balance(account, amount: amount, token: token, error: error) do
