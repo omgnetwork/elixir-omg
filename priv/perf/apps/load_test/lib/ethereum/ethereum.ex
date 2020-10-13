@@ -316,8 +316,9 @@ defmodule LoadTest.Ethereum do
           decoded_response = Jason.decode!(response.body)
           Enum.find(decoded_response["data"], fn data -> data["currency"] == currency end)
 
-        _ ->
-          # socket closed etc.
+        result ->
+          Logger.error("Failed to fetch balance from childchain #{inspect(result)}")
+
           :error
       end
 
