@@ -338,12 +338,8 @@ defmodule LoadTest.Ethereum do
   end
 
   defp account_get_balances(address) do
-    WatcherInfoAPI.Api.Account.account_get_balance(
-      LoadTest.Connection.WatcherInfo.client(),
-      %{
-        address: address
-      }
-    )
+    client = LoadTest.Connection.WatcherInfo.client()
+    WatcherInfoAPI.Api.Account.account_get_balance(client, %{ address: address})
   end
 
   defp get_external_data(address, signature, params) do
