@@ -18,11 +18,10 @@ defmodule LoadTest.ChildChain.Utxos do
   """
   require Logger
 
-  import LoadTest.Service.Sleeper
-
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Transaction
+  alias LoadTest.Ethereum.Sync
 
   @doc """
   Returns an addresses utxos.
@@ -107,17 +106,15 @@ defmodule LoadTest.ChildChain.Utxos do
   Retries until the utxo is found.
   """
   @spec wait_for_utxo(Utxo.address_binary(), Utxo.t(), pos_integer()) :: :ok
-  def wait_for_utxo(address, utxo, counter \\ 100)
-  def wait_for_utxo(_address, _utxo, 0), do: :error
+  def wait_for_utxo(address, utxo, timeout \\ 100_000) do
+    func = fn ->
+      utxos = get_utxos(address)
 
-  def wait_for_utxo(address, utxo, counter) do
-    utxos = get_utxos(address)
-
-    if Enum.find(utxos, fn x -> Utxo.pos(x) == Utxo.pos(utxo) end) do
-      :ok
-    else
-      sleep("Waiting for utxo")
-      wait_for_utxo(address, utxo, counter - 1)
+      if Enum.find(utxos, fn x -> Utxo.pos(x) == Utxo.pos(utxo) end) do
+        :ok
+      end
     end
+
+    Sync.repeat_until_success(func, timeout, "waiting for utxo")
   end
 end

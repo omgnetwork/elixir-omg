@@ -17,14 +17,13 @@ defmodule LoadTest.ChildChain.Transaction do
   """
   require Logger
 
-  import LoadTest.Service.Sleeper
-
   alias ChildChainAPI.Api
   alias ChildChainAPI.Model
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction
   alias ExPlasma.Utxo
   alias LoadTest.Connection.ChildChain, as: Connection
+  alias LoadTest.Ethereum.Sync
 
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 5_712_388
@@ -78,7 +77,7 @@ defmodule LoadTest.ChildChain.Transaction do
           list(LoadTest.Ethereum.Account.t()),
           pos_integer()
         ) :: list(Utxo.t())
-  def submit_tx(inputs, outputs, signers, retries \\ 0) do
+  def submit_tx(inputs, outputs, signers, retries \\ 10_000) do
     {:ok, tx} = Transaction.Payment.new(%{inputs: inputs, outputs: outputs})
 
     keys =
@@ -205,17 +204,8 @@ defmodule LoadTest.ChildChain.Transaction do
   defp parse_uint256(binary) when byte_size(binary) > 32, do: {:error, :encoded_uint_too_big}
   defp parse_uint256(_), do: {:error, :malformed_uint256}
 
-  defp try_submit_tx(tx, 0), do: do_submit_tx(tx)
-
-  defp try_submit_tx(tx, retries) do
-    case do_submit_tx(tx) do
-      {:error, "submit:utxo_not_found"} = result ->
-        sleep("Failed to submit transaction #{inspect(result)}")
-        try_submit_tx(tx, retries - 1)
-
-      result ->
-        result
-    end
+  defp try_submit_tx(tx, timeout) do
+    Sync.repeat_until_success(fn -> do_submit_tx(tx) end, timeout, "Failed to submit transaction")
   end
 
   defp do_submit_tx(tx) do

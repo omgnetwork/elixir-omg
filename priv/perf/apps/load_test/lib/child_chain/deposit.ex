@@ -19,13 +19,12 @@ defmodule LoadTest.ChildChain.Deposit do
 
   require Logger
 
-  import LoadTest.Service.Sleeper
-
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction.Deposit
   alias ExPlasma.Utxo
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
+  alias LoadTest.Ethereum.Sync
 
   @eth <<0::160>>
   @gas_price 180_000
@@ -107,15 +106,16 @@ defmodule LoadTest.ChildChain.Deposit do
   end
 
   defp wait_deposit_finality(deposit_eth_blknum, finality_margin) do
-    {:ok, current_blknum} = Ethereumex.HttpClient.eth_block_number()
-    current_blknum = Encoding.to_int(current_blknum)
+    func = fn ->
+      {:ok, current_blknum} = Ethereumex.HttpClient.eth_block_number()
+      current_blknum = Encoding.to_int(current_blknum)
 
-    if current_blknum >= deposit_eth_blknum + finality_margin do
-      :ok
-    else
-      sleep("Waiting for deposit finality")
-      wait_deposit_finality(deposit_eth_blknum, finality_margin)
+      if current_blknum >= deposit_eth_blknum + finality_margin do
+        :ok
+      end
     end
+
+    Sync.repeat_until_success(func, :infinity, "Waiting for deposit finality")
   end
 
   defp approve(contract, vault_address, account, value, gas_price) do
