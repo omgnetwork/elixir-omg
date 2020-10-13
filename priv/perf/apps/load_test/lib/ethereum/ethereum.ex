@@ -18,6 +18,8 @@ defmodule LoadTest.Ethereum do
   """
   require Logger
 
+  import LoadTest.Service.Sleeper
+
   alias ExPlasma.Encoding
   alias LoadTest.ChildChain.Abi
   alias LoadTest.Ethereum.NonceTracker
@@ -26,6 +28,7 @@ defmodule LoadTest.Ethereum do
   alias LoadTest.Ethereum.Transaction.Signature
 
   @about_4_blocks_time 120_000
+  @poll_count 60
 
   @type hash_t() :: <<_::256>>
 
@@ -117,21 +120,21 @@ defmodule LoadTest.Ethereum do
       if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
     end
 
-    Sync.repeat_until_success(f, timeout)
+    Sync.repeat_until_success(f, timeout, "Failed to fetch eth block number")
   end
 
   @spec fetch_balance(Account.addr_t(), non_neg_integer(), Account.addr_t()) :: non_neg_integer() | :error | nil | map()
   def fetch_balance(address, amount, currency \\ <<0::160>>) do
-    fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency), 60)
+    fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency), @poll_count)
   end
 
   @spec fetch_rootchain_balance(Account.addr_t(), Account.addr_t()) :: non_neg_integer() | no_return()
   def fetch_rootchain_balance(address, <<0::160>>) do
-    root_chain_get_eth_balance(Encoding.to_hex(address), 10)
+    root_chain_get_eth_balance(Encoding.to_hex(address), @poll_count)
   end
 
   def fetch_rootchain_balance(address, currency) do
-    root_chain_get_erc20_balance(Encoding.to_hex(address), Encoding.to_hex(currency), 10)
+    root_chain_get_erc20_balance(Encoding.to_hex(address), Encoding.to_hex(currency), @poll_count)
   end
 
   @spec create_transaction(
@@ -212,11 +215,11 @@ defmodule LoadTest.Ethereum do
 
     case decoded_response do
       %{"messages" => %{"code" => "submit:utxo_not_found"}} ->
-        Process.sleep(1_000)
+        sleep("Failed to submit transaction #{inspect(decoded_response)}")
         submit_typed(typed_data_signed, counter - 1)
 
       %{"messages" => %{"code" => "operation:service_unavailable"}} ->
-        Process.sleep(1_000)
+        sleep("Failed to submit transaction #{inspect(decoded_response)}")
         submit_typed(typed_data_signed, counter - 1)
 
       %{"txhash" => _} ->
@@ -246,7 +249,7 @@ defmodule LoadTest.Ethereum do
         {:ok, [sign_hash, typed_data, txbytes]}
 
       _ ->
-        Process.sleep(1_000)
+        sleep("Failed to create a transaction #{inspect(result)}")
         create_transaction(amount_in_wei, input_address, output_address, currency, tries - 1)
     end
   end
@@ -264,7 +267,7 @@ defmodule LoadTest.Ethereum do
         initial_balance
 
       _ ->
-        Process.sleep(1_000)
+        sleep("Failed to fetch eth balance from rootchain #{inspect(response)}")
         root_chain_get_eth_balance(address, counter - 1)
     end
   end
@@ -282,8 +285,8 @@ defmodule LoadTest.Ethereum do
       {:ok, balance} ->
         balance
 
-      _ ->
-        Process.sleep(1_000)
+      response ->
+        sleep("Failed to fetch erc20 balance from rootchain #{inspect(response)}")
         root_chain_get_erc20_balance(address, currency, counter - 1)
     end
   end
@@ -330,7 +333,7 @@ defmodule LoadTest.Ethereum do
         if counter == 0 do
           error
         else
-          Process.sleep(1_000)
+          sleep("Failed to fetch balance from the childchain #{inspect(response)}")
 
           fetch_balance(address, amount, currency, counter - 1)
         end
@@ -360,7 +363,7 @@ defmodule LoadTest.Ethereum do
       end
     end
 
-    Sync.repeat_until_success(f, timeout)
+    Sync.repeat_until_success(f, timeout, "Failed to fetch eth receipt")
   end
 
   defp encode_tx_data(signature, args) do

@@ -16,7 +16,10 @@ defmodule LoadTest.Ethereum.Sync do
   @moduledoc """
   Provides a function for repeating a function call until a given criteria is met.
   """
-  @sleep_interval_ms 100
+
+  require Logger
+
+  import LoadTest.Service.Sleeper
 
   @doc """
   Repeats f until f returns {:ok, ...}, :ok OR exception is raised (see :erlang.exit, :erlang.error) OR timeout
@@ -24,24 +27,31 @@ defmodule LoadTest.Ethereum.Sync do
 
   Simple throws and :badmatch are treated as signals to repeat
   """
-  def repeat_until_success(f, timeout) do
-    fn -> do_repeat_until_success(f) end
+  def repeat_until_success(f, timeout, message) do
+    fn -> do_repeat_until_success(f, message) end
     |> Task.async()
     |> Task.await(timeout)
   end
 
-  defp do_repeat_until_success(f) do
-    Process.sleep(@sleep_interval_ms)
+  defp do_repeat_until_success(f, message) do
+    case f.() do
+      :ok = return ->
+        return
 
-    try do
-      case f.() do
-        :ok = return -> return
-        {:ok, _} = return -> return
-        _ -> do_repeat_until_success(f)
-      end
-    catch
-      _ -> do_repeat_until_success(f)
-      :error, {:badmatch, _} -> do_repeat_until_success(f)
+      {:ok, _} = return ->
+        return
+
+      result ->
+        sleep(message <> "#{inspect(result)}")
+        repeat(f, message, result)
     end
+  catch
+    result ->
+      repeat(f, message, result)
+  end
+
+  defp repeat(f, message, result) do
+    sleep(message <> "#{inspect(result)}")
+    do_repeat_until_success(f, message)
   end
 end

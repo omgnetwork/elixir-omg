@@ -19,6 +19,8 @@ defmodule LoadTest.ChildChain.Exit do
 
   require Logger
 
+  import LoadTest.Service.Sleeper
+
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Transaction
@@ -30,7 +32,6 @@ defmodule LoadTest.ChildChain.Exit do
   @gas_challenge_exit 300_000
   @gas_add_exit_queue 800_000
   @standard_exit_bond 14_000_000_000_000_000
-  @poll_interval 1_000
 
   @doc """
   Returns the exit data of a utxo.
@@ -71,8 +72,7 @@ defmodule LoadTest.ChildChain.Exit do
 
     case data.proof do
       nil ->
-        _ = Logger.info("Waiting for exit data")
-        Process.sleep(@poll_interval)
+        sleep("Waiting for exit data")
         wait_for_exit_data(utxo_pos, counter - 1)
 
       _ ->
@@ -141,7 +141,7 @@ defmodule LoadTest.ChildChain.Exit do
     if has_exit_queue?(vault_id, token) do
       :ok
     else
-      Process.sleep(1_000)
+      sleep("waiting for exit queue")
       wait_for_exit_queue(vault_id, token, counter - 1)
     end
   end

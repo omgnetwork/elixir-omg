@@ -19,6 +19,8 @@ defmodule LoadTest.ChildChain.Deposit do
 
   require Logger
 
+  import LoadTest.Service.Sleeper
+
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction.Deposit
   alias ExPlasma.Utxo
@@ -26,7 +28,6 @@ defmodule LoadTest.ChildChain.Deposit do
   alias LoadTest.Ethereum.Account
 
   @eth <<0::160>>
-  @poll_interval 5_000
   @gas_price 180_000
   @deposit_finality_margin 1
 
@@ -112,8 +113,7 @@ defmodule LoadTest.ChildChain.Deposit do
     if current_blknum >= deposit_eth_blknum + finality_margin do
       :ok
     else
-      _ = Logger.info("Waiting for deposit finality")
-      Process.sleep(@poll_interval)
+      sleep("Waiting for deposit finality")
       wait_deposit_finality(deposit_eth_blknum, finality_margin)
     end
   end

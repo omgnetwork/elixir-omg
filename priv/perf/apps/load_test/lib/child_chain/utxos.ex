@@ -18,11 +18,11 @@ defmodule LoadTest.ChildChain.Utxos do
   """
   require Logger
 
+  import LoadTest.Service.Sleeper
+
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Transaction
-
-  @poll_interval 2_000
 
   @doc """
   Returns an addresses utxos.
@@ -116,8 +116,7 @@ defmodule LoadTest.ChildChain.Utxos do
     if Enum.find(utxos, fn x -> Utxo.pos(x) == Utxo.pos(utxo) end) do
       :ok
     else
-      _ = Logger.info("Waiting for utxo")
-      Process.sleep(@poll_interval)
+      sleep("Waiting for utxo")
       wait_for_utxo(address, utxo, counter - 1)
     end
   end

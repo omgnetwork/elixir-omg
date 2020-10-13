@@ -39,6 +39,8 @@ defmodule LoadTest.Runner.DepositsTest do
       timeout: :infinity
     }
 
-    Chaperon.run_load_test(LoadTest.Runner.Deposits, print_results: true, config: config)
+    result = Chaperon.run_load_test(LoadTest.Runner.Deposits, config: config)
+
+    assert result.metrics["success_rate"][:mean] == 1.0
   end
 end

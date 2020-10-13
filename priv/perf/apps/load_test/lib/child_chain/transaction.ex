@@ -17,6 +17,8 @@ defmodule LoadTest.ChildChain.Transaction do
   """
   require Logger
 
+  import LoadTest.Service.Sleeper
+
   alias ChildChainAPI.Api
   alias ChildChainAPI.Model
   alias ExPlasma.Encoding
@@ -24,7 +26,6 @@ defmodule LoadTest.ChildChain.Transaction do
   alias ExPlasma.Utxo
   alias LoadTest.Connection.ChildChain, as: Connection
 
-  @retry_interval 1_000
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 5_712_388
   @gas_price 1_000_000_000
@@ -208,8 +209,8 @@ defmodule LoadTest.ChildChain.Transaction do
 
   defp try_submit_tx(tx, retries) do
     case do_submit_tx(tx) do
-      {:error, "submit:utxo_not_found"} ->
-        Process.sleep(@retry_interval)
+      {:error, "submit:utxo_not_found"} = result ->
+        sleep("Failed to submit transaction #{inspect(result)}")
         try_submit_tx(tx, retries - 1)
 
       result ->
