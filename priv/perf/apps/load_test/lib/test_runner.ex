@@ -23,16 +23,22 @@ defmodule LoadTest.TestRunner do
   - transactions per seconds
   - period in seconds
 
+  Optional paramters:
+  - Percentile. You can pass percentile as the fourth parameter. By default `mean` value is used.
+
   It fetches all configuration params from env vars.
   """
   alias LoadTest.TestRunner.Config
 
   def run() do
-    {runner_module, config} = Config.parse()
+    {runner_module, config, property} = Config.parse()
     result = Chaperon.run_load_test(runner_module, print_results: true, config: config)
 
-    case result.metrics["errror_rate"][:mean] do
+    case result.metrics["error_rate"][property] do
       0.0 ->
+        System.halt(0)
+
+      0 ->
         System.halt(0)
 
       _ ->

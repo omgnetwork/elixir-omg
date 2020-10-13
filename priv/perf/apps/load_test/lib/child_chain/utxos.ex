@@ -108,7 +108,7 @@ defmodule LoadTest.ChildChain.Utxos do
   @spec wait_for_utxo(Utxo.address_binary(), Utxo.t(), pos_integer()) :: :ok
   def wait_for_utxo(address, utxo, timeout \\ 100_000) do
     func = fn ->
-      fund_utxo(address, utxo)
+      find_utxo(address, utxo)
     end
 
     Sync.repeat_until_success(func, timeout, "waiting for utxo")

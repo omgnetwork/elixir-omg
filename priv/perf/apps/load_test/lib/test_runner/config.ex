@@ -31,19 +31,27 @@ defmodule LoadTest.TestRunner.Config do
     }
   }
   def parse() do
-    [test, rate, period] = System.argv()
+    [test, rate, period, property] =
+      case System.argv() do
+        [test, rate, period] ->
+          [test, rate, period, :mean]
 
-    config = config(test, rate, period)
+        [test, rate, period, percentile] ->
+          percentile = parse_percentile(percentile)
+          [test, rate, period, percentile]
+      end
 
-    runner_module = Map.fetch!(@tests, test)
-
-    {runner_module, config}
-  end
-
-  defp config(test, rate, period) do
     rate_int = String.to_integer(rate)
     period_int = String.to_integer(period)
 
+    config = config(test, rate_int, period_int)
+
+    runner_module = Map.fetch!(@tests, test)
+
+    {runner_module, config, property}
+  end
+
+  defp config(test, rate_int, period_int) do
     if rate_int * period_int > 200_000, do: raise("too many processes")
 
     run_config = %{
@@ -58,5 +66,15 @@ defmodule LoadTest.TestRunner.Config do
       chain_config: chain_config,
       timeout: :infinity
     }
+  end
+
+  defp parse_percentile(percentile) do
+    percentile_int = String.to_integer(percentile)
+
+    unless rem(percentile_int, 10) == 0 and div(percentile_int, 10) < 10 do
+      raise("Wrong percentile")
+    end
+
+    {:percentile, percentile_int / 1}
   end
 end
