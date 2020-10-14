@@ -19,9 +19,9 @@ defmodule LoadTest.Service.Sleeper do
 
   require Logger
 
-  @spec sleep(String.t()) :: Ok
+  @spec sleep(String.t()) :: :ok
   def sleep(message) do
-    _ = Logger.warn(message)
+    _ = Logger.info(message)
     Process.sleep(retry_sleep())
   end
 

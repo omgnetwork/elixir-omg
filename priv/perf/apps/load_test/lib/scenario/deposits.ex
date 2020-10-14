@@ -98,9 +98,6 @@ defmodule LoadTest.Scenario.Deposits do
              error: :wrong_rootchain_balance_after_deposit
            ) do
       :ok
-    else
-      error ->
-        error
     end
   end
 
@@ -117,8 +114,6 @@ defmodule LoadTest.Scenario.Deposits do
              error: :wrong_childchain_to_balance_after_sending_deposit
            ) do
       :ok
-    else
-      error -> error
     end
   end
 

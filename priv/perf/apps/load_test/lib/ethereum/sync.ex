@@ -35,8 +35,8 @@ defmodule LoadTest.Ethereum.Sync do
 
   defp do_repeat_until_success(f, message) do
     case f.() do
-      :ok = return ->
-        return
+      :ok ->
+        :ok
 
       {:ok, _} = return ->
         return

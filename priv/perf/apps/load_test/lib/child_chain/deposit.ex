@@ -39,7 +39,7 @@ defmodule LoadTest.ChildChain.Deposit do
   2. the amount to be deposited
   3. currency
 
- Accepts optional parameters:
+  Accepts optional parameters:
   - deposit_finality_margin - the number of verifications
   - gas_price - gas price of the transaction
   - return - it can be :utxo or :txhash
