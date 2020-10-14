@@ -1,6 +1,0 @@
-AllFeesResponse:
-  description: List of all supported fees response
-  content:
-    application/json:
-      schema:
-        $ref: 'response_schemas.yaml#/AllFeesResponseSchema'

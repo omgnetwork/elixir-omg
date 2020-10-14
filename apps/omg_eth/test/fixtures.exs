@@ -29,13 +29,19 @@ defmodule OMG.Eth.Fixtures do
   @test_erc20_vault_id 2
 
   deffixture eth_node do
-    if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
-      {:ok, exit_fn} = DevNode.start()
+    case System.get_env("DOCKER_GETH") do
+      nil ->
+        if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
+          {:ok, exit_fn} = DevNode.start()
 
-      on_exit(exit_fn)
+          on_exit(exit_fn)
+        end
+
+        :ok
+
+      _ ->
+        :ok
     end
-
-    :ok
   end
 
   deffixture contract(eth_node) do
@@ -46,7 +52,7 @@ defmodule OMG.Eth.Fixtures do
 
     add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, "0x0000000000000000000000000000000000000000")
 
-    {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
+    {:ok, %{"status" => _}} = Support.DevHelper.transact_sync!(add_exit_queue)
 
     :ok
   end
@@ -57,7 +63,7 @@ defmodule OMG.Eth.Fixtures do
     token_addr = contracts["CONTRACT_ERC20_MINTABLE"]
 
     # ensuring that the root chain contract handles token_addr
-    {:ok, false} = has_exit_queue(@test_erc20_vault_id, token_addr)
+    {:ok, _} = has_exit_queue(@test_erc20_vault_id, token_addr)
     {:ok, _} = DevHelper.transact_sync!(RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr))
     {:ok, true} = has_exit_queue(@test_erc20_vault_id, token_addr)
 
