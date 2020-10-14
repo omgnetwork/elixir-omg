@@ -129,7 +129,7 @@ defmodule LoadTest.Ethereum do
           do_fetch_balance(Encoding.to_hex(address), amount, Encoding.to_hex(currency))
         end,
         @poll_timeout,
-        "Failed to fetch childcahin balance"
+        "Failed to fetch childchain balance"
       )
 
     result
