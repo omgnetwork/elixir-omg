@@ -2,7 +2,7 @@ name: Enforce changelog labels
 
 on:
   pull_request:
-    types: [opened, labeled, unlabeled]
+    types: [opened, labeled, unlabeled, synchronize, reopened]
     branches: [master]
 
 jobs:
@@ -16,7 +16,6 @@ jobs:
         id: check-changelog-label
         run: |
           set -o xtrace
-
           # Using the issues API instead of pulls because it can return only the labels
           curl "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/labels" \
           | grep -o '"name": "[^"]*' \
