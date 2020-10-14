@@ -25,7 +25,7 @@ defmodule LoadTest.ChildChain.Exit do
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
   alias LoadTest.Ethereum.Crypto
-  alias LoadTest.Ethereum.Sync
+  alias LoadTest.Service.Sync
 
   @gas_start_exit 500_000
   @gas_challenge_exit 300_000

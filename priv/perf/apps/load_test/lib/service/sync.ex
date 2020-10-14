@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Ethereum.Sync do
+defmodule LoadTest.Service.Sync do
   @moduledoc """
   Provides a function for repeating a function call until a given criteria is met.
   """

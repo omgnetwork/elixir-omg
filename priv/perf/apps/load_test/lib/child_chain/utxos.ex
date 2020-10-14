@@ -21,7 +21,7 @@ defmodule LoadTest.ChildChain.Utxos do
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Transaction
-  alias LoadTest.Ethereum.Sync
+  alias LoadTest.Service.Sync
 
   @doc """
   Returns an addresses utxos.

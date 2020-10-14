@@ -32,6 +32,8 @@ defmodule LoadTest.Scenario.Deposits do
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Faucet
+  alias LoadTest.WatcherInfo.Balance
+  alias LoadTest.WatcherInfo.Transaction
 
   @spec run(Session.t()) :: Session.t()
   def run(session) do
@@ -119,18 +121,18 @@ defmodule LoadTest.Scenario.Deposits do
 
   defp send_amount_on_childchain(from, to, token, amount) do
     {:ok, [sign_hash, typed_data, _txbytes]} =
-      Ethereum.create_transaction(
+      Transaction.create_transaction(
         amount,
         from.addr,
         to.addr,
         token
       )
 
-    Ethereum.submit_transaction(typed_data, sign_hash, [from.priv])
+    Transaction.submit_transaction(typed_data, sign_hash, [from.priv])
   end
 
   defp fetch_childchain_balance(account, amount: amount, token: token, error: error) do
-    childchain_balance = Ethereum.fetch_balance(account.addr, amount, token)
+    childchain_balance = Balance.fetch_balance(account.addr, amount, token)
 
     case childchain_balance["amount"] do
       ^amount -> :ok
@@ -139,7 +141,7 @@ defmodule LoadTest.Scenario.Deposits do
   end
 
   defp fetch_rootchain_balance(account, amount: amount, token: token, error: error) do
-    rootchain_balance = Ethereum.fetch_rootchain_balance(account.addr, token)
+    rootchain_balance = Ethereum.fetch_balance(account.addr, token)
 
     case rootchain_balance do
       ^amount -> :ok

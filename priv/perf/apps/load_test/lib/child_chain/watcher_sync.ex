@@ -19,7 +19,7 @@ defmodule LoadTest.ChildChain.WatcherSync do
 
   require Logger
 
-  alias LoadTest.Ethereum.Sync
+  alias LoadTest.Service.Sync
 
   @doc """
   Blocks the caller until the watcher configured reports to be fully synced up (both child chain blocks and eth events)

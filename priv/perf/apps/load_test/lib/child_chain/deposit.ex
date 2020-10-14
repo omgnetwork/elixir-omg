@@ -24,7 +24,7 @@ defmodule LoadTest.ChildChain.Deposit do
   alias ExPlasma.Utxo
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
-  alias LoadTest.Ethereum.Sync
+  alias LoadTest.Service.Sync
 
   @eth <<0::160>>
 

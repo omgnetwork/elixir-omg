@@ -34,11 +34,9 @@ defmodule LoadTest.TestRunner do
     {runner_module, config, property} = Config.parse()
     result = Chaperon.run_load_test(runner_module, print_results: true, config: config)
 
-    case result.metrics["error_rate"][property] do
+    # / 1 is to convert result to float (mean is float, percentiles are integers)[O
+    case result.metrics["error_rate"][property] / 1 do
       0.0 ->
-        System.halt(0)
-
-      0 ->
         System.halt(0)
 
       _ ->
