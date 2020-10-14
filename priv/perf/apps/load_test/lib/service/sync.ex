@@ -19,7 +19,7 @@ defmodule LoadTest.Service.Sync do
 
   require Logger
 
-  import LoadTest.Service.Sleeper
+  alias LoadTest.Service.Sleeper
 
   @doc """
   Repeats f until f returns {:ok, ...}, :ok OR exception is raised (see :erlang.exit, :erlang.error) OR timeout
@@ -50,7 +50,7 @@ defmodule LoadTest.Service.Sync do
   end
 
   defp repeat(f, message, result) do
-    sleep(message <> " #{inspect(result)}")
+    Sleeper.sleep(message <> " #{inspect(result)}")
     do_repeat_until_success(f, message)
   end
 end
