@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: perf-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: perf
+        image: perf:local
+        imagePullPolicy: Never
+        command:
+          - mix run
+        args:
+          - e 'LoadTest.TestRunner.run()' -- 'deposits' 1 5
+      restartPolicy: Never
