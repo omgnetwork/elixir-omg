@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Support.DevNode do
+defmodule LoadTest.Runner.StandardExitTest do
   @moduledoc """
-  Common library for running geth and parity in dev mode.
+  Runs a smoke test for utxos load test
   """
-  require Logger
+  use ExUnit.Case
 
-  def start() do
-    OMG.Eth.DevGeth.start()
+  @tag timeout: 6_000_000
+  test "should run standard exit load test" do
+    Chaperon.run_load_test(LoadTest.Runner.StandardExits, print_results: true)
   end
 end

@@ -12,13 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Support.DevNode do
+defmodule LoadTest.Scenario.StartStandardExit do
   @moduledoc """
-  Common library for running geth and parity in dev mode.
-  """
-  require Logger
+  Starts a standard exit.
 
-  def start() do
-    OMG.Eth.DevGeth.start()
+  ## configuration values
+  - `exiter` the account that's starting the exit
+  - `utxo` the utxo to exit
+  """
+
+  use Chaperon.Scenario
+
+  alias Chaperon.Session
+  alias LoadTest.ChildChain.Exit
+
+  def run(session) do
+    exiter = config(session, [:exiter])
+    utxo = config(session, [:utxo])
+    gas_price = config(session, [:gas_price])
+
+    tx_hash =
+      utxo
+      |> Exit.wait_for_exit_data()
+      |> Exit.start_exit(exiter, gas_price)
+
+    Session.assign(session, tx_hash: tx_hash)
   end
 end
