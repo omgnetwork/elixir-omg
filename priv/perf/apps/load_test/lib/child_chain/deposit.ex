@@ -38,24 +38,15 @@ defmodule LoadTest.ChildChain.Deposit do
   1. depositor account
   2. the amount to be deposited
   3. currency
-
-  Accepts optional parameters:
-  - deposit_finality_margin - the number of verifications
-  - gas_price - gas price of the transaction
-  - return - it can be :utxo or :txhash
+  4. the number of verifications
+  5. gas price of the transaction
+  6. return - it can be :utxo or :txhash
 
   Returns the utxo created by the deposit or the hash of the the deposit transaction.
   """
   @spec deposit_from(Account.t(), pos_integer(), Account.t(), non_neg_integer(), non_neg_integer, atom()) ::
           Utxo.t() | binary()
-  def deposit_from(
-        %Account{} = depositor,
-        amount,
-        currency,
-        deposit_finality_margin \\ 5,
-        gas_price \\ 180_000,
-        return \\ :utxo
-      ) do
+  def deposit_from(depositor, amount, currency, deposit_finality_margin, gas_price, return) do
     deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}
 
     {:ok, deposit} = Deposit.new(deposit_utxo)
