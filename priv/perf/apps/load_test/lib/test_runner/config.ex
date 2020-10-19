@@ -52,6 +52,8 @@ defmodule LoadTest.TestRunner.Config do
   end
 
   defp config(test, rate_int, period_int) do
+    # Chaperon's SpreadAsyns (https://github.com/polleverywhere/chaperon/blob/13cc4a2d2a7baacddf20c46397064b5e42a48d97/lib/chaperon/action/spread_async.ex)
+    # spawns a separate process for each execution. VM may fail if too many processes are spawned
     if rate_int * period_int > 200_000, do: raise("too many processes")
 
     run_config = %{
@@ -71,6 +73,7 @@ defmodule LoadTest.TestRunner.Config do
   defp parse_percentile(percentile) do
     percentile_int = String.to_integer(percentile)
 
+    # percentile should be divisible by 10 and < 100 (10, 20, ... 90)
     unless rem(percentile_int, 10) == 0 and div(percentile_int, 10) < 10 do
       raise("Wrong percentile")
     end
