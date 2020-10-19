@@ -26,6 +26,11 @@ defmodule LoadTest.TestRunner do
   Optional paramters:
   - Percentile. You can pass percentile as the fourth parameter. By default `mean` value is used.
 
+  You can also modify values for tests by providing `TEST_CONFIG_PATH` env variable, it should contain
+  the path to json file. For example:
+
+    TEST_CONFIG_PATH=./my_file mix run -e "LoadTest.TestRunner.run()" -- "deposits" "1" "5" 90
+
   It fetches all configuration params from env vars.
   """
   alias LoadTest.TestRunner.Config
