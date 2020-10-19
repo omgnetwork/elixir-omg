@@ -27,7 +27,8 @@ defmodule LoadTest.TestRunner.Config do
       token: Encoding.to_binary("0x0000000000000000000000000000000000000000"),
       initial_amount: 500_000_000_000_000_000,
       deposited_amount: 200_000_000_000_000_000,
-      transferred_amount: 100_000_000_000_000_000
+      transferred_amount: 100_000_000_000_000_000,
+      gas_price: 2_000_000_000
     }
   }
   def parse() do

@@ -81,8 +81,9 @@ defmodule LoadTest.Scenario.Deposits do
     token = config(session, [:chain_config, :token])
     deposited_amount = config(session, [:chain_config, :deposited_amount])
     initial_amount = config(session, [:chain_config, :initial_amount])
+    gas_price = config(session, [:chain_config, :gas_price])
 
-    txhash = Deposit.deposit_from(from_address, deposited_amount, token, 10, 0, :txhash)
+    txhash = Deposit.deposit_from(from_address, deposited_amount, token, 10, gas_price, :txhash)
 
     gas_used = Ethereum.get_gas_used(txhash)
 

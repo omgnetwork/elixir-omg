@@ -24,13 +24,15 @@ defmodule LoadTest.Runner.DepositsTest do
     initial_amount = 500_000_000_000_000_000
     deposited_amount = 200_000_000_000_000_000
     transferred_amount = 100_000_000_000_000_000
+    gas_price = 2_000_000_000
 
     config = %{
       chain_config: %{
         token: token,
         initial_amount: initial_amount,
         deposited_amount: deposited_amount,
-        transferred_amount: transferred_amount
+        transferred_amount: transferred_amount,
+        gas_price: gas_price
       },
       run_config: %{
         tps: 1,
