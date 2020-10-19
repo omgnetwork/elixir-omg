@@ -24,13 +24,14 @@ defmodule LoadTest.TestRunner.Config do
 
   @configs %{
     "deposits" => %{
-      token: Encoding.to_binary("0x0000000000000000000000000000000000000000"),
+      token: {:binary, "0x0000000000000000000000000000000000000000"},
       initial_amount: 500_000_000_000_000_000,
       deposited_amount: 200_000_000_000_000_000,
       transferred_amount: 100_000_000_000_000_000,
       gas_price: 2_000_000_000
     }
   }
+
   def parse() do
     [test, rate, period, property] =
       case System.argv() do
@@ -62,13 +63,61 @@ defmodule LoadTest.TestRunner.Config do
       period_in_seconds: period_int
     }
 
-    chain_config = Map.fetch!(@configs, test)
+    chain_config = read_config!(test)
 
     %{
       run_config: run_config,
       chain_config: chain_config,
       timeout: :infinity
     }
+  end
+
+  defp read_config!(test) do
+    config_path = System.get_env("TEST_CONFIG_PATH")
+
+    case config_path do
+      nil ->
+        @configs
+        |> Map.fetch!(test)
+        |> parse_config_values()
+
+      _ ->
+        parse_config_file!(config_path, test)
+    end
+  end
+
+  defp parse_config_file!(file_path, test) do
+    default_config = Map.fetch!(@configs, test)
+    config = file_path |> File.read!() |> Jason.decode!()
+
+    default_config
+    |> Enum.map(fn {key, default_value} ->
+      string_key = Atom.to_string(key)
+
+      value =
+        case default_value do
+          {type, value} -> {type, config[string_key] || value}
+          value -> config[string_key] || value
+        end
+
+      {key, value}
+    end)
+    |> Map.new()
+    |> parse_config_values()
+  end
+
+  defp parse_config_values(config) do
+    config
+    |> Enum.map(fn {key, value} ->
+      parsed_value =
+        case value do
+          {:binary, string} -> Encoding.to_binary(string)
+          value -> value
+        end
+
+      {key, parsed_value}
+    end)
+    |> Map.new()
   end
 
   defp parse_percentile(percentile) do
