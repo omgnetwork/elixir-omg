@@ -16,6 +16,7 @@ services:
       - GITHUB_TOKEN=""
       - GITHUB_ORGANISATION=omgnetwork
       - GITHUB_REPO=fee-rules-public
+      - SENTRY_DSN=""
       - GITHUB_BRANCH=master
       - RULES_FETCH_INTERVAL=20
       - RATES_FETCH_INTERVAL=20

@@ -103,7 +103,7 @@ defmodule OMG.Eth.DevGeth do
 
     waiting_task
     |> Task.async()
-    |> Task.await(15_000)
+    |> Task.await(30_000)
 
     pid
   end
