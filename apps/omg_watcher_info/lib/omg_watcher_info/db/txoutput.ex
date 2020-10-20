@@ -214,8 +214,10 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     # TODO: use clever DB query to get following out of DB
     owner
     |> get_all_utxos()
-    |> Enum.group_by(& &1.currency)
-    |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
+    |> Enum.group_by(fn utxo -> utxo.currency end)
+    |> Enum.map(fn {currency, utxos} ->
+      {currency, Enum.sort_by(utxos, fn utxo -> utxo.amount end, :desc)}
+    end)
     |> Map.new()
   end
 

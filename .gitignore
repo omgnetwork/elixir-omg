@@ -57,6 +57,7 @@ docker-compose.override.yml
 .sobelow
 
 #generated applications and source
+priv/apps/childchain_api
 priv/apps/watcher_info_api
 priv/apps/watcher_security_critical_api
 
