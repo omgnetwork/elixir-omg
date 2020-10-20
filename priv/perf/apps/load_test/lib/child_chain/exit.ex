@@ -25,12 +25,12 @@ defmodule LoadTest.ChildChain.Exit do
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
   alias LoadTest.Ethereum.Crypto
+  alias LoadTest.Service.Sync
 
   @gas_start_exit 500_000
   @gas_challenge_exit 300_000
   @gas_add_exit_queue 800_000
   @standard_exit_bond 14_000_000_000_000_000
-  @poll_interval 1_000
 
   @doc """
   Returns the exit data of a utxo.
@@ -63,21 +63,18 @@ defmodule LoadTest.ChildChain.Exit do
   Retries until the exit data of a utxo is found.
   """
   @spec wait_for_exit_data(Utxo.t(), pos_integer()) :: any()
-  def wait_for_exit_data(utxo_pos, counter \\ 10)
-  def wait_for_exit_data(_, 0), do: :error
+  def wait_for_exit_data(utxo_pos, timeout \\ 100_000) do
+    func = fn ->
+      data = get_exit_data(utxo_pos)
 
-  def wait_for_exit_data(utxo_pos, counter) do
-    data = get_exit_data(utxo_pos)
-
-    case data.proof do
-      nil ->
-        _ = Logger.info("Waiting for exit data")
-        Process.sleep(@poll_interval)
-        wait_for_exit_data(utxo_pos, counter - 1)
-
-      _ ->
-        data
+      if not is_nil(data.proof) do
+        {:ok, data}
+      end
     end
+
+    {:ok, result} = Sync.repeat_until_success(func, timeout, "waiting for exit data")
+
+    result
   end
 
   @doc """
@@ -130,20 +127,19 @@ defmodule LoadTest.ChildChain.Exit do
 
       {:ok, receipt_hash} = Ethereum.send_raw_transaction(tx, from)
       Ethereum.transact_sync(receipt_hash)
-      wait_for_exit_queue(vault_id, token, 100)
+      wait_for_exit_queue(vault_id, token)
       receipt_hash
     end
   end
 
-  defp wait_for_exit_queue(_vault_id, _token, 0), do: exit(1)
-
-  defp wait_for_exit_queue(vault_id, token, counter) do
-    if has_exit_queue?(vault_id, token) do
-      :ok
-    else
-      Process.sleep(1_000)
-      wait_for_exit_queue(vault_id, token, counter - 1)
+  defp wait_for_exit_queue(vault_id, token, timeout \\ 100_000) do
+    func = fn ->
+      if has_exit_queue?(vault_id, token) do
+        :ok
+      end
     end
+
+    Sync.repeat_until_success(func, timeout, "waiting for exit queue")
   end
 
   defp has_exit_queue?(vault_id, token) do

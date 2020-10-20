@@ -19,7 +19,7 @@ defmodule LoadTest.ChildChain.WatcherSync do
 
   require Logger
 
-  alias LoadTest.Ethereum.Sync
+  alias LoadTest.Service.Sync
 
   @doc """
   Blocks the caller until the watcher configured reports to be fully synced up (both child chain blocks and eth events)
@@ -35,7 +35,13 @@ defmodule LoadTest.ChildChain.WatcherSync do
 
     _ = Logger.info("Waiting for the watcher to synchronize")
 
-    :ok = Sync.repeat_until_success(fn -> watcher_synchronized?(root_chain_height, service) end, 500_000)
+    :ok =
+      Sync.repeat_until_success(
+        fn -> watcher_synchronized?(root_chain_height, service) end,
+        500_000,
+        "Failed to sync watcher"
+      )
+
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
     # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031

@@ -23,8 +23,8 @@ defmodule LoadTest.ChildChain.Transaction do
   alias ExPlasma.Transaction
   alias ExPlasma.Utxo
   alias LoadTest.Connection.ChildChain, as: Connection
+  alias LoadTest.Service.Sync
 
-  @retry_interval 1_000
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 5_712_388
   @gas_price 1_000_000_000
@@ -48,16 +48,16 @@ defmodule LoadTest.ChildChain.Transaction do
           Utxo.address_binary(),
           pos_integer()
         ) :: list(Utxo.t())
-  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries \\ 0)
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries \\ 120_000)
 
-  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries) when byte_size(currency) == 20 do
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, timeout) when byte_size(currency) == 20 do
     change_amount = utxo.amount - amount - fee
     receiver_output = %Utxo{owner: receiver.addr, currency: currency, amount: amount}
-    do_spend(utxo, receiver_output, change_amount, currency, signer, retries)
+    do_spend(utxo, receiver_output, change_amount, currency, signer, timeout)
   end
 
-  def spend_utxo(utxo, amount, fee, signer, receiver, currency, retries) do
-    spend_utxo(utxo, amount, fee, signer, receiver, Encoding.to_binary(currency), retries)
+  def spend_utxo(utxo, amount, fee, signer, receiver, currency, timeout) do
+    spend_utxo(utxo, amount, fee, signer, receiver, Encoding.to_binary(currency), timeout)
   end
 
   def tx_defaults() do
@@ -77,7 +77,7 @@ defmodule LoadTest.ChildChain.Transaction do
           list(LoadTest.Ethereum.Account.t()),
           pos_integer()
         ) :: list(Utxo.t())
-  def submit_tx(inputs, outputs, signers, retries \\ 0) do
+  def submit_tx(inputs, outputs, signers, retries \\ 120_000) do
     {:ok, tx} = Transaction.Payment.new(%{inputs: inputs, outputs: outputs})
 
     keys =
@@ -204,17 +204,11 @@ defmodule LoadTest.ChildChain.Transaction do
   defp parse_uint256(binary) when byte_size(binary) > 32, do: {:error, :encoded_uint_too_big}
   defp parse_uint256(_), do: {:error, :malformed_uint256}
 
-  defp try_submit_tx(tx, 0), do: do_submit_tx(tx)
+  defp try_submit_tx(tx, timeout) do
+    {:ok, {blknum, txindex}} =
+      Sync.repeat_until_success(fn -> do_submit_tx(tx) end, timeout, "Failed to submit transaction")
 
-  defp try_submit_tx(tx, retries) do
-    case do_submit_tx(tx) do
-      {:error, "submit:utxo_not_found"} ->
-        Process.sleep(@retry_interval)
-        try_submit_tx(tx, retries - 1)
-
-      result ->
-        result
-    end
+    {:ok, blknum, txindex}
   end
 
   defp do_submit_tx(tx) do
@@ -230,7 +224,7 @@ defmodule LoadTest.ChildChain.Transaction do
     |> case do
       %{"blknum" => blknum, "txindex" => txindex} ->
         _ = Logger.debug("[Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}")
-        {:ok, blknum, txindex}
+        {:ok, {blknum, txindex}}
 
       %{"code" => reason} ->
         _ =
