@@ -50,7 +50,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraintsTest do
       assert MergeConstraints.parse(request_data) == {:error, {:validation_error, "address", :hex}}
     end
 
-    test "fails address/currency constraints when address is not in the right format" do
+    test "fails address/currency constraints when currency is not in the right format" do
       request_data = %{
         "address" => @alice,
         "currency" => "0xFake"
