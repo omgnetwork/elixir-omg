@@ -2316,11 +2316,6 @@ paths:
                       data:
                         type: object
                         properties:
-                          result:
-                            type: string
-                            enum:
-                              - complete
-                              - intermediate
                           transactions:
                             type: array
                             items:

@@ -237,9 +237,6 @@ CreateTransactionSchema:
 MergeTransactionSchema:
   type: object
   properties:
-    result:
-      type: string
-      enum: [complete, intermediate]
     transactions:
       type: array
       items:
