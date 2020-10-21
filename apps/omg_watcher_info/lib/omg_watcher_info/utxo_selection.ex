@@ -104,7 +104,6 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   @doc """
   Sums up payable amount by token, including the fee.
   """
-
   @spec calculate_net_amount(list(TransactionCreator.payment_t()), %{amount: pos_integer(), currency: currency_t()}) ::
           %{currency_t() => pos_integer()}
   def calculate_net_amount(payments, %{currency: fee_currency, amount: fee_amount}) do

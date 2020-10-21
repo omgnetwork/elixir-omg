@@ -27,7 +27,6 @@ defmodule OMG.WatcherInfo.Transaction do
 
   @empty_metadata <<0::256>>
   @max_outputs Transaction.Payment.max_outputs()
-
   @merge_fee 0
 
   @type create_t() ::
