@@ -79,28 +79,6 @@ defmodule OMG.WatcherInfo.TransactionTest do
 
   describe "create/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns {:error, :too_many_inputs} when a number of inputs > maximum" do
-      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
-      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
-
-      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
-
-      order = %{
-        owner: @alice,
-        payments: [
-          %{amount: 45, currency: @eth, owner: @bob}
-        ],
-        fee: %{currency: @eth, amount: 5},
-        metadata: nil
-      }
-
-      assert {:error, :too_many_inputs} == Transaction.create(utxos_per_token, order)
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns {:error, :too_many_outputs} when a number of outputs > maximum" do
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
@@ -197,7 +175,9 @@ defmodule OMG.WatcherInfo.TransactionTest do
 
       {:ok, transactions} = Transaction.create(utxos_per_token, order)
 
-      assert {:ok, %{transactions: transactions}} = Transaction.include_typed_data({:ok, transactions})
+      assert {:ok, %{transactions: transactions}} =
+               Transaction.include_typed_data({:ok, %{transactions: transactions, result: :complete}})
+
       assert Enum.all?(transactions, &Map.has_key?(&1, :typed_data))
     end
   end

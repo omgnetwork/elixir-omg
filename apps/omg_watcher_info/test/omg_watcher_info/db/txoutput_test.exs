@@ -107,7 +107,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     end
   end
 
-  describe "get_sorted_grouped_utxos/1" do
+  describe "get_utxos_grouped_by_currency/1" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns outputs grouped by currency" do
       alice = TestHelper.generate_entity()
@@ -146,6 +146,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
+
     test "returns outputs for a given currency in descending amount order if specified" do
       alice = <<1::160>>
 

@@ -30,19 +30,16 @@ defmodule OMG.WatcherInfo.API.Transaction do
   require Transaction.Payment
 
   @default_transactions_limit 200
-  @type create_t() :: TransactionCreator.create_t() | {:error, {:insufficient_funds, list(map())}}
 
-  @type transaction_t() :: %{
-          inputs: nonempty_list(%DB.TxOutput{}),
-          outputs: nonempty_list(TransactionCreator.payment_t()),
-          fee: TransactionCreator.fee_t(),
-          txbytes: Transaction.tx_bytes() | nil,
-          metadata: Transaction.metadata(),
-          sign_hash: Crypto.hash_t() | nil,
-          typed_data: TypedDataHash.Types.typedDataSignRequest_t()
-        }
-
-  @type utxo_position_list_t() :: list(String.t())
+  @type create_t() ::
+          {:ok,
+           %{
+             result: :complete | :intermediate,
+             transactions: nonempty_list(TransactionCreator.transaction_with_typed_data_t())
+           }}
+          | {:error, :too_many_outputs}
+          | {:error, :empty_transaction}
+          | {:error, {:insufficient_funds, list(map())}}
 
   @doc """
   Retrieves a specific transaction by id
@@ -95,9 +92,12 @@ defmodule OMG.WatcherInfo.API.Transaction do
   """
   @spec create(TransactionCreator.order_t()) :: create_t()
   def create(order) do
-    case order.owner
-         |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
-         |> TransactionCreator.select_inputs(order) do
+    owner_inputs =
+      order.owner
+      |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
+      |> TransactionCreator.select_inputs(order)
+
+    case owner_inputs do
       {:ok, inputs} ->
         inputs
         |> get_utxos_count()
@@ -144,17 +144,24 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  defp get_utxos_count(inputs) do
-    inputs
-    |> Enum.map(fn {_, utxos} -> utxos end)
-    |> List.flatten()
-    |> Enum.count()
+  defp get_utxos_count(currencies) do
+    Enum.reduce(currencies, 0, fn {_, currency_inputs}, acc -> acc + length(currency_inputs) end)
   end
 
   defp create_transaction(utxos_count, inputs, _order) when utxos_count > Transaction.Payment.max_inputs() do
-    inputs
-    |> TransactionCreator.generate_merge_transactions()
-    |> respond(:intermediate)
+    transactions =
+      inputs
+      |> Enum.reduce([], fn {_, token_inputs}, acc ->
+        merged_transactions =
+          token_inputs
+          |> TransactionCreator.generate_merge_transactions()
+          |> Enum.reverse()
+
+        merged_transactions ++ acc
+      end)
+      |> Enum.reverse()
+
+    respond({:ok, transactions}, :intermediate)
   end
 
   defp create_transaction(_utxos_count, inputs, order) do
@@ -200,8 +207,6 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}
-
-  defp respond(transactions, result) when is_list(transactions),
-    do: {:ok, %{result: result, transactions: transactions}}
+  defp respond({:ok, transactions}, result), do: {:ok, %{result: result, transactions: transactions}}
+  defp respond(error, _), do: error
 end
