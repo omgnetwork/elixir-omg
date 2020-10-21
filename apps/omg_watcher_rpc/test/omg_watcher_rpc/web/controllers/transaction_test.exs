@@ -1852,7 +1852,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns multiple valid merge transactions if more than four UTXOs for the given currency", %{alice: alice} do
+    test "returns multiple valid merge transactions if more than four UTXO exist for the given currency", %{
+      alice: alice
+    } do
       alice_hex = Encoding.to_hex(alice)
 
       insert(:txoutput)
