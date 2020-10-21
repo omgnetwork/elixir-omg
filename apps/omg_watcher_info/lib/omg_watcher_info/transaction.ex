@@ -156,6 +156,13 @@ defmodule OMG.WatcherInfo.Transaction do
     }
   end
 
+  def include_typed_data({:ok, txs}) do
+    {
+      :ok,
+      %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
+    }
+  end
+
   @spec generate_merge_transactions(UtxoSelection.utxo_list_t()) :: list(transaction_t())
   def generate_merge_transactions(merge_inputs) do
     merge_inputs
