@@ -180,7 +180,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end)
   end
 
-  @spec no_duplicates(list()) :: :ok | {:error, atom()}
+  @spec no_duplicates(list()) :: :ok | {:error, :duplicate_input_positions}
   defp no_duplicates(inputs) do
     inputs
     |> Enum.uniq()
@@ -191,7 +191,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  @spec single_owner(list()) :: :ok | {:error, atom()}
+  @spec single_owner(list()) :: :ok | {:error, :multiple_input_owners}
   defp single_owner(inputs) do
     case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
       1 -> :ok
@@ -199,7 +199,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
     end
   end
 
-  @spec single_currency(list()) :: :ok | {:error, atom()}
+  @spec single_currency(list()) :: :ok | {:error, :multiple_currencies}
   defp single_currency(inputs) do
     case inputs |> Enum.uniq_by(fn input -> input.currency end) |> length() do
       1 -> :ok
