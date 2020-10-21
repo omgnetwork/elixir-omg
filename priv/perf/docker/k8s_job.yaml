@@ -11,7 +11,7 @@ spec:
         - "host.minikube.internal"
       containers:
       - name: perf
-        image: perf:lo
+        image: perf:latest
         imagePullPolicy: Never
         command: ["mix",  "run", "-e", "LoadTest.TestRunner.run()", "--", "deposits", "1", "5"]
         env:
