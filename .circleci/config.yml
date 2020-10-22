@@ -1109,15 +1109,17 @@ workflows:
               audit_deps
             ]
           filters: *master_and_version_branches_and_all_tags
+
       - publish_perf:
-          branches:
-            only:
-              - master
-              # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-              - /^v[0-9]+\.[0-9]+/
-          tags:
-            only:
-              - /.+/
+          filters:
+            branches:
+              only:
+                - master
+                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+                - /^v[0-9]+\.[0-9]+/
+            tags:
+              only:
+                - /.+/
       # Increase chart version for master, this will end up trigger deployment on dev
       - increase_chart_version_watcher_master:
           requires: [publish_watcher, publish_watcher_info]
