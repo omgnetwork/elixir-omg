@@ -870,6 +870,16 @@ jobs:
           path: current_release/
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
 
+  publish_perf:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PERF_IMAGE_NAME: "omisego/perf"
+    steps:
+      - checkout
+      - run: cd priv/perf && make docker IMAGE_NAME=$PERF_IMAGE_NAME
+      - run: IMAGE_NAME=$PERF_IMAGE_NAME sh .circleci/ci_publish.sh
+
   publish_watcher_info:
     machine:
       image: ubuntu-1604:201903-01
@@ -1099,6 +1109,15 @@ workflows:
               audit_deps
             ]
           filters: *master_and_version_branches_and_all_tags
+      - publish_perf:
+          branches:
+            only:
+              - master
+              # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+              - /^v[0-9]+\.[0-9]+/
+          tags:
+            only:
+              - /.+/
       # Increase chart version for master, this will end up trigger deployment on dev
       - increase_chart_version_watcher_master:
           requires: [publish_watcher, publish_watcher_info]
