@@ -156,7 +156,11 @@ defmodule LoadTest.Ethereum do
   defp do_root_chain_get_erc20_balance(address, currency) do
     data = ABI.encode("balanceOf(address)", [Encoding.to_binary(address)])
 
-    case Ethereumex.HttpClient.eth_call(%{to: Encoding.to_hex(currency), data: Encoding.to_hex(data)}) do
+    case Ethereumex.HttpClient.eth_call(%{
+           from: Application.fetch_env!(:load_test, :eth_call_from_address),
+           to: Encoding.to_hex(currency),
+           data: Encoding.to_hex(data)
+         }) do
       {:ok, result} ->
         balance =
           result
@@ -174,7 +178,12 @@ defmodule LoadTest.Ethereum do
   defp get_external_data(address, signature, params) do
     data = signature |> ABI.encode(params) |> Encoding.to_hex()
 
-    {:ok, data} = Ethereumex.HttpClient.eth_call(%{to: address, data: data})
+    {:ok, data} =
+      Ethereumex.HttpClient.eth_call(%{
+        from: Application.fetch_env!(:load_test, :eth_call_from_address),
+        to: address,
+        data: data
+      })
 
     Abi.decode_function(data, signature)
   end

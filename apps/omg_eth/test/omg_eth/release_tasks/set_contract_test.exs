@@ -236,25 +236,25 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   end
 
   defmodule Rpc do
-    def call_contract(_, "vaults(uint256)", _) do
+    def call_contract(_, "vaults(uint256)", _, _) do
       {:ok, "0x0000000000000000000000004e3aeff70f022a6d4cc5947423887e7152826cf7"}
     end
 
-    def call_contract(_, "exitGames(uint256)", _) do
+    def call_contract(_, "exitGames(uint256)", _, _) do
       {:ok,
        "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}
     end
 
-    def call_contract(_, "childBlockInterval()", _) do
+    def call_contract(_, "childBlockInterval()", _, _) do
       {:ok, "0x00000000000000000000000000000000000000000000000000000000000003e8"}
     end
 
-    def call_contract(_, "getVersion()", _) do
+    def call_contract(_, "getVersion()", _, _) do
       {:ok,
        "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d312e302e342b6136396337363300000000000000000000000000000000000000"}
     end
 
-    def call_contract(_, "minExitPeriod()", _) do
+    def call_contract(_, "minExitPeriod()", _, _) do
       {:ok, "0x0000000000000000000000000000000000000000000000000000000000000014"}
     end
   end

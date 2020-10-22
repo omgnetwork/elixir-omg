@@ -73,7 +73,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
     # get all the data from external sources
     {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval} =
-      get_external_data(plasma_framework, rpc_api)
+      get_external_data(plasma_framework, rpc_api, authority_address)
 
     contract_addresses = %{
       plasma_framework: plasma_framework,
@@ -94,16 +94,18 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
     )
   end
 
-  defp get_external_data(plasma_framework, rpc_api) do
-    min_exit_period_seconds = get_min_exit_period(plasma_framework, rpc_api)
+  defp get_external_data(plasma_framework, rpc_api, authority_address) do
+    min_exit_period_seconds = get_min_exit_period(plasma_framework, rpc_api, authority_address)
 
     payment_exit_game =
-      plasma_framework |> exit_game_contract_address(ExPlasma.payment_v1(), rpc_api) |> Encoding.to_hex()
+      plasma_framework
+      |> exit_game_contract_address(ExPlasma.payment_v1(), rpc_api, authority_address)
+      |> Encoding.to_hex()
 
-    eth_vault = plasma_framework |> get_vault(@ether_vault_id, rpc_api) |> Encoding.to_hex()
-    erc20_vault = plasma_framework |> get_vault(@erc20_vault_id, rpc_api) |> Encoding.to_hex()
-    contract_semver = get_contract_semver(plasma_framework, rpc_api)
-    child_block_interval = get_child_block_interval(plasma_framework, rpc_api)
+    eth_vault = plasma_framework |> get_vault(@ether_vault_id, rpc_api, authority_address) |> Encoding.to_hex()
+    erc20_vault = plasma_framework |> get_vault(@erc20_vault_id, rpc_api, authority_address) |> Encoding.to_hex()
+    contract_semver = get_contract_semver(plasma_framework, rpc_api, authority_address)
+    child_block_interval = get_child_block_interval(plasma_framework, rpc_api, authority_address)
     {payment_exit_game, eth_vault, erc20_vault, min_exit_period_seconds, contract_semver, child_block_interval}
   end
 
@@ -137,58 +139,58 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
 
   defp merge_configuration(_, _, _, _, _, _, _, _), do: exit(@error)
 
-  defp get_min_exit_period(plasma_framework_contract, rpc_api) do
+  defp get_min_exit_period(plasma_framework_contract, rpc_api, authority_address) do
     signature = "minExitPeriod()"
-    {:ok, data} = call(plasma_framework_contract, signature, [], rpc_api)
+    {:ok, data} = call(plasma_framework_contract, signature, [], rpc_api, authority_address)
     %{"min_exit_period" => min_exit_period} = Abi.decode_function(data, signature)
     min_exit_period
   end
 
-  defp get_contract_semver(plasma_framework_contract, rpc_api) do
+  defp get_contract_semver(plasma_framework_contract, rpc_api, authority_address) do
     signature = "getVersion()"
-    {:ok, data} = call(plasma_framework_contract, signature, [], rpc_api)
+    {:ok, data} = call(plasma_framework_contract, signature, [], rpc_api, authority_address)
     %{"version" => version} = Abi.decode_function(data, signature)
     version
   end
 
-  defp get_child_block_interval(plasma_framework_contract, rpc_api) do
+  defp get_child_block_interval(plasma_framework_contract, rpc_api, authority_address) do
     signature = "childBlockInterval()"
-    {:ok, data} = call(plasma_framework_contract, signature, [], rpc_api)
+    {:ok, data} = call(plasma_framework_contract, signature, [], rpc_api, authority_address)
     %{"child_block_interval" => child_block_interval} = Abi.decode_function(data, signature)
     child_block_interval
   end
 
-  defp exit_game_contract_address(plasma_framework_contract, tx_type, rpc_api) do
+  defp exit_game_contract_address(plasma_framework_contract, tx_type, rpc_api, authority_address) do
     signature = "exitGames(uint256)"
-    {:ok, data} = call(plasma_framework_contract, signature, [tx_type], rpc_api)
+    {:ok, data} = call(plasma_framework_contract, signature, [tx_type], rpc_api, authority_address)
     %{"exit_game_address" => exit_game_address} = Abi.decode_function(data, signature)
     exit_game_address
   end
 
-  defp get_vault(plasma_framework_contract, id, rpc_api) do
+  defp get_vault(plasma_framework_contract, id, rpc_api, authority_address) do
     signature = "vaults(uint256)"
-    {:ok, data} = call(plasma_framework_contract, signature, [id], rpc_api)
+    {:ok, data} = call(plasma_framework_contract, signature, [id], rpc_api, authority_address)
     %{"vault_address" => vault_address} = Abi.decode_function(data, signature)
     vault_address
   end
 
-  defp call(plasma_framework_contract, signature, args, rpc_api) do
+  defp call(plasma_framework_contract, signature, args, rpc_api, authority_address) do
     retries_left = 3
-    call(plasma_framework_contract, signature, args, retries_left, rpc_api)
+    call(plasma_framework_contract, signature, args, retries_left, rpc_api, authority_address)
   end
 
-  defp call(plasma_framework_contract, signature, args, 0, rpc_api) do
-    rpc_api.call_contract(plasma_framework_contract, signature, args)
+  defp call(plasma_framework_contract, signature, args, 0, rpc_api, authority_address) do
+    rpc_api.call_contract(plasma_framework_contract, signature, args, authority_address)
   end
 
-  defp call(plasma_framework_contract, signature, args, retries_left, rpc_api) do
-    case rpc_api.call_contract(plasma_framework_contract, signature, args) do
+  defp call(plasma_framework_contract, signature, args, retries_left, rpc_api, authority_address) do
+    case rpc_api.call_contract(plasma_framework_contract, signature, args, authority_address) do
       {:ok, _data} = result ->
         result
 
       {:error, :closed} ->
         Process.sleep(1000)
-        call(plasma_framework_contract, signature, args, retries_left - 1, rpc_api)
+        call(plasma_framework_contract, signature, args, retries_left - 1, rpc_api, authority_address)
     end
   end
 
