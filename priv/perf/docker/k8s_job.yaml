@@ -1,0 +1,85 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: perf-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: perf
+        image: elixir:1.10.4-alpine
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+            apk add git curl bash maven jq
+            autoconf
+            automake
+            gmp
+            gmp-dev
+            libtool
+            gcc
+            cmake
+            gnupg
+            alpine-sdk &&
+
+            git clone https://github.com/omgnetwork/elixir-omg && cd ./elixir-omg &&
+
+            mkdir -p priv/openapitools &&
+            curl https://raw.githubusercontent.com/OpenAPITools/openapi-generator/v4.3.1/bin/utils/openapi-generator-cli.sh > priv/openapitools/openapi-generator-cli &&
+            chmod u+x priv/openapitools/openapi-generator-cli &&
+
+            priv/openapitools/openapi-generator-cli generate
+            -i https://raw.githubusercontent.com/omgnetwork/omg-childchain-v1/master/apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml
+            -g elixir
+            -o priv/perf/apps/child_chain_api/ &&
+
+            priv/openapitools/openapi-generator-cli generate
+            -i apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml
+            -g elixir
+            -o priv/perf/apps/watcher_security_critical_api/ &&
+
+            priv/openapitools/openapi-generator-cli generate
+            -i apps/omg_watcher_rpc/priv/swagger/info_api_specs.yaml
+            -g elixir
+            -o priv/perf/apps/watcher_info_api/ &&
+
+            mix local.hex --force && mix local.rebar --force &&
+
+            cd  ./priv/perf/ &&
+
+            mix deps.get && mix compile &&
+
+            mix run -e "LoadTest.TestRunner.run()" -- "deposits" "1" "5"
+        env:
+          - name: AUTHORITY_ADDRESS
+            value: 0xc0f780dfc35075979b0def588d999225b7ecc56f
+          - name: CONTRACT_ADDRESS_ETH_VAULT
+            value: 0x4e3aeff70f022a6d4cc5947423887e7152826cf7
+          - name: CONTRACT_ADDRESS_ERC20_VAULT
+            value: 0x135505d9f4ea773dd977de3b2b108f2dae67b63a
+          - name: CONTRACT_ADDRESS_PAYMENT_EXIT_GAME
+            value: 0x89afce326e7da55647d22e24336c6a2816c99f6b
+          - name: CONTRACT_ADDRESS_PLASMA_FRAMEWORK
+            value: 0xc673e4ffcb8464faff908a6804fe0e635af0ea2f
+          - name: TXHASH_CONTRACT
+            value: 0xb836b6c4eb016e430b8e7495db92357896c1da263c6a3de73320b669eb5912d3
+          - name: CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK
+            value: 0xc9d8c49e880fefa92c6492ca17c418805628b01b
+          - name: CONTRACT_ADDRESS_MERKLE_WRAPPER
+            value: 0x0d39f15b6432c7e8a028dc5bd8c874f54852265f
+          - name: CONTRACT_ERC20_MINTABLE
+            value: 0xdd2860dd8f182f90870383a98ddaf63fdb00573e
+          - name: ETHEREUM_RPC_URL
+            value:
+          - name: CHILD_CHAIN_URL
+            value:
+          - name: WATCHER_SECURITY_URL
+            value:
+          - name: WATCHER_INFO_URL
+            value:
+          - name: LOAD_TEST_FAUCET_PRIVATE_KEY
+            value: 0xd885a307e35738f773d8c9c63c7a3f3977819274638d04aaf934a1e1158513ce
+
+      restartPolicy: Never
+  backoffLimit: 4
