@@ -146,7 +146,6 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-
     test "returns outputs for a given currency in descending amount order if specified" do
       alice = <<1::160>>
 
