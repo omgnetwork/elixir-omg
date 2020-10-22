@@ -16,7 +16,7 @@ RUN git clone https://github.com/omgnetwork/elixir-omg
 WORKDIR ./elixir-omg
 
 RUN mkdir -p priv/openapitools \
-        && curl https://raw.githubusercontent.com/OpenAPITools/openapi-generator/master/bin/utils/openapi-generator-cli.sh > priv/openapitools/openapi-generator-cli \
+        && curl https://raw.githubusercontent.com/OpenAPITools/openapi-generator/v4.3.1/bin/utils/openapi-generator-cli.sh > priv/openapitools/openapi-generator-cli \
         && chmod u+x priv/openapitools/openapi-generator-cli
 
 RUN priv/openapitools/openapi-generator-cli generate \

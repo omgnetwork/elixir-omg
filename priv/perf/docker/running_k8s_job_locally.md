@@ -36,7 +36,7 @@ docker build -f Dockerfile -t perf:latest .
 minikube ssh grep host.minikube.internal /etc/hosts | cut -f1
 ```
 
-2. Replace the following `ip` field with ip returned from the previous command in `k8s_job.yaml` file:
+2. Replace the following `ip` field with ip returned from the previous command in `k8s_job_dev.yaml` file:
 
 ```
 ...
@@ -51,11 +51,11 @@ minikube ssh grep host.minikube.internal /etc/hosts | cut -f1
 #### 4. Run the k8s job
 
 1. Start the required elixir-omg services, for example, with docker-compose
-2. Replace environment variables in `k8s_job` if it's needed.
+2. Replace environment variables in `k8s_job_dev` if it's needed.
 3. Start job:
 
 ```
-kubectl apply -f k8s_job.yaml
+kubectl apply -f k8s_job_dev.yaml
 ```
 
 4. Monitor logs:
@@ -67,5 +67,5 @@ kubectl logs --follow job.batch/perf-job
 5. To delete job use:
 
 ```
-kubectl delete -f k8s_job.yaml
+kubectl delete -f k8s_job_dev.yaml
 ```

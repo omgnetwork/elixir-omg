@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: perf-job
+  name: perf-job-dev
 spec:
   template:
     spec:
