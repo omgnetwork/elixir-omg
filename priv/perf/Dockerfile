@@ -11,7 +11,7 @@ RUN apk add git curl bash maven jq \
         gnupg \
         alpine-sdk
 
-RUN git clone https://github.com/omgnetwork/elixir-omg
+COPY ./ ./elixir-omg
 
 WORKDIR ./elixir-omg
 

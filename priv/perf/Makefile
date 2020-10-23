@@ -14,9 +14,6 @@ start-services:
 	cd priv/perf/ && \
 	docker-compose $(COMPOSE_FULL_SERVICES) up -d
 
-docker:
-	docker build -f ./Dockerfile -t $(IMAGE_NAME) .
-
 stop-services:
 	docker-compose $(COMPOSE_FULL_SERVICES) down
 

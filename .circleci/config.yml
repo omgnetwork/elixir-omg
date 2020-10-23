@@ -877,7 +877,7 @@ jobs:
       PERF_IMAGE_NAME: "omisego/perf"
     steps:
       - checkout
-      - run: cd priv/perf && make docker IMAGE_NAME=$PERF_IMAGE_NAME
+      - run: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
       - run: IMAGE_NAME=$PERF_IMAGE_NAME sh .circleci/ci_publish.sh
 
   publish_watcher_info:
@@ -1111,15 +1111,15 @@ workflows:
           filters: *master_and_version_branches_and_all_tags
 
       - publish_perf:
-          filters:
-            branches:
-              only:
-                - master
-                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-                - /^v[0-9]+\.[0-9]+/
-            tags:
-              only:
-                - /.+/
+          filters: *all_branches_and_tags
+          #   branches:
+          #     only:
+          #       - master
+          #       # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+          #       - /^v[0-9]+\.[0-9]+/
+          #   tags:
+          #     only:
+          #       - /.+/
       # Increase chart version for master, this will end up trigger deployment on dev
       - increase_chart_version_watcher_master:
           requires: [publish_watcher, publish_watcher_info]
