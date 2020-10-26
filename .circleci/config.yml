@@ -595,7 +595,7 @@ jobs:
           key: v3-plt-cache-{{ ".tool-versions" }}
           paths:
             - plts
-      - run: mix dialyzer --format short
+      - run: mix dialyzer --format short --halt-exit-status
 
   test_docker_compose_release:
     machine:
