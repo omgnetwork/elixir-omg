@@ -33,7 +33,8 @@ defmodule LoadTest.TestRunner.Config do
     },
     "utxos" => %{
       token: "0x0000000000000000000000000000000000000000",
-      initial_amount: 760
+      initial_amount: 760,
+      fee: 75
     }
   }
 

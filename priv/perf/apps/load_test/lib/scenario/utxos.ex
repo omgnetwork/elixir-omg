@@ -17,6 +17,7 @@ defmodule LoadTest.Scenario.Utxos do
 
   alias Chaperon.Session
   alias ExPlasma.Encoding
+  alias LoadTest.ChildChain.Transaction
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Faucet
   alias LoadTest.WatcherInfo.Balance
@@ -41,8 +42,8 @@ defmodule LoadTest.Scenario.Utxos do
 
   def create_utxos_and_make_assertions(session) do
     with {:ok, sender, receiver} <- create_accounts(),
-         :ok <- fund_account(session, sender) do
-      # :ok <- spend_utxo(session, sender, receiver) do
+         {:ok, utxo} <- fund_account(session, sender),
+         :ok <- spend_utxo(session, utxo, sender, receiver) do
       Session.add_metric(session, "error_rate", 0)
     else
       error ->
@@ -101,5 +102,13 @@ defmodule LoadTest.Scenario.Utxos do
       [%{"amount" => ^amount, "currency" => ^currency, "owner" => ^string_account}] -> :ok
       _ -> :invalid_utxos
     end
+  end
+
+  defp spend_utxo(session, utxo, sender, receiver) do
+    amount = config(session, [:chain_config, :initial_amount])
+    token = config(session, [:chain_config, :token])
+    fee = config(session, [:chain_config, :fee])
+
+    Transaction.spend_utxo(utxo, amount - fee, fee, sender, receiver, token)
   end
 end
