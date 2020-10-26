@@ -157,6 +157,7 @@ defmodule Support.DevHelper do
     {:ok, call_result} =
       tx
       |> Map.put("data", tx["input"])
+      |> Map.put("from", Configuration.authority_address())
       |> Ethereumex.HttpClient.eth_call(tx["blockNumber"])
 
     # this call result is hex decoded and then additionally decoded with ABI, should yield a readable ascii-string
