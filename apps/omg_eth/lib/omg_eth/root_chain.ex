@@ -114,8 +114,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp get_external_data(contract_address, signature, args) do
-    from = Configuration.authority_address()
-    {:ok, data} = Rpc.call_contract(contract_address, signature, args, from)
+    {:ok, data} = Rpc.call_contract(contract_address, signature, args)
     Abi.decode_function(data, signature)
   end
 end
