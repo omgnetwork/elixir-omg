@@ -28,7 +28,7 @@ config :load_test,
   erc20_vault_address: System.get_env("CONTRACT_ADDRESS_ERC20_VAULT"),
   test_currency: "0x0000000000000000000000000000000000000000",
   faucet_deposit_amount: trunc(:math.pow(10, 14)),
-  fee_amount: 1,
+  fee_amount: 75,
   deposit_finality_margin: 10,
   gas_price: 2_000_000_000
 

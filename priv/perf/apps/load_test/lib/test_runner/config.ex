@@ -19,7 +19,8 @@ defmodule LoadTest.TestRunner.Config do
   alias ExPlasma.Encoding
 
   @tests %{
-    "deposits" => LoadTest.Runner.Deposits
+    "deposits" => LoadTest.Runner.Deposits,
+    "utxos" => LoadTest.Runner.Utxos
   }
 
   @configs %{
@@ -29,6 +30,10 @@ defmodule LoadTest.TestRunner.Config do
       deposited_amount: 200_000_000_000_000_000,
       transferred_amount: 100_000_000_000_000_000,
       gas_price: 2_000_000_000
+    },
+    "utxos" => %{
+      token: "0x0000000000000000000000000000000000000000",
+      initial_amount: 760
     }
   }
 
