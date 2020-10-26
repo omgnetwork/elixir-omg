@@ -85,15 +85,6 @@ defmodule LoadTest.Scenario.Utxos do
     end
   end
 
-  defp fetch_childchain_balance(account, amount: amount, token: token, error: error) do
-    childchain_balance = Balance.fetch_balance(account.addr, amount, token)
-
-    case childchain_balance["amount"] do
-      ^amount -> :ok
-      _ -> error
-    end
-  end
-
   defp validate_utxo(account, currency, amount) do
     {:ok, result} = Utxo.get_utxos(account)
     string_account = Encoding.to_hex(account.addr)
@@ -109,6 +100,20 @@ defmodule LoadTest.Scenario.Utxos do
     token = config(session, [:chain_config, :token])
     fee = config(session, [:chain_config, :fee])
 
-    Transaction.spend_utxo(utxo, amount - fee, fee, sender, receiver, token)
+    with _ <- Transaction.spend_utxo(utxo, amount - fee, fee, sender, receiver, token),
+         :ok <- fetch_childchain_balance(sender, amount: 0, token: token, error: :wrong_sender_balance),
+         :ok <- fetch_childchain_balance(receiver, amount: amount - fee, token: token, error: :wrong_receiver_balance) do
+      :ok
+    end
+  end
+
+  defp fetch_childchain_balance(account, amount: amount, token: token, error: error) do
+    childchain_balance = Balance.fetch_balance(account.addr, amount, token)
+
+    case childchain_balance do
+      nil when amount == 0 -> :ok
+      %{"amount" => ^amount} -> :ok
+      _ -> error
+    end
   end
 end
