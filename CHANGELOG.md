@@ -1,16 +1,14 @@
 # Changelog
 
-## [Unreleased](https://github.com/omgnetwork/elixir-omg/tree/HEAD)
-
 ## [v1.0.5](https://github.com/omgnetwork/elixir-omg/tree/v1.0.5) (2020-10-01)
 
-[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.4-pre.2...v1.0.5-pre.0)
+[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.4-pre.2...v1.0.5)
 
 ### Enhancements
 
+- deposits performance tests bot [\#1745](https://github.com/omgnetwork/elixir-omg/pull/1745) ([ayrat555](https://github.com/ayrat555))
 - feat: handle in-flight exits deletions [\#1701](https://github.com/omgnetwork/elixir-omg/pull/1701) ([pgebal](https://github.com/pgebal))
 - feat: comply with new Infura API [\#1754](https://github.com/omgnetwork/elixir-omg/pull/1754) ([pgebal](https://github.com/pgebal))
-- deposits performance tests bot [\#1745](https://github.com/omgnetwork/elixir-omg/pull/1745) ([ayrat555](https://github.com/ayrat555))
 
 ### Bug fixes
 
@@ -25,7 +23,6 @@
 
 - Chore: parallelize tests by tags [\#1744](https://github.com/omgnetwork/elixir-omg/pull/1744) ([ayrat555](https://github.com/ayrat555))
 - Chore: use exexec from upstream [\#1743](https://github.com/omgnetwork/elixir-omg/pull/1743) ([ayrat555](https://github.com/ayrat555))
-- Chore: try to fix flaky reorg tests [\#1739](https://github.com/omgnetwork/elixir-omg/pull/1739) ([ayrat555](https://github.com/ayrat555))
 - move dev env deployment job to helm repo [\#1738](https://github.com/omgnetwork/elixir-omg/pull/1738) ([boolafish](https://github.com/boolafish))
 - Inomurko/remove child chain [\#1737](https://github.com/omgnetwork/elixir-omg/pull/1737) ([InoMurko](https://github.com/InoMurko))
 - Kevsul/standard exit perf test [\#1732](https://github.com/omgnetwork/elixir-omg/pull/1732) ([kevsul](https://github.com/kevsul))
@@ -37,6 +34,7 @@
 - add feefeed docker to elixir-omg setup [\#1700](https://github.com/omgnetwork/elixir-omg/pull/1700) ([boolafish](https://github.com/boolafish))
 - move omg\_performance json rpc tests to perf project [\#1691](https://github.com/omgnetwork/elixir-omg/pull/1691) ([ayrat555](https://github.com/ayrat555))
 - chore: bump version to 1.0.4 [\#1751](https://github.com/omgnetwork/elixir-omg/pull/1751) ([boolafish](https://github.com/boolafish))
+- Chore: try to fix flaky reorg tests [\#1739](https://github.com/omgnetwork/elixir-omg/pull/1739) ([ayrat555](https://github.com/ayrat555))
 - feat: transaction.create optimisation [\#1683](https://github.com/omgnetwork/elixir-omg/pull/1683) ([okalouti](https://github.com/okalouti))
 
 ## [v1.0.4](https://github.com/omgnetwork/elixir-omg/tree/v1.0.4) (2020-09-03)
@@ -57,7 +55,6 @@
 
 - corrrectly serialize PIDs in alarms.get [\#1678](https://github.com/omgnetwork/elixir-omg/pull/1678) ([ayrat555](https://github.com/ayrat555))
 - account.get\_exitable\_utxos is unaware of in-flight exited inputs [\#1676](https://github.com/omgnetwork/elixir-omg/pull/1676) ([pnowosie](https://github.com/pnowosie))
-- Fix fee adapter to accept decimal value in fee rules [\#1662](https://github.com/omgnetwork/elixir-omg/pull/1662) ([jarindr](https://github.com/jarindr))
 - Add missing clause on witness validation check [\#1656](https://github.com/omgnetwork/elixir-omg/pull/1656) ([mederic-p](https://github.com/mederic-p))
 - fix: unexpected http method [\#1651](https://github.com/omgnetwork/elixir-omg/pull/1651) ([ripzery](https://github.com/ripzery))
 
@@ -86,6 +83,10 @@
 
 - Add Transaction filter by end\_datetime [\#1595](https://github.com/omgnetwork/elixir-omg/pull/1595) ([jarindr](https://github.com/jarindr))
 
+### Enhancements
+
+- Add block processing queue to watcher info [\#1560](https://github.com/omgnetwork/elixir-omg/pull/1560) ([mederic-p](https://github.com/mederic-p))
+
 ### Bug fixes
 
 - remove trace decorator from OMG.WatcherInfo.DB.EthEvent.get/1 [\#1640](https://github.com/omgnetwork/elixir-omg/pull/1640) ([ayrat555](https://github.com/ayrat555))
@@ -105,10 +106,6 @@
 - Add reorged docker compose [\#1579](https://github.com/omgnetwork/elixir-omg/pull/1579) ([ayrat555](https://github.com/ayrat555))
 - Kevin/load test erc20 token [\#1577](https://github.com/omgnetwork/elixir-omg/pull/1577) ([kevsul](https://github.com/kevsul))
 
-### Documentation updates
-
-- Update request body swagger [\#1609](https://github.com/omgnetwork/elixir-omg/pull/1609) ([jarindr](https://github.com/jarindr))
-
 ## [v1.0.2](https://github.com/omgnetwork/elixir-omg/tree/v1.0.2) (2020-06-30)
 
 [Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.2-pre.0...v1.0.2)
@@ -118,7 +115,6 @@
 - global block get interval [\#1576](https://github.com/omgnetwork/elixir-omg/pull/1576) ([InoMurko](https://github.com/InoMurko))
 - install telemetry handler for authority balance [\#1567](https://github.com/omgnetwork/elixir-omg/pull/1567) ([InoMurko](https://github.com/InoMurko))
 - restart strategy [\#1565](https://github.com/omgnetwork/elixir-omg/pull/1565) ([InoMurko](https://github.com/InoMurko))
-- Add block processing queue to watcher info [\#1560](https://github.com/omgnetwork/elixir-omg/pull/1560) ([mederic-p](https://github.com/mederic-p))
 
 ### Bug fixes
 
@@ -137,11 +133,8 @@
 
 ### Documentation updates
 
+- Update request body swagger [\#1609](https://github.com/omgnetwork/elixir-omg/pull/1609) ([jarindr](https://github.com/jarindr))
 - Update README.md [\#1564](https://github.com/omgnetwork/elixir-omg/pull/1564) ([InoMurko](https://github.com/InoMurko))
-
-### Untagged pull requests
-
-- cabbage test for payment v2 [\#1578](https://github.com/omgnetwork/elixir-omg/pull/1578) ([boolafish](https://github.com/boolafish))
 
 ## [v1.0.1](https://github.com/omgnetwork/elixir-omg/tree/v1.0.1) (2020-06-18)
 
@@ -163,6 +156,7 @@
 - \[2\] Add root chain transaction hash to InvalidExit and UnchallengedExit events [\#1485](https://github.com/omgnetwork/elixir-omg/pull/1485) ([okalouti](https://github.com/okalouti))
 - Add root chain transaction hash to InvalidExit and UnchallengedExit events [\#1479](https://github.com/omgnetwork/elixir-omg/pull/1479) ([okalouti](https://github.com/okalouti))
 - Input validation enhancements for endpoints [\#1469](https://github.com/omgnetwork/elixir-omg/pull/1469) ([okalouti](https://github.com/okalouti))
+- account.get\_utxo pagination [\#1436](https://github.com/omgnetwork/elixir-omg/pull/1436) ([jarindr](https://github.com/jarindr))
 - Filtering Input Parameters to Childchain/Watcher API depending on HTTP Method [\#1424](https://github.com/omgnetwork/elixir-omg/pull/1424) ([okalouti](https://github.com/okalouti))
 - Prevent split/merge creation in /transaction.create [\#1416](https://github.com/omgnetwork/elixir-omg/pull/1416) ([T-Dnzt](https://github.com/T-Dnzt))
 
@@ -217,10 +211,6 @@
 - Watcher configs [\#1536](https://github.com/omgnetwork/elixir-omg/pull/1536) ([dmitrydao](https://github.com/dmitrydao))
 - Update README.md [\#1468](https://github.com/omgnetwork/elixir-omg/pull/1468) ([dmitrydao](https://github.com/dmitrydao))
 - Update installation instructions [\#1465](https://github.com/omgnetwork/elixir-omg/pull/1465) ([pnowosie](https://github.com/pnowosie))
-
-### Untagged pull requests
-
-- docs: changelog for v0.4.7  [\#1487](https://github.com/omgnetwork/elixir-omg/pull/1487) ([unnawut](https://github.com/unnawut))
 
 
 
