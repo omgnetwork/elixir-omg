@@ -151,6 +151,7 @@ defmodule LoadTest.ChildChain.Exit do
 
     {:ok, receipt_enc} =
       Ethereumex.HttpClient.eth_call(%{
+        from: Application.fetch_env!(:load_test, :contract_address_plasma_framework),
         to: Application.fetch_env!(:load_test, :contract_address_plasma_framework),
         data: Encoding.to_hex(data)
       })
