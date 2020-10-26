@@ -16,6 +16,7 @@ defmodule LoadTest.ChildChain.Deposit do
   @moduledoc """
   Utility functions for deposits on a child chain
   """
+
   require Logger
 
   alias ExPlasma.Encoding
@@ -23,30 +24,40 @@ defmodule LoadTest.ChildChain.Deposit do
   alias ExPlasma.Utxo
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
+  alias LoadTest.Service.Sync
 
   @eth <<0::160>>
-  @poll_interval 5_000
+
   @doc """
   Deposits funds into the childchain.
 
   If currency is ETH, funds will be deposited into the EthVault.
   If currency is ERC20, 'approve()' will be called before depositing funds into the Erc20Vault.
 
-  Returns the utxo created by the deposit.
+  This function accepts three required parameters:
+  1. depositor account
+  2. the amount to be deposited
+  3. currency
+  4. the number of verifications
+  5. gas price of the transaction
+  6. return - it can be :utxo or :txhash
+
+  Returns the utxo created by the deposit or the hash of the the deposit transaction.
   """
-  @spec deposit_from(
-          LoadTest.Ethereum.Account.t(),
-          pos_integer(),
-          LoadTest.Ethereum.Account.t(),
-          pos_integer(),
-          pos_integer()
-        ) :: Utxo.t()
-  def deposit_from(%Account{} = depositor, amount, currency, deposit_finality_margin, gas_price) do
+  @spec deposit_from(Account.t(), pos_integer(), Account.t(), non_neg_integer(), non_neg_integer, atom()) ::
+          Utxo.t() | binary()
+  def deposit_from(depositor, amount, currency, deposit_finality_margin, gas_price, return) do
     deposit_utxo = %Utxo{amount: amount, owner: depositor.addr, currency: currency}
+
     {:ok, deposit} = Deposit.new(deposit_utxo)
-    {:ok, {deposit_blknum, eth_blknum}} = send_deposit(deposit, depositor, amount, currency, gas_price)
+    {:ok, {deposit_blknum, eth_blknum, eth_txhash}} = send_deposit(deposit, depositor, amount, currency, gas_price)
+
     :ok = wait_deposit_finality(eth_blknum, deposit_finality_margin)
-    Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
+
+    case return do
+      :utxo -> Utxo.new(%{blknum: deposit_blknum, txindex: 0, oindex: 0, amount: amount})
+      _ -> eth_txhash
+    end
   end
 
   defp send_deposit(deposit, account, value, @eth, gas_price) do
@@ -84,20 +95,20 @@ defmodule LoadTest.ChildChain.Deposit do
     %{"topics" => [_topic, _addr, blknum | _]} =
       Enum.find(logs, fn %{"address" => address} -> address == vault_address end)
 
-    {:ok, {Encoding.to_int(blknum), eth_blknum}}
+    {:ok, {Encoding.to_int(blknum), eth_blknum, tx_hash}}
   end
 
   defp wait_deposit_finality(deposit_eth_blknum, finality_margin) do
-    {:ok, current_blknum} = Ethereumex.HttpClient.eth_block_number()
-    current_blknum = Encoding.to_int(current_blknum)
+    func = fn ->
+      {:ok, current_blknum} = Ethereumex.HttpClient.eth_block_number()
+      current_blknum = Encoding.to_int(current_blknum)
 
-    if current_blknum >= deposit_eth_blknum + finality_margin do
-      :ok
-    else
-      _ = Logger.info("Waiting for deposit finality")
-      Process.sleep(@poll_interval)
-      wait_deposit_finality(deposit_eth_blknum, finality_margin)
+      if current_blknum >= deposit_eth_blknum + finality_margin do
+        :ok
+      end
     end
+
+    Sync.repeat_until_success(func, :infinity, "Waiting for deposit finality")
   end
 
   defp approve(contract, vault_address, account, value, gas_price) do

@@ -20,12 +20,14 @@ defmodule LoadTest.Ethereum do
 
   alias ExPlasma.Encoding
   alias LoadTest.ChildChain.Abi
+  alias LoadTest.Ethereum.Account
   alias LoadTest.Ethereum.NonceTracker
-  alias LoadTest.Ethereum.Sync
   alias LoadTest.Ethereum.Transaction
   alias LoadTest.Ethereum.Transaction.Signature
+  alias LoadTest.Service.Sync
 
   @about_4_blocks_time 120_000
+  @poll_timeout 60_000
 
   @type hash_t() :: <<_::256>>
 
@@ -47,6 +49,18 @@ defmodule LoadTest.Ethereum do
       {:ok, receipt_enc} -> {:ok, Encoding.to_binary(receipt_enc)}
       other -> other
     end
+  end
+
+  @spec get_gas_used(String.t()) :: non_neg_integer()
+  def get_gas_used(receipt_hash) do
+    {{:ok, %{"gasUsed" => gas_used}}, {:ok, %{"gasPrice" => gas_price}}} =
+      {Ethereumex.HttpClient.eth_get_transaction_receipt(receipt_hash),
+       Ethereumex.HttpClient.eth_get_transaction_by_hash(receipt_hash)}
+
+    {gas_price_value, ""} = gas_price |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    {gas_used_value, ""} = gas_used |> String.replace_prefix("0x", "") |> Integer.parse(16)
+
+    gas_price_value * gas_used_value
   end
 
   @doc """
@@ -105,7 +119,56 @@ defmodule LoadTest.Ethereum do
       if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
     end
 
-    Sync.repeat_until_success(f, timeout)
+    Sync.repeat_until_success(f, timeout, "Failed to fetch eth block number")
+  end
+
+  @spec fetch_balance(Account.addr_t(), Account.addr_t()) :: non_neg_integer() | no_return()
+  def fetch_balance(address, <<0::160>>) do
+    {:ok, initial_balance} =
+      Sync.repeat_until_success(
+        fn ->
+          address
+          |> Encoding.to_hex()
+          |> eth_account_get_balance()
+        end,
+        @poll_timeout,
+        "Failed to fetch eth balance from rootchain"
+      )
+
+    {initial_balance, ""} = initial_balance |> String.replace_prefix("0x", "") |> Integer.parse(16)
+    initial_balance
+  end
+
+  def fetch_balance(address, currency) do
+    Sync.repeat_until_success(
+      fn ->
+        do_root_chain_get_erc20_balance(address, currency)
+      end,
+      @poll_timeout,
+      "Failed to fetch erc20 balance from rootchain"
+    )
+  end
+
+  defp eth_account_get_balance(address) do
+    Ethereumex.HttpClient.eth_get_balance(address)
+  end
+
+  defp do_root_chain_get_erc20_balance(address, currency) do
+    data = ABI.encode("balanceOf(address)", [Encoding.to_binary(address)])
+
+    case Ethereumex.HttpClient.eth_call(%{to: Encoding.to_hex(currency), data: Encoding.to_hex(data)}) do
+      {:ok, result} ->
+        balance =
+          result
+          |> Encoding.to_binary()
+          |> ABI.TypeDecoder.decode([{:uint, 256}])
+          |> hd()
+
+        {:ok, balance}
+
+      error ->
+        error
+    end
   end
 
   defp get_external_data(address, signature, params) do
@@ -126,7 +189,7 @@ defmodule LoadTest.Ethereum do
       end
     end
 
-    Sync.repeat_until_success(f, timeout)
+    Sync.repeat_until_success(f, timeout, "Failed to fetch eth receipt")
   end
 
   defp encode_tx_data(signature, args) do
