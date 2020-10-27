@@ -37,12 +37,10 @@ defmodule LoadTest.WatcherInfo.Utxo do
   end
 
   defp fetch_utxos(sender, utxo) do
-    case WatcherInfoAPI.Api.Account.account_get_utxos(
-           WatcherInfo.client(),
-           %WatcherInfoAPI.Model.AddressBodySchema1{
-             address: Encoding.to_hex(sender.addr)
-           }
-         ) do
+client = WatcherInfo.client()
+body = %WatcherInfoAPI.Model.AddressBodySchema1{address: Encoding.to_hex(sender.addr}
+account_utxos = WatcherInfoAPI.Api.Account.account_get_utxos(client, body) 
+    case account_utxos do
       {:ok, result} ->
         result.body
         |> Jason.decode!()
