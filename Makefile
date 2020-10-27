@@ -158,7 +158,7 @@ check-credo:
 	$(ENV_TEST) mix credo 2>&1
 
 check-dialyzer:
-	$(ENV_TEST) mix dialyzer --halt-exit-status 2>&1
+	$(ENV_TEST) mix dialyzer 2>&1
 
 .PHONY: format check-format check-credo
 
@@ -339,6 +339,9 @@ docker-watcher_info-build:
 docker-watcher: docker-watcher-prod docker-watcher-build
 docker-watcher_info: docker-watcher_info-prod docker-watcher_info-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
+
+docker-perf:
+	docker build -f ./priv/perf/Dockerfile -t $(IMAGE_NAME) .
 
 docker-build: docker-watcher docker-watcher_info docker-child_chain
 

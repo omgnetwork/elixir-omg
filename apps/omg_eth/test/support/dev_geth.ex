@@ -103,7 +103,7 @@ defmodule OMG.Eth.DevGeth do
 
     waiting_task
     |> Task.async()
-    |> Task.await(30_000)
+    |> Task.await(90_000)
 
     pid
   end
@@ -112,7 +112,7 @@ defmodule OMG.Eth.DevGeth do
     if ready?(pid) do
       :ok
     else
-      Process.sleep(1_000)
+      Process.sleep(2_000)
       wait_for_rpc(pid)
     end
   end

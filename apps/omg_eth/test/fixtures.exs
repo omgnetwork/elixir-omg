@@ -78,7 +78,7 @@ defmodule OMG.Eth.Fixtures do
 
   defp call_contract(contract, signature, args, return_types) do
     data = ABI.encode(signature, args)
-    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: contract, data: Encoding.to_hex(data)})
+    {:ok, return} = Ethereumex.HttpClient.eth_call(%{from: contract, to: contract, data: Encoding.to_hex(data)})
     decode_answer(return, return_types)
   end
 
