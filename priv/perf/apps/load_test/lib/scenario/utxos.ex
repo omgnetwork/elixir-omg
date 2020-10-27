@@ -102,11 +102,19 @@ defmodule LoadTest.Scenario.Utxos do
     amount = config(session, [:chain_config, :initial_amount])
     token = config(session, [:chain_config, :token])
     fee = config(session, [:chain_config, :fee])
+    amount_to_transfer = amount - fee
 
-    with [new_utxo] <- Transaction.spend_utxo(utxo, amount - fee, fee, sender, receiver, token),
+    with [new_utxo] <- Transaction.spend_utxo(utxo, amount_to_transfer, fee, sender, receiver, token),
          :ok <- validate_utxos(sender, :empty),
          :ok <- validate_utxos(receiver, %{new_utxo | owner: receiver.addr}),
-         :ok <- fetch_childchain_balance(sender, amount: 0, token: token, error: :wrong_sender_balance) do
+         :ok <-
+           fetch_childchain_balance(sender, amount: 0, token: Encoding.to_binary(token), error: :wrong_sender_balance),
+         :ok <-
+           fetch_childchain_balance(receiver,
+             amount: amount_to_transfer,
+             token: Encoding.to_binary(token),
+             error: :wrong_sender_balance
+           ) do
       :ok
     end
   end
