@@ -16,26 +16,77 @@ defmodule LoadTest.WatcherInfo.Utxo do
   require Logger
 
   alias LoadTest.Connection.WatcherInfo
-  alias LoadTest.Utils.Encoding
   alias LoadTest.Service.Sync
+  alias LoadTest.Utils.Encoding
 
   @poll_timeout 60_000
 
-  def get_utxos(sender) do
-    {:ok, response} =
-      Sync.repeat_until_success(
-        fn ->
-          WatcherInfoAPI.Api.Account.account_get_utxos(
-            WatcherInfo.client(),
-            %WatcherInfoAPI.Model.AddressBodySchema1{
-              address: Encoding.to_hex(sender.addr)
-            }
-          )
-        end,
-        @poll_timeout,
-        "Failes to fetch utxos"
-      )
+  def get_utxos(sender, utxo \\ nil) do
+    Sync.repeat_until_success(
+      fn ->
+        fetch_utxos(sender, utxo)
+      end,
+      @poll_timeout,
+      "Failed to fetch utxos"
+    )
+  end
 
-    {:ok, Jason.decode!(response.body)}
+  defp fetch_utxos(sender, utxo) do
+    case WatcherInfoAPI.Api.Account.account_get_utxos(
+           WatcherInfo.client(),
+           %WatcherInfoAPI.Model.AddressBodySchema1{
+             address: Encoding.to_hex(sender.addr)
+           }
+         ) do
+      {:ok, result} ->
+        decoded_response = Jason.decode!(result.body)
+
+        case utxo do
+          nil ->
+            {:ok, decoded_response}
+
+          :empty ->
+            case decoded_response["data"] do
+              [] -> {:ok, []}
+              other -> {:error, other}
+            end
+
+          _data ->
+            find_utxo(decoded_response, utxo)
+        end
+
+      other ->
+        other
+    end
+  end
+
+  defp find_utxo(response, utxo) do
+    found_utxo =
+      Enum.find(response["data"], fn %{
+                                       "amount" => amount,
+                                       "blknum" => blknum,
+                                       "currency" => currency,
+                                       "oindex" => oindex,
+                                       "otype" => otype,
+                                       "owner" => owner,
+                                       "txindex" => txindex
+                                     } ->
+        current_utxo = %ExPlasma.Utxo{
+          amount: amount,
+          blknum: blknum,
+          currency: Encoding.to_binary(currency),
+          oindex: oindex,
+          output_type: otype,
+          owner: Encoding.to_binary(owner),
+          txindex: txindex
+        }
+
+        current_utxo == utxo
+      end)
+
+    case found_utxo do
+      nil -> {:error, response}
+      _ -> {:ok, found_utxo}
+    end
   end
 end

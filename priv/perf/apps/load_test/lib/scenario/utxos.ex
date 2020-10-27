@@ -73,8 +73,21 @@ defmodule LoadTest.Scenario.Utxos do
              token: Encoding.to_binary(token),
              error: :wrong_childchain_after_funding
            ),
-         :ok <- validate_utxo(account, token, initial_amount) do
+         :ok <- validate_utxos(account, %{utxo | owner: account.addr}) do
       {:ok, utxo}
+    end
+  end
+
+  defp validate_utxos(account, utxo) do
+    utxo_with_owner =
+      case utxo do
+        :empty -> :empty
+        _ -> %{utxo | owner: account.addr}
+      end
+
+    case Utxo.get_utxos(account, utxo_with_owner) do
+      {:ok, _} -> :ok
+      _other -> :invalid_utxos
     end
   end
 
@@ -85,24 +98,15 @@ defmodule LoadTest.Scenario.Utxos do
     end
   end
 
-  defp validate_utxo(account, currency, amount) do
-    {:ok, result} = Utxo.get_utxos(account)
-    string_account = Encoding.to_hex(account.addr)
-
-    case result["data"] do
-      [%{"amount" => ^amount, "currency" => ^currency, "owner" => ^string_account}] -> :ok
-      _ -> :invalid_utxos
-    end
-  end
-
   defp spend_utxo(session, utxo, sender, receiver) do
     amount = config(session, [:chain_config, :initial_amount])
     token = config(session, [:chain_config, :token])
     fee = config(session, [:chain_config, :fee])
 
-    with _ <- Transaction.spend_utxo(utxo, amount - fee, fee, sender, receiver, token),
-         :ok <- fetch_childchain_balance(sender, amount: 0, token: token, error: :wrong_sender_balance),
-         :ok <- fetch_childchain_balance(receiver, amount: amount - fee, token: token, error: :wrong_receiver_balance) do
+    with [new_utxo] <- Transaction.spend_utxo(utxo, amount - fee, fee, sender, receiver, token),
+         :ok <- validate_utxos(sender, :empty),
+         :ok <- validate_utxos(receiver, %{new_utxo | owner: receiver.addr}),
+         :ok <- fetch_childchain_balance(sender, amount: 0, token: token, error: :wrong_sender_balance) do
       :ok
     end
   end
