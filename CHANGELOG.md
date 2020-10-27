@@ -1,25 +1,41 @@
 # Changelog
 
-## [Unreleased](https://github.com/omgnetwork/elixir-omg/tree/HEAD)
+## [v1.0.5](https://github.com/omgnetwork/elixir-omg/tree/v1.0.5) (2020-10-01)
 
-[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.4...HEAD)
+[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.4-pre.2...v1.0.5)
 
 ### Enhancements
 
+- deposits performance tests bot [\#1745](https://github.com/omgnetwork/elixir-omg/pull/1745) ([ayrat555](https://github.com/ayrat555))
 - feat: handle in-flight exits deletions [\#1701](https://github.com/omgnetwork/elixir-omg/pull/1701) ([pgebal](https://github.com/pgebal))
+- feat: comply with new Infura API [\#1754](https://github.com/omgnetwork/elixir-omg/pull/1754) ([pgebal](https://github.com/pgebal))
 
 ### Bug fixes
 
+- fix: handle metrics for in flight exit deleted processor [\#1742](https://github.com/omgnetwork/elixir-omg/pull/1742) ([pgebal](https://github.com/pgebal))
 - revert: reverts ife deletion commits [\#1725](https://github.com/omgnetwork/elixir-omg/pull/1725) ([pgebal](https://github.com/pgebal))
+- fix: set :last\_ife\_exit\_deleted\_eth\_height on deplyment if it's not set yet [\#1720](https://github.com/omgnetwork/elixir-omg/pull/1720) ([pgebal](https://github.com/pgebal))
 - fix: fix in-flight exit deleted bug and add tests [\#1714](https://github.com/omgnetwork/elixir-omg/pull/1714) ([pgebal](https://github.com/pgebal))
 - fix: block submission stall monitor should ignore block\_submitting that are already mined [\#1703](https://github.com/omgnetwork/elixir-omg/pull/1703) ([unnawut](https://github.com/unnawut))
+- fix: recheck PR label on synchronize and reopen [\#1748](https://github.com/omgnetwork/elixir-omg/pull/1748) ([unnawut](https://github.com/unnawut))
 
 ### Chores
 
+- Chore: parallelize tests by tags [\#1744](https://github.com/omgnetwork/elixir-omg/pull/1744) ([ayrat555](https://github.com/ayrat555))
+- Chore: use exexec from upstream [\#1743](https://github.com/omgnetwork/elixir-omg/pull/1743) ([ayrat555](https://github.com/ayrat555))
+- move dev env deployment job to helm repo [\#1738](https://github.com/omgnetwork/elixir-omg/pull/1738) ([boolafish](https://github.com/boolafish))
+- Inomurko/remove child chain [\#1737](https://github.com/omgnetwork/elixir-omg/pull/1737) ([InoMurko](https://github.com/InoMurko))
+- Kevsul/standard exit perf test [\#1732](https://github.com/omgnetwork/elixir-omg/pull/1732) ([kevsul](https://github.com/kevsul))
+- update change log v1.0.4 [\#1731](https://github.com/omgnetwork/elixir-omg/pull/1731) ([jarindr](https://github.com/jarindr))
+- chore: add test for 64\_000 txs block hash [\#1729](https://github.com/omgnetwork/elixir-omg/pull/1729) ([ayrat555](https://github.com/ayrat555))
 - Allow to run docker-compose without feefeed docker [\#1726](https://github.com/omgnetwork/elixir-omg/pull/1726) ([boolafish](https://github.com/boolafish))
+- rm mix based chch part 1 [\#1716](https://github.com/omgnetwork/elixir-omg/pull/1716) ([InoMurko](https://github.com/InoMurko))
 - feat: reintroduce automated changelog [\#1708](https://github.com/omgnetwork/elixir-omg/pull/1708) ([unnawut](https://github.com/unnawut))
 - add feefeed docker to elixir-omg setup [\#1700](https://github.com/omgnetwork/elixir-omg/pull/1700) ([boolafish](https://github.com/boolafish))
 - move omg\_performance json rpc tests to perf project [\#1691](https://github.com/omgnetwork/elixir-omg/pull/1691) ([ayrat555](https://github.com/ayrat555))
+- chore: bump version to 1.0.4 [\#1751](https://github.com/omgnetwork/elixir-omg/pull/1751) ([boolafish](https://github.com/boolafish))
+- Chore: try to fix flaky reorg tests [\#1739](https://github.com/omgnetwork/elixir-omg/pull/1739) ([ayrat555](https://github.com/ayrat555))
+- feat: transaction.create optimisation [\#1683](https://github.com/omgnetwork/elixir-omg/pull/1683) ([okalouti](https://github.com/okalouti))
 
 ## [v1.0.4](https://github.com/omgnetwork/elixir-omg/tree/v1.0.4) (2020-09-03)
 
@@ -39,7 +55,6 @@
 
 - corrrectly serialize PIDs in alarms.get [\#1678](https://github.com/omgnetwork/elixir-omg/pull/1678) ([ayrat555](https://github.com/ayrat555))
 - account.get\_exitable\_utxos is unaware of in-flight exited inputs [\#1676](https://github.com/omgnetwork/elixir-omg/pull/1676) ([pnowosie](https://github.com/pnowosie))
-- Fix fee adapter to accept decimal value in fee rules [\#1662](https://github.com/omgnetwork/elixir-omg/pull/1662) ([jarindr](https://github.com/jarindr))
 - Add missing clause on witness validation check [\#1656](https://github.com/omgnetwork/elixir-omg/pull/1656) ([mederic-p](https://github.com/mederic-p))
 - fix: unexpected http method [\#1651](https://github.com/omgnetwork/elixir-omg/pull/1651) ([ripzery](https://github.com/ripzery))
 
@@ -91,10 +106,6 @@
 - Add reorged docker compose [\#1579](https://github.com/omgnetwork/elixir-omg/pull/1579) ([ayrat555](https://github.com/ayrat555))
 - Kevin/load test erc20 token [\#1577](https://github.com/omgnetwork/elixir-omg/pull/1577) ([kevsul](https://github.com/kevsul))
 
-### Documentation updates
-
-- Update request body swagger [\#1609](https://github.com/omgnetwork/elixir-omg/pull/1609) ([jarindr](https://github.com/jarindr))
-
 ## [v1.0.2](https://github.com/omgnetwork/elixir-omg/tree/v1.0.2) (2020-06-30)
 
 [Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.2-pre.0...v1.0.2)
@@ -122,11 +133,12 @@
 
 ### Documentation updates
 
+- Update request body swagger [\#1609](https://github.com/omgnetwork/elixir-omg/pull/1609) ([jarindr](https://github.com/jarindr))
 - Update README.md [\#1564](https://github.com/omgnetwork/elixir-omg/pull/1564) ([InoMurko](https://github.com/InoMurko))
 
 ## [v1.0.1](https://github.com/omgnetwork/elixir-omg/tree/v1.0.1) (2020-06-18)
 
-[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.1-pre.0...v1.0.1)
+[Full Changelog](https://github.com/omgnetwork/elixir-omg/compare/v1.0.0-pre.2...v1.0.1)
 
 ### Chores
 
