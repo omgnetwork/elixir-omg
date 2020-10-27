@@ -13,14 +13,19 @@
 # limitations under the License.w
 
 defmodule LoadTest.WatcherInfo.Utxo do
+  @moduledoc """
+  Functions for retrieving utxos through WatcherInfo API.
+  """
   require Logger
 
   alias LoadTest.Connection.WatcherInfo
+  alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Sync
   alias LoadTest.Utils.Encoding
 
   @poll_timeout 60_000
 
+  @spec get_utxos(Account.addr_t(), ExPlasma.Utxo.t() | nil | :empty) :: {:ok, [] | ExPlasma.Utxo.t()} | no_return
   def get_utxos(sender, utxo \\ nil) do
     Sync.repeat_until_success(
       fn ->
@@ -39,28 +44,32 @@ defmodule LoadTest.WatcherInfo.Utxo do
            }
          ) do
       {:ok, result} ->
-        decoded_response = Jason.decode!(result.body)
-
-        case utxo do
-          nil ->
-            {:ok, decoded_response}
-
-          :empty ->
-            case decoded_response["data"] do
-              [] -> {:ok, []}
-              other -> {:error, other}
-            end
-
-          _data ->
-            find_utxo(decoded_response, utxo)
-        end
+        result.body
+        |> Jason.decode!()
+        |> find_utxo(utxo)
 
       other ->
         other
     end
   end
 
-  defp find_utxo(response, utxo) do
+  defp find_utxo(decoded_response, utxo) do
+    case utxo do
+      nil ->
+        {:ok, decoded_response}
+
+      :empty ->
+        case decoded_response["data"] do
+          [] -> {:ok, []}
+          other -> {:error, other}
+        end
+
+      _data ->
+        do_find_utxo(decoded_response, utxo)
+    end
+  end
+
+  defp do_find_utxo(response, utxo) do
     found_utxo =
       Enum.find(response["data"], fn %{
                                        "amount" => amount,

@@ -13,6 +13,16 @@
 # limitations under the License.
 
 defmodule LoadTest.Scenario.Utxos do
+  @moduledoc """
+  The scenario for utxos tests:
+
+  1. It creates two accounts: the sender and the receiver.
+  2. It funds sender with the specified amount on the childchain, checks utxos and balance.
+  3. The sender account sends the specifed amount on the childchain to the receiver,
+      checks its balance on the childchain and utxos for both accounts.
+
+  """
+
   use Chaperon.Scenario
 
   alias Chaperon.Session
