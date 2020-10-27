@@ -51,20 +51,17 @@ account_utxos = WatcherInfoAPI.Api.Account.account_get_utxos(client, body)
     end
   end
 
-  defp find_utxo(decoded_response, utxo) do
-    case utxo do
-      nil ->
-        {:ok, decoded_response}
-
-      :empty ->
-        case decoded_response["data"] do
-          [] -> {:ok, []}
-          other -> {:error, other}
-        end
-
-      _data ->
-        do_find_utxo(decoded_response, utxo)
-    end
+  defp find_utxo(decoded_response, nil) do
+  {:ok, decoded_response}
+  end
+  defp find_utxo(%{"data" => []}, :empty) do
+{:ok, []}
+  end
+  defp find_utxo(decoded_response, :empty) do
+ {:error, decoded_response}
+  end
+  defp find_utxo(decoded_response, _utxo) do
+do_find_utxo(decoded_response, utxo)
   end
 
   defp do_find_utxo(response, utxo) do
