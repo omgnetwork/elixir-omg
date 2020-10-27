@@ -37,9 +37,10 @@ defmodule LoadTest.WatcherInfo.Utxo do
   end
 
   defp fetch_utxos(sender, utxo) do
-client = WatcherInfo.client()
-body = %WatcherInfoAPI.Model.AddressBodySchema1{address: Encoding.to_hex(sender.addr}
-account_utxos = WatcherInfoAPI.Api.Account.account_get_utxos(client, body) 
+    client = WatcherInfo.client()
+    body = %WatcherInfoAPI.Model.AddressBodySchema1{address: Encoding.to_hex(sender.addr)}
+    account_utxos = WatcherInfoAPI.Api.Account.account_get_utxos(client, body)
+
     case account_utxos do
       {:ok, result} ->
         result.body
@@ -52,16 +53,19 @@ account_utxos = WatcherInfoAPI.Api.Account.account_get_utxos(client, body)
   end
 
   defp find_utxo(decoded_response, nil) do
-  {:ok, decoded_response}
+    {:ok, decoded_response}
   end
+
   defp find_utxo(%{"data" => []}, :empty) do
-{:ok, []}
+    {:ok, []}
   end
+
   defp find_utxo(decoded_response, :empty) do
- {:error, decoded_response}
+    {:error, decoded_response}
   end
+
   defp find_utxo(decoded_response, _utxo) do
-do_find_utxo(decoded_response, utxo)
+    do_find_utxo(decoded_response, utxo)
   end
 
   defp do_find_utxo(response, utxo) do
