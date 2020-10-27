@@ -20,7 +20,7 @@ defmodule OMG.Eth.RootChain.Rpc do
 
   def call_contract(client \\ Ethereumex.HttpClient, contract, signature, args) do
     data = signature |> ABI.encode(args) |> Encoding.to_hex()
-    client.eth_call(%{to: contract, data: data})
+    client.eth_call(%{from: contract, to: contract, data: data})
   end
 
   def get_ethereum_events(block_from, block_to, [_ | _] = signatures, [_ | _] = contracts) do
