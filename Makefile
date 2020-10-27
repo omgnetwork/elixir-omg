@@ -340,6 +340,9 @@ docker-watcher: docker-watcher-prod docker-watcher-build
 docker-watcher_info: docker-watcher_info-prod docker-watcher_info-build
 docker-child_chain: docker-child_chain-prod docker-child_chain-build
 
+docker-perf:
+	docker build -f ./priv/perf/Dockerfile -t $(IMAGE_NAME) .
+
 docker-build: docker-watcher docker-watcher_info docker-child_chain
 
 docker-push: docker
