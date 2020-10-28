@@ -64,7 +64,7 @@ defmodule LoadTest.WatcherInfo.Utxo do
     {:error, decoded_response}
   end
 
-  defp find_utxo(decoded_response, _utxo) do
+  defp find_utxo(decoded_response, utxo) do
     do_find_utxo(decoded_response, utxo)
   end
 
