@@ -36,7 +36,13 @@ defmodule LoadTest.TestRunner do
   alias LoadTest.TestRunner.Config
 
   def run() do
-    {runner_module, config, property} = Config.parse()
+    case Config.parse() do
+      {:ok, {runner_module, config, property}} -> run_test(runner_module, config, property)
+      :ok -> :ok
+    end
+  end
+
+  defp run_test(runner_module, config, property) do
     result = Chaperon.run_load_test(runner_module, print_results: true, config: config)
 
     # / 1 is to convert result to float (mean is float, percentiles are integers)[O

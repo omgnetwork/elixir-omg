@@ -17,6 +17,7 @@ defmodule LoadTest.TestRunner.Config do
   Command line args parser for TestRunner.
   """
   alias ExPlasma.Encoding
+  alias LoadTest.TestRunner.Help
 
   @tests %{
     "deposits" => LoadTest.Runner.Deposits,
@@ -39,27 +40,33 @@ defmodule LoadTest.TestRunner.Config do
   }
 
   def parse() do
-    [test, rate, period, property] =
-      case System.argv() do
-        [test, rate, period] ->
-          [test, rate, period, :mean]
+    case System.argv() do
+      [test, rate, period] ->
+        {:ok, config(test, rate, period, :mean)}
 
-        [test, rate, period, percentile] ->
-          percentile = parse_percentile(percentile)
-          [test, rate, period, percentile]
-      end
+      [test, rate, period, percentile] ->
+        percentile = parse_percentile(percentile)
+        {:ok, config(test, rate, period, percentile)}
 
+      ["help"] ->
+        Help.help()
+
+      ["help", "env"] ->
+        Help.help("env")
+
+      ["help", name] ->
+        Help.help(name)
+
+        :ok
+    end
+  end
+
+  defp config(test, rate, period, property) do
     rate_int = String.to_integer(rate)
     period_int = String.to_integer(period)
 
-    config = config(test, rate_int, period_int)
-
     runner_module = Map.fetch!(@tests, test)
 
-    {runner_module, config, property}
-  end
-
-  defp config(test, rate_int, period_int) do
     # Chaperon's SpreadAsyns (https://github.com/polleverywhere/chaperon/blob/13cc4a2d2a7baacddf20c46397064b5e42a48d97/lib/chaperon/action/spread_async.ex)
     # spawns a separate process for each execution. VM may fail if too many processes are spawned
     if rate_int * period_int > 200_000, do: raise("too many processes")
@@ -71,11 +78,13 @@ defmodule LoadTest.TestRunner.Config do
 
     chain_config = read_config!(test)
 
-    %{
+    config = %{
       run_config: run_config,
       chain_config: chain_config,
       timeout: :infinity
     }
+
+    {runner_module, config, property}
   end
 
   defp read_config!(test) do
