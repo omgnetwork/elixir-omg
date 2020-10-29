@@ -37,6 +37,13 @@ defmodule LoadTest.TestRunner do
   alias LoadTest.TestRunner.Config
 
   def run() do
+    case Config.parse() do
+      {:ok, {runner_module, config, property}} -> run_test(runner_module, config, property)
+      :ok -> :ok
+    end
+  end
+
+  defp run_test(runner_module, config, property) do
     {:ok, _} = Metrics.start_link()
 
     {runner_module, config, property} = Config.parse()
