@@ -42,11 +42,7 @@ defmodule LoadTest.TestRunner.Config do
   def parse() do
     case System.argv() do
       [test, rate, period] ->
-        {:ok, config(test, rate, period, :mean)}
-
-      [test, rate, period, percentile] ->
-        percentile = parse_percentile(percentile)
-        {:ok, config(test, rate, period, percentile)}
+        {:ok, config(test, rate, period)}
 
       ["help"] ->
         Help.help()
@@ -61,7 +57,7 @@ defmodule LoadTest.TestRunner.Config do
     end
   end
 
-  defp config(test, rate, period, property) do
+  defp config(test, rate, period) do
     rate_int = String.to_integer(rate)
     period_int = String.to_integer(period)
 
@@ -84,7 +80,7 @@ defmodule LoadTest.TestRunner.Config do
       timeout: :infinity
     }
 
-    {runner_module, config, property}
+    {runner_module, config}
   end
 
   defp read_config!(test) do
@@ -133,16 +129,5 @@ defmodule LoadTest.TestRunner.Config do
       {key, parsed_value}
     end)
     |> Map.new()
-  end
-
-  defp parse_percentile(percentile) do
-    percentile_int = String.to_integer(percentile)
-
-    # percentile should be divisible by 10 and < 100 (10, 20, ... 90)
-    unless rem(percentile_int, 10) == 0 and div(percentile_int, 10) < 10 do
-      raise("Wrong percentile")
-    end
-
-    {:percentile, percentile_int / 1}
   end
 end

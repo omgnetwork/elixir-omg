@@ -23,9 +23,6 @@ defmodule LoadTest.TestRunner do
   - transactions per seconds
   - period in seconds
 
-  Optional paramters:
-  - Percentile. You can pass percentile as the fourth parameter. By default `mean` value is used.
-
   You can also modify values for tests by providing `TEST_CONFIG_PATH` env variable, it should contain
   the path to json file. For example:
 
@@ -38,17 +35,15 @@ defmodule LoadTest.TestRunner do
 
   def run() do
     case Config.parse() do
-      {:ok, {runner_module, config, property}} -> run_test(runner_module, config, property)
+      {:ok, {runner_module, config}} -> run_test(runner_module, config)
       :ok -> :ok
     end
   end
 
-  defp run_test(runner_module, config, property) do
+  defp run_test(runner_module, config) do
     {:ok, _} = Metrics.start_link()
 
-    {runner_module, config, property} = Config.parse()
-
-    Chaperon.run_load_test(runner_module, print_results: true, config: config) |> IO.inspect(limit: :infinity)
+    Chaperon.run_load_test(runner_module, print_results: true, config: config)
 
     metrics = Metrics.metrics()
 
