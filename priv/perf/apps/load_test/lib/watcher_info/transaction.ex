@@ -19,6 +19,7 @@ defmodule LoadTest.WatcherInfo.Transaction do
 
   alias ExPlasma.Encoding
   alias LoadTest.Ethereum.Account
+  alias LoadTest.Service.Metrics
   alias LoadTest.Service.Sync
 
   @poll_timeout 60_000
@@ -34,24 +35,10 @@ defmodule LoadTest.WatcherInfo.Transaction do
 
   def create_transaction(amount_in_wei, input_address, output_address, currency \\ <<0::160>>, timeout \\ 120_000) do
     func = fn ->
-      transaction = %WatcherInfoAPI.Model.CreateTransactionsBodySchema{
-        owner: Encoding.to_hex(input_address),
-        payments: [
-          %WatcherInfoAPI.Model.TransactionCreatePayments{
-            amount: amount_in_wei,
-            currency: Encoding.to_hex(currency),
-            owner: Encoding.to_hex(output_address)
-          }
-        ],
-        fee: %WatcherInfoAPI.Model.TransactionCreateFee{currency: Encoding.to_hex(currency)}
-      }
-
-      {:ok, response} =
-        WatcherInfoAPI.Api.Transaction.create_transaction(LoadTest.Connection.WatcherInfo.client(), transaction)
-
-      result = Jason.decode!(response.body)["data"]
-
-      process_transaction_result(result)
+      Metrics.run_with_metrics(
+        fn -> do_create_transaction(amount_in_wei, input_address, output_address, currency) end,
+        "WatcherInfo.create_transaction"
+      )
     end
 
     Sync.repeat_until_success(func, timeout, "Failed to create a transaction")
@@ -71,11 +58,35 @@ defmodule LoadTest.WatcherInfo.Transaction do
 
     Sync.repeat_until_success(
       fn ->
-        submit_typed(typed_data_signed)
+        Metrics.run_with_metrics(
+          fn -> submit_typed(typed_data_signed) end,
+          "WatcherInfo.submit_typed"
+        )
       end,
       @poll_timeout,
       "Failed to submit transaction"
     )
+  end
+
+  defp do_create_transaction(amount_in_wei, input_address, output_address, currency) do
+    transaction = %WatcherInfoAPI.Model.CreateTransactionsBodySchema{
+      owner: Encoding.to_hex(input_address),
+      payments: [
+        %WatcherInfoAPI.Model.TransactionCreatePayments{
+          amount: amount_in_wei,
+          currency: Encoding.to_hex(currency),
+          owner: Encoding.to_hex(output_address)
+        }
+      ],
+      fee: %WatcherInfoAPI.Model.TransactionCreateFee{currency: Encoding.to_hex(currency)}
+    }
+
+    {:ok, response} =
+      WatcherInfoAPI.Api.Transaction.create_transaction(LoadTest.Connection.WatcherInfo.client(), transaction)
+
+    result = Jason.decode!(response.body)["data"]
+
+    process_transaction_result(result)
   end
 
   defp submit_typed(typed_data_signed) do

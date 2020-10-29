@@ -24,6 +24,7 @@ defmodule LoadTest.ChildChain.Transaction do
   alias ExPlasma.Utxo
   alias LoadTest.Connection.ChildChain, as: Connection
   alias LoadTest.Service.Sync
+  alias LoadTest.Service.Metrics
 
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 5_712_388
@@ -212,26 +213,33 @@ defmodule LoadTest.ChildChain.Transaction do
   end
 
   defp do_submit_tx(tx) do
-    {:ok, response} =
-      tx
-      |> Transaction.encode()
-      |> do_submit_tx_rpc()
+    Metrics.run_with_metrics(
+      fn ->
+        {:ok, response} =
+          tx
+          |> Transaction.encode()
+          |> do_submit_tx_rpc()
 
-    response
-    |> Map.fetch!(:body)
-    |> Jason.decode!()
-    |> Map.fetch!("data")
-    |> case do
-      %{"blknum" => blknum, "txindex" => txindex} ->
-        _ = Logger.debug("[Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}")
-        {:ok, {blknum, txindex}}
+        response
+        |> Map.fetch!(:body)
+        |> Jason.decode!()
+        |> Map.fetch!("data")
+        |> case do
+          %{"blknum" => blknum, "txindex" => txindex} ->
+            _ = Logger.debug("[Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}")
+            {:ok, {blknum, txindex}}
 
-      %{"code" => reason} ->
-        _ =
-          Logger.warn("Transaction submission has failed, reason: #{inspect(reason)}, tx inputs: #{inspect(tx.inputs)}")
+          %{"code" => reason} ->
+            _ =
+              Logger.warn(
+                "Transaction submission has failed, reason: #{inspect(reason)}, tx inputs: #{inspect(tx.inputs)}"
+              )
 
-        {:error, reason}
-    end
+            {:error, reason}
+        end
+      end,
+      "Childchain.submit"
+    )
   end
 
   @spec do_submit_tx_rpc(binary) :: {:ok, map} | {:error, any}

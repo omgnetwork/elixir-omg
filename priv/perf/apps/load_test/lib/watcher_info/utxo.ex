@@ -22,6 +22,7 @@ defmodule LoadTest.WatcherInfo.Utxo do
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Sync
   alias LoadTest.Utils.Encoding
+  alias LoadTest.WatcherInfo.Client
 
   @poll_timeout 60_000
 
@@ -37,15 +38,11 @@ defmodule LoadTest.WatcherInfo.Utxo do
   end
 
   defp fetch_utxos(sender, utxo) do
-    client = WatcherInfo.client()
-    body = %WatcherInfoAPI.Model.AddressBodySchema1{address: Encoding.to_hex(sender.addr)}
-    account_utxos = WatcherInfoAPI.Api.Account.account_get_utxos(client, body)
+    address = Encoding.to_hex(sender.addr)
 
-    case account_utxos do
+    case Client.get_utxos(address) do
       {:ok, result} ->
-        result.body
-        |> Jason.decode!()
-        |> find_utxo(utxo)
+        find_utxo(result, utxo)
 
       other ->
         other
@@ -70,26 +67,27 @@ defmodule LoadTest.WatcherInfo.Utxo do
 
   defp do_find_utxo(response, utxo) do
     found_utxo =
-      Enum.find(response["data"], fn %{
-                                       "amount" => amount,
-                                       "blknum" => blknum,
-                                       "currency" => currency,
-                                       "oindex" => oindex,
-                                       "otype" => otype,
-                                       "owner" => owner,
-                                       "txindex" => txindex
-                                     } ->
-        current_utxo = %ExPlasma.Utxo{
-          amount: amount,
-          blknum: blknum,
-          currency: Encoding.to_binary(currency),
-          oindex: oindex,
-          output_type: otype,
-          owner: Encoding.to_binary(owner),
-          txindex: txindex
-        }
+      Enum.find(response["data"], fn
+        %{
+          "amount" => amount,
+          "blknum" => blknum,
+          "currency" => currency,
+          "oindex" => oindex,
+          "otype" => otype,
+          "owner" => owner,
+          "txindex" => txindex
+        } ->
+          current_utxo = %ExPlasma.Utxo{
+            amount: amount,
+            blknum: blknum,
+            currency: Encoding.to_binary(currency),
+            oindex: oindex,
+            output_type: otype,
+            owner: Encoding.to_binary(owner),
+            txindex: txindex
+          }
 
-        current_utxo == utxo
+          current_utxo == utxo
       end)
 
     case found_utxo do

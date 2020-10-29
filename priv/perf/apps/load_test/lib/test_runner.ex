@@ -33,15 +33,22 @@ defmodule LoadTest.TestRunner do
 
   It fetches all configuration params from env vars.
   """
+  alias LoadTest.Service.Metrics
   alias LoadTest.TestRunner.Config
 
   def run() do
-    {runner_module, config, property} = Config.parse()
-    result = Chaperon.run_load_test(runner_module, print_results: true, config: config)
+    {:ok, _} = Metrics.start_link()
 
-    # / 1 is to convert result to float (mean is float, percentiles are integers)[O
-    case result.metrics["error_rate"][property] / 1 do
-      0.0 ->
+    {runner_module, config, property} = Config.parse()
+
+    Chaperon.run_load_test(runner_module, print_results: true, config: config) |> IO.inspect(limit: :infinity)
+
+    metrics = Metrics.metrics()
+
+    IO.inspect(metrics, limit: :infinity)
+
+    case metrics["test"][:failed_requests] do
+      0 ->
         System.halt(0)
 
       _ ->
