@@ -14,7 +14,7 @@
 
 defmodule LoadTest.WatcherInfo.Balance do
   @moduledoc """
-  Functions related to balanes on the childchain
+  Functions related to balances on the childchain
   """
   require Logger
 
