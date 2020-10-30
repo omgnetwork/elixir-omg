@@ -13,11 +13,23 @@
 # limitations under the License.
 
 defmodule LoadTest.Runner.DepositsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
 
   @moduletag :deposits
 
   alias ExPlasma.Encoding
+  alias LoadTest.Service.Metrics
+
+  setup do
+    value = Application.get_env(:load_test, :record_metrics)
+
+    Application.put_env(:load_test, :record_metrics, true)
+    {:ok, _pid} = Metrics.start_link()
+
+    on_exit(fn ->
+      Application.put_env(:load_test, :record_metrics, value)
+    end)
+  end
 
   test "deposits test" do
     token = Encoding.to_binary("0x0000000000000000000000000000000000000000")
@@ -41,8 +53,10 @@ defmodule LoadTest.Runner.DepositsTest do
       timeout: :infinity
     }
 
-    result = Chaperon.run_load_test(LoadTest.Runner.Deposits, config: config)
+    Chaperon.run_load_test(LoadTest.Runner.Deposits, config: config)
 
-    assert result.metrics["error_rate"][:mean] == 0.0
+    metrics = Metrics.metrics()
+
+    assert metrics["test_success"][:total_count] == 20
   end
 end

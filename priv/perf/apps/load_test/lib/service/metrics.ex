@@ -13,6 +13,28 @@
 # limitations under the License.
 
 defmodule LoadTest.Service.Metrics do
+  use Histogrex
+
+  template(:metrics, min: 1, max: 100_000_000, precision: 2)
+
+  @percentiles [
+    10.0,
+    20.0,
+    30.0,
+    40.0,
+    50.0,
+    60.0,
+    75.0,
+    80.0,
+    85.0,
+    90.0,
+    95.0,
+    99.0,
+    99.9,
+    99.99,
+    99.999
+  ]
+
   def run_with_metrics(func, property) do
     case Application.get_env(:load_test, :record_metrics) do
       true -> do_run_with_metrics(func, property)
@@ -21,7 +43,20 @@ defmodule LoadTest.Service.Metrics do
   end
 
   def metrics() do
-    GenServer.call(__MODULE__, :state)
+    reduce(%{}, fn {name, iterator}, metrics ->
+      data =
+        @percentiles
+        |> Enum.map(&{{:percentile, &1}, value_at_quantile(iterator, &1)})
+        |> Enum.into(%{})
+        |> Map.merge(%{
+          :total_count => total_count(iterator),
+          :min => min(iterator),
+          :mean => mean(iterator),
+          :max => max(iterator)
+        })
+
+      Map.put(metrics, name, data)
+    end)
   end
 
   defp do_run_with_metrics(func, property) do
@@ -37,76 +72,10 @@ defmodule LoadTest.Service.Metrics do
   end
 
   defp record_success(property, time) do
-    GenServer.cast(__MODULE__, {:success, property, time})
+    record!(:metrics, property <> "_success", time)
   end
 
   defp record_failure(property, time) do
-    GenServer.cast(__MODULE__, {:failure, property, time})
-  end
-
-  def start_link do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
-  end
-
-  def init(_) do
-    {:ok, %{}}
-  end
-
-  def handle_call(:state, _from, state) do
-    {:reply, state, state}
-  end
-
-  def handle_cast({:success, property, time}, state) do
-    default_value = %{
-      total_requests: 1,
-      successful_requests: 1,
-      failed_requests: 0,
-      average_successful_time: time,
-      average_failed_time: 0
-    }
-
-    new_state =
-      Map.update(state, property, default_value, fn existing_value ->
-        new_successful_requests = existing_value.successful_requests + 1
-
-        new_average_successful_time =
-          (existing_value.successful_requests * existing_value.average_successful_time + time) / new_successful_requests
-
-        %{
-          existing_value
-          | average_successful_time: new_average_successful_time,
-            total_requests: existing_value.total_requests + 1,
-            successful_requests: new_successful_requests
-        }
-      end)
-
-    {:noreply, new_state}
-  end
-
-  def handle_cast({:failure, property, time}, state) do
-    default_value = %{
-      total_requests: 1,
-      successful_requests: 0,
-      failed_requests: 1,
-      average_successful_time: 0,
-      average_failed_time: time
-    }
-
-    new_state =
-      Map.update(state, property, default_value, fn existing_value ->
-        new_failed_requests = existing_value.failed_requests + 1
-
-        new_average_failed_time =
-          (existing_value.failed_requests * existing_value.average_failed_time + time) / new_failed_requests
-
-        %{
-          existing_value
-          | average_failed_time: new_average_failed_time,
-            total_requests: existing_value.total_requests + 1,
-            failed_requests: new_failed_requests
-        }
-      end)
-
-    {:noreply, new_state}
+    record!(:metrics, property <> "_failure", time)
   end
 end

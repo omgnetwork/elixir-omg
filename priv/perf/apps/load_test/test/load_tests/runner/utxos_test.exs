@@ -13,9 +13,22 @@
 # limitations under the License.
 
 defmodule LoadTest.Runner.UtxosTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
+
+  alias LoadTest.Service.Metrics
 
   @moduletag :utxos
+
+  setup do
+    value = Application.get_env(:load_test, :record_metrics)
+
+    Application.put_env(:load_test, :record_metrics, true)
+    {:ok, _pid} = Metrics.start_link()
+
+    on_exit(fn ->
+      Application.put_env(:load_test, :record_metrics, value)
+    end)
+  end
 
   test "deposits test" do
     token = "0x0000000000000000000000000000000000000000"
@@ -35,8 +48,10 @@ defmodule LoadTest.Runner.UtxosTest do
       timeout: :infinity
     }
 
-    result = Chaperon.run_load_test(LoadTest.Runner.Utxos, config: config)
+    Chaperon.run_load_test(LoadTest.Runner.Utxos, config: config)
 
-    assert result.metrics["error_rate"][:mean] == 0.0
+    metrics = Metrics.metrics()
+
+    assert metrics["test_success"][:total_count] == 20
   end
 end

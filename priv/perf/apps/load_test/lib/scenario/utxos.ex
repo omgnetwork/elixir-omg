@@ -57,7 +57,7 @@ defmodule LoadTest.Scenario.Utxos do
         fn ->
           do_create_utxos_and_make_assertions(session)
         end,
-        "utxo_test"
+        "test"
       )
 
     session
