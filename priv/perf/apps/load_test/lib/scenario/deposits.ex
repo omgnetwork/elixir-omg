@@ -63,7 +63,7 @@ defmodule LoadTest.Scenario.Deposits do
 
         session
         |> Session.add_metric("error_rate", 1)
-        |> Session.add_error(:test, error)
+        |> Session.add_error(:error, error)
     end
   end
 
