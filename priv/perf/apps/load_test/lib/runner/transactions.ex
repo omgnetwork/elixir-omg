@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Runner.Utxos do
+defmodule LoadTest.Runner.Transactions do
   @moduledoc """
-  Utxos tests runner.
+  Transactions tests runner.
   """
   use Chaperon.LoadTest
 
   def scenarios do
     [
-      {{1, LoadTest.Scenario.Utxos}, %{}}
+      {{1, LoadTest.Scenario.Transactions}, %{}}
     ]
   end
 end

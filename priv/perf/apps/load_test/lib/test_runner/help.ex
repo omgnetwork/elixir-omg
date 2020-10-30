@@ -23,7 +23,7 @@ defmodule LoadTest.TestRunner.Help do
 
   `LoadTest.TestRunner` accepts three required parameters:
 
-  1. Test name (`utxos` or `deposits`)
+  1. Test name (`transactions` or `deposits`)
   2. Rate in tests per second
   3. Period in seconds
 
@@ -74,7 +74,7 @@ defmodule LoadTest.TestRunner.Help do
     - transferred_amount. default value is 100_000_000_000_000_000
     - gas_price. default value is 2_000_000_000
     """,
-    "utxos" => """
+    "transactions" => """
 
     A single iteration of this test consists of the following steps:
 

@@ -19,7 +19,7 @@ defmodule LoadTest.Service.Metrics do
 
   use Histogrex
 
-  template(:metrics, min: 1, max: 100_000_000, precision: 2)
+  template(:metrics, min: 1, max: 100_000_000_000, precision: 2)
 
   @percentiles [
     10.0,

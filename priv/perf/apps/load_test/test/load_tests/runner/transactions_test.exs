@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Runner.UtxosTest do
+defmodule LoadTest.Runner.TransactionsTest do
   use ExUnit.Case, async: false
 
   alias LoadTest.Service.Metrics
@@ -48,7 +48,7 @@ defmodule LoadTest.Runner.UtxosTest do
       timeout: :infinity
     }
 
-    Chaperon.run_load_test(LoadTest.Runner.Utxos, config: config)
+    Chaperon.run_load_test(LoadTest.Runner.Transactions, config: config)
 
     metrics = Metrics.metrics()
 

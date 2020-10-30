@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Scenario.Utxos do
+defmodule LoadTest.Scenario.Transactions do
   @moduledoc """
-  The scenario for utxos tests:
+  The scenario for transactions tests:
 
   1. It creates two accounts: the sender and the receiver.
   2. It funds sender with the specified amount on the childchain, checks utxos and balance.

@@ -21,7 +21,7 @@ defmodule LoadTest.TestRunner.Config do
 
   @tests %{
     "deposits" => LoadTest.Runner.Deposits,
-    "utxos" => LoadTest.Runner.Utxos
+    "transactions" => LoadTest.Runner.Transactions
   }
 
   @configs %{
@@ -32,7 +32,7 @@ defmodule LoadTest.TestRunner.Config do
       transferred_amount: 100_000_000_000_000_000,
       gas_price: 2_000_000_000
     },
-    "utxos" => %{
+    "transactions" => %{
       token: "0x0000000000000000000000000000000000000000",
       initial_amount: 760,
       fee: 75
