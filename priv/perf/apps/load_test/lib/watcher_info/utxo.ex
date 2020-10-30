@@ -18,7 +18,6 @@ defmodule LoadTest.WatcherInfo.Utxo do
   """
   require Logger
 
-  alias LoadTest.Connection.WatcherInfo
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Sync
   alias LoadTest.Utils.Encoding

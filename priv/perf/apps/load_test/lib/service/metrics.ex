@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule LoadTest.Service.Metrics do
+  @moduledoc """
+  Functions for aggregating metrics.
+  """
+
   use Histogrex
 
   template(:metrics, min: 1, max: 100_000_000, precision: 2)

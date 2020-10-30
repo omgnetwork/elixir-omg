@@ -23,8 +23,8 @@ defmodule LoadTest.ChildChain.Transaction do
   alias ExPlasma.Transaction
   alias ExPlasma.Utxo
   alias LoadTest.Connection.ChildChain, as: Connection
-  alias LoadTest.Service.Sync
   alias LoadTest.Service.Metrics
+  alias LoadTest.Service.Sync
 
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 5_712_388

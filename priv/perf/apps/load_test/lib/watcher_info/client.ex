@@ -13,6 +13,9 @@
 # limitations under the License.
 
 defmodule LoadTest.WatcherInfo.Client do
+  @moduledoc """
+    Interface to Watcher info which collects metrics.
+  """
   alias LoadTest.Service.Metrics
   alias WatcherInfoAPI.Api.Account
 
