@@ -50,8 +50,8 @@ defmodule LoadTest.TestRunner do
     # credo:disable-for-next-line
     IO.inspect(metrics, limit: :infinity)
 
-    case metrics["test"][:failed_requests] do
-      0 ->
+    case metrics["test_failure"] do
+      nil ->
         System.halt(0)
 
       _ ->
