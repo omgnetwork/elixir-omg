@@ -233,3 +233,50 @@ CreateTransactionSchema:
              
           typed_data:
             $ref: '#/Eip712SignRequestSchema'
+
+MergeTransactionSchema:
+  type: object
+  properties:
+    transactions:
+      type: array
+      items:
+        type: object
+        properties:
+          inputs:
+            type: array
+            items:
+              $ref: '#/TransactionOutputSchema'
+          outputs:
+            type: array
+            items:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  format: int256
+                currency:
+                  type: string
+                   
+                owner:
+                  type: string
+                   
+          fee:
+            type: object
+            properties:
+              amount:
+                type: integer
+                format: int256
+              currency:
+                type: string
+                 
+          metadata:
+            type: string
+             
+          txbytes:
+            type: string
+             
+          sign_hash:
+            type: string
+             
+          typed_data:
+            $ref: '#/Eip712SignRequestSchema'
