@@ -889,6 +889,10 @@ jobs:
       - checkout
       - docker_login
       - run:
+          name: Setup data dir
+          command: |
+            [ -d data ] || mkdir data && chmod 777 data
+      - run:
           name: Start daemon services
           command: |
             cd priv/perf
