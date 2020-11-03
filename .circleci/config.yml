@@ -888,6 +888,7 @@ jobs:
     steps:
       - checkout
       - docker_login
+      - make_docker_images
       - run:
           name: Setup data dir
           command: |
