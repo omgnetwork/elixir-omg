@@ -903,7 +903,7 @@ jobs:
       - run:
           command: |
             export $(cat ./localchain_contract_addresses.env | xargs) &&
-            docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 10 10
+            docker run -it --env-file ./localchain_contract_addresses.env --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 10 10
 
   publish_watcher_info:
     machine:
