@@ -1025,12 +1025,12 @@ workflows:
       - test_barebone_release
   build-test-deploy:
     jobs:
-      # - build:
-      #     filters: &all_branches_and_tags
-      #       branches:
-      #         only: /.+/
-      #       tags:
-      #         only: /.+/
+      - build:
+          filters: &all_branches_and_tags
+            branches:
+              only: /.+/
+            tags:
+              only: /.+/
       # - test_barebone_release:
       #     filters: *all_branches_and_tags
       # - notify_services:
@@ -1085,7 +1085,7 @@ workflows:
       #     filters: *all_branches_and_tags
       # - watcher_mix_based_childchain:
       #     filters: *all_branches_and_tags
-      - run_perf_cli_smoke_test
+      - run_perf_cli_smoke_test:
           filters: *all_branches_and_tags
       # - publish_watcher:
       #     requires:
