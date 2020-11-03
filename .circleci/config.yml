@@ -889,12 +889,16 @@ jobs:
       - checkout
       - docker_login
       - run:
-          name: Start geth, postgres, feefeed and pull in blockchain snapshot
-          command: make start-services
-          background: true
+          name: Start daemon services
+          command: |
+            cd priv/perf
+            make start-services
       - run: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
       - run: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
-      - run: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 10 10
+      - run:
+          command: |
+            export $(cat ./localchain_contract_addresses.env | xargs) &&
+            docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 10 10
 
   publish_watcher_info:
     machine:
