@@ -880,6 +880,22 @@ jobs:
       - run: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
       - run: IMAGE_NAME=$PERF_IMAGE_NAME sh .circleci/ci_publish.sh
 
+  run_perf_cli_smoke_test:
+    machine:
+      image: ubuntu-1604:201903-01
+    environment:
+      PERF_IMAGE_NAME: "omisego/perf:ci"
+    steps:
+      - checkout
+      - docker_login
+      - run:
+          name: Start geth, postgres, feefeed and pull in blockchain snapshot
+          command: make start-services
+          background: true
+      - run: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
+      - run: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
+      - run: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 10 10
+
   publish_watcher_info:
     machine:
       image: ubuntu-1604:201903-01
