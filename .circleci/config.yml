@@ -1082,8 +1082,6 @@ workflows:
           filters: *all_branches_and_tags
       - watcher_mix_based_childchain:
           filters: *all_branches_and_tags
-      - run_perf_cli_smoke_test:
-          filters: *all_branches_and_tags
       - publish_watcher:
           requires:
             [
