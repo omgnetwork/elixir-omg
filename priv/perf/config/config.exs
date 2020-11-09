@@ -46,4 +46,8 @@ config :logger, :console,
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id, :trace_id, :span_id]
 
+config :statix,
+  host: "localhost",
+  port: 8125
+
 import_config "#{Mix.env()}.exs"

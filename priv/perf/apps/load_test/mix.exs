@@ -32,6 +32,7 @@ defmodule LoadTest.MixProject do
     [
       {:briefly, "~> 0.3"},
       {:chaperon, "~> 0.3.1"},
+      {:statix, "~> 1.4"},
       {:histogrex, "~> 0.0.5"},
       {:tesla, "~> 1.3.0"},
       {:httpoison, "~> 1.6.2", override: true},
