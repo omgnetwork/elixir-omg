@@ -26,7 +26,7 @@ defmodule OMG.Utils.HttpRPC.Adapter do
   """
   def rpc_post(body, path, url, opts \\ []) do
     addr = "#{url}/#{path}"
-    headers = [{"content-type", "application/json"}, {"user-agent", user_agent(opts)}]
+    headers = [{"content-type", "application/json"}, {"X-Watcher-Version", x_watcher_version(opts)}]
 
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
@@ -106,8 +106,8 @@ defmodule OMG.Utils.HttpRPC.Adapter do
     |> Map.new()
   end
 
-  defp user_agent(opts) do
+  defp x_watcher_version(opts) do
     app_name = Keyword.fetch!(opts, :app_name)
-    "#{app_name}/#{AppVersion.version(app_name)}"
+    "#{inspect(AppVersion.version(app_name))}"
   end
 end
