@@ -20,6 +20,8 @@ defmodule OMG.WatcherRPC.Web.Response do
   For the generic response, see `OMG.Utils.HttpRPC.Response`.
   """
 
+  alias OMG.Utils.AppVersion
+
   @app :omg_watcher_rpc
 
   @doc """
@@ -28,12 +30,8 @@ defmodule OMG.WatcherRPC.Web.Response do
   @spec add_app_infos(map()) :: %{version: String.t(), service_name: String.t()}
   def add_app_infos(response) do
     response
-    |> Map.put(:version, version())
+    |> Map.put(:version, AppVersion.version(@app))
     |> Map.put(:service_name, service_name())
-  end
-
-  defp version() do
-    OMG.Utils.HttpRPC.Response.version(@app)
   end
 
   defp service_name() do

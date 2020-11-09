@@ -17,14 +17,16 @@ defmodule OMG.Utils.HttpRPC.Adapter do
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.Utils.AppVersion
+
   require Logger
 
   @doc """
     Makes HTTP POST request to the API
   """
-  def rpc_post(body, path, url) do
+  def rpc_post(body, path, url, opts \\ []) do
     addr = "#{url}/#{path}"
-    headers = [{"content-type", "application/json"}]
+    headers = [{"content-type", "application/json"}, {"user-agent", user_agent(opts)}]
 
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
@@ -83,5 +85,10 @@ defmodule OMG.Utils.HttpRPC.Adapter do
     data
     |> Stream.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
     |> Map.new()
+  end
+
+  defp user_agent(opts) do
+    app_name = Keyword.fetch!(opts, :app_name)
+    "#{app_name}/#{AppVersion.version(app_name)}"
   end
 end
