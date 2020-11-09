@@ -12,38 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherInfo.HttpRPC.AdapterTest do
+defmodule OMG.Utils.HttpRPC.AdapterTest do
   use ExUnit.Case, async: true
 
-  alias OMG.WatcherInfo.HttpRPC.Adapter
+  alias OMG.Utils.HttpRPC.Adapter
 
-  describe "get_unparsed_response_body/1" do
+  describe "get_response_body_no_atoms/1" do
     test "returns an unparsed body when successful" do
       body = "{\r\n  \"success\": true,\r\n  \"data\": {\r\n    \"test\": \"something\"\r\n  }\r\n}"
-      assert {:ok, response} = Adapter.get_unparsed_response_body(%HTTPoison.Response{status_code: 200, body: body})
+      assert {:ok, response} = Adapter.get_response_body_no_atoms(%HTTPoison.Response{status_code: 200, body: body})
       assert response == %{"test" => "something"}
     end
 
     test "returns a `client_error` error with the data when failed" do
       body = "{\r\n  \"success\": false,\r\n  \"data\": {\r\n    \"test\": \"something\"\r\n  }\r\n}"
-      assert {:error, response} = Adapter.get_unparsed_response_body(%HTTPoison.Response{status_code: 200, body: body})
+      assert {:error, response} = Adapter.get_response_body_no_atoms(%HTTPoison.Response{status_code: 200, body: body})
       assert response == {:client_error, %{"test" => "something"}}
     end
 
     test "returns a `malformed_response` error with the data when the body is not recognized" do
       body = "{\r\n  \"malformed\": \"body\"\r\n}"
-      assert {:error, response} = Adapter.get_unparsed_response_body(%HTTPoison.Response{status_code: 200, body: body})
+      assert {:error, response} = Adapter.get_response_body_no_atoms(%HTTPoison.Response{status_code: 200, body: body})
       assert response == {:malformed_response, %{"malformed" => "body"}}
     end
 
     test "returns a `childchain_unreachable` error when `econnrefused` is returned" do
       assert {:error, :childchain_unreachable} =
-               Adapter.get_unparsed_response_body({:error, %HTTPoison.Error{id: nil, reason: :econnrefused}})
+               Adapter.get_response_body_no_atoms({:error, %HTTPoison.Error{id: nil, reason: :econnrefused}})
     end
 
     test "returns the HTTPoison error reason when present" do
-      assert {:error, :a_reason} =
-               Adapter.get_unparsed_response_body({:error, %HTTPoison.Error{id: nil, reason: :a_reason}})
+      assert {:error, {server_error, :a_reason}} =
+               Adapter.get_response_body_no_atoms({:error, %HTTPoison.Error{id: nil, reason: :a_reason}})
     end
   end
 
@@ -58,12 +58,6 @@ defmodule OMG.WatcherInfo.HttpRPC.AdapterTest do
       body = "{\r\n  \"success\": false,\r\n  \"data\": {\r\n    \"test\": \"something\"\r\n  }\r\n}"
       assert {:error, response} = Adapter.get_response_body(%HTTPoison.Response{status_code: 200, body: body})
       assert response == {:client_error, %{"test" => "something"}}
-    end
-
-    test "returns a `malformed_response` error with the data when the body is not recognized" do
-      body = "{\r\n  \"malformed\": \"body\"\r\n}"
-      assert {:error, response} = Adapter.get_response_body(%HTTPoison.Response{status_code: 200, body: body})
-      assert response == {:malformed_response, %{"malformed" => "body"}}
     end
   end
 end

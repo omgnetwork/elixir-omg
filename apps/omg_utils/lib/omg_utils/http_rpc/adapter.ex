@@ -42,24 +42,24 @@ defmodule OMG.Utils.HttpRPC.Adapter do
   @doc """
   Retrieves body from response structure but don't deserialize it.
   """
-  def get_unparsed_response_body({:ok, %HTTPoison.Response{} = response}),
-    do: get_unparsed_response_body(response)
+  def parse_body({:ok, %HTTPoison.Response{} = response}),
+    do: parse_body(response)
 
-  def get_unparsed_response_body(%HTTPoison.Response{status_code: 200, body: body}),
+  def parse_body(%HTTPoison.Response{status_code: 200, body: body}),
     do: {:ok, body}
 
-  def get_unparsed_response_body(%HTTPoison.Response{body: error}),
+  def parse_body(%HTTPoison.Response{body: error}),
     do: {:error, {:client_error, error}}
 
-  def get_unparsed_response_body({:error, %HTTPoison.Error{reason: :econnrefused}}) do
-    {:error, :host_unreachable}
+  def parse_body({:error, %HTTPoison.Error{reason: :econnrefused}}) do
+    {:error, :childchain_unreachable}
   end
 
-  def get_unparsed_response_body({:error, %HTTPoison.Error{reason: reason}}) do
+  def parse_body({:error, %HTTPoison.Error{reason: reason}}) do
     {:error, {:server_error, reason}}
   end
 
-  def get_unparsed_response_body(error), do: error
+  def parse_body(error), do: error
 
   @doc """
   Retrieves body from response structure. When response is successful
@@ -68,12 +68,31 @@ defmodule OMG.Utils.HttpRPC.Adapter do
   @spec get_response_body(HTTPoison.Response.t() | {:error, HTTPoison.Error.t()}) ::
           {:ok, map()} | {:error, atom() | tuple() | HTTPoison.Error.t()}
   def get_response_body(http_response) do
-    with {:ok, body} <- get_unparsed_response_body(http_response),
+    with {:ok, body} <- parse_body(http_response),
          {:ok, response} <- Jason.decode(body),
          %{"success" => true, "data" => data} <- response do
       {:ok, convert_keys_to_atoms(data)}
     else
       %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
+      error -> error
+    end
+  end
+
+  @doc """
+  Retrieves body from response structure. When response is successful
+  the structure in body is known, so we can try to deserialize it.
+  Use when keys in response JSON can not be converted to atoms
+  """
+  @spec get_response_body_no_atoms(HTTPoison.Response.t() | {:error, HTTPoison.Error.t()}) ::
+          {:ok, map()} | {:error, atom() | tuple() | HTTPoison.Error.t()}
+  def get_response_body_no_atoms(http_response) do
+    with {:ok, body} <- parse_body(http_response),
+         {:ok, response} <- Jason.decode(body),
+         %{"success" => true, "data" => data} <- response do
+      {:ok, data}
+    else
+      %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
+      response when is_map(response) -> {:error, {:malformed_response, response}}
       error -> error
     end
   end

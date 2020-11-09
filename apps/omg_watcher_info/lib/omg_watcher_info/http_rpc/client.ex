@@ -44,8 +44,8 @@ defmodule OMG.WatcherInfo.HttpRPC.Client do
              | {:malformed_response, any() | {:error, :invalid}}}
   def get_fees(params, url) do
     params
-    |> Adapter.rpc_post("fees.all", url)
-    |> Adapter.get_unparsed_response_body()
+    |> Adapter.rpc_post("fees.all", url, app_name: :omg_watcher_info)
+    |> Adapter.get_response_body_no_atoms()
   end
 
   @doc """
@@ -57,7 +57,7 @@ defmodule OMG.WatcherInfo.HttpRPC.Client do
   defp call(params, path, url),
     do:
       params
-      |> Adapter.rpc_post(path, url, app_name: :watcher_info)
+      |> Adapter.rpc_post(path, url, app_name: :omg_watcher_info)
       |> Adapter.get_response_body()
       |> decode_response()
 

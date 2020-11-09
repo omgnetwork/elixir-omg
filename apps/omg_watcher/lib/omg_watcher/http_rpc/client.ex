@@ -41,7 +41,7 @@ defmodule OMG.Watcher.HttpRPC.Client do
   def submit(tx, url), do: call(%{transaction: Encoding.to_hex(tx)}, "transaction.submit", url)
 
   defp call(params, path, url),
-    do: Adapter.rpc_post(params, path, url, app_name: :watcher) |> Adapter.get_response_body() |> decode_response()
+    do: Adapter.rpc_post(params, path, url, app_name: :omg_watcher) |> Adapter.get_response_body() |> decode_response()
 
   # Translates response's body to known elixir structure, either block or tx submission response or error.
   defp decode_response({:ok, %{transactions: transactions, blknum: number, hash: hash}}) do
