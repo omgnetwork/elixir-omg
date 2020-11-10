@@ -19,9 +19,9 @@ defmodule LoadTest.Service.Datadog do
 
   # we want to override Statix
   # because we don't want to send metrics in unittests
-  case Application.get_env(:load_test, :record_metrics) do
-    true -> use LoadTest.Service.Datadog.Statix
-    _ -> use Statix, runtime_config: true
+  case Application.get_env(:load_test, :record_metrics) |> IO.inspect() do
+    true -> use Statix, runtime_config: true
+    _ -> use LoadTest.Service.Datadog.Statix
   end
 
   use GenServer
@@ -32,12 +32,12 @@ defmodule LoadTest.Service.Datadog do
   def init(_opts) do
     _ = Process.flag(:trap_exit, true)
     _ = Logger.info("Starting #{inspect(__MODULE__)} and connecting to Datadog.")
-    __MODULE__.connect() |> IO.inspect()
 
-    __MODULE__.gauge("hey", "test") |> IO.inspect()
+    :ok = __MODULE__.connect()
 
-    _ = Logger.info("Connection opened #{inspect(current_conn())}")
-    {:ok, current_conn()}
+    _ = Logger.info("Datadog Connection for Statix was  opened")
+
+    {:ok, []}
   end
 
   def handle_info({:EXIT, port, reason}, %Statix.Conn{sock: __MODULE__} = state) do

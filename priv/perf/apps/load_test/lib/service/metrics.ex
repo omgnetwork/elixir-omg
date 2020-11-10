@@ -19,6 +19,8 @@ defmodule LoadTest.Service.Metrics do
 
   use Histogrex
 
+  alias LoadTest.Service.Datadog
+
   template(:metrics, min: 1, max: 100_000_000_000, precision: 2)
 
   @percentiles [
@@ -66,20 +68,31 @@ defmodule LoadTest.Service.Metrics do
   defp do_run_with_metrics(func, property) do
     {time, result} = :timer.tc(func)
 
+    type = Application.get_env(:load_test, :metrics_type)
+    time_ms = time / 1_000
+
     case result do
-      {:ok, _} -> record_success(property, time)
-      :ok -> record_success(property, time)
-      _ -> record_failure(property, time)
+      {:ok, _} -> record_success(property, time_ms, type)
+      :ok -> record_success(property, time_ms, type)
+      _ -> record_failure(property, time_ms, type)
     end
 
     result
   end
 
-  defp record_success(property, time) do
+  defp record_success(property, time, :local) do
     record!(:metrics, property <> "_success", time)
   end
 
-  defp record_failure(property, time) do
+  defp record_success(property, time, :datadog) do
+    :ok = Datadog.gauge(property <> "_success", time)
+  end
+
+  defp record_failure(property, time, :local) do
     record!(:metrics, property <> "_failure", time)
+  end
+
+  defp record_failure(property, time, :datadog) do
+    :ok = Datadog.gauge(property <> "_failure", time)
   end
 end

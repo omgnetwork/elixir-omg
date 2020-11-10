@@ -31,7 +31,8 @@ config :load_test,
   fee_amount: "FEE_AMOUNT" |> System.get_env("75") |> String.to_integer(),
   deposit_finality_margin: "DEPOSIT_FINALITY_MARGIN" |> System.get_env("10") |> String.to_integer(),
   gas_price: "GAS_PRICE" |> System.get_env("2000000000") |> String.to_integer(),
-  record_metrics: true
+  record_metrics: true,
+  metrics_type: :datadog
 
 config :ex_plasma,
   eip_712_domain: [
@@ -48,6 +49,7 @@ config :logger, :console,
 
 config :statix,
   host: "localhost",
-  port: 8125
+  port: 8125,
+  tags: ["env:perf_test"]
 
 import_config "#{Mix.env()}.exs"
