@@ -668,6 +668,9 @@ jobs:
       - docker_login
       - make_docker_images
       - run:
+          name: Build perf docker image
+          command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
+      - run:
           name: Start daemon services
           command: |
             cd priv/perf
@@ -687,9 +690,6 @@ jobs:
             make init
             export $(cat ../../localchain_contract_addresses.env | xargs)
             make test
-      - run:
-          name: Build perf docker image
-          command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
       - run:
           name: Show help information
           command: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
