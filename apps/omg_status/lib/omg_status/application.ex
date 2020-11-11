@@ -24,6 +24,7 @@ defmodule OMG.Status.Application do
   alias OMG.Status.Configuration
   alias OMG.Status.DatadogEvent.AlarmConsumer
   alias OMG.Status.Metric.Datadog
+  alias OMG.Status.Metric.Telemetry
   alias OMG.Status.Metric.VmstatsSink
 
   def start(_type, _args) do
@@ -39,22 +40,33 @@ defmodule OMG.Status.Application do
       else
         [
           {OMG.Status.Monitor.StatsdMonitor, [alarm_module: Alarm, child_module: Datadog]},
-          {OMG.Status.Monitor.MemoryMonitor,
-           [
-             alarm_module: Alarm,
-             memsup_module: :memsup,
-             threshold: system_memory_high_threshold,
-             interval_ms: system_memory_check_interval_ms
-           ]},
+          {
+            OMG.Status.Monitor.MemoryMonitor,
+            [
+              alarm_module: Alarm,
+              memsup_module: :memsup,
+              threshold: system_memory_high_threshold,
+              interval_ms: system_memory_check_interval_ms
+            ]
+          },
+          {
+            Telemetry,
+            [
+              release: Application.get_env(:omg_status, :release),
+              current_version: Application.get_env(:omg_status, :current_version)
+            ]
+          },
           VmstatsSink.prepare_child(),
           {SpandexDatadog.ApiServer, spandex_datadog_options()},
-          {AlarmConsumer,
-           [
-             dd_alarm_handler: OMG.Status.DatadogEvent.AlarmHandler,
-             release: Application.get_env(:omg_status, :release),
-             current_version: Application.get_env(:omg_status, :current_version),
-             publisher: OMG.Status.Metric.Datadog
-           ]}
+          {
+            AlarmConsumer,
+            [
+              dd_alarm_handler: AlarmHandler,
+              release: Application.get_env(:omg_status, :release),
+              current_version: Application.get_env(:omg_status, :current_version),
+              publisher: Datadog
+            ]
+          }
         ]
       end
 
