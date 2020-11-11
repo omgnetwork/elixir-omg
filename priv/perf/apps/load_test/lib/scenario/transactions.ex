@@ -57,7 +57,7 @@ defmodule LoadTest.Scenario.Transactions do
         fn ->
           do_create_utxos_and_make_assertions(session)
         end,
-        "test"
+        "transactions_test"
       )
 
     session

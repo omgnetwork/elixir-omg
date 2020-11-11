@@ -59,7 +59,7 @@ defmodule LoadTest.Scenario.Deposits do
         fn ->
           do_create_deposit_and_make_assertions(session)
         end,
-        "test"
+        "deposits_test"
       )
 
     session

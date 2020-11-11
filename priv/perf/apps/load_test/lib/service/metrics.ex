@@ -85,7 +85,7 @@ defmodule LoadTest.Service.Metrics do
   end
 
   defp record_success(property, time, :datadog) do
-    :ok = Datadog.gauge(property <> "_success", time)
+    record_datadog(property, time, "_success")
   end
 
   defp record_failure(property, time, :local) do
@@ -93,6 +93,20 @@ defmodule LoadTest.Service.Metrics do
   end
 
   defp record_failure(property, time, :datadog) do
-    :ok = Datadog.gauge(property <> "_failure", time)
+    record_datadog(property, time, "_failure")
+  end
+
+  defp record_datadog(property, time, postfix) do
+    property_name = property <> postfix
+    total_property_name = property <> "_count"
+
+    :ok = Datadog.gauge(property_name, time)
+
+    increment_counter(property_name <> "_count")
+    increment_counter(total_property_name)
+  end
+
+  defp increment_counter(property) do
+    :ok = Datadog.increment(property, 1)
   end
 end
