@@ -39,7 +39,7 @@ defmodule LoadTest.MixProject do
       {:ex_plasma,
        git: "https://github.com/omisego/ex_plasma.git", ref: "9fcda87af92e9d19cf3253ecea66f9c2c8a0ccd0", override: true},
       {:telemetry, "~> 0.4.1"},
-
+      {:fake_server, "~> 2.1", only: :test},
       # Better adapter for tesla
       {:hackney, "~> 1.15.2"},
       {:watcher_info_api, in_umbrella: true},
