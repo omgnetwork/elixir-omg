@@ -13,7 +13,10 @@
 # limitations under the License.
 
 defmodule LoadTest.Service.Datadog.API do
+  require Logger
+
   @datadog_events_api_path "api/v1/events"
+  @datadog_monitor_resolve_path "monitor/bulk_resolve"
   @datadog_app_url "https://app.datadoghq.com"
   @base_tags ["perf"]
 
@@ -22,9 +25,15 @@ defmodule LoadTest.Service.Datadog.API do
     end_unix = DateTime.to_unix(end_datetime)
 
     case fetch_events(start_unix, end_unix, environment) do
-      {:ok, []} -> :ok
-      {:ok, events} -> {:error, events}
-      other -> other
+      {:ok, []} ->
+        :ok
+
+      {:ok, events} ->
+        resolve_monitors(events)
+        {:error, events}
+
+      other ->
+        other
     end
   end
 
@@ -36,15 +45,9 @@ defmodule LoadTest.Service.Datadog.API do
       unaggregated: true
     }
 
-    headers = %{
-      "Content-Type" => "application/json",
-      "DD-API-KEY" => api_key(),
-      "DD-APPLICATION-KEY" => app_key()
-    }
-
     url = api_url() <> @datadog_events_api_path <> "?" <> URI.encode_query(params)
 
-    case HTTPoison.get(url, headers) do
+    case HTTPoison.get(url, headers()) do
       {:ok, %{status_code: 200, body: body}} ->
         events =
           body
@@ -72,9 +75,51 @@ defmodule LoadTest.Service.Datadog.API do
       %{
         "title" => event["title"],
         "url" => @datadog_app_url <> event["url"],
-        "date" => date
+        "date" => date,
+        "monitor_id" => find_monitor_id(event["text"])
       }
     end)
+  end
+
+  defp resolve_monitors(events) do
+    params =
+      events
+      |> Enum.map(fn event -> event["monitor_id"] end)
+      |> Enum.filter(fn id -> !is_nil(id) end)
+      |> Enum.uniq()
+      |> Enum.map(fn id -> %{id => "ALL_GROUPS"} end)
+
+    payload = Jason.encode!(%{"resolve" => params})
+
+    url = api_url() <> @datadog_monitor_resolve_path
+
+    case HTTPoison.post(url, payload, headers()) do
+      {:ok, %{status_code: 200}} ->
+        :ok
+
+      {:ok, %{body: body}} ->
+        Logger.error("failed to resolve monitors #{inspect(body)}")
+        {:error, body}
+
+      {:error, error} = other ->
+        Logger.error("failed to resolve monitors #{inspect(error)}")
+        other
+    end
+  end
+
+  defp find_monitor_id(text) do
+    case String.split(text, ["monitors#", "?to_ts"], parts: 3) do
+      [_, id, _] -> String.to_integer(id)
+      _ -> nil
+    end
+  end
+
+  defp headers() do
+    %{
+      "Content-Type" => "application/json",
+      "DD-API-KEY" => api_key(),
+      "DD-APPLICATION-KEY" => app_key()
+    }
   end
 
   defp api_key() do
