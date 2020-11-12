@@ -35,13 +35,13 @@ defmodule OMG.Status.Configuration do
     Application.fetch_env!(@app, Tracer)[:disabled?]
   end
 
-  @spec release() :: atom() | no_return()
+  @spec release() :: atom() | nil
   def release() do
-    Application.fetch_env!(@app, :release)
+    Application.get_env(@app, :release)
   end
 
-  @spec current_version() :: String.t() | no_return()
+  @spec current_version() :: String.t() | nil
   def current_version() do
-    Application.fetch_env!(@app, :current_version)
+    Application.get_env(@app, :current_version)
   end
 end
