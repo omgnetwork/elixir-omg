@@ -182,12 +182,16 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
     |> assign(:error_msg, error.description)
   end
 
-  defp current_route(conn) do
-    # There isn't a way to get the route directly from a conn, so we need this roundabout way.
-    # We want the route instead of the request path because it's of limited cardinality for the metric tags.
-    case Phoenix.Router.route_info(router_module(conn), conn.method, conn.request_path, conn.host) do
+  # There isn't a way to get the route directly from a conn, so we need this roundabout way.
+  # We want the route instead of the request path because it's of limited cardinality for the metric tags.
+  defp current_route(%{private: %{phoenix_router: phoenix_router}} = conn) do
+    case Phoenix.Router.route_info(phoenix_router, conn.method, conn.request_path, conn.host) do
       %{:route => route} -> route
-      :error -> :error
+      :error -> nil
     end
+  end
+
+  defp current_route(_) do
+    nil
   end
 end
