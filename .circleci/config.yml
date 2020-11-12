@@ -619,6 +619,10 @@ jobs:
           command: |
             cd priv/cabbage
             make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+      - run:
+          name: Log daemon services
+          command: make cabbage-logs
+          background: true
       - check_docker_status
       - install_elixir
       - run: sh .circleci/status.sh
@@ -743,6 +747,10 @@ jobs:
           command: |
             cd priv/cabbage
             make start_daemon_services_reorg-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+      - run:
+          name: Log daemon services
+          command: make cabbage-logs-reorg
+          background: true
       - check_docker_status
       - install_elixir
       - run: sh .circleci/status.sh

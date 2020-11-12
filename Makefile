@@ -350,6 +350,15 @@ docker-push: docker
 	docker push $(WATCHER_IMAGE_NAME)
 	docker push $(WATCHER_INFO_IMAGE_NAME)
 
+
+### Cabbage logs
+
+cabbage-logs:
+	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow
+
+cabbage-logs-reorg:
+	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow
+
 ### Cabbage reorg docker logs
 
 cabbage-reorg-watcher-logs:
