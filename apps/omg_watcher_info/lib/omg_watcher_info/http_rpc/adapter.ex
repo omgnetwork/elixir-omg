@@ -17,6 +17,8 @@ defmodule OMG.WatcherInfo.HttpRPC.Adapter do
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.Utils.AppVersion
+
   require Logger
 
   @doc """
@@ -24,7 +26,7 @@ defmodule OMG.WatcherInfo.HttpRPC.Adapter do
   """
   def rpc_post(body, path, url) do
     addr = "#{url}/#{path}"
-    headers = [{"content-type", "application/json"}]
+    headers = [{"content-type", "application/json"}, {"X-Watcher-Version", x_watcher_version()}]
 
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
@@ -81,5 +83,9 @@ defmodule OMG.WatcherInfo.HttpRPC.Adapter do
     data
     |> Stream.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
     |> Map.new()
+  end
+
+  defp x_watcher_version() do
+    "#{inspect(AppVersion.version(:omg_watcher_info))}"
   end
 end
