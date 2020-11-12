@@ -15,24 +15,25 @@
 defmodule LoadTest.Service.Datadog.API do
   @datadog_events_api_path "api/v1/events"
   @datadog_app_url "https://app.datadoghq.com"
-  @tags ["perf"]
+  @base_tags ["perf"]
 
   def assert_metrics(environment, start_datetime, end_datetime) do
     start_unix = DateTime.to_unix(start_datetime)
     end_unix = DateTime.to_unix(end_datetime)
 
-    case fetch_events(start_unix, end_unix, [environment]) do
+    case fetch_events(start_unix, end_unix, environment) do
       {:ok, []} -> :ok
       {:ok, events} -> {:error, events}
       other -> other
     end
   end
 
-  def fetch_events(start_time, end_time, tags) do
+  def fetch_events(start_time, end_time, environment) do
     params = %{
       start: start_time,
       end: end_time,
-      tags: Enum.join(@tags ++ tags, ",")
+      tags: Enum.join(@base_tags, ","),
+      unaggregated: true
     }
 
     headers = %{
@@ -41,14 +42,14 @@ defmodule LoadTest.Service.Datadog.API do
       "DD-APPLICATION-KEY" => app_key()
     }
 
-    url = api_url() <> "api/v1/events" <> "?" <> URI.encode_query(params)
+    url = api_url() <> @datadog_events_api_path <> "?" <> URI.encode_query(params)
 
     case HTTPoison.get(url, headers) do
       {:ok, %{status_code: 200, body: body}} ->
         events =
           body
           |> Jason.decode!()
-          |> parse_events()
+          |> parse_events(environment)
 
         {:ok, events}
 
@@ -60,15 +61,18 @@ defmodule LoadTest.Service.Datadog.API do
     end
   end
 
-  defp parse_events(events_response) do
+  defp parse_events(events_response, environment) do
     events_response["events"]
     |> Enum.filter(fn event ->
-      event["alert_type"] == "error"
+      event["alert_type"] == "error" and String.contains?(event["text"], environment)
     end)
     |> Enum.map(fn event ->
+      {:ok, date} = DateTime.from_unix(event["date_happened"])
+
       %{
         "title" => event["title"],
-        "url" => @datadog_app_url <> event["url"]
+        "url" => @datadog_app_url <> event["url"],
+        "date" => date
       }
     end)
   end

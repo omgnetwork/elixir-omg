@@ -43,18 +43,18 @@ defmodule LoadTest.TestRunner do
   defp run_test(runner_module, config) do
     {:ok, _} = Metrics.start_link()
 
+    start_datetime = DateTime.utc_now()
+
     Chaperon.run_load_test(runner_module, print_results: true, config: config)
 
-    metrics = Metrics.metrics()
+    end_datetime = DateTime.utc_now()
 
-    # credo:disable-for-next-line
-    IO.inspect(metrics, limit: :infinity)
-
-    case metrics["test_failure"] do
-      nil ->
+    case Metrics.assert_metrics(start_datetime, end_datetime) |> IO.inspect() do
+      :ok ->
         System.halt(0)
 
-      _ ->
+      {:error, errors} ->
+        IO.inspect(errors, limit: :infinity)
         System.halt(1)
     end
   end

@@ -10,7 +10,9 @@ defmodule LoadTest.Service.Datadog.APITest do
   @event %{
     "alert_type" => "error",
     "title" => "[Triggered] WatcherInfo.get_balances takes more than 40ms",
-    "url" => "/event/event?id=5718361627942929581"
+    "url" => "/event/event?id=5718361627942929581",
+    "text" => "tag",
+    "date_happened" => 1_605_191_364
   }
 
   setup do
@@ -38,7 +40,7 @@ defmodule LoadTest.Service.Datadog.APITest do
     test "fetches events from datadog" do
       current_time = DateTime.utc_now()
 
-      assert {:error, [event]} = API.assert_metrics("", current_time, current_time)
+      assert {:error, [event]} = API.assert_metrics("tag", current_time, current_time)
 
       assert @event["title"] == event["title"]
       assert "https://app.datadoghq.com" <> @event["url"] == event["url"]

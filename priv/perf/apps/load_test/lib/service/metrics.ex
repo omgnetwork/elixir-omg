@@ -20,6 +20,7 @@ defmodule LoadTest.Service.Metrics do
   use Histogrex
 
   alias LoadTest.Service.Datadog
+  alias LoadTest.Service.Datadog.API
 
   template(:metrics, min: 1, max: 100_000_000_000, precision: 2)
 
@@ -63,6 +64,12 @@ defmodule LoadTest.Service.Metrics do
 
       Map.put(metrics, name, data)
     end)
+  end
+
+  def assert_metrics(start_datetime, end_datetime) do
+    [env] = Application.get_env(:statix, :tags)
+
+    API.assert_metrics(env, start_datetime, end_datetime)
   end
 
   defp do_run_with_metrics(func, property) do
