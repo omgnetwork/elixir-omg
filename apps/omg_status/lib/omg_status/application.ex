@@ -32,6 +32,8 @@ defmodule OMG.Status.Application do
 
     system_memory_check_interval_ms = Configuration.system_memory_check_interval_ms()
     system_memory_high_threshold = Configuration.system_memory_high_threshold()
+    release = Configuration.release()
+    current_version = Configuration.current_version()
 
     children =
       if Configuration.datadog_disabled?() do
@@ -52,8 +54,8 @@ defmodule OMG.Status.Application do
           {
             Telemetry,
             [
-              release: Application.get_env(:omg_status, :release),
-              current_version: Application.get_env(:omg_status, :current_version)
+              release: release,
+              current_version: current_version
             ]
           },
           VmstatsSink.prepare_child(),
@@ -62,8 +64,8 @@ defmodule OMG.Status.Application do
             AlarmConsumer,
             [
               dd_alarm_handler: AlarmHandler,
-              release: Application.get_env(:omg_status, :release),
-              current_version: Application.get_env(:omg_status, :current_version),
+              release: release,
+              current_version: current_version,
               publisher: Datadog
             ]
           }
