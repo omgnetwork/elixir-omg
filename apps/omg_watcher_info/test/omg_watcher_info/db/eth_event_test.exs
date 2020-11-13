@@ -419,6 +419,42 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     )
   end
 
+  @tag fixtures: [:initial_blocks]
+  test "Allows for missing output when explicitly allowed" do
+    max_blknum = DB.Repo.aggregate(DB.TxOutput, :max, :blknum)
+    pos_from_future = Utxo.position(max_blknum + 1, 0, 0)
+
+    exits = [
+      %{
+        root_chain_txhash: Crypto.hash(<<6::256>>),
+        log_index: 0,
+        eth_height: 0,
+        call_data: %{utxo_pos: Utxo.Position.encode(pos_from_future)}
+      }
+    ]
+
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, false)
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "Fails when missing output disallowed" do
+    max_blknum = DB.Repo.aggregate(DB.TxOutput, :max, :blknum)
+    pos_from_future = Utxo.position(max_blknum + 1, 0, 0)
+
+    exits = [
+      %{
+        root_chain_txhash: Crypto.hash(<<6::256>>),
+        log_index: 0,
+        eth_height: 0,
+        call_data: %{utxo_pos: Utxo.Position.encode(pos_from_future)}
+      }
+    ]
+
+    assert_raise CaseClauseError, fn ->
+      DB.EthEvent.insert_exits!(exits, :in_flight_exit, true)
+    end
+  end
+
   defp assert_txoutput_spent_by_event(txhash, oindex, log_index, eth_txhash, eth_height, event_type) do
     txo = DB.TxOutput.get_by_output_id(txhash, oindex)
 

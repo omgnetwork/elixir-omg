@@ -241,12 +241,12 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       end
 
     case resolve_tx_output(output_pointer) do
+      %DB.TxOutput{} = tx_output ->
+        :ok = insert_exit_if_not_exist(ethevent, tx_output)
+
       # it dies when output is expected to exist (most of the cases, see: `elixir-omg/issues/1760`)
       nil when not ensure_output ->
         :noop
-
-      tx_output ->
-        :ok = insert_exit_if_not_exist(ethevent, tx_output)
     end
   end
 

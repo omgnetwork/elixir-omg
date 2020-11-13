@@ -17,7 +17,6 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
-  alias OMG.Crypto
   alias OMG.Utxo
   alias OMG.Utxo.Position
   alias OMG.WatcherInfo.DB
@@ -47,18 +46,27 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
 
   describe "ExitConsumer.handle_info/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "spending non-existing output does not break" do
+    @tag capture_log: true
+    test "spending non-existing output cases Consumer to die" do
+      # Creating separate consumer here allows to supress annoing error dump in the test output
+      {:ok, pid} =
+        GenServer.start_link(
+          ExitConsumer,
+          [topic: :watcher_test_topic, bus_module: __MODULE__.FakeBus, event_type: :in_flight_exit],
+          name: FailingTestExitConsumer
+        )
+
       pos_1 = Position.encode(Utxo.position(5001, 0, 1))
-      txhash = Crypto.hash(<<pos_1>>)
 
       event_data = [
-        %{log_index: 2, eth_height: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_1}},
-        %{log_index: 1, eth_height: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{txhash: txhash, oindex: 1}}
+        %{log_index: 1, eth_height: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_1}}
       ]
 
-      send_events_and_wait_until_processed(event_data)
+      Process.send(pid, {:internal_event_bus, :data, event_data}, [:noconnect])
+      # We can't wait for consumer to process the exit as it's expected to die
+      Process.sleep(100)
 
-      assert_consumer_alive()
+      assert not Process.alive?(pid)
     end
 
     @tag fixtures: [:alice, :initial_blocks]
