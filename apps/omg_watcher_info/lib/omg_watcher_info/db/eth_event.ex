@@ -33,6 +33,12 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   @typep available_event_type_t() :: :standard_exit | :in_flight_exit
   @typep output_pointer_t() :: %{utxo_pos: pos_integer()} | %{txhash: Crypto.hash_t(), oindex: non_neg_integer()}
+  @typep event_data_t() :: %{
+           call_data: output_pointer_t(),
+           root_chain_txhash: charlist(),
+           log_index: non_neg_integer(),
+           eth_height: pos_integer()
+         }
 
   @primary_key false
   schema "ethevents" do
@@ -113,11 +119,11 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @doc """
   Uses a list of encoded `Utxo.Position`s to insert the exits (if not already inserted before)
   """
-  @spec insert_exits!([non_neg_integer()], available_event_type_t()) :: :ok
-  def insert_exits!(exits, event_type) do
+  @spec insert_exits!([event_data_t()], available_event_type_t(), boolean()) :: :ok
+  def insert_exits!(exits, event_type, ensure_output) do
     exits
     |> Stream.map(&utxo_exit_from_exit_event/1)
-    |> Enum.each(&insert_exit!(&1, event_type))
+    |> Enum.each(&insert_exit!(&1, event_type, ensure_output))
   end
 
   def txoutput_changeset(txoutput, params, ethevent) do
@@ -170,12 +176,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     |> Paginator.set_data(paginator)
   end
 
-  @spec utxo_exit_from_exit_event(%{
-          call_data: output_pointer_t(),
-          root_chain_txhash: charlist(),
-          log_index: non_neg_integer(),
-          eth_height: pos_integer()
-        }) ::
+  @spec utxo_exit_from_exit_event(event_data_t()) ::
           %{
             root_chain_txhash: binary(),
             log_index: non_neg_integer(),
@@ -209,8 +210,9 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
             output_pointer: {:utxo_position, Utxo.Position.t()} | {:output_id, tuple()},
             eth_height: pos_integer()
           },
-          available_event_type_t()
-        ) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()} | :noop
+          available_event_type_t(),
+          boolean()
+        ) :: :ok | :noop
   defp insert_exit!(
          %{
            root_chain_txhash: root_chain_txhash,
@@ -218,7 +220,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
            eth_height: eth_height,
            output_pointer: output_pointer
          },
-         event_type
+         event_type,
+         ensure_output
        ) do
     root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
@@ -237,23 +240,25 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           event
       end
 
-    tx_output = resolve_tx_output(output_pointer)
+    case resolve_tx_output(output_pointer) do
+      # it dies when output is expected to exist (most of the cases, see: `elixir-omg/issues/1760`)
+      nil when not ensure_output ->
+        :noop
 
-    insert_exit_if_not_exist(ethevent, tx_output)
+      tx_output ->
+        :ok = insert_exit_if_not_exist(ethevent, tx_output)
+    end
   end
 
   @spec resolve_tx_output(tuple()) :: %DB.TxOutput{} | nil
   defp resolve_tx_output({:utxo_position, utxo_pos}), do: DB.TxOutput.get_by_position(utxo_pos)
   defp resolve_tx_output({:output_id, {txhash, oindex}}), do: DB.TxOutput.get_by_output_id(txhash, oindex)
 
-  @spec insert_exit_if_not_exist(%__MODULE__{}, %DB.TxOutput{} | nil) ::
-          {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()} | :noop
-  defp insert_exit_if_not_exist(_, nil), do: :noop
-
+  @spec insert_exit_if_not_exist(%__MODULE__{}, %DB.TxOutput{} | nil) :: :ok
   defp insert_exit_if_not_exist(ethevent, tx_output) do
     # if TxOutput is already assiociated with this (or any other) spending event no action is needed
     if output_spent?(tx_output),
-      do: :noop,
+      do: :ok,
       else: do_insert_exit(ethevent, tx_output)
   end
 
@@ -267,11 +272,9 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
     tx_output
     |> txoutput_changeset(%{child_chain_utxohash: generate_child_chain_utxohash(decoded_utxo_position)}, ethevent)
-    |> DB.Repo.update()
+    |> DB.Repo.update!()
 
-    # a txoutput row just got updated, but we need to return the associated ethevent with all populated
-    # fields including those populated by the DB (eg: inserted_at, updated_at, ...)
-    {:ok, get(ethevent.root_chain_txhash_event)}
+    :ok
   end
 
   defp base_query() do

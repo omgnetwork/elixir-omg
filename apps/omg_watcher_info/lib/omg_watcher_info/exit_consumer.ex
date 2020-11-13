@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+# TODO: DELETE ME!
 defmodule OMG.WatcherInfo.ExitConsumer do
   @moduledoc """
   Subscribes to exit events and inserts them to WatcherInfo.DB.
@@ -49,7 +49,7 @@ defmodule OMG.WatcherInfo.ExitConsumer do
         "Received event from #{inspect(state.topic)} typeof #{inspect(state.event_type)} Data:\n#{inspect(data)}"
       )
 
-    _ = EthEvent.insert_exits!(data, state.event_type)
+    _ = EthEvent.insert_exits!(data, state.event_type, true)
     {:noreply, state}
   end
 end

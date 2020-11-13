@@ -264,7 +264,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                    eth_height: expected_exit_eth_height
                  }
                ],
-               :standard_exit
+               :standard_exit,
+               true
              )
 
     %{data: utxos_after_exit} = DB.TxOutput.get_utxos(address: expected_owner)
@@ -302,7 +303,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit)
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, true)
   end
 
   @tag fixtures: [:alice, :initial_blocks]
@@ -337,7 +338,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, true)
 
     txo1 = DB.TxOutput.get_by_position(utxo_pos1)
     assert txo1 != nil
@@ -397,7 +398,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, true)
 
     assert_txoutput_spent_by_event(
       txhash1,
