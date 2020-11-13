@@ -391,6 +391,9 @@ defmodule OMG.Watcher.ExitProcessor do
       )
       |> Enum.map(fn {:ok, result} -> result end)
 
+    if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
+      do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_exits!, [exits, :standard_exit, true])
+
     {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end

@@ -68,10 +68,6 @@ defmodule OMG.WatcherInfo.Supervisor do
       {OMG.WatcherInfo.PendingBlockQueueLengthChecker, [check_interval: Configuration.block_queue_check_interval()]},
       {OMG.WatcherInfo.DepositConsumer, []},
       Supervisor.child_spec(
-        {OMG.WatcherInfo.ExitConsumer, [topic: {:root_chain, "ExitStarted"}, event_type: :standard_exit]},
-        id: :std_exit_consumer
-      ),
-      Supervisor.child_spec(
         {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightExitStarted"}, event_type: :in_flight_exit]},
         id: :ife_exit_consumer
       ),
