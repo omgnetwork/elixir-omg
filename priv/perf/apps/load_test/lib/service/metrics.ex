@@ -17,53 +17,14 @@ defmodule LoadTest.Service.Metrics do
   Functions for aggregating metrics.
   """
 
-  use Histogrex
-
   alias LoadTest.Service.Datadog
   alias LoadTest.Service.Datadog.API
-
-  template(:metrics, min: 1, max: 100_000_000_000, precision: 2)
-
-  @percentiles [
-    10.0,
-    20.0,
-    30.0,
-    40.0,
-    50.0,
-    60.0,
-    75.0,
-    80.0,
-    85.0,
-    90.0,
-    95.0,
-    99.0,
-    99.9,
-    99.99,
-    99.999
-  ]
 
   def run_with_metrics(func, property) do
     case Application.get_env(:load_test, :record_metrics) do
       true -> do_run_with_metrics(func, property)
       false -> func.()
     end
-  end
-
-  def metrics() do
-    reduce(%{}, fn {name, iterator}, metrics ->
-      data =
-        @percentiles
-        |> Enum.map(&{{:percentile, &1}, value_at_quantile(iterator, &1)})
-        |> Enum.into(%{})
-        |> Map.merge(%{
-          :total_count => total_count(iterator),
-          :min => min(iterator),
-          :mean => mean(iterator),
-          :max => max(iterator)
-        })
-
-      Map.put(metrics, name, data)
-    end)
   end
 
   def assert_metrics(start_datetime, end_datetime) do
@@ -75,31 +36,22 @@ defmodule LoadTest.Service.Metrics do
   defp do_run_with_metrics(func, property) do
     {time, result} = :timer.tc(func)
 
-    type = Application.get_env(:load_test, :metrics_type)
     time_ms = time / 1_000
 
     case result do
-      {:ok, _} -> record_success(property, time_ms, type)
-      :ok -> record_success(property, time_ms, type)
-      _ -> record_failure(property, time_ms, type)
+      {:ok, _} -> record_success(property, time_ms)
+      :ok -> record_success(property, time_ms)
+      _ -> record_failure(property, time_ms)
     end
 
     result
   end
 
-  defp record_success(property, time, :local) do
-    record!(:metrics, property <> "_success", time)
-  end
-
-  defp record_success(property, time, :datadog) do
+  defp record_success(property, time) do
     record_datadog(property, time, "_success")
   end
 
-  defp record_failure(property, time, :local) do
-    record!(:metrics, property <> "_failure", time)
-  end
-
-  defp record_failure(property, time, :datadog) do
+  defp record_failure(property, time) do
     record_datadog(property, time, "_failure")
   end
 

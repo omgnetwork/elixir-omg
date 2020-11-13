@@ -85,10 +85,16 @@ defmodule LoadTest.Service.Datadog.API do
     params =
       events
       |> Enum.map(fn event -> event["monitor_id"] end)
-      |> Enum.filter(fn id -> !is_nil(id) end)
+      |> Enum.filter(fn id -> !(is_nil(id) or id == "") end)
       |> Enum.uniq()
       |> Enum.map(fn id -> %{id => "ALL_GROUPS"} end)
 
+    do_resolbe_monitors(params)
+  end
+
+  defp do_resolbe_monitors([]), do: :ok
+
+  defp do_resolbe_monitors(params) do
     payload = Jason.encode!(%{"resolve" => params})
 
     url = api_url() <> @datadog_monitor_resolve_path

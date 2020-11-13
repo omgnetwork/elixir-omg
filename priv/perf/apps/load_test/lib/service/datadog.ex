@@ -19,7 +19,7 @@ defmodule LoadTest.Service.Datadog do
 
   # we want to override Statix
   # because we don't want to send metrics in unittests
-  case Application.get_env(:load_test, :record_metrics) |> IO.inspect() do
+  case Application.get_env(:load_test, :record_metrics) do
     true -> use Statix, runtime_config: true
     _ -> use LoadTest.Service.Datadog.Statix
   end

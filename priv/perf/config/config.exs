@@ -31,8 +31,7 @@ config :load_test,
   fee_amount: "FEE_AMOUNT" |> System.get_env("75") |> String.to_integer(),
   deposit_finality_margin: "DEPOSIT_FINALITY_MARGIN" |> System.get_env("10") |> String.to_integer(),
   gas_price: "GAS_PRICE" |> System.get_env("2000000000") |> String.to_integer(),
-  record_metrics: true,
-  metrics_type: :datadog
+  record_metrics: true
 
 config :ex_plasma,
   eip_712_domain: [
