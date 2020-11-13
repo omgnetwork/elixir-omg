@@ -18,6 +18,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
   """
 
   use Phoenix.Controller
+  import Plug.Conn
   alias OMG.WatcherRPC.Web.Views
 
   @errors %{
@@ -123,28 +124,42 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
 
   def call(conn, {:error, {:validation_error, param_name, validator}}) do
     error = error_info(conn, :operation_bad_request)
+    :telemetry.execute([:web, :fallback], %{error: 1}, %{error_code: error.code, route: current_route(conn)})
 
     conn
+    |> assign_error_metadata_to_conn(error)
     |> put_view(Views.Error)
-    |> render(:error, %{
-      code: error.code,
-      description: error.description,
-      messages: %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
-    })
+    |> render(
+      :error,
+      %{
+        code: error.code,
+        description: error.description,
+        messages: %{
+          validation_error: %{
+            parameter: param_name,
+            validator: inspect(validator)
+          }
+        }
+      }
+    )
   end
 
   def call(conn, {:error, {reason, data}}) do
     error = error_info(conn, reason)
+    :telemetry.execute([:web, :fallback], %{error: 1}, %{error_code: error.code, route: current_route(conn)})
 
     conn
+    |> assign_error_metadata_to_conn(error)
     |> put_view(Views.Error)
     |> render(:error, %{code: error.code, description: error.description, messages: data})
   end
 
   def call(conn, {:error, reason}) do
     error = error_info(conn, reason)
+    :telemetry.execute([:web, :fallback], %{error: 1}, %{error_code: error.code, route: current_route(conn)})
 
     conn
+    |> assign_error_metadata_to_conn(error)
     |> put_view(Views.Error)
     |> render(:error, %{code: error.code, description: error.description})
   end
@@ -159,5 +174,24 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       nil -> %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
       error -> error
     end
+  end
+
+  defp assign_error_metadata_to_conn(conn, error) do
+    conn
+    |> assign(:error_type, error.code)
+    |> assign(:error_msg, error.description)
+  end
+
+  # There isn't a way to get the route directly from a conn, so we need this roundabout way.
+  # We want the route instead of the request path because it's of limited cardinality for the metric tags.
+  defp current_route(%{private: %{phoenix_router: phoenix_router}} = conn) do
+    case Phoenix.Router.route_info(phoenix_router, conn.method, conn.request_path, conn.host) do
+      %{:route => route} -> route
+      :error -> nil
+    end
+  end
+
+  defp current_route(_) do
+    nil
   end
 end
