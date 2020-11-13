@@ -5,19 +5,19 @@ services:
       - FEE_ADAPTER=feed
       - FEE_FEED_URL=http://172.27.0.110:4000/api/v1
     depends_on:
-      - feefeed
-        # condition: service_healthy
+      feefeed:
+        condition: service_healthy
 
   feefeed:
-    image: feefeed:la
+    image: "omisego/feefeed:latest"
     command: "start"
     container_name: feefeed
     environment:
       - GITHUB_TOKEN=""
-      - GITHUB_ORGANISATION=ayrat555
+      - GITHUB_ORGANISATION=omgnetwork
       - GITHUB_REPO=fee-rules-public
       - SENTRY_DSN=""
-      - GITHUB_BRANCH=fix-fee-rules
+      - GITHUB_BRANCH=master
       - RULES_FETCH_INTERVAL=20
       - RATES_FETCH_INTERVAL=20
       - GITHUB_FILENAME=fee_rules
@@ -36,12 +36,12 @@ services:
       nginx:
         condition: service_healthy
     restart: always
-    # healthcheck:
-    #   test: curl localhost:4000
-    #   interval: 30s
-    #   timeout: 1s
-    #   retries: 5
-    #   start_period: 30s
+    healthcheck:
+      test: curl -v --silent http://localhost:4000/api/v1/fees 2>&1 | grep contract_address
+      interval: 4s
+      timeout: 2s
+      retries: 30
+      start_period: 60s
     networks:
       chain_net:
         ipv4_address: 172.27.0.110
