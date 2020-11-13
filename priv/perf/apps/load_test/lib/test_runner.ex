@@ -41,15 +41,13 @@ defmodule LoadTest.TestRunner do
   end
 
   defp run_test(runner_module, config) do
-    {:ok, _} = Metrics.start_link()
-
     start_datetime = DateTime.utc_now()
 
     Chaperon.run_load_test(runner_module, print_results: true, config: config)
 
     end_datetime = DateTime.utc_now()
 
-    case Metrics.assert_metrics(start_datetime, end_datetime) |> IO.inspect() do
+    case Metrics.assert_metrics(start_datetime, end_datetime) do
       :ok ->
         System.halt(0)
 
