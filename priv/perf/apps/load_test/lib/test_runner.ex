@@ -34,6 +34,8 @@ defmodule LoadTest.TestRunner do
   alias LoadTest.Service.Metrics
   alias LoadTest.TestRunner.Config
 
+  @circleci_tag "env:perf_circleci"
+
   def run() do
     case Config.parse() do
       {:ok, {runner_module, config}} -> run_test(runner_module, config)
@@ -43,6 +45,8 @@ defmodule LoadTest.TestRunner do
 
   defp run_test(runner_module, config) do
     start_datetime = DateTime.utc_now()
+
+    maybe_add_custom_tag(start_datetime)
 
     Chaperon.run_load_test(runner_module, print_results: true, config: config)
 
@@ -55,6 +59,23 @@ defmodule LoadTest.TestRunner do
       {:error, errors} ->
         IO.inspect(errors)
         System.halt(1)
+    end
+  end
+
+  defp maybe_add_custom_tag(start_date) do
+    tags = Application.get_env(:statix, :tags) |> IO.inspect()
+
+    tags
+    |> Enum.find(fn value -> value == @circleci_tag end)
+    |> case do
+      nil ->
+        :ok
+
+      _ ->
+        postfix = start_date |> to_string |> String.replace(" ", "-")
+        new_tag = @circleci_tag <> "-" <> postfix
+        Application.put_env(:statix, :tags, [new_tag | tags])
+        Application.get_env(:statix, :tags) |> IO.inspect()
     end
   end
 end

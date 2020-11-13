@@ -49,7 +49,7 @@ config :logger, :console,
 config :statix,
   host: "localhost",
   port: 8125,
-  tags: ["env:perf_test"]
+  tags: [System.get_env("STATIX_TAG", "env:perf_test")]
 
 config :load_test, :datadog,
   api_key: System.get_env("DD_API_KEY"),

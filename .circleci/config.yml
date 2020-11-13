@@ -663,6 +663,7 @@ jobs:
       image: ubuntu-1604:201903-01
     environment:
       PERF_IMAGE_NAME: "omisego/perf:latest"
+      STATIX_TAG: "env:perf_circleci"
     steps:
       - checkout
       - run:
@@ -700,13 +701,11 @@ jobs:
       - run:
           name: Run perf smoke test (deposits)
           command: |
-            export $(cat ./localchain_contract_addresses.env | xargs) &&
-            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 60
+            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env $STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 60
       - run:
           name: Run perf smoke test (transactions)
           command: |
-            export $(cat ./localchain_contract_addresses.env | xargs) &&
-            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 60
+            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env $STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 60
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |

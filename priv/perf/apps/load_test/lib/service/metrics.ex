@@ -28,7 +28,7 @@ defmodule LoadTest.Service.Metrics do
   end
 
   def assert_metrics(start_datetime, end_datetime) do
-    [env] = Application.get_env(:statix, :tags)
+    env = :statix |> Application.get_env(:tags) |> List.first()
 
     API.assert_metrics(env, start_datetime, end_datetime)
   end
@@ -59,13 +59,17 @@ defmodule LoadTest.Service.Metrics do
     property_name = property <> postfix
     total_property_name = property <> "_count"
 
-    :ok = Datadog.gauge(property_name, time)
+    :ok = Datadog.gauge(property_name, time, tags: tags())
 
     increment_counter(property_name <> "_count")
     increment_counter(total_property_name)
   end
 
   defp increment_counter(property) do
-    :ok = Datadog.increment(property, 1)
+    :ok = Datadog.increment(property, 1, tags: tags())
+  end
+
+  defp tags() do
+    Application.get_env(:statix, :tags)
   end
 end
