@@ -92,7 +92,7 @@ defmodule OMG.WatcherInfo.API.Transaction do
   def create(order) do
     owner_inputs =
       order.owner
-      |> DB.TxOutput.get_sorted_grouped_utxos()
+      |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
       |> TransactionCreator.select_inputs(order)
 
     case owner_inputs do
@@ -103,6 +103,42 @@ defmodule OMG.WatcherInfo.API.Transaction do
 
       err ->
         err
+    end
+  end
+
+  @doc """
+  Converts parameter keyword list to a map before passing it to multi-clause "handle_merge/`1"
+  """
+  @spec merge(Keyword.t()) :: create_t()
+  def merge(parameters) do
+    parameters |> Map.new() |> handle_merge()
+  end
+
+  @spec handle_merge(map()) :: create_t()
+  defp handle_merge(%{address: address, currency: currency}) do
+    merge_inputs =
+      address
+      |> DB.TxOutput.get_sorted_grouped_utxos(:asc)
+      |> Map.get(currency, [])
+
+    case merge_inputs do
+      [] ->
+        {:error, :no_inputs_found}
+
+      [_single_input] ->
+        {:error, :single_input}
+
+      inputs ->
+        {:ok, TransactionCreator.generate_merge_transactions(inputs)}
+    end
+  end
+
+  defp handle_merge(%{utxo_positions: utxo_positions}) do
+    with {:ok, inputs} <- get_merge_inputs(utxo_positions),
+         :ok <- no_duplicates(inputs),
+         :ok <- single_owner(inputs),
+         :ok <- single_currency(inputs) do
+      {:ok, TransactionCreator.generate_merge_transactions(inputs)}
     end
   end
 
@@ -130,6 +166,43 @@ defmodule OMG.WatcherInfo.API.Transaction do
     inputs
     |> TransactionCreator.create(order)
     |> respond(:complete)
+  end
+
+  @spec get_merge_inputs(list()) :: {:ok, list()} | {:error, atom()}
+  defp get_merge_inputs(utxo_positions) do
+    Enum.reduce_while(utxo_positions, {:ok, []}, fn encoded_position, {:ok, acc} ->
+      case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
+        nil -> {:halt, {:error, :position_not_found}}
+        input -> {:cont, {:ok, [input | acc]}}
+      end
+    end)
+  end
+
+  @spec no_duplicates(list()) :: :ok | {:error, :duplicate_input_positions}
+  defp no_duplicates(inputs) do
+    inputs
+    |> Enum.uniq()
+    |> length()
+    |> case do
+      n when n == length(inputs) -> :ok
+      _ -> {:error, :duplicate_input_positions}
+    end
+  end
+
+  @spec single_owner(list()) :: :ok | {:error, :multiple_input_owners}
+  defp single_owner(inputs) do
+    case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
+      1 -> :ok
+      _ -> {:error, :multiple_input_owners}
+    end
+  end
+
+  @spec single_currency(list()) :: :ok | {:error, :multiple_currencies}
+  defp single_currency(inputs) do
+    case inputs |> Enum.uniq_by(fn input -> input.currency end) |> length() do
+      1 -> :ok
+      _ -> {:error, :multiple_currencies}
+    end
   end
 
   defp respond({:ok, transactions}, result), do: {:ok, %{result: result, transactions: transactions}}

@@ -619,6 +619,10 @@ jobs:
           command: |
             cd priv/cabbage
             make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+      - run:
+          name: Log daemon services
+          command: make cabbage-logs
+          background: true
       - check_docker_status
       - install_elixir
       - run: sh .circleci/status.sh
@@ -657,6 +661,8 @@ jobs:
     description: "These are not actually performance tests, we're checking if the scripts work"
     machine:
       image: ubuntu-1604:201903-01
+    environment:
+      PERF_IMAGE_NAME: "omisego/perf:latest"
     steps:
       - checkout
       - run:
@@ -665,6 +671,9 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
+      - run:
+          name: Build perf docker image
+          command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
       - run:
           name: Start daemon services
           command: |
@@ -685,6 +694,14 @@ jobs:
             make init
             export $(cat ../../localchain_contract_addresses.env | xargs)
             make test
+      - run:
+          name: Show help information
+          command: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
+      - run:
+          name: Run perf smoke test
+          command: |
+            export $(cat ./localchain_contract_addresses.env | xargs) &&
+            docker run -it --env-file ./localchain_contract_addresses.env --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 10 10
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
@@ -730,6 +747,10 @@ jobs:
           command: |
             cd priv/cabbage
             make start_daemon_services_reorg-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+      - run:
+          name: Log daemon services
+          command: make cabbage-logs-reorg
+          background: true
       - check_docker_status
       - install_elixir
       - run: sh .circleci/status.sh

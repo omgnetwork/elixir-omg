@@ -76,6 +76,7 @@ defmodule OMG.WatcherInfo.Transaction do
         }
 
   @type utxos_map_t() :: %{UtxoSelection.currency_t() => UtxoSelection.utxo_list_t()}
+
   @type inputs_t() :: {:ok, utxos_map_t()} | {:error, {:insufficient_funds, list(map())}}
 
   @doc """
@@ -151,6 +152,13 @@ defmodule OMG.WatcherInfo.Transaction do
     {
       :ok,
       %{result: result, transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
+    }
+  end
+
+  def include_typed_data({:ok, txs}) do
+    {
+      :ok,
+      %{transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
     }
   end
 

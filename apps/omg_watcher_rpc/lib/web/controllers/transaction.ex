@@ -84,6 +84,19 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
     end
   end
 
+  @doc """
+  Creates and encodes a merge transaction.
+  Can be called with either an array of utxo positions or an address currency pair.
+  """
+  def merge(conn, params) do
+    with {:ok, constraints} <- Validator.MergeConstraints.parse(params) do
+      constraints
+      |> InfoApiTransaction.merge()
+      |> TransactionCreator.include_typed_data()
+      |> api_response(conn, :merge)
+    end
+  end
+
   # Provides extra validation (recover_from) and passes transaction to API layer
   defp submit_tx_inf(txbytes, conn) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(txbytes),

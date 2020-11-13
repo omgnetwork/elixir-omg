@@ -34,4 +34,14 @@ defmodule OMG.Status.Configuration do
   def datadog_disabled?() do
     Application.fetch_env!(@app, Tracer)[:disabled?]
   end
+
+  @spec release() :: atom() | nil
+  def release() do
+    Application.get_env(@app, :release)
+  end
+
+  @spec current_version() :: String.t() | nil
+  def current_version() do
+    Application.get_env(@app, :current_version)
+  end
 end
