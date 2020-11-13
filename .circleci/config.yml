@@ -701,12 +701,12 @@ jobs:
           name: Run perf smoke test (deposits)
           command: |
             export $(cat ./localchain_contract_addresses.env | xargs) &&
-            docker run -it --env-file ./localchain_contract_addresses.env --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 60
+            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 60
       - run:
           name: Run perf smoke test (transactions)
           command: |
             export $(cat ./localchain_contract_addresses.env | xargs) &&
-            docker run -it --env-file ./localchain_contract_addresses.env --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 60
+            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 60
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
