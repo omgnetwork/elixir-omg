@@ -4,7 +4,7 @@ services:
     image: datadog/agent:latest
     restart: always
     environment:
-      - DD_API_KEY=${DATADOG_API_KEY}
+      - DD_API_KEY=${DD_API_KEY}
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
       - DD_LOG_LEVEL=debug
       - DOCKER_CONTENT_TRUST=1

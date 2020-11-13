@@ -52,8 +52,8 @@ config :statix,
   tags: ["env:perf_test"]
 
 config :load_test, :datadog,
-  api_key: System.get_env("DATADOG_API_KEY"),
-  app_key: System.get_env("DATADOG_APP_KEY"),
+  api_key: System.get_env("DD_API_KEY"),
+  app_key: System.get_env("DD_APP_KEY"),
   api_url: "https://app.datadoghq.com/"
 
 import_config "#{Mix.env()}.exs"
