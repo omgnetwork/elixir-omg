@@ -18,13 +18,12 @@ defmodule LoadTest.Service.Datadog.API do
   @datadog_events_api_path "api/v1/events"
   @datadog_monitor_resolve_path "monitor/bulk_resolve"
   @datadog_app_url "https://app.datadoghq.com"
-  @base_tags ["perf"]
 
   def assert_metrics(environment, start_datetime, end_datetime) do
     start_unix = DateTime.to_unix(start_datetime)
     end_unix = DateTime.to_unix(end_datetime)
 
-    case fetch_events(start_unix, end_unix, environment) |> IO.inspect() do
+    case fetch_events(start_unix, end_unix, environment) do
       {:ok, []} ->
         :ok
 
@@ -41,7 +40,7 @@ defmodule LoadTest.Service.Datadog.API do
     params = %{
       start: start_time,
       end: end_time,
-      tags: Enum.join(@base_tags, ","),
+      tags: environment,
       unaggregated: true
     }
 
@@ -79,7 +78,6 @@ defmodule LoadTest.Service.Datadog.API do
         "monitor_id" => find_monitor_id(event["text"])
       }
     end)
-    |> IO.inspect()
   end
 
   defp resolve_monitors(events) do
@@ -89,9 +87,8 @@ defmodule LoadTest.Service.Datadog.API do
       |> Enum.filter(fn id -> !(is_nil(id) or id == "") end)
       |> Enum.uniq()
       |> Enum.map(fn id -> %{id => "ALL_GROUPS"} end)
-      |> IO.inspect()
 
-    do_resolbe_monitors(params) |> IO.inspect()
+    do_resolbe_monitors(params)
   end
 
   defp do_resolbe_monitors([]), do: :ok

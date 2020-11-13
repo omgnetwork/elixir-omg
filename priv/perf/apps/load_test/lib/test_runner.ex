@@ -57,13 +57,13 @@ defmodule LoadTest.TestRunner do
         System.halt(0)
 
       {:error, errors} ->
-        IO.inspect(errors)
+        IO.inspect("errors: #{inspect(errors)}")
         System.halt(1)
     end
   end
 
   defp maybe_add_custom_tag(start_date) do
-    tags = Application.get_env(:statix, :tags) |> IO.inspect()
+    tags = Application.get_env(:statix, :tags)
 
     tags
     |> Enum.find(fn value -> value == @circleci_tag end)
@@ -72,10 +72,9 @@ defmodule LoadTest.TestRunner do
         :ok
 
       _ ->
-        postfix = start_date |> to_string |> String.replace(" ", "-")
-        new_tag = @circleci_tag <> "-" <> postfix
+        postfix = start_date |> to_string |> String.replace(" ", "-") |> String.downcase()
+        new_tag = @circleci_tag <> ":" <> postfix
         Application.put_env(:statix, :tags, [new_tag | tags])
-        Application.get_env(:statix, :tags) |> IO.inspect()
     end
   end
 end
