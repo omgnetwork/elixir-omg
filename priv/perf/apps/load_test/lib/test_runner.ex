@@ -30,6 +30,7 @@ defmodule LoadTest.TestRunner do
 
   It fetches all configuration params from env vars.
   """
+
   alias LoadTest.Service.Metrics
   alias LoadTest.TestRunner.Config
 
@@ -52,7 +53,7 @@ defmodule LoadTest.TestRunner do
         System.halt(0)
 
       {:error, errors} ->
-        IO.inspect(errors, limit: :infinity)
+        IO.inspect(errors)
         System.halt(1)
     end
   end

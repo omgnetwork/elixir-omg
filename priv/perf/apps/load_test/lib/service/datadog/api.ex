@@ -24,7 +24,7 @@ defmodule LoadTest.Service.Datadog.API do
     start_unix = DateTime.to_unix(start_datetime)
     end_unix = DateTime.to_unix(end_datetime)
 
-    case fetch_events(start_unix, end_unix, environment) do
+    case fetch_events(start_unix, end_unix, environment) |> IO.inspect() do
       {:ok, []} ->
         :ok
 
@@ -79,6 +79,7 @@ defmodule LoadTest.Service.Datadog.API do
         "monitor_id" => find_monitor_id(event["text"])
       }
     end)
+    |> IO.inspect()
   end
 
   defp resolve_monitors(events) do
@@ -88,8 +89,9 @@ defmodule LoadTest.Service.Datadog.API do
       |> Enum.filter(fn id -> !(is_nil(id) or id == "") end)
       |> Enum.uniq()
       |> Enum.map(fn id -> %{id => "ALL_GROUPS"} end)
+      |> IO.inspect()
 
-    do_resolbe_monitors(params)
+    do_resolbe_monitors(params) |> IO.inspect()
   end
 
   defp do_resolbe_monitors([]), do: :ok
