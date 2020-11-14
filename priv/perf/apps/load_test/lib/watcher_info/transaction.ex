@@ -94,7 +94,7 @@ defmodule LoadTest.WatcherInfo.Transaction do
     decoded_response = Jason.decode!(response.body)["data"]
 
     case decoded_response do
-      %{"messages" => %{"code" => "submit:utxo_not_found"}} = error ->
+      %{"messages" => %{"code" => "submit:utxo_not_found"}} ->
         {:error, :data_not_found}
 
       %{"messages" => %{"code" => "operation:service_unavailable"}} = error ->
