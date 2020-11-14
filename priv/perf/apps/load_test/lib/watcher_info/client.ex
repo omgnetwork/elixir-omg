@@ -54,7 +54,7 @@ defmodule LoadTest.WatcherInfo.Client do
     end
   end
 
-  defp client do
+  defp client() do
     LoadTest.Connection.WatcherInfo.client()
   end
 end

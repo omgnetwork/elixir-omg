@@ -19,7 +19,7 @@ defmodule LoadTest.Service.Datadog.Statix do
   defmacro __using__(_opts) do
     quote location: :keep do
       @behaviour Statix
-      def connect(), do: :ok
+      def connect(options \\ []), do: :ok
 
       def increment(_), do: :ok
       def increment(_, _, options \\ []), do: :ok

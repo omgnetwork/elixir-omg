@@ -115,7 +115,7 @@ defmodule LoadTest.TestRunner.Help do
   DEPOSIT_FINALITY_MARGIN - Number of comfirmation for a deposit. Default value is 10
   """
 
-  def help do
+  def help() do
     IO.puts(@help)
   end
 

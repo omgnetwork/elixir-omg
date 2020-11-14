@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule LoadTest.Service.Datadog.API do
+  @moduledoc """
+    Funcions for fetching monitor events from datadog.
+  """
+
   require Logger
 
   @datadog_events_api_path "api/v1/events"

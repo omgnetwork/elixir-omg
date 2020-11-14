@@ -57,6 +57,7 @@ defmodule LoadTest.TestRunner do
         System.halt(0)
 
       {:error, errors} ->
+        # credo:disable-for-next-line
         IO.inspect("errors: #{inspect(errors)}")
         System.halt(1)
     end
