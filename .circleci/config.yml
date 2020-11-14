@@ -672,10 +672,10 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
-      - install_elixir
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
+      - install_elixir
       - run:
           name: Start daemon services
           command: |
