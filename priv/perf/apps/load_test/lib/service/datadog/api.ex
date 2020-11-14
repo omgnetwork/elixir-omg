@@ -98,14 +98,14 @@ defmodule LoadTest.Service.Datadog.API do
       |> Enum.uniq()
       |> Enum.map(fn id -> %{id => "ALL_GROUPS"} end)
 
-    do_resolbe_monitors(params)
+    do_resolve_monitors(params)
   end
 
-  defp do_resolbe_monitors(params, retries \\ 5)
+  defp do_resolve_monitors(params, retries \\ 5)
 
-  defp do_resolbe_monitors([], _), do: :ok
+  defp do_resolve_monitors([], _), do: :ok
 
-  defp do_resolbe_monitors(params, retries) do
+  defp do_resolve_monitors(params, retries) do
     payload = Jason.encode!(%{"resolve" => params})
 
     url = api_url() <> @datadog_monitor_resolve_path
@@ -118,14 +118,14 @@ defmodule LoadTest.Service.Datadog.API do
         Logger.error("failed to resolve monitors #{inspect(body)}")
 
         if retries == 0 do
-          do_resolbe_monitors(params, retries - 1)
+          do_resolve_monitors(params, retries - 1)
         else
           {:error, body}
         end
 
       {:error, error} = other ->
         if retries == 0 do
-          do_resolbe_monitors(params, retries - 1)
+          do_resolve_monitors(params, retries - 1)
         else
           Logger.error("failed to resolve monitors #{inspect(error)}")
           other

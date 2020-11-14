@@ -41,6 +41,7 @@ defmodule LoadTest.Service.Metrics do
     case result do
       {:ok, _} -> record_success(property, time_ms)
       :ok -> record_success(property, time_ms)
+      {:error, :data_not_found} -> record_success(property, time_ms)
       _ -> record_failure(property, time_ms)
     end
 

@@ -95,7 +95,7 @@ defmodule LoadTest.WatcherInfo.Transaction do
 
     case decoded_response do
       %{"messages" => %{"code" => "submit:utxo_not_found"}} = error ->
-        {:error, error}
+        {:error, :data_not_found}
 
       %{"messages" => %{"code" => "operation:service_unavailable"}} = error ->
         {:error, error}
