@@ -672,6 +672,7 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
+      - install_elixir
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
@@ -686,14 +687,14 @@ jobs:
           command: |
             cd priv/perf
             make log-services
-      # - run: sh .circleci/status.sh
-      # - run:
-      #     name: Run load test
-      #     command: |
-      #       cd priv/perf
-      #       make init
-      #       export $(cat ../../localchain_contract_addresses.env | xargs)
-      #       make test
+      - run: sh .circleci/status.sh
+      - run:
+          name: Run load test
+          command: |
+            cd priv/perf
+            make init
+            export $(cat ../../localchain_contract_addresses.env | xargs)
+            make test
       - run:
           name: Show help information
           command: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
@@ -705,7 +706,6 @@ jobs:
           name: Run perf smoke test (transactions)
           command: |
             docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 60
-      - install_elixir
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
