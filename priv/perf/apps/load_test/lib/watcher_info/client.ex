@@ -22,8 +22,6 @@ defmodule LoadTest.WatcherInfo.Client do
   def get_balances(address) do
     Metrics.run_with_metrics(
       fn ->
-        Process.sleep(100)
-
         request(fn ->
           Account.account_get_balance(client(), %{address: address})
         end)
@@ -35,8 +33,6 @@ defmodule LoadTest.WatcherInfo.Client do
   def get_utxos(address) do
     Metrics.run_with_metrics(
       fn ->
-        Process.sleep(100)
-
         request(fn ->
           Account.account_get_utxos(client(), %{address: address})
         end)
