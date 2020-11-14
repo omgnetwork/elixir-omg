@@ -95,9 +95,11 @@ defmodule LoadTest.Service.Datadog.API do
     do_resolbe_monitors(params)
   end
 
-  defp do_resolbe_monitors([]), do: :ok
+  defp do_resolbe_monitors(params, retries \\ 5)
 
-  defp do_resolbe_monitors(params) do
+  defp do_resolbe_monitors([], _), do: :ok
+
+  defp do_resolbe_monitors(params, retries) do
     payload = Jason.encode!(%{"resolve" => params})
 
     url = api_url() <> @datadog_monitor_resolve_path
@@ -108,11 +110,20 @@ defmodule LoadTest.Service.Datadog.API do
 
       {:ok, %{body: body}} ->
         Logger.error("failed to resolve monitors #{inspect(body)}")
-        {:error, body}
+
+        if retries == 0 do
+          do_resolbe_monitors(params, retries - 1)
+        else
+          {:error, body}
+        end
 
       {:error, error} = other ->
-        Logger.error("failed to resolve monitors #{inspect(error)}")
-        other
+        if retries == 0 do
+          do_resolbe_monitors(params, retries - 1)
+        else
+          Logger.error("failed to resolve monitors #{inspect(error)}")
+          other
+        end
     end
   end
 
