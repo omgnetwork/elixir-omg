@@ -17,6 +17,8 @@ defmodule OMG.WatcherRPC.Application do
   use Application
   use OMG.Utils.LoggerExt
 
+  @app :omg_watcher_rpc
+
   def start(_type, _args) do
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
@@ -29,7 +31,8 @@ defmodule OMG.WatcherRPC.Application do
     _ =
       SpandexPhoenix.Telemetry.install(
         endpoint_telemetry_prefix: [:watcher_rpc, :endpoint],
-        tracer: OMG.WatcherRPC.Tracer
+        tracer: OMG.WatcherRPC.Tracer,
+        customize_metadata: &OMG.WatcherRPC.Tracer.add_trace_metadata/1
       )
 
     children = [
@@ -54,5 +57,27 @@ defmodule OMG.WatcherRPC.Application do
   def config_change(changed, _new, removed) do
     OMG.WatcherRPC.Web.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  @spec app_info() :: %{version: String.t(), service_name: String.t()}
+  def app_info() do
+    %{
+      :version => version(),
+      :service_name =>
+        case service_name() do
+          :watcher -> "watcher"
+          :watcher_info -> "watcher_info"
+        end
+    }
+  end
+
+  @spec version() :: String.t()
+  def version() do
+    OMG.Utils.HttpRPC.Response.version(@app)
+  end
+
+  @spec service_name() :: atom()
+  def service_name() do
+    Application.get_env(@app, :api_mode)
   end
 end
