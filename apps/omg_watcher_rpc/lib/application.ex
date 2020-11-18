@@ -17,8 +17,6 @@ defmodule OMG.WatcherRPC.Application do
   use Application
   use OMG.Utils.LoggerExt
 
-  @app :omg_watcher_rpc
-
   def start(_type, _args) do
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
