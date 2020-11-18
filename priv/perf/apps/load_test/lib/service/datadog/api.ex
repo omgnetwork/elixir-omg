@@ -27,12 +27,21 @@ defmodule LoadTest.Service.Datadog.API do
     start_unix = DateTime.to_unix(start_datetime)
     end_unix = DateTime.to_unix(end_datetime)
 
-    # wait for events to be emitted
-    Process.sleep(30_000)
+    # events aren't pulished instantly, so we will poll them
+    do_assert_metrics(environment, start_unix, end_unix)
+  end
 
+  def do_assert_metrics(environment, start_unix, end_unix, poll_count \\ 30) do
     case fetch_events(start_unix, end_unix, environment) do
       {:ok, []} ->
-        :ok
+        case poll_count do
+          0 ->
+            :ok
+
+          _ ->
+            Process.sleep(1_000)
+            do_assert_metrics(environment, start_unix, end_unix, poll_count - 1)
+        end
 
       {:ok, events} ->
         # failed monitors with the same tags do not emit events, so we're resolving
