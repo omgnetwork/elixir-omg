@@ -52,6 +52,21 @@ defmodule LoadTest.TestRunner.Help do
   ```
   mix run -e "LoadTest.TestRunner.run()" -- help env
   ```
+
+  Additonal notes.
+
+  These tests use datadog to collect metrics so you need to set:
+
+  - STATIX_TAG - env tag used by statsd/datadog-agent. different test runs are distinguished by this tag in datadog dashboard
+  - DD_API_KEY - datadog api key
+  - DD_APP_KEY - datadog app key
+
+  Available dashboards are:
+  - https://app.datadoghq.com/dashboard/rpx-xu2-b2g/deposits-perf-tests - deposits tests
+  - https://app.datadoghq.com/dashboard/7kh-xx4-9qu/transactions-perf-tests - transactions tests
+
+  Since `LoadTest.Ethereum.NonceTracker` is used to track nonces for addresses in the Ethereum,
+  it's not possible to run multiple instances of these tests using the same addresses. It may cause race conditions.
   """
 
   @help_test %{

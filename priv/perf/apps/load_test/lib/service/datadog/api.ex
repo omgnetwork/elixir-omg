@@ -117,18 +117,17 @@ defmodule LoadTest.Service.Datadog.API do
       {:ok, %{body: body}} ->
         Logger.error("failed to resolve monitors #{inspect(body)}")
 
-        if retries == 0 do
-          do_resolve_monitors(params, retries - 1)
-        else
-          {:error, body}
+        case retries do
+          0 -> {:error, body}
+          _ -> do_resolve_monitors(params, retries - 1)
         end
 
       {:error, error} = other ->
-        if retries == 0 do
-          do_resolve_monitors(params, retries - 1)
-        else
-          Logger.error("failed to resolve monitors #{inspect(error)}")
-          other
+        Logger.error("failed to resolve monitors #{inspect(error)}")
+
+        case retries do
+          0 -> other
+          _ -> do_resolve_monitors(params, retries - 1)
         end
     end
   end

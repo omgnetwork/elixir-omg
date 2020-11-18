@@ -44,6 +44,11 @@ defmodule LoadTest.TestRunner do
   end
 
   defp run_test(runner_module, config) do
+    case System.get_env("STATIX_TAG") do
+      nil -> raise("STATIX_TAG is not set")
+      _ -> :ok
+    end
+
     start_datetime = DateTime.utc_now()
 
     maybe_add_custom_tag(start_datetime)
