@@ -131,7 +131,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &EthereumEventAggregator.deposit_created/2,
-        process_events_callback: &OMG.State.deposit/1
+        process_events_callback: &Watcher.Depositor.new_deposits/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,
