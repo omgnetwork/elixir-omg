@@ -17,7 +17,7 @@ defmodule OMG.WatcherRPC.TracerTest do
 
   use ExUnit.Case, async: true
   import Plug.Conn
-  alias OMG.WatcherRPC.Application, as: OMGApplication
+  alias OMG.WatcherRPC.Configuration
   alias OMG.WatcherRPC.Tracer
 
   setup do
@@ -29,7 +29,7 @@ defmodule OMG.WatcherRPC.TracerTest do
 
   test "api responses without errors get traced with metadata" do
     :ok = Application.put_env(@app, :api_mode, :watcher)
-    version = OMGApplication.version()
+    version = Configuration.version()
 
     resp_body = """
     {
@@ -61,7 +61,7 @@ defmodule OMG.WatcherRPC.TracerTest do
 
   test "if api responses with errors get traced with metadata" do
     :ok = Application.put_env(@app, :api_mode, :watcher_info)
-    version = OMGApplication.version()
+    version = Configuration.version()
 
     resp_body = """
     {

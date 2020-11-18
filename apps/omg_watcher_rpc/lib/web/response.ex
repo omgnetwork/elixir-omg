@@ -29,6 +29,12 @@ defmodule OMG.WatcherRPC.Web.Response do
   def add_app_infos(response) do
     response
     |> Map.put(:version, Configuration.version())
-    |> Map.put(:service_name, Configuration.service_name())
+    |> Map.put(
+      :service_name,
+      case Configuration.service_name() do
+        :watcher -> "watcher"
+        :watcher_info -> "watcher_info"
+      end
+    )
   end
 end
