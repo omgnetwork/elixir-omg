@@ -58,26 +58,4 @@ defmodule OMG.WatcherRPC.Application do
     OMG.WatcherRPC.Web.Endpoint.config_change(changed, removed)
     :ok
   end
-
-  @spec app_info() :: %{version: String.t(), service_name: String.t()}
-  def app_info() do
-    %{
-      :version => version(),
-      :service_name =>
-        case service_name() do
-          :watcher -> "watcher"
-          :watcher_info -> "watcher_info"
-        end
-    }
-  end
-
-  @spec version() :: String.t()
-  def version() do
-    OMG.Utils.HttpRPC.Response.version(@app)
-  end
-
-  @spec service_name() :: atom()
-  def service_name() do
-    Application.get_env(@app, :api_mode)
-  end
 end
