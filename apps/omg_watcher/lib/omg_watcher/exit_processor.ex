@@ -509,10 +509,11 @@ defmodule OMG.Watcher.ExitProcessor do
 
     {:ok, state3, db_updates} = Core.finalize_in_flight_exits(state2, finalizations, invalidities)
 
-    :ok =
-      events_with_utxos
-      |> Tools.to_bus_events_data()
-      |> publish_internal_bus_events("InFlightExitOutputWithdrawn")
+    events = Tools.to_bus_events_data(events_with_utxos)
+    :ok = publish_internal_bus_events(events, "InFlightExitOutputWithdrawn")
+
+    if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
+      do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_exits!, [events, :in_flight_exit, true])
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end

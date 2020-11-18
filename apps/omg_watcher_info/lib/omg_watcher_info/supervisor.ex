@@ -66,11 +66,7 @@ defmodule OMG.WatcherInfo.Supervisor do
       {OMG.WatcherInfo.BlockApplicationConsumer, []},
       {OMG.WatcherInfo.PendingBlockProcessor, [processing_interval: Configuration.pending_block_processing_interval()]},
       {OMG.WatcherInfo.PendingBlockQueueLengthChecker, [check_interval: Configuration.block_queue_check_interval()]},
-      {OMG.WatcherInfo.DepositConsumer, []},
-      Supervisor.child_spec(
-        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightExitOutputWithdrawn"}, event_type: :in_flight_exit]},
-        id: :ife_exit_processed_consumer
-      )
+      {OMG.WatcherInfo.DepositConsumer, []}
     ]
 
     opts = [strategy: :one_for_one]
