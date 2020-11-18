@@ -407,13 +407,17 @@ defmodule OMG.Watcher.ExitProcessor do
       end)
 
     # Prepare events data for internal bus
-    :ok =
+    events =
       exits
       |> Enum.map(fn %{call_data: %{input_utxos_pos: inputs}} = event ->
         {event, inputs}
       end)
       |> Tools.to_bus_events_data()
-      |> publish_internal_bus_events("InFlightExitStarted")
+
+    :ok = publish_internal_bus_events(events, "InFlightExitStarted")
+
+    if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
+      do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_exits!, [events, :in_flight_exit, true])
 
     {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
     ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
