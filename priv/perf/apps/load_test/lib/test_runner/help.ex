@@ -23,7 +23,7 @@ defmodule LoadTest.TestRunner.Help do
 
   `LoadTest.TestRunner` accepts three required parameters:
 
-  1. Test name (`utxos` or `deposits`)
+  1. Test name (`transactions` or `deposits`)
   2. Rate in tests per second
   3. Period in seconds
 
@@ -52,6 +52,45 @@ defmodule LoadTest.TestRunner.Help do
   ```
   mix run -e "LoadTest.TestRunner.run()" -- help env
   ```
+
+  Additonal notes.
+
+  These tests use datadog to collect metrics so you need to set:
+
+  - STATIX_TAG - env tag used by statsd/datadog-agent. different test runs are distinguished by this tag in datadog dashboard
+  - DD_API_KEY - datadog api key
+  - DD_APP_KEY - datadog app key
+
+  Available dashboards are:
+  - https://app.datadoghq.com/dashboard/rpx-xu2-b2g/deposits-perf-tests - deposits tests
+  - https://app.datadoghq.com/dashboard/7kh-xx4-9qu/transactions-perf-tests - transactions tests
+
+  Since `LoadTest.Ethereum.NonceTracker` is used to track nonces for addresses in the Ethereum,
+  it's not possible to run multiple instances of these tests using the same addresses. It may cause race conditions.
+
+
+  Creating new tests.
+
+  1. Create Chaperon runner (see `LoadTest.Runner.Transactions`)
+  2. Create Chaperon scenario (see `LoadTest.Scenario.Transactions`)
+  3. Wrap functions that you want to collect metrics for with `LoadTest.Service.Metrics.run_with_metrics/2`)
+  4. Run tests so metrics are sent to Datadog
+  5. Create dashboards and monitors in Datadog.
+
+
+  Running tests without assertions.
+
+  You can run tests without assertions by passing `false` as the last parameter:
+
+  ```
+  STATIX_TAG="env:perf_circleci" mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 80 false
+  ```
+
+  To just check if there are any events in the given period of time run passing start time and end time:
+
+  ```
+  STATIX_TAG="env:perf_circleci" mix run -e "LoadTest.TestRunner.run()" -- "make_assertions" 1605775276 1605785276
+  ```
   """
 
   @help_test %{
@@ -74,7 +113,7 @@ defmodule LoadTest.TestRunner.Help do
     - transferred_amount. default value is 100_000_000_000_000_000
     - gas_price. default value is 2_000_000_000
     """,
-    "utxos" => """
+    "transactions" => """
 
     A single iteration of this test consists of the following steps:
 
@@ -115,7 +154,7 @@ defmodule LoadTest.TestRunner.Help do
   DEPOSIT_FINALITY_MARGIN - Number of comfirmation for a deposit. Default value is 10
   """
 
-  def help do
+  def help() do
     IO.puts(@help)
   end
 

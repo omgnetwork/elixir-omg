@@ -27,4 +27,5 @@ config :load_test,
   standard_exit_test_config: %{
     concurrent_sessions: 1,
     exits_per_session: 4
-  }
+  },
+  record_metrics: false
