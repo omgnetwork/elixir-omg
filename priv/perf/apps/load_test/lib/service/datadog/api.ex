@@ -36,17 +36,15 @@ defmodule LoadTest.Service.Datadog.API do
     assert_metrics(environment, start_unix, end_unix)
   end
 
-  def do_assert_metrics(environment, start_unix, end_unix, poll_count \\ 60) do
+  defp do_assert_metrics(environment, start_unix, end_unix, poll_count \\ 60)
+
+  defp do_assert_metrics(_environment, _start_unix, _end_unix, 0), do: :ok
+
+  defp do_assert_metrics(environment, start_unix, end_unix, poll_count) do
     case fetch_events(start_unix, end_unix, environment) do
       {:ok, []} ->
-        case poll_count do
-          0 ->
-            :ok
-
-          _ ->
-            Process.sleep(1_000)
-            do_assert_metrics(environment, start_unix, end_unix, poll_count - 1)
-        end
+        Process.sleep(1_000)
+        do_assert_metrics(environment, start_unix, end_unix, poll_count - 1)
 
       {:ok, events} ->
         # failed monitors with the same tags do not emit events, so we're resolving
@@ -60,7 +58,15 @@ defmodule LoadTest.Service.Datadog.API do
     end
   end
 
-  def fetch_events(start_time, end_time, environment, retries \\ 5) do
+  defp fetch_events(start_time, end_time, environment, retries \\ 5)
+
+  defp fetch_events(start_time, end_time, environment, 0) do
+    Logger.error("failed to fetch events #{inspect({start_time, end_time, environment})}")
+
+    {:error, :failed_to_fetch_event}
+  end
+
+  defp fetch_events(start_time, end_time, environment, retries) do
     params = %{
       start: start_time,
       end: end_time,
@@ -80,16 +86,12 @@ defmodule LoadTest.Service.Datadog.API do
         {:ok, events}
 
       {:ok, %{body: body}} ->
-        case retries do
-          0 -> {:error, body}
-          _ -> fetch_events(start_time, end_time, environment, retries - 1)
-        end
+        Logger.error("failed to fetch events #{inspect(body)}")
+        fetch_events(start_time, end_time, environment, retries - 1)
 
       {:error, error} ->
-        case retries do
-          0 -> {:error, error}
-          _ -> fetch_events(start_time, end_time, environment, retries - 1)
-        end
+        Logger.error("failed to fetch events #{inspect(error)}")
+        fetch_events(start_time, end_time, environment, retries - 1)
     end
   end
 
@@ -125,6 +127,12 @@ defmodule LoadTest.Service.Datadog.API do
 
   defp do_resolve_monitors([], _), do: :ok
 
+  defp do_resolve_monitors(params, 0) do
+    Logger.error("failed to resolve monitors #{params}")
+
+    {:error, :failed_to_resolve_monitors}
+  end
+
   defp do_resolve_monitors(params, retries) do
     payload = Jason.encode!(%{"resolve" => params})
 
@@ -137,26 +145,16 @@ defmodule LoadTest.Service.Datadog.API do
       {:ok, %{body: body}} ->
         Logger.error("failed to resolve monitors #{inspect(body)}")
 
-        case retries do
-          0 ->
-            {:error, body}
+        Process.sleep(1_000)
 
-          _ ->
-            Process.sleep(1_000)
-            do_resolve_monitors(params, retries - 1)
-        end
+        do_resolve_monitors(params, retries - 1)
 
-      {:error, error} = other ->
+      {:error, error} ->
         Logger.error("failed to resolve monitors #{inspect(error)}")
 
-        case retries do
-          0 ->
-            other
+        Process.sleep(1_000)
 
-          _ ->
-            Process.sleep(1_000)
-            do_resolve_monitors(params, retries - 1)
-        end
+        do_resolve_monitors(params, retries - 1)
     end
   end
 
