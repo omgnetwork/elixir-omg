@@ -23,15 +23,20 @@ defmodule LoadTest.Service.Datadog.API do
   @datadog_monitor_resolve_path "monitor/bulk_resolve"
   @datadog_app_url "https://app.datadoghq.com"
 
-  def assert_metrics(environment, start_datetime, end_datetime) do
-    start_unix = DateTime.to_unix(start_datetime)
-    end_unix = DateTime.to_unix(end_datetime)
-
+  def assert_metrics(environment, start_unix, end_unix)
+      when is_integer(start_unix) and is_integer(end_unix) do
     # events aren't pulished instantly, so we will poll them
     do_assert_metrics(environment, start_unix, end_unix)
   end
 
-  def do_assert_metrics(environment, start_unix, end_unix, poll_count \\ 30) do
+  def assert_metrics(environment, start_datetime, end_datetime) do
+    start_unix = DateTime.to_unix(start_datetime)
+    end_unix = DateTime.to_unix(end_datetime)
+
+    assert_metrics(environment, start_unix, end_unix)
+  end
+
+  def do_assert_metrics(environment, start_unix, end_unix, poll_count \\ 200) do
     case fetch_events(start_unix, end_unix, environment) do
       {:ok, []} ->
         case poll_count do
@@ -127,16 +132,24 @@ defmodule LoadTest.Service.Datadog.API do
         Logger.error("failed to resolve monitors #{inspect(body)}")
 
         case retries do
-          0 -> {:error, body}
-          _ -> do_resolve_monitors(params, retries - 1)
+          0 ->
+            {:error, body}
+
+          _ ->
+            Process.sleep(1_000)
+            do_resolve_monitors(params, retries - 1)
         end
 
       {:error, error} = other ->
         Logger.error("failed to resolve monitors #{inspect(error)}")
 
         case retries do
-          0 -> other
-          _ -> do_resolve_monitors(params, retries - 1)
+          0 ->
+            other
+
+          _ ->
+            Process.sleep(1_000)
+            do_resolve_monitors(params, retries - 1)
         end
     end
   end

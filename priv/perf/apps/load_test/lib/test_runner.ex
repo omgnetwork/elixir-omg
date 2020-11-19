@@ -38,7 +38,8 @@ defmodule LoadTest.TestRunner do
 
   def run() do
     case Config.parse() do
-      {:ok, {runner_module, config}} -> run_test(runner_module, config)
+      {:run_tests, {runner_module, config}} -> run_test(runner_module, config)
+      {:make_assertions, start_time, end_time} -> make_assertions(start_time, end_time)
       :ok -> :ok
     end
   end
@@ -57,7 +58,14 @@ defmodule LoadTest.TestRunner do
 
     end_datetime = DateTime.utc_now()
 
-    case Metrics.assert_metrics(start_datetime, end_datetime) do
+    case config.make_assertions do
+      true -> make_assertions(start_datetime, end_datetime)
+      _ -> :ok
+    end
+  end
+
+  defp make_assertions(start_time, end_time) do
+    case Metrics.assert_metrics(start_time, end_time) do
       :ok ->
         System.halt(0)
 

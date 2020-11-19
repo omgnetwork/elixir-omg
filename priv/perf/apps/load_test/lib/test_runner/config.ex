@@ -41,8 +41,17 @@ defmodule LoadTest.TestRunner.Config do
 
   def parse() do
     case System.argv() do
+      ["make_assertions", start_time, end_time] ->
+        start_time_integer = String.to_integer(start_time)
+        end_time_integer = String.to_integer(end_time)
+
+        {:make_assertions, start_time_integer, end_time_integer}
+
       [test, rate, period] ->
-        {:ok, config(test, rate, period)}
+        {:run_tests, config(test, rate, period, "true")}
+
+      [test, rate, period, make_assertions] ->
+        {:run_tests, config(test, rate, period, make_assertions)}
 
       ["help"] ->
         Help.help()
@@ -52,12 +61,10 @@ defmodule LoadTest.TestRunner.Config do
 
       ["help", name] ->
         Help.help(name)
-
-        :ok
     end
   end
 
-  defp config(test, rate, period) do
+  defp config(test, rate, period, make_assertions) do
     rate_int = String.to_integer(rate)
     period_int = String.to_integer(period)
 
@@ -77,10 +84,18 @@ defmodule LoadTest.TestRunner.Config do
     config = %{
       run_config: run_config,
       chain_config: chain_config,
+      make_assertions: parse_boolean(make_assertions),
       timeout: :infinity
     }
 
     {runner_module, config}
+  end
+
+  defp parse_boolean(bool) do
+    case bool do
+      "true" -> true
+      _ -> false
+    end
   end
 
   defp read_config!(test) do
