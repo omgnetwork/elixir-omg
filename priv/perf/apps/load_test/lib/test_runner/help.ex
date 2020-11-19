@@ -76,6 +76,21 @@ defmodule LoadTest.TestRunner.Help do
   3. Wrap functions that you want to collect metrics for with `LoadTest.Service.Metrics.run_with_metrics/2`)
   4. Run tests so metrics are sent to Datadog
   5. Create dashboards and monitors in Datadog.
+
+
+  Running tests without assertions.
+
+  You can run tests without assertions by passing `false` as the last parameter:
+
+  ```
+  STATIX_TAG="env:perf_circleci" mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 80 false
+  ```
+
+  To just check if there are any events in the given period of time run passing start time and end time:
+
+  ```
+  STATIX_TAG="env:perf_circleci" mix run -e "LoadTest.TestRunner.run()" -- "make_assertions" 1605775276 1605785276
+  ```
   """
 
   @help_test %{
