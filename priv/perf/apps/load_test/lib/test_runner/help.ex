@@ -67,6 +67,15 @@ defmodule LoadTest.TestRunner.Help do
 
   Since `LoadTest.Ethereum.NonceTracker` is used to track nonces for addresses in the Ethereum,
   it's not possible to run multiple instances of these tests using the same addresses. It may cause race conditions.
+
+
+  Creating new tests.
+
+  1. Create Chaperon runner (see `LoadTest.Runner.Transactions`)
+  2. Create Chaperon scenario (see `LoadTest.Scenario.Transactions`)
+  3. Wrap functions that you want to collect metrics for with `LoadTest.Service.Metrics.run_with_metrics/2`)
+  4. Run tests so metrics are sent to Datadog
+  5. Create dashboards and monitors in Datadog.
   """
 
   @help_test %{

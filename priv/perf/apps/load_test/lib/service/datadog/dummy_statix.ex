@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Service.Datadog.Statix do
+defmodule LoadTest.Service.Datadog.DummyStatix do
   @moduledoc """
   Useful for overwritting Statix behaviour.
   """

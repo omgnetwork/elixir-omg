@@ -21,7 +21,7 @@ defmodule LoadTest.Service.Datadog do
   # because we don't want to send metrics in unittests
   case Application.get_env(:load_test, :record_metrics) do
     true -> use Statix, runtime_config: true
-    _ -> use LoadTest.Service.Datadog.Statix
+    _ -> use LoadTest.Service.Datadog.DummyStatix
   end
 
   use GenServer
@@ -35,7 +35,7 @@ defmodule LoadTest.Service.Datadog do
 
     :ok = __MODULE__.connect()
 
-    _ = Logger.info("Datadog Connection for Statix was  opened")
+    _ = Logger.info("Datadog Connection for Statix was opened")
 
     {:ok, []}
   end
