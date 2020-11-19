@@ -36,7 +36,7 @@ defmodule LoadTest.Service.Datadog.API do
     assert_metrics(environment, start_unix, end_unix)
   end
 
-  def do_assert_metrics(environment, start_unix, end_unix, poll_count \\ 200) do
+  def do_assert_metrics(environment, start_unix, end_unix, poll_count \\ 60) do
     case fetch_events(start_unix, end_unix, environment) do
       {:ok, []} ->
         case poll_count do
@@ -60,7 +60,7 @@ defmodule LoadTest.Service.Datadog.API do
     end
   end
 
-  def fetch_events(start_time, end_time, environment) do
+  def fetch_events(start_time, end_time, environment, retries \\ 5) do
     params = %{
       start: start_time,
       end: end_time,
@@ -80,10 +80,16 @@ defmodule LoadTest.Service.Datadog.API do
         {:ok, events}
 
       {:ok, %{body: body}} ->
-        {:error, body}
+        case retries do
+          0 -> {:error, body}
+          _ -> fetch_events(start_time, end_time, environment, retries - 1)
+        end
 
       {:error, error} ->
-        {:error, error}
+        case retries do
+          0 -> {:error, error}
+          _ -> fetch_events(start_time, end_time, environment, retries - 1)
+        end
     end
   end
 
