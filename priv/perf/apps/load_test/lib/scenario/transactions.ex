@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Scenario.Utxos do
+defmodule LoadTest.Scenario.Transactions do
   @moduledoc """
-  The scenario for utxos tests:
+  The scenario for transactions tests:
 
   1. It creates two accounts: the sender and the receiver.
   2. It funds sender with the specified amount on the childchain, checks utxos and balance.
@@ -30,6 +30,7 @@ defmodule LoadTest.Scenario.Utxos do
   alias LoadTest.ChildChain.Transaction
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Faucet
+  alias LoadTest.Service.Metrics
   alias LoadTest.WatcherInfo.Balance
   alias LoadTest.WatcherInfo.Utxo
 
@@ -51,17 +52,24 @@ defmodule LoadTest.Scenario.Utxos do
   end
 
   def create_utxos_and_make_assertions(session) do
+    {_, session} =
+      Metrics.run_with_metrics(
+        fn ->
+          do_create_utxos_and_make_assertions(session)
+        end,
+        "transactions_test"
+      )
+
+    session
+  end
+
+  defp do_create_utxos_and_make_assertions(session) do
     with {:ok, sender, receiver} <- create_accounts(),
          {:ok, utxo} <- fund_account(session, sender),
          :ok <- spend_utxo(session, utxo, sender, receiver) do
-      Session.add_metric(session, "error_rate", 0)
+      {:ok, session}
     else
-      error ->
-        log_error(session, "#{__MODULE__} failed with #{inspect(error)}")
-
-        session
-        |> Session.add_metric("error_rate", 1)
-        |> Session.add_error(:error, error)
+      _ -> {:error, session}
     end
   end
 

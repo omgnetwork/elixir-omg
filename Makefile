@@ -412,10 +412,10 @@ docker-start-cluster-with-infura: localchain_contract_addresses.env
 	fi
 
 docker-start-cluster-with-datadog: localchain_contract_addresses.env
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up watcher watcher_info childchain
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.datadog.yml up watcher watcher_info childchain
 
 docker-stop-cluster-with-datadog: localchain_contract_addresses.env
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.datadog.yml down
 
 docker-nuke: localchain_contract_addresses.env
 	docker-compose down --remove-orphans --volumes

@@ -30,7 +30,8 @@ config :load_test,
   faucet_deposit_amount: trunc(:math.pow(10, 14)),
   fee_amount: "FEE_AMOUNT" |> System.get_env("75") |> String.to_integer(),
   deposit_finality_margin: "DEPOSIT_FINALITY_MARGIN" |> System.get_env("10") |> String.to_integer(),
-  gas_price: "GAS_PRICE" |> System.get_env("2000000000") |> String.to_integer()
+  gas_price: "GAS_PRICE" |> System.get_env("2000000000") |> String.to_integer(),
+  record_metrics: true
 
 config :ex_plasma,
   eip_712_domain: [
@@ -44,5 +45,15 @@ config :logger, :console,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id, :trace_id, :span_id]
+
+config :statix,
+  host: "localhost",
+  port: 8125,
+  tags: [System.get_env("STATIX_TAG")]
+
+config :load_test, :datadog,
+  api_key: System.get_env("DD_API_KEY"),
+  app_key: System.get_env("DD_APP_KEY"),
+  api_url: "https://app.datadoghq.com/"
 
 import_config "#{Mix.env()}.exs"

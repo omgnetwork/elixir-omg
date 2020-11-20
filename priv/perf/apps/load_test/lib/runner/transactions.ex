@@ -12,31 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule LoadTest.Runner.UtxosTest do
-  use ExUnit.Case
+defmodule LoadTest.Runner.Transactions do
+  @moduledoc """
+  Transactions tests runner.
+  """
+  use Chaperon.LoadTest
 
-  @moduletag :utxos
-
-  test "deposits test" do
-    token = "0x0000000000000000000000000000000000000000"
-    initial_amount = 760
-    fee = 75
-
-    config = %{
-      chain_config: %{
-        token: token,
-        initial_amount: initial_amount,
-        fee: fee
-      },
-      run_config: %{
-        tps: 1,
-        period_in_seconds: 20
-      },
-      timeout: :infinity
-    }
-
-    result = Chaperon.run_load_test(LoadTest.Runner.Utxos, config: config)
-
-    assert result.metrics["error_rate"][:mean] == 0.0
+  def scenarios do
+    [
+      {{1, LoadTest.Scenario.Transactions}, %{}}
+    ]
   end
 end

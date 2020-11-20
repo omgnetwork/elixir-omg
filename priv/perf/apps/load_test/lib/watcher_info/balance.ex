@@ -21,6 +21,7 @@ defmodule LoadTest.WatcherInfo.Balance do
   alias ExPlasma.Encoding
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Sync
+  alias LoadTest.WatcherInfo.Client
 
   @poll_timeout 60_000
 
@@ -40,9 +41,8 @@ defmodule LoadTest.WatcherInfo.Balance do
 
   defp do_fetch_balance(address, amount, currency) do
     response =
-      case account_get_balances(address) do
-        {:ok, response} ->
-          decoded_response = Jason.decode!(response.body)
+      case Client.get_balances(address) do
+        {:ok, decoded_response} ->
           Enum.find(decoded_response["data"], fn data -> data["currency"] == currency end)
 
         result ->
@@ -62,10 +62,5 @@ defmodule LoadTest.WatcherInfo.Balance do
       response ->
         {:error, response}
     end
-  end
-
-  defp account_get_balances(address) do
-    client = LoadTest.Connection.WatcherInfo.client()
-    WatcherInfoAPI.Api.Account.account_get_balance(client, %{address: address})
   end
 end

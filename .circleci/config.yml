@@ -663,6 +663,7 @@ jobs:
       image: ubuntu-1604:201903-01
     environment:
       PERF_IMAGE_NAME: "omisego/perf:latest"
+      STATIX_TAG: "env:perf_circleci"
     steps:
       - checkout
       - run:
@@ -674,6 +675,7 @@ jobs:
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
+      - install_elixir
       - run:
           name: Start daemon services
           command: |
@@ -685,7 +687,6 @@ jobs:
           command: |
             cd priv/perf
             make log-services
-      - install_elixir
       - run: sh .circleci/status.sh
       - run:
           name: Run load test
@@ -698,10 +699,13 @@ jobs:
           name: Show help information
           command: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
       - run:
-          name: Run perf smoke test
+          name: Run perf smoke test (deposits)
           command: |
-            export $(cat ./localchain_contract_addresses.env | xargs) &&
-            docker run -it --env-file ./localchain_contract_addresses.env --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 10 10
+            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
+      - run:
+          name: Run perf smoke test (transactions)
+          command: |
+            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |

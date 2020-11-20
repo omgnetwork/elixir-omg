@@ -32,12 +32,14 @@ defmodule LoadTest.MixProject do
     [
       {:briefly, "~> 0.3"},
       {:chaperon, "~> 0.3.1"},
+      {:statix, "~> 1.4"},
+      {:histogrex, "~> 0.0.5"},
       {:tesla, "~> 1.3.0"},
       {:httpoison, "~> 1.6.2", override: true},
       {:ex_plasma,
        git: "https://github.com/omisego/ex_plasma.git", ref: "9fcda87af92e9d19cf3253ecea66f9c2c8a0ccd0", override: true},
       {:telemetry, "~> 0.4.1"},
-
+      {:fake_server, "~> 2.1", only: :test},
       # Better adapter for tesla
       {:hackney, "~> 1.15.2"},
       {:watcher_info_api, in_umbrella: true},
