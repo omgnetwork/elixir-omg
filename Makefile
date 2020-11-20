@@ -184,6 +184,7 @@ build-test: deps-elixir-omg
 # localchain_contract_addresses.env is used by docker, exunit tests and end2end tests
 init-contracts: clean-contracts
 	mkdir data/ || true && \
+	chmod 777 data && \
 	URL=$$(grep "^$(SNAPSHOT)" snapshots.env | cut -d'=' -f2-) && \
 	curl -o data/snapshot.tar.gz $$URL && \
 	cd data && \

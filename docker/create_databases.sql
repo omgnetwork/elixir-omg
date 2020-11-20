@@ -14,4 +14,7 @@ CREATE USER omisego_dev;
 ALTER USER omisego_dev CREATEDB;
 ALTER USER omisego_dev WITH PASSWORD 'omisego_dev';
 CREATE DATABASE omisego_dev;
-GRANT ALL PRIVILEGES ON DATABASE omisego_dev TO omisego_dev
+GRANT ALL PRIVILEGES ON DATABASE omisego_dev TO omisego_dev;
+
+CREATE DATABASE omisego_test;
+GRANT ALL PRIVILEGES ON DATABASE omisego_test TO omisego_dev;
