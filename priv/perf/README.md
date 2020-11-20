@@ -2,6 +2,27 @@
 
 Umbrella app for performance/load/stress tests
 
+
+## How to run the tests
+
+### 1. Set up the environment vars
+
+```
+export CHILD_CHAIN_URL=<childchain api url>
+export WATCHER_INFO_URL=<watcher-info api url>
+export ETHEREUM_RPC_URL=<ethereum node url>
+export CONTRACT_ADDRESS_PLASMA_FRAMEWORK=<address of the plasma framework contract>
+export CONTRACT_ADDRESS_ETH_VAULT=<address of the eth vault contract>
+export CONTRACT_ADDRESS_ERC20_VAULT=<address of the erc20 vault contract>
+export LOAD_TEST_FAUCET_PRIVATE_KEY=<faucet private key>
+```
+
+
+### 2. Generate the open-api client
+ ```
+make init
+```
+
 ## Tests with assertions
 
 These tests check the integrity of the system during their run. They meant to be run with the given rate (tests/second) over the given period (seconds).
@@ -78,27 +99,8 @@ docker run -it --env-file ./localchain_contract_addresses.env --network host omi
 
 ## Tests without assertions
 
-### How to run the tests
 
-#### 1. Set up the environment vars
-
-```
-export CHILD_CHAIN_URL=<childchain api url>
-export WATCHER_INFO_URL=<watcher-info api url>
-export ETHEREUM_RPC_URL=<ethereum node url>
-export CONTRACT_ADDRESS_PLASMA_FRAMEWORK=<address of the plasma framework contract>
-export CONTRACT_ADDRESS_ETH_VAULT=<address of the eth vault contract>
-export CONTRACT_ADDRESS_ERC20_VAULT=<address of the erc20 vault contract>
-export LOAD_TEST_FAUCET_PRIVATE_KEY=<faucet private key>
-```
-
-
-#### 2. Generate the open-api client
- ```
-make init
-```
-
-#### 3. Configure the tests
+### 1. Configure the tests
 Edit the config file (e.g. `config/dev.exs`) set the test parameters e.g.
 ```
   childchain_transactions_test_config: %{
@@ -117,7 +119,7 @@ config :load_test,
   fee_amount: 6_000_000_000_000_000,
 ```
 
-#### 4. Run the tests
+### 2. Run the tests
 ```
 MIX_ENV=<your_env> mix test
 ```
