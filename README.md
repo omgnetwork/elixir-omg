@@ -99,14 +99,14 @@ make init_test
 You can setup the docker environment to run testing and development tasks:
 
 ```sh
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.datadog.yml run --rm --entrypoint bash --user elixir-omg
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.datadog.yml run --rm --entrypoint bash elixir-omg
 ```
 
 Once the shell has loaded, you can continue and run additional tasks.
 
 Get the necessary dependencies for building:
 ```bash
-mix deps.get
+cd app && mix deps.get
 ```
 
 Quick test (no integration tests):
