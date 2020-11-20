@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,16 +21,16 @@ defmodule OMG.WatcherInfo.BlockApplicatorTest do
   alias OMG.WatcherInfo.DB
 
   setup do
-      block_application = %BlockApplication{
-        number: 1_000,
-        eth_height: 1,
-        eth_height_done: true,
-        hash: "0x1000",
-        transactions: [],
-        timestamp: 1_576_500_000
-      }
+    block_application = %BlockApplication{
+      number: 1_000,
+      eth_height: 1,
+      eth_height_done: true,
+      hash: "0x1000",
+      transactions: [],
+      timestamp: 1_576_500_000
+    }
 
-      {:ok, block_application: block_application}
+    {:ok, block_application: block_application}
   end
 
   describe "insert_block!" do
