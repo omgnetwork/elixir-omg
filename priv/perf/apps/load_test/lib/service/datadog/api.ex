@@ -86,11 +86,11 @@ defmodule LoadTest.Service.Datadog.API do
         {:ok, events}
 
       {:ok, %{body: body}} ->
-        Logger.error("failed to fetch events #{inspect(body)}")
+        Logger.warn("failed to fetch events #{inspect(body)}. retrying")
         fetch_events(start_time, end_time, environment, retries - 1)
 
       {:error, error} ->
-        Logger.error("failed to fetch events #{inspect(error)}")
+        Logger.warn("failed to fetch events #{inspect(error)}. retrying")
         fetch_events(start_time, end_time, environment, retries - 1)
     end
   end
@@ -143,14 +143,14 @@ defmodule LoadTest.Service.Datadog.API do
         :ok
 
       {:ok, %{body: body}} ->
-        Logger.error("failed to resolve monitors #{inspect(body)}")
+        Logger.warn("failed to resolve monitors #{inspect(body)}. retrying")
 
         Process.sleep(1_000)
 
         do_resolve_monitors(params, retries - 1)
 
       {:error, error} ->
-        Logger.error("failed to resolve monitors #{inspect(error)}")
+        Logger.warn("failed to resolve monitors #{inspect(error)}. retrying")
 
         Process.sleep(1_000)
 
