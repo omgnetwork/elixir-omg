@@ -354,7 +354,7 @@ docker-push: docker
 ### Cabbage logs
 
 cabbage-logs:
-	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow
+	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.specs.yml logs --follow
 
 cabbage-logs-reorg:
 	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow
