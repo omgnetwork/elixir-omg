@@ -15,7 +15,7 @@
 defmodule OMG.WatcherRPC.TracerTest do
   @app :omg_watcher_rpc
 
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   import Plug.Conn
   alias OMG.WatcherRPC.Configuration
   alias OMG.WatcherRPC.Tracer
