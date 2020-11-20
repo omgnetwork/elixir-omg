@@ -36,7 +36,8 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
       blknum = 1000
       insert(:pending_block, %{data: <<0>>, blknum: blknum})
 
-      assert {:error, %Ecto.Changeset{}} = PendingBlock.insert(%{data: <<1>>, blknum: blknum})
+      assert {:error, %Ecto.Changeset{} = changeset} = PendingBlock.insert(%{data: <<1>>, blknum: blknum})
+      assert [{:blknum, {"has already been taken", [constraint: :unique, constraint_name: _name]}}] = changeset.errors()
     end
   end
 

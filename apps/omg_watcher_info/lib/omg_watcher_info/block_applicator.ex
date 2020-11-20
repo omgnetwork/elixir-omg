@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OMG Network Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,40 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: remove me?
-defmodule OMG.WatcherInfo.BlockApplicationConsumer do
+defmodule OMG.WatcherInfo.BlockApplicator do
   @moduledoc """
-  Subscribes for new blocks and inserts them into a pending queue of blocks waiting to be processed.
+  Handles new block applications from Watcher's `BlockGetter` and persists them for further processing
   """
-  require Logger
-
-  use GenServer
 
   alias OMG.WatcherInfo.DB
 
-  @default_bus_module OMG.Bus
+  @doc """
+  Inserts a block to pending blocks, does not break when block already exists.
+  """
+  @spec insert_block!(OMG.Watcher.BlockGetter.BlockApplication.t()) :: :ok
+  def insert_block!(block) do
+    block
+    |> to_pending_block()
+    |> DB.PendingBlock.insert()
+    |> case do
+      {:ok, _} ->
+        :ok
 
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: Keyword.get(args, :name, __MODULE__))
-  end
-
-  def init(args) do
-    _ = Logger.info("Started #{inspect(__MODULE__)}")
-
-    bus_module = Keyword.get(args, :bus_module, @default_bus_module)
-    :ok = bus_module.subscribe({:child_chain, "block.get"}, link: true)
-
-    {:ok, %{}}
-  end
-
-  # Listens for blocks and insert them to the WatcherDB.
-  def handle_info({:internal_event_bus, :block_received, block_application}, state) do
-    {:ok, _} =
-      block_application
-      |> to_pending_block()
-      |> DB.PendingBlock.insert()
-
-    {:noreply, state}
+      {:error, changeset} ->
+        [{:blknum, {_msg, [constraint: :unique, constraint_name: _name]}}] = changeset.errors()
+        :ok
+    end
   end
 
   defp to_pending_block(%{} = block) do

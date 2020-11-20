@@ -63,7 +63,6 @@ defmodule OMG.WatcherInfo.Supervisor do
       ] ++ @children_run_after_repo
 
     children = [
-      {OMG.WatcherInfo.BlockApplicationConsumer, []},
       {OMG.WatcherInfo.PendingBlockProcessor, [processing_interval: Configuration.pending_block_processing_interval()]},
       {OMG.WatcherInfo.PendingBlockQueueLengthChecker, [check_interval: Configuration.block_queue_check_interval()]}
     ]
