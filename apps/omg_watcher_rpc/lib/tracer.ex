@@ -18,4 +18,26 @@ defmodule OMG.WatcherRPC.Tracer do
   """
 
   use Spandex.Tracer, otp_app: :omg_watcher_rpc
+  alias OMG.WatcherRPC.Configuration
+
+  def add_trace_metadata(%{assigns: %{error_type: error_type, error_msg: error_msg}} = conn) do
+    service_name = Configuration.service_name()
+    version = Configuration.version()
+
+    conn
+    |> SpandexPhoenix.default_metadata()
+    |> Keyword.put(:service, service_name)
+    |> Keyword.put(:error, [{:error, true}])
+    |> Keyword.put(:tags, [{:version, version}, {:"error.type", error_type}, {:"error.msg", error_msg}])
+  end
+
+  def add_trace_metadata(conn) do
+    service_name = Configuration.service_name()
+    version = Configuration.version()
+
+    conn
+    |> SpandexPhoenix.default_metadata()
+    |> Keyword.put(:service, service_name)
+    |> Keyword.put(:tags, [{:version, version}])
+  end
 end
