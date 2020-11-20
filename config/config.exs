@@ -21,6 +21,7 @@ config :logger, Sentry.LoggerBackend,
   ignore_plug: true
 
 config :sentry,
+  filter: OMG.Status.SentryFilter,
   dsn: nil,
   environment_name: nil,
   included_environments: [],
