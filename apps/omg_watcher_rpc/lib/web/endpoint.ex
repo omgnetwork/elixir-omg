@@ -13,8 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.WatcherRPC.Web.Endpoint do
+  use Sentry.PlugCapture
   use Phoenix.Endpoint, otp_app: :omg_watcher_rpc
-  use Sentry.Phoenix.Endpoint
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
@@ -31,6 +31,7 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
     json_decoder: Jason
   )
 
+  plug(Sentry.PlugContext)
   plug(Plug.MethodOverride)
   plug(Plug.Head)
 
