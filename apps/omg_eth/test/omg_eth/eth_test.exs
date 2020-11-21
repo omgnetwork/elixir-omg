@@ -29,11 +29,11 @@ defmodule OMG.EthTest do
   @moduletag :common
 
   setup_all do
-    {:ok, exit_fn} = Support.DevNode.start()
+    {:ok, {geth_pid, _container_id}} = Support.DevNode.start()
     authority_address = Configuration.authority_address()
     {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [authority_address, "", 0], [])
 
-    on_exit(exit_fn)
+    on_exit(fn -> GenServer.stop(geth_pid) end)
     :ok
   end
 

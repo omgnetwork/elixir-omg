@@ -32,9 +32,9 @@ defmodule OMG.Eth.Fixtures do
     case System.get_env("DOCKER_GETH") do
       nil ->
         if Application.get_env(:omg_eth, :run_test_eth_dev_node, true) do
-          {:ok, exit_fn} = DevNode.start()
+          {:ok, {geth_pid, _container_id}} = DevNode.start()
 
-          on_exit(exit_fn)
+          on_exit(fn -> GenServer.stop(geth_pid) end)
         end
 
         :ok

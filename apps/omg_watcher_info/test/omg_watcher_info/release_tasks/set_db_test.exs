@@ -18,14 +18,15 @@ defmodule OMG.WatcherInfo.ReleaseTasks.SetDBTest do
   alias OMG.WatcherInfo.ReleaseTasks.SetDB
 
   @app :omg_watcher_info
-  @configuration_old Application.get_env(@app, Repo)
 
   setup do
+    configuration_old = Application.get_env(@app, Repo)
+
     on_exit(fn ->
       # configuration is global state so we reset it to known values in case
       # it got fiddled before
 
-      :ok = Application.put_env(@app, Repo, @configuration_old, persistent: true)
+      :ok = Application.put_env(@app, Repo, configuration_old, persistent: true)
     end)
 
     :ok

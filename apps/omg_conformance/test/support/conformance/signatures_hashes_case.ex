@@ -31,7 +31,7 @@ defmodule Support.Conformance.SignaturesHashesCase do
   end
 
   setup_all do
-    {:ok, exit_fn} = Support.DevNode.start()
+    {:ok, {geth_pid, _container_id}} = Support.DevNode.start()
     contracts = SnapshotContracts.parse_contracts()
     signtest_addr_hex = contracts["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
     old_config = Application.get_all_env(:omg_eth)
@@ -41,7 +41,7 @@ defmodule Support.Conformance.SignaturesHashesCase do
       # reverting to the original values from `omg_eth/config/test.exs`
       :ok = Application.put_all_env(omg_eth: old_config)
 
-      exit_fn.()
+      GenServer.stop(geth_pid)
     end)
 
     [contract: OMG.Eth.Encoding.from_hex(signtest_addr_hex)]

@@ -31,12 +31,12 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   @moduletag timeout: 450_000
 
   setup_all do
-    {:ok, exit_fn} = Support.DevNode.start()
+    {:ok, {geth_pid, _container_id}} = Support.DevNode.start()
 
     contracts = SnapshotContracts.parse_contracts()
     merkle_wrapper_address_hex = contracts["CONTRACT_ADDRESS_MERKLE_WRAPPER"]
 
-    on_exit(exit_fn)
+    on_exit(fn -> GenServer.stop(geth_pid) end)
 
     [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex)]
   end

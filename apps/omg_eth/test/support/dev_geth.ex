@@ -95,7 +95,6 @@ defmodule OMG.Eth.DevGeth do
     body = Jason.encode!(geth(port, datadir, geth_image))
     url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/#{@docker_engine_api}/containers/create"
     response = HTTPoison.post!(url, body, [{"content-type", "application/json"}], timeout: 60_000, recv_timeout: 60_000)
-    IO.inspect(response)
     201 = response.status_code
     %{"Id" => id} = Jason.decode!(response.body)
     id
