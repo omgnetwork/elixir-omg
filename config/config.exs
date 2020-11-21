@@ -75,8 +75,7 @@ config :omg_eth,
   min_exit_period_seconds: nil,
   ethereum_block_time_seconds: 15,
   ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
-  ethereum_stalled_sync_threshold_ms: 20_000,
-  node_logging_in_debug: false
+  ethereum_stalled_sync_threshold_ms: 20_000
 
 config :omg_status,
   statsd_reconnect_backoff_ms: 10_000,

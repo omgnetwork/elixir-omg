@@ -327,7 +327,8 @@ jobs:
       - run: mix sobelow --exit --skip --ignore Config.HTTPS -r apps/omg_watcher_rpc --router apps/omg_watcher_rpc/lib/web/router.ex
 
   watcher_coveralls_and_integration_tests:
-    executor: builder_pg_geth
+    machine:
+      image: ubuntu-1604:201903-01
     environment:
       MIX_ENV: test
     steps:
@@ -356,6 +357,7 @@ jobs:
       image: ubuntu-1604:201903-01
     environment:
       MIX_ENV: test
+      DOCKER_GETH: true
     steps:
       - checkout
       - setup_childchain
@@ -363,8 +365,6 @@ jobs:
       - install_deps
       - run:
           name: Compile
-          environment:
-            MIX_ENV: test
           command: |
             set -e
             make deps-elixir-omg
@@ -372,83 +372,62 @@ jobs:
           no_output_timeout: 2400
       - run:
           name: invalid_exit_1_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: invalid_exit_2_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: block_getter_1_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: block_getter_2_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: block_getter_3_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: block_getter_4_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: in_flight_exit_test_1_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: in_flight_exit_test_2_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: in_flight_exit_test_3_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: in_flight_exit_test_4_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/in_flight_exit_test_4_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
           name: in_flight_exit_test.exs
-          environment:
-            DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/in_flight_exit_test.exs --include mix_based_child_chain
 
   watcher_info_coveralls_and_integration_tests:
-    executor: builder_pg_geth
+    machine:
+      image: ubuntu-1604:201903-01
     environment:
       MIX_ENV: test
     steps:
@@ -465,9 +444,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche --exclude child_chain --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watcher --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -490,15 +469,16 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
   test:
-    executor: builder_pg
+    machine:
+      image: ubuntu-1604:201903-01
     environment:
       MIX_ENV: test
     steps:
@@ -515,9 +495,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
+              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info
             else
-              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain ||
+              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi

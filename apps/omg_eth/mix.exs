@@ -43,8 +43,8 @@ defmodule OMG.Eth.MixProject do
       {:omg_utils, in_umbrella: true},
       {:omg_db, in_umbrella: true},
       # TEST ONLY
-      {:exexec, "~> 0.2.0", only: [:dev, :test]},
-      {:briefly, "~> 0.3.0", only: [:dev, :test]}
+      {:yaml_elixir, "~> 2.4.0", only: [:test]},
+      {:briefly, git: "https://github.com/CargoSense/briefly.git", only: [:test]}
     ]
   end
 end

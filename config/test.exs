@@ -72,7 +72,6 @@ config :omg_eth,
     payment_exit_game: contracts["CONTRACT_ADDRESS_PAYMENT_EXIT_GAME"],
     plasma_framework: contracts["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
   },
-  node_logging_in_debug: true,
   # Lower the event check interval too low and geth will die
   ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   min_exit_period_seconds: 22,

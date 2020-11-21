@@ -52,7 +52,6 @@ defmodule OMG.WatcherInfo.MixProject do
       # TEST ONLY
       # here only to leverage common test helpers and code
       {:fake_server, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:briefly, "~> 0.3.0", only: [:dev, :test]},
       {:phoenix, "~> 1.5", runtime: false},
       {:poison, "~> 4.0"},
       {:ex_machina, "~> 2.3", only: [:test], runtime: false}

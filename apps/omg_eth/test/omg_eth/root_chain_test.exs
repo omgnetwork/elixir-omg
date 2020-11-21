@@ -26,9 +26,12 @@ defmodule OMG.Eth.RootChainTest do
   @moduletag :common
 
   setup do
-    {:ok, exit_fn} = Support.DevNode.start()
+    {:ok, {geth_pid, _container_id}} = Support.DevNode.start()
 
-    on_exit(exit_fn)
+    on_exit(fn ->
+      GenServer.stop(geth_pid)
+    end)
+
     :ok
   end
 

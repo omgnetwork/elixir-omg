@@ -16,4 +16,3 @@ ExUnit.configure(exclude: [integration: true, property: true, wrappers: true, co
 ExUnit.start()
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 {:ok, _} = Application.ensure_all_started(:briefly)
-{:ok, _} = Application.ensure_all_started(:erlexec)

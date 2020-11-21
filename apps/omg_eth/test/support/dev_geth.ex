@@ -13,115 +13,142 @@
 # limitations under the License.
 
 defmodule OMG.Eth.DevGeth do
-  use GenServer
-
   @moduledoc """
-  Helper module for deployment of contracts to dev geth.
+    Interaction with docker's geth instance
   """
-
-  @doc """
-  Run geth in temp dir, kill it with SIGKILL when done.
-  """
-
-  require Logger
-
-  alias Support.WaitFor
+  use GenServer
+  @docker_engine_api "v1.39"
 
   def start() do
-    {:ok, homedir} = Briefly.create(directory: true)
+    start(8545)
+  end
+
+  def start(port) do
+    {:ok, _} = Application.ensure_all_started(:briefly)
+    {:ok, _} = Application.ensure_all_started(:httpoison)
+    {:ok, pid} = GenServer.start(__MODULE__, [])
+    {:ok, container_id} = GenServer.call(pid, {:start, port}, 60_000)
+    wait(port)
+    {:ok, {pid, container_id}}
+  end
+
+  def init(_) do
+    {:ok, %{}}
+  end
+
+  def handle_call({:start, port}, _, _state) do
+    geth_image = pull_geth_image()
+    datadir = create_temp_geth_dir()
+    container_id = create_geth_container(port, datadir, geth_image)
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+    Process.register(self(), String.to_atom(container_id))
+    start_container(container_id, port)
+    {:reply, {:ok, container_id}, container_id}
+  end
+
+  def terminate(_, container_id) when is_binary(container_id) do
+    stop_container_url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/#{@docker_engine_api}/containers/#{container_id}/stop"
+
+    stop_response =
+      HTTPoison.post!(stop_container_url, "", [{"content-type", "application/json"}],
+        timeout: 60_000,
+        recv_timeout: 60_000
+      )
+
+    204 = stop_response.status_code
+
+    delete_container_url =
+      "http+unix://%2Fvar%2Frun%2Fdocker.sock/#{@docker_engine_api}/containers/#{container_id}?v=true&force=true"
+
+    delete_response =
+      HTTPoison.delete!(delete_container_url, [{"content-type", "application/json"}],
+        timeout: 60_000,
+        recv_timeout: 60_000
+      )
+
+    204 = delete_response.status_code
+    _ = Briefly.cleanup()
+  end
+
+  defp wait(port) do
+    case Ethereumex.HttpClient.web3_client_version(url: "http://127.0.0.1:#{port}") do
+      {:error, :closed} ->
+        Process.sleep(500)
+        wait(port)
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp start_container(container_id, port) do
+    url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/#{@docker_engine_api}/containers/#{container_id}/start"
+    response = HTTPoison.post!(url, "", [{"content-type", "application/json"}], timeout: 60_000, recv_timeout: 60_000)
+
+    case response.status_code do
+      204 -> :ok
+      500 -> raise ArgumentError, message: "Something is running on Geth port #{port}."
+    end
+  end
+
+  defp create_geth_container(port, datadir, geth_image) do
+    body = Jason.encode!(geth(port, datadir, geth_image))
+    url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/#{@docker_engine_api}/containers/create"
+    response = HTTPoison.post!(url, body, [{"content-type", "application/json"}], timeout: 60_000, recv_timeout: 60_000)
+    IO.inspect(response)
+    201 = response.status_code
+    %{"Id" => id} = Jason.decode!(response.body)
+    id
+  end
+
+  defp pull_geth_image() do
+    path = Path.join([Mix.Project.build_path(), "../../", "docker-compose.yml"])
+    {:ok, docker_compose} = YamlElixir.read_from_file(path)
+    geth_image = docker_compose["services"]["geth"]["image"]
+    url = "http+unix://%2Fvar%2Frun%2Fdocker.sock/#{@docker_engine_api}/images/create?fromImage=#{geth_image}"
+    response = HTTPoison.post!(url, "", [])
+    200 = response.status_code
+    geth_image
+  end
+
+  defp create_temp_geth_dir() do
+    {:ok, datadir} = Briefly.create(directory: true)
     snapshot_dir = Path.expand(Path.join([Mix.Project.build_path(), "../../", "data/geth/"]))
-    {"", 0} = System.cmd("cp", ["-rf", snapshot_dir, homedir])
-
-    keystore = Path.join([homedir, "/geth/keystore"])
-    datadir = Path.join([homedir, "/geth"])
-    :ok = File.write!("/tmp/geth-blank-password", "")
-    geth = ~s(geth --miner.gastarget 7500000 \
-            --nodiscover \
-            --maxpeers 0 \
-            --miner.gasprice "10" \
-            --syncmode 'full' \
-            --networkid 1337 \
-            --gasprice '1' \
-            --keystore #{keystore} \
-            --password /tmp/geth-blank-password \
-            --unlock "0,1" \
-            --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts='*' --rpcport=8545 \
-            --ws --wsaddr 0.0.0.0 --wsorigins='*' \
-            --allow-insecure-unlock \
-            --mine --datadir #{datadir} 2>&1)
-    _pid = launch(geth)
-
-    {:ok, :ready} = WaitFor.eth_rpc(20_000)
-
-    on_exit = fn ->
-      Exexec.run("pkill -9 geth")
-    end
-
-    {:ok, on_exit}
+    {"", 0} = System.cmd("cp", ["-rf", snapshot_dir, datadir])
+    datadir
   end
 
-  @impl true
-  def init(cmd) do
-    _ = Logger.debug("Starting geth")
+  defp geth(port, datadir, geth_image) do
+    root_path = Path.join([Mix.Project.build_path(), "../../"])
 
-    {:ok, geth_proc, os_proc} = Exexec.run(cmd, stdout: true)
-
-    {:ok, %{geth_proc: geth_proc, os_proc: os_proc, ready?: false}}
-  end
-
-  @impl true
-  def handle_info({:stdout, pid, stdout}, %{os_proc: pid} = state) do
-    new_state =
-      if String.contains?(stdout, "IPC endpoint opened") do
-        Map.put(state, :ready?, true)
-      else
-        state
-      end
-
-    _ =
-      case Application.get_env(:omg_eth, :node_logging_in_debug) do
-        true -> Logger.debug("eth node: " <> stdout)
-        _ -> :ok
-      end
-
-    {:noreply, new_state}
-  end
-
-  @impl true
-  def handle_call(:ready?, _from, state) do
-    {:reply, state.ready?, state}
-  end
-
-  # PRIVATE
-
-  defp launch(cmd) do
-    {:ok, pid} = start_link(cmd)
-
-    waiting_task = fn ->
-      wait_for_rpc(pid)
-    end
-
-    waiting_task
-    |> Task.async()
-    |> Task.await(90_000)
-
-    pid
-  end
-
-  defp wait_for_rpc(pid) do
-    if ready?(pid) do
-      :ok
-    else
-      Process.sleep(2_000)
-      wait_for_rpc(pid)
-    end
-  end
-
-  defp start_link(cmd) do
-    GenServer.start_link(__MODULE__, cmd)
-  end
-
-  defp ready?(pid) do
-    GenServer.call(pid, :ready?)
+    %{
+      "Image" => geth_image,
+      "Entrypoint" => [
+        "/bin/sh",
+        "-c",
+        ". data/command"
+      ],
+      "Env" => [
+        "RPC_PORT=#{port}"
+      ],
+      # -p
+      "PortBindings" => %{"#{port}/tcp" => [%{"HostIP" => "0.0.0.0", "HostPort" => "#{port}"}]},
+      "ExposedPorts" => %{"#{port}/tcp" => %{}},
+      "HostConfig" => %{
+        "PortBindings" => %{
+          "#{port}/tcp" => [
+            %{
+              "HostIp" => "",
+              "HostPort" => "#{port}"
+            }
+          ]
+        },
+        "Binds" => [
+          "#{root_path}/docker/geth/command:/data/command:rw",
+          "#{datadir}:/data:rw",
+          "#{root_path}/docker/geth/geth-blank-password:/data/geth-blank-password:rw"
+        ]
+      }
+    }
   end
 end

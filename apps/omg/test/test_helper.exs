@@ -19,4 +19,3 @@ ExUnit.start()
 
 {:ok, _} = Application.ensure_all_started(:propcheck)
 {:ok, _} = Application.ensure_all_started(:briefly)
-{:ok, _} = Application.ensure_all_started(:erlexec)

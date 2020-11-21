@@ -256,9 +256,6 @@ All binary entries are expected in hex-encoded, `0x`-prefixed.
 
 * **`eth_node`** - the Ethereum client which is used: `"geth" | "infura"`.
 
-* **`node_logging_in_debug`** - whether the output of the Ethereum node being run in integration test should be printed to `:debug` level logs.
-If you set this to false, remember to set the logging level to `:debug` to see the logs
-
 * **`child_block_interval`** - mirror of contract configuration `uint256 constant public CHILD_BLOCK_INTERVAL` from `RootChain.sol`
 
 * **`min_exit_period_seconds`** - mirror of contract configuration `uint256 public minExitPeriod`

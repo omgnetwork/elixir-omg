@@ -15,8 +15,7 @@ config :ethereumex,
 
 config :omg_eth,
   min_exit_period_seconds: 10 * 60,
-  ethereum_block_time_seconds: 1,
-  node_logging_in_debug: true
+  ethereum_block_time_seconds: 1
 
 config :omg_watcher_rpc, environment: :dev
 config :phoenix, :stacktrace_depth, 20
