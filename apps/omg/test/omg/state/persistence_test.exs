@@ -220,7 +220,7 @@ defmodule OMG.State.PersistenceTest do
   defp persist_form() do
     state = :sys.get_state(OMG.State)
 
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} =
+    {:ok, {_block, db_updates}, new_state} =
       state
       |> OMG.State.Core.claim_fees()
       |> OMG.State.Core.form_block()

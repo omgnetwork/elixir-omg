@@ -27,7 +27,6 @@ defmodule OMG.State do
   Assumes that all stateless transaction validation is done outside of `exec/2`, so it accepts `OMG.State.Transaction.Recovered`
   """
 
-  alias OMG.Block
   alias OMG.DB
 
   alias OMG.Fees
