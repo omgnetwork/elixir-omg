@@ -220,10 +220,7 @@ defmodule OMG.State.PersistenceTest do
   defp persist_form() do
     state = :sys.get_state(OMG.State)
 
-    {:ok, {_block, db_updates}, new_state} =
-      state
-      |> OMG.State.Core.claim_fees()
-      |> OMG.State.Core.form_block()
+    {:ok, {_block, db_updates}, new_state} = OMG.State.Core.form_block(state)
 
     :ok = OMG.DB.multi_update(db_updates)
     :sys.replace_state(OMG.State, fn _ -> new_state end)

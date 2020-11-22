@@ -932,35 +932,6 @@ defmodule OMG.State.CoreTest do
       {:ok, [state: state, alice: alice, fees: fees, fee_claimer: fee_claimer, state_empty: state_empty]}
     end
 
-    test "should append fee txs in block", %{state: state} do
-      state = Core.claim_fees(state)
-      {:ok, {block, _dbupdates}, _state} = form_block_check(state)
-
-      assert [payment_txbytes, fee_txbytes] = block.transactions
-
-      assert %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Payment{}}} =
-               Transaction.Recovered.recover_from!(payment_txbytes)
-
-      assert %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction.Fee{}}} =
-               Transaction.Recovered.recover_from!(fee_txbytes)
-    end
-
-    test "fee txs are appended even when fees aren't required", %{state: state} do
-      state = Core.claim_fees(state)
-      {:ok, {block, _dbupdates}, _state} = form_block_check(state)
-
-      assert 2 = length(block.transactions)
-    end
-
-    test "should create utxos from claimed fee", %{alice: alice, state: state, fee_claimer: fee_claimer} do
-      state = Core.claim_fees(state)
-      {:ok, _, state} = form_block_check(state)
-
-      state
-      |> Core.exec(create_recovered([{1000, 1, 0, fee_claimer}], @eth, [{alice, 2}]), :no_fees_required)
-      |> success?()
-    end
-
     test "fee txs cannot be intermixed with payments", %{alice: alice, state: state, fees: fees} do
       fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
 
@@ -1046,31 +1017,6 @@ defmodule OMG.State.CoreTest do
       state
       |> Core.exec(create_recovered_fee_tx(1000, state.fee_claimer_address, @not_eth, 1), fees)
       |> fail?(:surplus_in_token_not_collected)
-    end
-
-    test "multi-input/output transaction - pay fees from no-zero index",
-         %{alice: alice, state_empty: state, fees: fees} do
-      not_eth_1 = <<123::160>>
-      not_eth_2 = <<234::160>>
-
-      state =
-        state
-        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-        |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 2})
-        |> do_deposit(alice, %{amount: 10, currency: not_eth_1, blknum: 3})
-        |> do_deposit(alice, %{amount: 10, currency: not_eth_2, blknum: 4})
-        |> Core.exec(
-          create_recovered(
-            [{3, 0, 0, alice}, {2, 0, 0, alice}, {1, 0, 0, alice}, {4, 0, 0, alice}],
-            [{alice, @not_eth, 10}, {alice, @eth, 8}, {alice, not_eth_2, 10}, {alice, not_eth_1, 10}]
-          ),
-          fees
-        )
-        |> success?()
-
-      fee_tx = create_recovered_fee_tx(1000, state.fee_claimer_address, @eth, 2)
-
-      assert %Core{pending_txs: [^fee_tx | _]} = Core.claim_fees(state)
     end
 
     test "surpluses adding up for same-token-fees paid in a block", %{alice: alice, state: state, fees: fees} do
