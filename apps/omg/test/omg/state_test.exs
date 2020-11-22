@@ -62,23 +62,4 @@ defmodule OMG.StateTest do
 
     :ok
   end
-
-  @tag fixtures: [:alice, :standalone_state_server]
-  test "can execute various calls on OMG.State, one happy path only", %{alice: alice} do
-    fee = %{@eth => [1]}
-
-    # deposits, transactions, utxo existence
-    assert {:ok, _} = State.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}])
-    assert true == State.utxo_exists?(Utxo.position(1, 0, 0))
-
-    assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}]), fee)
-
-    # block forming & status
-    assert {blknum, _} = State.get_status()
-    assert :ok = State.form_block()
-    # exits, with invalid ones
-    assert {:ok, _db, _} = State.exit_utxos([Utxo.position(blknum, 0, 0)])
-    # close block
-    assert {:ok, _db} = State.close_block()
-  end
 end

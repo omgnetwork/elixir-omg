@@ -197,13 +197,13 @@ defmodule OMG.State.PersistenceTest do
     {:ok, _, _} = OMG.State.exit_utxos([Utxo.position(1, 0, 0)])
 
     # exit db_updates won't get persisted yet, but alice tries to spent it immediately
-    assert :utxo_not_found == exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}]))
+    assert exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}])) == :utxo_not_found
 
     # retry above with empty in-memory utxoset
     :ok = restart_state()
 
     {:ok, _, _} = OMG.State.exit_utxos([Utxo.position(1, 0, 0)])
-    assert :utxo_not_found == exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}]))
+    assert exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}])) == :utxo_not_found
   end
 
   defp persist_deposit(deposits) do
@@ -218,12 +218,15 @@ defmodule OMG.State.PersistenceTest do
   defp persist_form(:ok), do: persist_form()
 
   defp persist_form() do
-    OMG.State.form_block()
+    state = :sys.get_state(OMG.State)
 
-    # because `form_block` is non-blocking operation we need to wait it finishes
-    # easiest to do this is to schedule another operation on `OMG.State` which is blocking
-    _ = OMG.State.utxo_exists?(Utxo.position(0, 0, 0))
+    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} =
+      state
+      |> OMG.State.Core.claim_fees()
+      |> OMG.State.Core.form_block()
 
+    :ok = OMG.DB.multi_update(db_updates)
+    :sys.replace_state(OMG.State, fn _ -> new_state end)
     :ok
   end
 

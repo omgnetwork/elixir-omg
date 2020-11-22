@@ -141,7 +141,6 @@ mkdir data && chmod 777 data
 
 Make services:
 ```bash
-make docker-child_chain
 make docker-watcher
 make docker-watcher_info
 ```
@@ -192,7 +191,6 @@ mkdir data1 && chmod 777 data1 && mkdir data2 && chmod 777 data2 && mkdir data &
 
 Make services:
 ```bash
-make docker-child_chain
 make docker-watcher
 make docker-watcher_info
 ```
