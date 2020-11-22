@@ -20,35 +20,10 @@ services:
         ipv4_address: 172.27.0.107
 
   geth:
-    image: ethereum/client-go:v1.9.12
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-          apk add --update curl
-          # Configures geth with the deployer and authority accounts. This includes:
-          #   1. Configuring the deployer's keystore
-          #   2. Configuring the authority's keystore
-          #   3. Configuring the keystores' password
-          #   4. Unlocking the accounts by their indexes
-          # CAREFUL with --allow-insecure-unlock!
-          echo "" > /tmp/geth-blank-password
-          # Starts geth
-          # Websocket is not used by the applications but enabled for debugging/testing convenience
-          geth --miner.gastarget 7500000 \
-            --miner.gasprice "10" \
-            --nodiscover \
-            --maxpeers 0 \
-            --datadir data/ \
-            --syncmode 'full' \
-            --networkid 1337 \
-            --keystore=./data/geth/keystore/ \
-            --password /tmp/geth-blank-password \
-            --unlock "0,1" \
-            --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
-            --ws --wsaddr 0.0.0.0 --wsorigins='*' \
-            --mine \
-            --allow-insecure-unlock
+    image: ethereum/client-go:v1.9.15
+    entrypoint: /bin/sh -c ". data/command"
+    environment:
+      RPC_PORT: 8545
     ports:
       - "8555:8545"
       - "8556:8546"
@@ -57,6 +32,8 @@ services:
       - "8545"
     volumes:
       - ./data:/data
+      - ./docker/geth/command:/data/command
+      - ./docker/geth/geth-blank-password:/data/geth-blank-password
     healthcheck:
       test: curl localhost:8545
       interval: 5s

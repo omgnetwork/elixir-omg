@@ -1,0 +1,31 @@
+# Configures geth with the deployer and authority accounts. This includes:
+#   1. Configuring the deployer's keystore
+#   2. Configuring the authority's keystore
+#   3. Configuring the keystores' password
+#   4. Unlocking the accounts by their indexes
+# CAREFUL with --allow-insecure-unlock!
+# Starts geth
+# Websocket is not used by the applications but enabled for debugging/testing convenience
+geth \
+--miner.gastarget 7500000 \
+--nousb \
+--miner.gasprice "10" \
+--nodiscover \
+--maxpeers 0 \
+--datadir data/ \
+--syncmode 'fast' \
+--networkid 1337 \
+--gasprice '1' \
+--keystore ./data/geth/keystore/ \
+--password /data/geth-blank-password \
+--unlock "0,1" \
+--rpc \
+--rpcapi personal,web3,eth,net  \
+--rpcaddr 0.0.0.0  \
+--rpcvhosts=* \
+--rpcport=${RPC_PORT} \
+--ws  \
+--wsaddr 0.0.0.0  \
+--wsorigins='*' \
+--mine \
+--allow-insecure-unlock
