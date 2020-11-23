@@ -35,7 +35,7 @@ defmodule OMG.Eth.Client do
     case client.eth_syncing() do
       {:ok, false} -> :ok
       {:ok, _} -> {:error, :geth_still_syncing}
-      {:error, :econnrefused} -> {:error, :geth_not_listening}
+      {:error, _} -> {:error, :geth_not_listening}
     end
   end
 end
