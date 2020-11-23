@@ -64,6 +64,6 @@ defmodule OMG.Eth.ClientTest do
       end
     end
 
-    assert Client.node_ready(test_name) == {:error, :geth_not_listening}
+    assert Client.node_ready(test_name) == {:error, :closed}
   end
 end
