@@ -93,7 +93,6 @@ defmodule OMG.Umbrella.MixProject do
             {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
             {OMG.Watcher.ReleaseTasks.SetTracer, []},
             {OMG.Watcher.ReleaseTasks.SetApplication, [release: :watcher_info, current_version: current_version()]},
-            {OMG.WatcherInfo.ReleaseTasks.SetDB, []},
             {OMG.WatcherInfo.ReleaseTasks.SetTracer, []}
           ]
         ]

@@ -5,7 +5,15 @@ import Config
 #
 # See https://hexdocs.pm/mix/1.9.0/Mix.Tasks.Release.html#module-runtime-configuration
 
+mandatory = fn env, exception ->
+  case System.get_env(env) do
+    nil -> throw(exception)
+    data -> data
+  end
+end
+
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
+  url: mandatory.("DATABASE_URL", "DATABASE_URL needs to be set."),
   # Have at most `:pool_size` DB connections on standby and serving DB queries.
   pool_size: String.to_integer(System.get_env("WATCHER_INFO_DB_POOL_SIZE") || "10"),
   # Wait at most `:queue_target` for a connection. If all connections checked out during
