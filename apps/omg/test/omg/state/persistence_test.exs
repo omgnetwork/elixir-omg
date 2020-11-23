@@ -135,40 +135,12 @@ defmodule OMG.State.PersistenceTest do
     :ok = restart_state()
 
     assert {:ok, [db_block]} = OMG.DB.blocks([hash])
-    %Block{number: @blknum1, transactions: [payment_tx, _fee_tx], hash: ^hash} = Block.from_db_value(db_block)
+    %Block{number: @blknum1, transactions: [payment_tx], hash: ^hash} = Block.from_db_value(db_block)
 
     assert {:ok, tx} == Transaction.Recovered.recover_from(payment_tx)
 
     assert {:ok, 1000} ==
              tx |> Transaction.get_inputs() |> hd() |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
-  end
-
-  @tag fixtures: [:alice]
-  test "fee tx are persisted", %{alice: alice} do
-    token1 = <<1::160>>
-
-    tx =
-      create_recovered(
-        [{1, 0, 0, alice}, {2, 0, 0, alice}],
-        [{alice, @eth, 19}, {alice, token1, 60}]
-      )
-
-    [
-      %{owner: alice, currency: @eth, amount: 20, blknum: 1},
-      %{owner: alice, currency: token1, amount: 60, blknum: 2}
-    ]
-    |> persist_deposit()
-    |> exec(tx)
-    |> persist_form()
-
-    assert {:ok, [hash]} = OMG.DB.block_hashes([@blknum1])
-
-    :ok = restart_state()
-
-    assert {:ok, [db_block]} = OMG.DB.blocks([hash])
-    assert %Block{transactions: [_payment_tx, eth_fee_tx]} = Block.from_db_value(db_block)
-
-    assert OMG.State.utxo_exists?(Utxo.position(1000, 1, 0))
   end
 
   @tag fixtures: [:alice]

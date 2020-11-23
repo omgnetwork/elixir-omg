@@ -11,6 +11,7 @@ mandatory = fn
       nil -> throw(exception)
       data -> data
     end
+
   env, exception, false, true ->
     "WATCHER_INFO config in WATCHER SECURITY"
 end
