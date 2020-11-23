@@ -20,11 +20,10 @@ defmodule OMG.Status.SentryFilter do
 
   # when the development environment restarts it lacks network access
   # something to do with Cloud DNS
-  def exclude_exception?(%MatchError{term: {:error, :nxdomain}}, _) do
-    true
-  end
+  def exclude_exception?(%MatchError{term: {:error, :nxdomain}}, _), do: true
 
-  def exclude_exception?(_, _) do
-    false
-  end
+  # Ignoring 406 status code invalid headers exception
+  def exclude_exception?(%Phoenix.NotAcceptableError{plug_status: 406}, _), do: true
+
+  def exclude_exception?(_, _), do: false
 end
