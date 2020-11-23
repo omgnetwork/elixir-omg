@@ -37,7 +37,7 @@ defmodule OMG.Eth.Client do
       {:ok, _} -> {:error, :geth_still_syncing}
       {:error, :econnrefused} -> {:error, :geth_not_listening}
 
-      other ->
+      {:error, :closed} = other->
         other
     end
   end
