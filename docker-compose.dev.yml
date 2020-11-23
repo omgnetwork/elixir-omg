@@ -3,9 +3,17 @@ services:
   elixir-omg:
     image: omisegoimages/elixir-omg-builder:stable-20200410
     environment:
-      DATABASE_URL: postgres://omisego_dev:omisego_dev@postgres:5432/omisego_dev
+      DATABASE_URL: postgres://omisegodev:omisegodev@postgres:5432/omisego_dev
+      TEST_DATABASE_URL: postgres://omisegodev:omisegodev@postgres:5432/omisego_test
+      SHELL: /bin/bash
     volumes:
-      - .:/app
+      - .:/app:rw
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.119
   watcher:
     environment:
       - DD_DISABLED=false
