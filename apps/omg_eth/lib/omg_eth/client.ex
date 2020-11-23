@@ -33,11 +33,16 @@ defmodule OMG.Eth.Client do
   @spec node_ready(module()) :: :ok | Ethereumex.Client.Behaviour.error()
   def node_ready(client \\ Ethereumex.HttpClient) do
     case client.eth_syncing() do
-      {:ok, false} -> :ok
-      {:ok, _} -> {:error, :geth_still_syncing}
-      {:error, :econnrefused} -> {:error, :geth_not_listening}
+      {:ok, false} ->
+        :ok
 
-      {:error, :closed} = other->
+      {:ok, _} ->
+        {:error, :geth_still_syncing}
+
+      {:error, :econnrefused} ->
+        {:error, :geth_not_listening}
+
+      {:error, :closed} = other ->
         other
     end
   end
