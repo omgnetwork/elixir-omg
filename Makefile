@@ -320,27 +320,27 @@ docker-push: docker
 ### Cabbage logs
 
 cabbage-logs:
-	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow
+	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.specs.yml logs --follow
 
 cabbage-logs-reorg:
-	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow
+	docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml logs --follow
 
 ### Cabbage reorg docker logs
 
 cabbage-reorg-watcher-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher
+	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml logs --follow watcher
 
 cabbage-reorg-watcher_info-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow watcher_info
+	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml logs --follow watcher_info
 
 cabbage-reorg-childchain-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow childchain
+	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml logs --follow childchain
 
 cabbage-reorg-geth-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "geth"
+	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml logs --follow | grep "geth"
 
 cabbage-reorgs-logs:
-	docker-compose -f docker-compose.yml -f ./priv/cabbage/docker-compose-2-reorg.yml -f ./priv/cabbage/docker-compose-2-specs.yml logs --follow | grep "reorg"
+	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml logs --follow | grep "reorg"
 
 ###OTHER
 docker-start-cluster:
