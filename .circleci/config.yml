@@ -600,6 +600,8 @@ jobs:
   test_docker_compose_release:
     machine:
       image: ubuntu-1604:201903-01
+    environment:
+      SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
     parallelism: 4
     steps:
       - checkout
@@ -617,7 +619,7 @@ jobs:
       - run:
           name: Start daemon services
           command: |
-            SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test
+            make init_test
             cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
             docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
