@@ -282,7 +282,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 318 ]; then
+            if [ $_counter -gt 295 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -344,9 +344,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -465,9 +465,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher  --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche --exclude child_chain --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche  --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -490,9 +490,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -515,9 +515,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
+              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info
             else
-              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain ||
+              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info  ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -600,6 +600,8 @@ jobs:
   test_docker_compose_release:
     machine:
       image: ubuntu-1604:201903-01
+    environment:
+      SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
     parallelism: 4
     steps:
       - checkout
@@ -617,8 +619,9 @@ jobs:
       - run:
           name: Start daemon services
           command: |
-            cd priv/cabbage
-            make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make init_test
+            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
+            docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Log daemon services
           command: make cabbage-logs
@@ -730,8 +733,9 @@ jobs:
       - run:
           name: Start daemon services
           command: |
-            cd priv/cabbage
-            make start_daemon_services_reorg-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make init_test_reorg
+            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
+            docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Log daemon services
           command: make cabbage-logs-reorg

@@ -1,0 +1,67 @@
+version: "2.3"
+services:
+  geth:
+    entrypoint: ["echo", "clique geth is disabled for reorgs"]
+
+  geth-1:
+    image: ethereum/client-go:v1.9.12
+    container_name: geth-1
+    environment:
+      - ACCOUNT=0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d
+      - BOOTNODES=enode://b655cc3e5b72ab9beb8a8536a3c3ae92fbeb79feb1ebd7f95d72be72554ca586428bd48a54eb9c2bcaae455cc674299b6dd3df3c6556a493dfd50070f1a448aa@172.27.0.202:30303
+      - INIT=false
+    entrypoint: /bin/sh -c ". data/geth/command"
+    expose:
+      - 8545
+      - 8546
+      - 30303
+    ports:
+      - 9000:8545
+    volumes:
+      - ./data1:/data
+      - ./data/ethash:/root/.ethash
+    healthcheck:
+      test: curl geth-1:8545
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.201
+
+  geth-2:
+    image: ethereum/client-go:v1.9.12
+    container_name: geth-2
+    depends_on:
+      - geth-1
+    environment:
+      - ACCOUNT=0xc0f780dfc35075979b0def588d999225b7ecc56f
+      - BOOTNODES=enode://4574f825d67bf570b9216e704a5b761d05d5015c458e2c9dd4b30abb2fe8c881400c2074a126df94690c4c9fb72ee046e6e3ac2bb73dede42fce66cb0a963b36@172.27.0.201:30303
+      - INIT=false
+    entrypoint: /bin/sh -c ". data/geth/command"
+    expose:
+      - 8546
+      - 8545
+      - 30303
+    ports:
+      - 9001:8545
+    volumes:
+      - ./data2:/data
+      - ./data/ethash:/root/.ethash
+    healthcheck:
+      test: curl geth-2:8545
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.202
+
+  nginx:
+    depends_on:
+      geth-1:
+        condition: service_healthy
+      geth-2:
+        condition: service_healthy
+    volumes:
+      - ./nginx.reorg.conf:/etc/nginx/nginx.conf
