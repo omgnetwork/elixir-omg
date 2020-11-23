@@ -14,13 +14,13 @@ import Config
 # fourth argument is whether this is a watcher info specific configuration
 mandatory = fn
   env_var_name, exception, true, true ->
-    case System.get_env(env) do
+    case System.get_env(env_var_name) do
       nil -> throw(exception)
       data -> data
     end
 
-  env, exception, false, true ->
-    "WATCHER_INFO config in WATCHER SECURITY"
+  env_var_name, _, _, _ ->
+    "WATCHER_INFO config #{env_var_name} in WATCHER SECURITY"
 end
 
 watcher_info? = fn -> Code.ensure_loaded?(OMG.WatcherInfo) end
