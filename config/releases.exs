@@ -5,8 +5,15 @@ import Config
 #
 # See https://hexdocs.pm/mix/1.9.0/Mix.Tasks.Release.html#module-runtime-configuration
 
+# with this helper anon. function you can
+# load and validate specific watcher or watcher info
+# configuration
+# env_var_name - gets passed into System.get_env/1
+# exception - is the string that gets thrown so that we prevent release boot
+# third argument is if this is a watcher info resolver
+# fourth argument is whether this is a watcher info specific configuration
 mandatory = fn
-  env, exception, true, true ->
+  env_var_name, exception, true, true ->
     case System.get_env(env) do
       nil -> throw(exception)
       data -> data
