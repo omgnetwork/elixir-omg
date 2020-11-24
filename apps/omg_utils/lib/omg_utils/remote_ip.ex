@@ -13,14 +13,16 @@
 # limitations under the License.
 defmodule OMG.Utils.RemoteIP do
   @moduledoc """
-  This plug sets remote_ip from x-forwarded-for header.
+  This plug sets remote_ip from CF-Connecting-IP header.
   """
   import Plug.Conn
+
+  @header_name "CF-Connecting-IP"
 
   def init(options), do: options
 
   def call(conn, _opts) do
-    x_forwarded_for_ip = get_req_header(conn, "x-forwarded-for")
+    x_forwarded_for_ip = get_req_header(conn, @header_name)
 
     parse_and_set_ip(conn, x_forwarded_for_ip)
   end
