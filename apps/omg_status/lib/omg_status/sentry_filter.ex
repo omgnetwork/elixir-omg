@@ -26,7 +26,7 @@ defmodule OMG.Status.SentryFilter do
 
   # this might happen when the connection to the node is unavailable
   # comes from OMG.Eth.Client
-  def exclude_exception?(%MatchError{term: {:error, :econnrefused}}, _) do
+  def exclude_exception?(%CaseClauseError{term: {:error, :econnrefused}}, _) do
     true
   end
 
