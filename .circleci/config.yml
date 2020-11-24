@@ -282,7 +282,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 318 ]; then
+            if [ $_counter -gt 295 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -344,9 +344,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info --exclude child_chain --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -465,9 +465,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher --exclude child_chain --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher  --exclude common --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche --exclude child_chain --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche  --exclude common --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -490,9 +490,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test --trace
             else
-              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info --exclude child_chain --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test --trace ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -515,9 +515,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain
+              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info
             else
-              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info --exclude child_chain ||
+              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info  ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -600,6 +600,8 @@ jobs:
   test_docker_compose_release:
     machine:
       image: ubuntu-1604:201903-01
+    environment:
+      SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
     parallelism: 4
     steps:
       - checkout
@@ -617,8 +619,13 @@ jobs:
       - run:
           name: Start daemon services
           command: |
-            cd priv/cabbage
-            make start_daemon_services-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make init_test
+            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
+            docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+      - run:
+          name: Log daemon services
+          command: make cabbage-logs
+          background: true
       - check_docker_status
       - install_elixir
       - run: sh .circleci/status.sh
@@ -633,25 +640,6 @@ jobs:
             echo $(circleci tests split ./tags.txt)
             circleci tests split ./tags.txt > /tmp/tests-to-run
             mix test --exclude test $(cat /tmp/tests-to-run)
-      - run:
-          name: (Cabbage) Format generated code and check for warnings
-          command: |
-            cd priv/cabbage
-            # run format ONLY on formatted code so that it cleans up quoted atoms because
-            # we cannot exclude folders to --warnings-as-errors
-            mix format apps/child_chain_api/lib/child_chain_api/model/*.ex
-            mix format apps/watcher_info_api/lib/watcher_info_api/model/*.ex
-            mix format apps/watcher_security_critical_api/lib/watcher_security_critical_api/model/*.ex
-            MIX_ENV=test mix do compile --warnings-as-errors --ignore-module-conflict --force, test --exclude test
-      - save_cache:
-          key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
-          paths:
-            - "priv/cabbage/deps"
-      - run:
-          name: (Cabbage) Credo and formatting
-          command: |
-            cd priv/cabbage
-            mix do credo, format --check-formatted --dry-run
 
   test_docker_compose_performance:
     description: "These are not actually performance tests, we're checking if the scripts work"
@@ -659,6 +647,7 @@ jobs:
       image: ubuntu-1604:201903-01
     environment:
       PERF_IMAGE_NAME: "omisego/perf:latest"
+      STATIX_TAG: "env:perf_circleci"
     steps:
       - checkout
       - run:
@@ -670,6 +659,7 @@ jobs:
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
+      - install_elixir
       - run:
           name: Start daemon services
           command: |
@@ -681,7 +671,6 @@ jobs:
           command: |
             cd priv/perf
             make log-services
-      - install_elixir
       - run: sh .circleci/status.sh
       - run:
           name: Run load test
@@ -694,10 +683,13 @@ jobs:
           name: Show help information
           command: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
       - run:
-          name: Run perf smoke test
+          name: Run perf smoke test (deposits)
           command: |
-            export $(cat ./localchain_contract_addresses.env | xargs) &&
-            docker run -it --env-file ./localchain_contract_addresses.env --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 10 10
+            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
+      - run:
+          name: Run perf smoke test (transactions)
+          command: |
+            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
@@ -741,8 +733,13 @@ jobs:
       - run:
           name: Start daemon services
           command: |
-            cd priv/cabbage
-            make start_daemon_services_reorg-2 || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+            make init_test_reorg
+            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
+            docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+      - run:
+          name: Log daemon services
+          command: make cabbage-logs-reorg
+          background: true
       - check_docker_status
       - install_elixir
       - run: sh .circleci/status.sh
@@ -1058,7 +1055,11 @@ workflows:
       - test_docker_compose_performance:
           filters: *all_branches_and_tags
       - test_docker_compose_reorg:
-          filters: *all_branches_and_tags
+          filters:
+            branches:
+              only:
+                - master
+                - master-v2
       - audit_deps:
           requires: [build]
           filters: *all_branches_and_tags

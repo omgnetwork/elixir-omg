@@ -29,7 +29,8 @@ defmodule OMG.WatcherRPC.Application do
     _ =
       SpandexPhoenix.Telemetry.install(
         endpoint_telemetry_prefix: [:watcher_rpc, :endpoint],
-        tracer: OMG.WatcherRPC.Tracer
+        tracer: OMG.WatcherRPC.Tracer,
+        customize_metadata: &OMG.WatcherRPC.Tracer.add_trace_metadata/1
       )
 
     children = [

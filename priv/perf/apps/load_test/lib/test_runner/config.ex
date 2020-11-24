@@ -21,7 +21,7 @@ defmodule LoadTest.TestRunner.Config do
 
   @tests %{
     "deposits" => LoadTest.Runner.Deposits,
-    "utxos" => LoadTest.Runner.Utxos
+    "transactions" => LoadTest.Runner.Transactions
   }
 
   @configs %{
@@ -32,7 +32,7 @@ defmodule LoadTest.TestRunner.Config do
       transferred_amount: 100_000_000_000_000_000,
       gas_price: 2_000_000_000
     },
-    "utxos" => %{
+    "transactions" => %{
       token: "0x0000000000000000000000000000000000000000",
       initial_amount: 760,
       fee: 75
@@ -41,12 +41,17 @@ defmodule LoadTest.TestRunner.Config do
 
   def parse() do
     case System.argv() do
-      [test, rate, period] ->
-        {:ok, config(test, rate, period, :mean)}
+      ["make_assertions", start_time, end_time] ->
+        start_time_integer = String.to_integer(start_time)
+        end_time_integer = String.to_integer(end_time)
 
-      [test, rate, period, percentile] ->
-        percentile = parse_percentile(percentile)
-        {:ok, config(test, rate, period, percentile)}
+        {:make_assertions, start_time_integer, end_time_integer}
+
+      [test, rate, period] ->
+        {:run_tests, config(test, rate, period, "true")}
+
+      [test, rate, period, make_assertions] ->
+        {:run_tests, config(test, rate, period, make_assertions)}
 
       ["help"] ->
         Help.help()
@@ -56,12 +61,10 @@ defmodule LoadTest.TestRunner.Config do
 
       ["help", name] ->
         Help.help(name)
-
-        :ok
     end
   end
 
-  defp config(test, rate, period, property) do
+  defp config(test, rate, period, make_assertions) do
     rate_int = String.to_integer(rate)
     period_int = String.to_integer(period)
 
@@ -81,10 +84,18 @@ defmodule LoadTest.TestRunner.Config do
     config = %{
       run_config: run_config,
       chain_config: chain_config,
+      make_assertions: parse_boolean(make_assertions),
       timeout: :infinity
     }
 
-    {runner_module, config, property}
+    {runner_module, config}
+  end
+
+  defp parse_boolean(bool) do
+    case bool do
+      "true" -> true
+      _ -> false
+    end
   end
 
   defp read_config!(test) do
@@ -133,16 +144,5 @@ defmodule LoadTest.TestRunner.Config do
       {key, parsed_value}
     end)
     |> Map.new()
-  end
-
-  defp parse_percentile(percentile) do
-    percentile_int = String.to_integer(percentile)
-
-    # percentile should be divisible by 10 and < 100 (10, 20, ... 90)
-    unless rem(percentile_int, 10) == 0 and div(percentile_int, 10) < 10 do
-      raise("Wrong percentile")
-    end
-
-    {:percentile, percentile_int / 1}
   end
 end
