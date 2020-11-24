@@ -191,7 +191,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   end
 
   defp forward_call(_, _, from_block, to_block, _) when from_block > to_block do
-    _ = Logger.error("From block #{from_block} was bigger then to_block #{to_block}")
+    _ = Logger.error("From block #{from_block} was bigger than to_block #{to_block}")
     {:error, :check_range}
   end
 
