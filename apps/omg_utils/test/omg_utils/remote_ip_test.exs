@@ -20,7 +20,7 @@ defmodule OMG.Utils.RemoteIPTest do
     test "sets remote_ip field" do
       conn = %Plug.Conn{
         req_headers: [
-          {"x-forwarded-for", "99.99.99.99"}
+          {"cf-connecting-ip", "99.99.99.99"}
         ]
       }
 
@@ -29,7 +29,7 @@ defmodule OMG.Utils.RemoteIPTest do
       assert conn_with_remote_ip.remote_ip == {99, 99, 99, 99}
     end
 
-    test "does not set remote_ip if x-forwarded-for header is not set" do
+    test "does not set remote_ip if cf-connecting-ip header is not set" do
       conn = %Plug.Conn{}
 
       conn_with_remote_ip = RemoteIP.call(conn, %{})
@@ -37,10 +37,10 @@ defmodule OMG.Utils.RemoteIPTest do
       assert is_nil(conn_with_remote_ip.remote_ip)
     end
 
-    test "does not set remote_ip if x-forwarded-for header is invalid" do
+    test "does not set remote_ip if cf-connecting-ip header is invalid" do
       conn = %Plug.Conn{
         req_headers: [
-          {"x-forwarded-for", "myip"}
+          {"cf-connecting-ip", "myip"}
         ]
       }
 
@@ -52,7 +52,7 @@ defmodule OMG.Utils.RemoteIPTest do
     test "sets the left-most ip address" do
       conn = %Plug.Conn{
         req_headers: [
-          {"x-forwarded-for", "77.77.77.77, 99.99.99.99"}
+          {"cf-connecting-ip", "77.77.77.77, 99.99.99.99"}
         ]
       }
 

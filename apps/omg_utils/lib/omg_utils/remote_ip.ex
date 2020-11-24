@@ -17,14 +17,14 @@ defmodule OMG.Utils.RemoteIP do
   """
   import Plug.Conn
 
-  @header_name "CF-Connecting-IP"
+  @header_name "cf-connecting-ip"
 
   def init(options), do: options
 
   def call(conn, _opts) do
-    x_forwarded_for_ip = get_req_header(conn, @header_name)
+    ips = get_req_header(conn, @header_name)
 
-    parse_and_set_ip(conn, x_forwarded_for_ip)
+    parse_and_set_ip(conn, ips)
   end
 
   defp parse_and_set_ip(conn, [forwarded_ips]) when is_binary(forwarded_ips) do
