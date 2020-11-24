@@ -136,7 +136,10 @@ defmodule OMG.Eth.RootChain.Fields do
   def rename(data, %ABI.FunctionSelector{function: "InFlightExitStarted"}) do
     contracts_naming = [
       {"initiator", :initiator},
-      {"txHash", :tx_hash}
+      {"tx_hash", :tx_hash},
+      {"in_flight_tx", :in_flight_tx},
+      {"input_utxos_pos", :input_utxos_pos},
+      {"in_flight_tx_witnesses", :in_flight_tx_witnesses}
     ]
 
     reduce_naming(data, contracts_naming)
@@ -145,7 +148,8 @@ defmodule OMG.Eth.RootChain.Fields do
   def rename(data, %ABI.FunctionSelector{function: "ExitStarted"}) do
     contracts_naming = [
       {"owner", :owner},
-      {"exitId", :exit_id}
+      {"exit_id", :exit_id},
+      {"utxo_pos", :utxo_pos}
     ]
 
     reduce_naming(data, contracts_naming)

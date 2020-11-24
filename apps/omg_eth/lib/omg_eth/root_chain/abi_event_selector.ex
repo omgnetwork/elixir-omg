@@ -23,12 +23,12 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
   def exit_started() do
     %ABI.FunctionSelector{
       function: "ExitStarted",
-      input_names: ["owner", "exitId"],
-      inputs_indexed: [true, false],
-      method_id: <<87, 9, 33, 214>>,
+      input_names: ["owner", "exit_id", "utxo_pos"],
+      inputs_indexed: [true, false, false],
+      method_id: <<224, 255, 194, 231>>,
       returns: [],
       type: :event,
-      types: [:address, {:uint, 168}]
+      types: [:address, {:uint, 168}, {:uint, 256}]
     }
   end
 
@@ -36,12 +36,18 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
   def in_flight_exit_started() do
     %ABI.FunctionSelector{
       function: "InFlightExitStarted",
-      input_names: ["initiator", "txHash"],
-      inputs_indexed: [true, true],
-      method_id: <<213, 241, 254, 157>>,
+      input_names: ["initiator", "tx_hash", "in_flight_tx", "input_utxos_pos", "in_flight_tx_witnesses"],
+      inputs_indexed: [true, true, false, false, false],
+      method_id: <<37, 74, 99, 78>>,
       returns: [],
       type: :event,
-      types: [:address, {:bytes, 32}]
+      types: [
+        :address,
+        {:bytes, 32},
+        :bytes,
+        {:array, {:uint, 256}},
+        {:array, :bytes}
+      ]
     }
   end
 

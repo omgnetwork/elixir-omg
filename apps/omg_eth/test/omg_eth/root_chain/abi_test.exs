@@ -535,15 +535,15 @@ defmodule OMG.Eth.RootChain.AbiTest do
 
   test "if exit started can be decoded" do
     exit_started_log = %{
-      :event_signature => "ExitStarted(address,uint168)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0x1bee6f75c74ceeb4817dc160e2fb56dd1337a9fc2980a2b013252cf1e620f246",
-      "blockNumber" => "0x2f7",
-      "data" => "0x000000000000000000000037a26a7116a84365892bb31bea5819301a2ba85b34",
+      "blockNumber" => "0x" <> Integer.to_string(726, 16),
+      "data" =>
+        "0x000000000000000000000000002b191e750d8d4d3dcad14a9c8e5a5cf0c81761000000000000000000000000000000000000000000000000000001d1e4e4ea00",
       "logIndex" => "0x1",
       "removed" => false,
       "topics" => [
-        "0x570921d6b65091f346909e31e89c2dfb6e742cc37e36d747be92c170d29e383e",
+        "0xe0ffc2e7d623cb04e12318e11dd2c9df46dbfba8ac0c429dd49885f35785cf63",
         "0x00000000000000000000000008858124b3b880c68b360fd319cc61da27545e9a"
       ],
       "transactionHash" => "0x4a8248b88a17b2be4c6086a1984622de1a60dda3c9dd9ece1ef97ed18efa028c",
@@ -551,14 +551,15 @@ defmodule OMG.Eth.RootChain.AbiTest do
     }
 
     assert Abi.decode_log(exit_started_log) == %{
-             eth_height: 759,
-             event_signature: "ExitStarted(address,uint168)",
-             exit_id: 81_309_820_288_462_349_357_922_495_476_773_313_169_175_330_970_420,
+             eth_height: 726,
+             event_signature: nil,
              log_index: 1,
-             owner: <<8, 133, 129, 36, 179, 184, 128, 198, 139, 54, 15, 211, 25, 204, 97, 218, 39, 84, 94, 154>>,
              root_chain_txhash:
                <<74, 130, 72, 184, 138, 23, 178, 190, 76, 96, 134, 161, 152, 70, 34, 222, 26, 96, 221, 163, 201, 221,
-                 158, 206, 30, 249, 126, 209, 142, 250, 2, 140>>
+                 158, 206, 30, 249, 126, 209, 142, 250, 2, 140>>,
+             exit_id: 961_120_214_746_159_734_848_620_722_848_998_552_444_082_017,
+             owner: <<8, 133, 129, 36, 179, 184, 128, 198, 139, 54, 15, 211, 25, 204, 97, 218, 39, 84, 94, 154>>,
+             utxo_pos: 2_001_000_000_000
            }
   end
 
