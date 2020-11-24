@@ -28,6 +28,7 @@ defmodule OMG.Status.Metric.Event do
     :ife_exit_finalizer,
     :in_flight_exit,
     :in_flight_exit_processor,
+    :in_flight_exit_deleted_processor,
     :piggyback,
     :piggyback_challenges_processor,
     :piggyback_processor,
@@ -60,9 +61,34 @@ defmodule OMG.Status.Metric.Event do
   def name(:block_transactions), do: "block_transactions"
 
   @doc """
+  Childchain Block submission attempted
+  """
+  def name(:block_submission_attempt), do: "block_submission_attempt"
+
+  @doc """
+  Childchain Block successfully submitted
+  """
+  def name(:block_submission_success), do: "block_submission_success"
+
+  @doc """
   Child Chain Block queue gas usage metric
   """
-  def name(:block_submission), do: "block_submission_gas"
+  def name(:block_submission_gas), do: "block_submission_gas"
+
+  @doc """
+  Child Chain BlockQueue's blknum of the block being submitted
+  """
+  def name(:block_queue_blknum_submitting), do: "block_queue_blknum_submitting"
+
+  @doc """
+  Child Chain BlockQueue's blknum of the block submitted
+  """
+  def name(:block_queue_blknum_submitted), do: "block_queue_blknum_submitted"
+
+  @doc """
+  Child Chain BlockQueue's number of blocks currently being submitted and stalled
+  """
+  def name(:block_queue_num_blocks_stalled), do: "block_queue_num_blocks_stalled"
 
   @doc """
   Child Chain authority address balance
@@ -130,6 +156,7 @@ defmodule OMG.Status.Metric.Event do
   defp events_name(:exit_finalizer), do: "exit_finalizer_ethereum_events"
   defp events_name(:exit_challenger), do: "exit_challenger_ethereum_events"
   defp events_name(:in_flight_exit_processor), do: "in_flight_exit_processor_ethereum_events"
+  defp events_name(:in_flight_exit_deleted_processor), do: "in_flight_exit_deleted_processor_ethereum_events"
   defp events_name(:piggyback_processor), do: "piggyback_processor_ethereum_events"
   defp events_name(:competitor_processor), do: "competitor_processor_ethereum_events"
   defp events_name(:challenges_responds_processor), do: "challenges_responds_processor_ethereum_events"
@@ -145,6 +172,10 @@ defmodule OMG.Status.Metric.Event do
   defp message_queue_len_name(:exit_finalizer), do: "exit_finalizer_message_queue_len"
   defp message_queue_len_name(:exit_challenger), do: "exit_challenger_message_queue_len"
   defp message_queue_len_name(:in_flight_exit_processor), do: "in_flight_exit_processor_message_queue_len"
+
+  defp message_queue_len_name(:in_flight_exit_deleted_processor),
+    do: "in_flight_exit_deleted_processor_message_queue_len"
+
   defp message_queue_len_name(:piggyback_processor), do: "piggyback_processor_message_queue_len"
   defp message_queue_len_name(:competitor_processor), do: "competitor_processor_message_queue_len"
   defp message_queue_len_name(:challenges_responds_processor), do: "challenges_responds_processor_message_queue_len"

@@ -18,6 +18,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
   """
 
   use Phoenix.Controller
+  import Plug.Conn
   alias OMG.WatcherRPC.Web.Views
 
   @errors %{
@@ -57,9 +58,33 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       code: "transaction.create:insufficient_funds",
       description: "Account balance is too low to satisfy the payment."
     },
+    too_many_inputs: %{
+      code: "transaction.create:too_many_inputs",
+      description: "The number of inputs required to cover the payment and fee exceeds the maximum allowed."
+    },
     too_many_outputs: %{
       code: "transaction.create:too_many_outputs",
       description: "Total number of payments + change + fees exceed maximum allowed outputs."
+    },
+    single_input: %{
+      code: "merge:single_input",
+      description: "Only one input found for the given address and currency."
+    },
+    no_inputs_found: %{
+      code: "merge:no_inputs_found",
+      description: "No inputs found for the given address and currency."
+    },
+    multiple_currencies: %{
+      code: "merge:multiple_currencies",
+      description: "All inputs must have the same currency."
+    },
+    multiple_input_owners: %{
+      code: "merge:multiple_input_owners",
+      description: "All inputs must have the same owner."
+    },
+    duplicate_input_positions: %{
+      code: "merge:duplicate_input_positions",
+      description: "Duplicate input positions provided."
     },
     empty_transaction: %{
       code: "transaction.create:empty_transaction",
@@ -99,28 +124,42 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
 
   def call(conn, {:error, {:validation_error, param_name, validator}}) do
     error = error_info(conn, :operation_bad_request)
+    :telemetry.execute([:web, :fallback], %{error: 1}, %{error_code: error.code, route: current_route(conn)})
 
     conn
+    |> assign_error_metadata_to_conn(error)
     |> put_view(Views.Error)
-    |> render(:error, %{
-      code: error.code,
-      description: error.description,
-      messages: %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
-    })
+    |> render(
+      :error,
+      %{
+        code: error.code,
+        description: error.description,
+        messages: %{
+          validation_error: %{
+            parameter: param_name,
+            validator: inspect(validator)
+          }
+        }
+      }
+    )
   end
 
   def call(conn, {:error, {reason, data}}) do
     error = error_info(conn, reason)
+    :telemetry.execute([:web, :fallback], %{error: 1}, %{error_code: error.code, route: current_route(conn)})
 
     conn
+    |> assign_error_metadata_to_conn(error)
     |> put_view(Views.Error)
     |> render(:error, %{code: error.code, description: error.description, messages: data})
   end
 
   def call(conn, {:error, reason}) do
     error = error_info(conn, reason)
+    :telemetry.execute([:web, :fallback], %{error: 1}, %{error_code: error.code, route: current_route(conn)})
 
     conn
+    |> assign_error_metadata_to_conn(error)
     |> put_view(Views.Error)
     |> render(:error, %{code: error.code, description: error.description})
   end
@@ -135,5 +174,24 @@ defmodule OMG.WatcherRPC.Web.Controller.Fallback do
       nil -> %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
       error -> error
     end
+  end
+
+  defp assign_error_metadata_to_conn(conn, error) do
+    conn
+    |> assign(:error_type, error.code)
+    |> assign(:error_msg, error.description)
+  end
+
+  # There isn't a way to get the route directly from a conn, so we need this roundabout way.
+  # We want the route instead of the request path because it's of limited cardinality for the metric tags.
+  defp current_route(%{private: %{phoenix_router: phoenix_router}} = conn) do
+    case Phoenix.Router.route_info(phoenix_router, conn.method, conn.request_path, conn.host) do
+      %{:route => route} -> route
+      :error -> nil
+    end
+  end
+
+  defp current_route(_) do
+    nil
   end
 end

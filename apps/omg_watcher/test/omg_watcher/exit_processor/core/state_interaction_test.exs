@@ -289,6 +289,23 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert [_] = Core.get_active_in_flight_exits(processor)
   end
 
+  test "deleting in-flight exits works with State",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
+    ife_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}])
+    ife_id = 1
+
+    state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
+    {:ok, _, state} = State.Core.form_block(state)
+
+    {_processor, deleted_utxos, _db_updates} =
+      processor
+      |> start_ife_from(ife_exit_tx, exit_id: ife_id)
+      |> Core.delete_in_flight_exits([%{exit_id: ife_id}])
+
+    assert {:ok, {[{:delete, :utxo, _}], {[{:utxo_position, 1, 0, 0}], []}}, _} =
+             State.Core.exit_utxos(deleted_utxos, state)
+  end
+
   defp mock_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request, state) do
     %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
   end

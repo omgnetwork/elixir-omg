@@ -6,9 +6,10 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: omisego_dev
-      POSTGRES_PASSWORD: omisego_dev
-      POSTGRES_DB: omisego_dev
+      POSTGRES_USER: omisegodev
+      POSTGRES_PASSWORD: omisegodev
+    volumes:
+      - ./docker/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
     healthcheck:
       test: pg_isready -U omisego_dev
       interval: 5s
@@ -16,39 +17,13 @@ services:
       retries: 5
     networks:
       chain_net:
-        ipv4_address: 172.27.0.106
+        ipv4_address: 172.27.0.107
 
   geth:
     image: ethereum/client-go:v1.9.12
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-          apk add --update curl
-          # Configures geth with the deployer and authority accounts. This includes:
-          #   1. Configuring the deployer's keystore
-          #   2. Configuring the authority's keystore
-          #   3. Configuring the keystores' password
-          #   4. Unlocking the accounts by their indexes
-          # CAREFUL with --allow-insecure-unlock!
-          echo "" > /tmp/geth-blank-password
-          # Starts geth
-          # Websocket is not used by the applications but enabled for debugging/testing convenience
-          geth --miner.gastarget 7500000 \
-            --miner.gasprice "10" \
-            --nodiscover \
-            --maxpeers 0 \
-            --datadir data/ \
-            --syncmode 'full' \
-            --networkid 1337 \
-            --gasprice '1' \
-            --keystore=./data/geth/keystore/ \
-            --password /tmp/geth-blank-password \
-            --unlock "0,1" \
-            --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545 \
-            --ws --wsaddr 0.0.0.0 --wsorigins='*' \
-            --mine \
-            --allow-insecure-unlock
+    entrypoint: /bin/sh -c ". data/command"
+    environment:
+      RPC_PORT: 8545
     ports:
       - "8555:8545"
       - "8556:8546"
@@ -57,6 +32,8 @@ services:
       - "8545"
     volumes:
       - ./data:/data
+      - ./docker/geth/command:/data/command
+      - ./docker/geth/geth-blank-password:/data/geth-blank-password
     healthcheck:
       test: curl localhost:8545
       interval: 5s
@@ -90,6 +67,7 @@ services:
     container_name: childchain
     env_file:
       - ./localchain_contract_addresses.env
+      - ./fees_setup.env
     environment:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.27.0.102:80
@@ -99,12 +77,6 @@ services:
       - DB_PATH=/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
       - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
-      - FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
-      - FEE_ADAPTER=file
-      - STORED_FEE_UPDATE_INTERVAL_MINUTES=1
-      - FEE_CHANGE_TOLERANCE_PERCENT=1
-      - FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.dev.json
-      - FEE_BUFFER_DURATION_MS=30000
       - LOGGER_BACKEND=console
       - RELEASE_COOKIE=development
       - NODE_HOST=127.0.0.1
@@ -182,7 +154,7 @@ services:
       - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.27.0.102:80
       - CHILD_CHAIN_URL=http://172.27.0.103:9656
-      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.106:5432/omisego_dev
+      - DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_dev
       - PORT=7534
       - APP_ENV=local_docker_development
       - DD_HOSTNAME=datadog
