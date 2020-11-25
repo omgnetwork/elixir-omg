@@ -24,6 +24,10 @@ defmodule OMG.Status.SentryFilter do
     true
   end
 
+  def exclude_exception?(%Plug.Parsers.RequestTooLargeError{}, _) do
+    true
+  end
+
   def exclude_exception?(_, _) do
     false
   end
