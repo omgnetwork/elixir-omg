@@ -119,7 +119,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
       _ = insert(:txoutput, currency: currency_1, owner: alice.addr)
       _ = insert(:txoutput, currency: currency_2, owner: alice.addr)
 
-      result = DB.TxOutput.get_sorted_grouped_utxos(alice.addr)
+      result = DB.TxOutput.get_sorted_grouped_utxos(alice.addr, :desc)
 
       assert Map.keys(result) == [currency_1, currency_2]
 
@@ -138,7 +138,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
       _ = insert(:txoutput, owner: alice)
       _ = insert(:txoutput, owner: bob)
 
-      result = DB.TxOutput.get_sorted_grouped_utxos(alice)
+      result = DB.TxOutput.get_sorted_grouped_utxos(alice, :desc)
 
       Enum.each(result, fn {_currency, outputs} ->
         Enum.each(outputs, fn output -> assert output.owner == alice end)
@@ -146,18 +146,33 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns outputs for a given currency in descending amount order" do
+    test "returns outputs for a given currency in descending amount order if specified" do
       alice = <<1::160>>
 
       _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice)
       _ = insert(:txoutput, amount: 200, currency: @eth, owner: alice)
       _ = insert(:txoutput, amount: 300, currency: @eth, owner: alice)
 
-      result = alice |> DB.TxOutput.get_sorted_grouped_utxos() |> Map.get(@eth)
+      result = alice |> DB.TxOutput.get_sorted_grouped_utxos(:desc) |> Map.get(@eth)
 
       assert result |> Enum.at(0) |> Map.get(:amount) == 300
       assert result |> Enum.at(1) |> Map.get(:amount) == 200
       assert result |> Enum.at(2) |> Map.get(:amount) == 100
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "returns outputs for a given currency in ascending amount order if specified" do
+      alice = <<1::160>>
+
+      _ = insert(:txoutput, amount: 100, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 200, currency: @eth, owner: alice)
+      _ = insert(:txoutput, amount: 300, currency: @eth, owner: alice)
+
+      result = alice |> DB.TxOutput.get_sorted_grouped_utxos(:asc) |> Map.get(@eth)
+
+      assert result |> Enum.at(0) |> Map.get(:amount) == 100
+      assert result |> Enum.at(1) |> Map.get(:amount) == 200
+      assert result |> Enum.at(2) |> Map.get(:amount) == 300
     end
   end
 end

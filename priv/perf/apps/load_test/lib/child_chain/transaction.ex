@@ -23,6 +23,7 @@ defmodule LoadTest.ChildChain.Transaction do
   alias ExPlasma.Transaction
   alias ExPlasma.Utxo
   alias LoadTest.Connection.ChildChain, as: Connection
+  alias LoadTest.Service.Metrics
   alias LoadTest.Service.Sync
 
   # safe, reasonable amount, equal to the testnet block gas limit
@@ -212,6 +213,15 @@ defmodule LoadTest.ChildChain.Transaction do
   end
 
   defp do_submit_tx(tx) do
+    Metrics.run_with_metrics(
+      fn ->
+        submit_request(tx)
+      end,
+      "Childchain.submit"
+    )
+  end
+
+  defp submit_request(tx) do
     {:ok, response} =
       tx
       |> Transaction.encode()

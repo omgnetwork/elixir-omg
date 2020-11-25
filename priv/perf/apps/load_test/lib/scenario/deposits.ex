@@ -32,6 +32,7 @@ defmodule LoadTest.Scenario.Deposits do
   alias LoadTest.Ethereum
   alias LoadTest.Ethereum.Account
   alias LoadTest.Service.Faucet
+  alias LoadTest.Service.Metrics
   alias LoadTest.WatcherInfo.Balance
   alias LoadTest.WatcherInfo.Transaction
 
@@ -53,17 +54,24 @@ defmodule LoadTest.Scenario.Deposits do
   end
 
   def create_deposit_and_make_assertions(session) do
+    {_, session} =
+      Metrics.run_with_metrics(
+        fn ->
+          do_create_deposit_and_make_assertions(session)
+        end,
+        "deposits_test"
+      )
+
+    session
+  end
+
+  defp do_create_deposit_and_make_assertions(session) do
     with {:ok, from, to} <- create_accounts(session),
          :ok <- create_deposit(from, session),
          :ok <- send_value_to_receiver(from, to, session) do
-      Session.add_metric(session, "error_rate", 0)
+      {:ok, session}
     else
-      error ->
-        log_error(session, "#{__MODULE__} failed with #{inspect(error)}")
-
-        session
-        |> Session.add_metric("error_rate", 1)
-        |> Session.add_error(:test, error)
+      _error -> {:error, session}
     end
   end
 

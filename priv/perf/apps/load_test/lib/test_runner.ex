@@ -23,9 +23,6 @@ defmodule LoadTest.TestRunner do
   - transactions per seconds
   - period in seconds
 
-  Optional paramters:
-  - Percentile. You can pass percentile as the fourth parameter. By default `mean` value is used.
-
   You can also modify values for tests by providing `TEST_CONFIG_PATH` env variable, it should contain
   the path to json file. For example:
 
@@ -33,19 +30,65 @@ defmodule LoadTest.TestRunner do
 
   It fetches all configuration params from env vars.
   """
+
+  alias LoadTest.Service.Metrics
   alias LoadTest.TestRunner.Config
 
-  def run() do
-    {runner_module, config, property} = Config.parse()
-    result = Chaperon.run_load_test(runner_module, print_results: true, config: config)
+  @circleci_tag "env:perf_circleci"
 
-    # / 1 is to convert result to float (mean is float, percentiles are integers)[O
-    case result.metrics["error_rate"][property] / 1 do
-      0.0 ->
+  def run() do
+    case Config.parse() do
+      {:run_tests, {runner_module, config}} -> run_test(runner_module, config)
+      {:make_assertions, start_time, end_time} -> make_assertions(start_time, end_time)
+      :ok -> :ok
+    end
+  end
+
+  defp run_test(runner_module, config) do
+    case System.get_env("STATIX_TAG") do
+      nil -> raise("STATIX_TAG is not set")
+      _ -> :ok
+    end
+
+    start_datetime = DateTime.utc_now()
+
+    maybe_add_custom_tag(start_datetime)
+
+    Chaperon.run_load_test(runner_module, print_results: true, config: config)
+
+    end_datetime = DateTime.utc_now()
+
+    case config.make_assertions do
+      true -> make_assertions(start_datetime, end_datetime)
+      _ -> :ok
+    end
+  end
+
+  defp make_assertions(start_time, end_time) do
+    case Metrics.assert_metrics(start_time, end_time) do
+      :ok ->
         System.halt(0)
 
-      _ ->
+      {:error, errors} ->
+        # credo:disable-for-next-line
+        IO.inspect("errors: #{inspect(errors)}")
         System.halt(1)
+    end
+  end
+
+  defp maybe_add_custom_tag(start_date) do
+    tags = Application.get_env(:statix, :tags)
+
+    tags
+    |> Enum.find(fn value -> value == @circleci_tag end)
+    |> case do
+      nil ->
+        :ok
+
+      _ ->
+        postfix = start_date |> to_string |> String.replace(" ", "-") |> String.downcase()
+        new_tag = @circleci_tag <> ":" <> postfix
+        Application.put_env(:statix, :tags, [new_tag | tags])
     end
   end
 end

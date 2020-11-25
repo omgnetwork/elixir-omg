@@ -27,7 +27,6 @@ defmodule OMG.State do
   Assumes that all stateless transaction validation is done outside of `exec/2`, so it accepts `OMG.State.Transaction.Recovered`
   """
 
-  alias OMG.Block
   alias OMG.DB
 
   alias OMG.Fees
@@ -81,17 +80,6 @@ defmodule OMG.State do
   @spec close_block() :: {:ok, list(Core.db_update())}
   def close_block() do
     GenServer.call(__MODULE__, :close_block, @timeout)
-  end
-
-  @doc """
-  Intended for the `OMG.ChildChain`. Forms a new block and persist it. Broadcasts the block to the internal event bus
-  to be used in other processes.
-
-  Asynchronous
-  """
-  @spec form_block() :: :ok
-  def form_block() do
-    GenServer.cast(__MODULE__, :form_block)
   end
 
   @doc """
@@ -249,29 +237,6 @@ defmodule OMG.State do
 
     :ok = publish_block_to_event_bus(block)
     {:reply, {:ok, db_updates}, new_state}
-  end
-
-  @doc """
-  see `form_block/0`
-
-  Flow:
-    - generates fee-transactions based on the fees paid in the block
-    - wraps up accumulated transactions submissions and fee transactions into a block
-    - triggers db update
-    - pushes the new block to subscribers of `"blocks"` internal event bus topic
-  """
-  def handle_cast(:form_block, state) do
-    _ = Logger.info("Forming new block...")
-    state = Core.claim_fees(state)
-    {:ok, {%Block{number: blknum} = block, db_updates}, new_state} = Core.form_block(state)
-    _ = Logger.info("Formed new block ##{blknum}")
-
-    # persistence is required to be here, since propagating the block onwards requires restartability including the
-    # new block
-    :ok = DB.multi_update(db_updates)
-
-    :ok = publish_block_to_event_bus(block)
-    {:noreply, new_state}
   end
 
   defp publish_block_to_event_bus(block) do

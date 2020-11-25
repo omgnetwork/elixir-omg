@@ -36,7 +36,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
 
-      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       order = %{
         owner: @alice,
@@ -62,7 +62,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
 
-      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       order = %{
         owner: @alice,
@@ -85,7 +85,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
 
-      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       order = %{
         owner: @alice,
@@ -124,7 +124,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
 
-      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       order = %{
         owner: @alice,
@@ -162,7 +162,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
     test "returns transactions with :typed_data" do
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
 
-      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice)
+      utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
       order = %{
         owner: @alice,

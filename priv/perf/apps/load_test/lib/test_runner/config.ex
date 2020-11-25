@@ -17,9 +17,11 @@ defmodule LoadTest.TestRunner.Config do
   Command line args parser for TestRunner.
   """
   alias ExPlasma.Encoding
+  alias LoadTest.TestRunner.Help
 
   @tests %{
-    "deposits" => LoadTest.Runner.Deposits
+    "deposits" => LoadTest.Runner.Deposits,
+    "transactions" => LoadTest.Runner.Transactions
   }
 
   @configs %{
@@ -29,31 +31,45 @@ defmodule LoadTest.TestRunner.Config do
       deposited_amount: 200_000_000_000_000_000,
       transferred_amount: 100_000_000_000_000_000,
       gas_price: 2_000_000_000
+    },
+    "transactions" => %{
+      token: "0x0000000000000000000000000000000000000000",
+      initial_amount: 760,
+      fee: 75
     }
   }
 
   def parse() do
-    [test, rate, period, property] =
-      case System.argv() do
-        [test, rate, period] ->
-          [test, rate, period, :mean]
+    case System.argv() do
+      ["make_assertions", start_time, end_time] ->
+        start_time_integer = String.to_integer(start_time)
+        end_time_integer = String.to_integer(end_time)
 
-        [test, rate, period, percentile] ->
-          percentile = parse_percentile(percentile)
-          [test, rate, period, percentile]
-      end
+        {:make_assertions, start_time_integer, end_time_integer}
 
+      [test, rate, period] ->
+        {:run_tests, config(test, rate, period, "true")}
+
+      [test, rate, period, make_assertions] ->
+        {:run_tests, config(test, rate, period, make_assertions)}
+
+      ["help"] ->
+        Help.help()
+
+      ["help", "env"] ->
+        Help.help("env")
+
+      ["help", name] ->
+        Help.help(name)
+    end
+  end
+
+  defp config(test, rate, period, make_assertions) do
     rate_int = String.to_integer(rate)
     period_int = String.to_integer(period)
 
-    config = config(test, rate_int, period_int)
-
     runner_module = Map.fetch!(@tests, test)
 
-    {runner_module, config, property}
-  end
-
-  defp config(test, rate_int, period_int) do
     # Chaperon's SpreadAsyns (https://github.com/polleverywhere/chaperon/blob/13cc4a2d2a7baacddf20c46397064b5e42a48d97/lib/chaperon/action/spread_async.ex)
     # spawns a separate process for each execution. VM may fail if too many processes are spawned
     if rate_int * period_int > 200_000, do: raise("too many processes")
@@ -65,11 +81,21 @@ defmodule LoadTest.TestRunner.Config do
 
     chain_config = read_config!(test)
 
-    %{
+    config = %{
       run_config: run_config,
       chain_config: chain_config,
+      make_assertions: parse_boolean(make_assertions),
       timeout: :infinity
     }
+
+    {runner_module, config}
+  end
+
+  defp parse_boolean(bool) do
+    case bool do
+      "true" -> true
+      _ -> false
+    end
   end
 
   defp read_config!(test) do
@@ -118,16 +144,5 @@ defmodule LoadTest.TestRunner.Config do
       {key, parsed_value}
     end)
     |> Map.new()
-  end
-
-  defp parse_percentile(percentile) do
-    percentile_int = String.to_integer(percentile)
-
-    # percentile should be divisible by 10 and < 100 (10, 20, ... 90)
-    unless rem(percentile_int, 10) == 0 and div(percentile_int, 10) < 10 do
-      raise("Wrong percentile")
-    end
-
-    {:percentile, percentile_int / 1}
   end
 end
