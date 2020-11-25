@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvents do
   @moduledoc """
-  Prior to https://github.com/omisego/elixir-omg/pull/1509, `eth_height` was not persisted in the Watcher Info DB
+  Prior to https://github.com/omgnetwork/elixir-omg/pull/1509, `eth_height` was not persisted in the Watcher Info DB
   for `eth_events`. This module will add `eth_height` to all persisted `eth_events` where this value is non-existent.
   """
   use Ecto.Migration

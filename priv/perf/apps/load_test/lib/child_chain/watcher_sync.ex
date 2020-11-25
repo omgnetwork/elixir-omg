@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ defmodule LoadTest.ChildChain.WatcherSync do
 
     # NOTE: allowing some more time for the dust to settle on the synced Watcher
     # otherwise some of the freshest UTXOs to exit will appear as missing on the Watcher
-    # related issue to remove this `sleep` and fix properly is https://github.com/omisego/elixir-omg/issues/1031
+    # related issue to remove this `sleep` and fix properly is https://github.com/omgnetwork/elixir-omg/issues/1031
     Process.sleep(2000)
     _ = Logger.info("Watcher synchronized")
   end

@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -510,7 +510,7 @@ defmodule OMG.Watcher.ExitProcessor do
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
 
     # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
-    # See issue #671 https://github.com/omisego/elixir-omg/issues/671
+    # See issue #671 https://github.com/omgnetwork/elixir-omg/issues/671
     {invalidities, state_db_updates} =
       Enum.reduce(exiting_positions, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
 

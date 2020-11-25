@@ -1,4 +1,4 @@
-# OmiseGO Client Architecture
+# OMG Network Client Architecture
 
 This describes the client services stack that communicates with the child chain and root chain to secure the entire Plasma construction and ease application development. An application provider will run these client services on their own or use hosted versions.
 
@@ -76,14 +76,14 @@ Native wrappers to the Watcher and Informational API Service for supported langu
 
 #### Current implementations
 
-- [omg-js-lib](https://github.com/omisego/omg-js)
+- [omg-js-lib](https://github.com/omgnetwork/omg-js)
 
 
 ### Application Layer
 
 #### Purpose
 
-Third party applications that use the OmiseGO Network for value transfer and exchange.
+Third party applications that use the OMG Network for value transfer and exchange.
 
 #### Design principles
 

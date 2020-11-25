@@ -119,7 +119,7 @@ and
 
 ## `53dc46f80eca374c64983aacd37bd6851ec794f4`, 2019-06-28
 
-(perf drop introduced as documented in [#731](https://github.com/omisego/elixir-omg/issues/731))
+(perf drop introduced as documented in [#731](https://github.com/omgnetwork/elixir-omg/issues/731))
 
 Command as above
 

@@ -1,7 +1,7 @@
 # More Viable Plasma
 
 This document is based on the original [More Viable Plasma post](https://ethresear.ch/t/more-viable-plasma/2160/49) on ethresearch.
-This document has been moved from the document created in [the research repo](https://github.com/omisego/research/pull/44).
+This document has been moved from the document created in [the research repo](https://github.com/omgnetwork/research/pull/44).
 See there for the original work and discussion done on this design.
 
 ## Introduction

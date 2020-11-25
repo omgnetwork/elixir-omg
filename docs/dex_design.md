@@ -56,7 +56,7 @@ This section will review the key features of ODEX. The following diagram is a hi
 
 ## Restricted Custody
 
-OmiseGO proposes a solution whereby user funds are secured by the child chain consensus mechanism. The exchange of value occurs in a secure manner, which vastly reduces the risk exposure for both a venue *and* for the user.
+OMG Network proposes a solution whereby user funds are secured by the child chain consensus mechanism. The exchange of value occurs in a secure manner, which vastly reduces the risk exposure for both a venue *and* for the user.
 
 We can provide this custodial safety using a model which utilizes the safety of the child chain consensus mechanism.
 
@@ -106,7 +106,7 @@ Without batch settlement, it would be expected for venues to immediately settle 
 
 * Atomic settlement where multiple orders are resolved simultaneously, such as options markets
 
-* Settlement of implied orders. Implied orders are necessary for the OmiseGO core user story. Implied orders enable the exchange of two assets that do not directly trade against one another. For example,
+* Settlement of implied orders. Implied orders are necessary for the OMG Network core user story. Implied orders enable the exchange of two assets that do not directly trade against one another. For example,
 
     * A user has Burger tokens and a cafe accepts Coffee tokens
 
@@ -160,7 +160,7 @@ Orders are matched off-chain and trades are immediately settled on-chain with a 
 
 ![phase 2 diagram](assets/dex_design/03_Phase%202%20-%20MVP.png)
 
-Batch settlements are introduced in Phase 2. Batch settlements most importantly will enable implied orders, which are required to fulfill one of the primary OmiseGO use cases (see Appendix).
+Batch settlements are introduced in Phase 2. Batch settlements most importantly will enable implied orders, which are required to fulfill one of the primary OMG Network use cases (see Appendix).
 
 Batch settlement optimizes the settlement process because settlement is the net outcome of all of the trades in a batch. Matching must be performed in a deterministic way such that proofs may be independently verified.
 
@@ -220,7 +220,7 @@ Having said that, on-chain markets can provide several key features beyond simpl
 
 ## Introduction
 
-For the ODEX to be successful, the DEX must address the basic market model principles of a well-functioning market. A well functioning market has many characteristics and the features of ODEX previously discussed has already called out many of these. The purpose of this section is to call out, in a practical sense, the requirements that need to be met to support the OmiseGO vision.
+For the ODEX to be successful, the DEX must address the basic market model principles of a well-functioning market. A well functioning market has many characteristics and the features of ODEX previously discussed has already called out many of these. The purpose of this section is to call out, in a practical sense, the requirements that need to be met to support the OMG Network vision.
 
 ## Market Microstructure
 
