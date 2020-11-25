@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Utils.HttpRPC.Adapter do
+defmodule OMG.Watcher.HttpRPC.Adapter do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """
+
+  alias OMG.Utils.AppVersion
 
   require Logger
 
@@ -24,7 +26,7 @@ defmodule OMG.Utils.HttpRPC.Adapter do
   """
   def rpc_post(body, path, url) do
     addr = "#{url}/#{path}"
-    headers = [{"content-type", "application/json"}]
+    headers = [{"content-type", "application/json"}, {"X-Watcher-Version", AppVersion.version(:omg_watcher)}]
 
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do

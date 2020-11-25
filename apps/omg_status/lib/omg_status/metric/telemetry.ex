@@ -35,11 +35,12 @@ defmodule OMG.Status.Metric.Telemetry do
         TelemetryMetricsStatsd,
         metrics: metrics(),
         global_tags: [
+          service: service,
           version: version
         ],
         host: dd_host,
         port: dd_port,
-        prefix: "omg.#{service}",
+        prefix: "elixir",
         formatter: :datadog
       }
     ]
@@ -52,29 +53,29 @@ defmodule OMG.Status.Metric.Telemetry do
       # Phoenix Metrics
       summary(
         "phoenix.endpoint.stop.duration",
-        tags: [:version],
+        tags: [:service, :version],
         unit: {:native, :millisecond}
       ),
       summary(
         "phoenix.router_dispatch.stop.duration",
-        tags: [:version, :route],
+        tags: [:service, :version, :route],
         unit: {:native, :millisecond}
       ),
       summary(
         "phoenix.router_dispatch.exception.duration",
-        tags: [:version, :kind],
+        tags: [:service, :version, :kind],
         unit: {:native, :millisecond}
       ),
       summary(
         "phoenix.error_rendered.duration",
-        tags: [:version, :kind],
+        tags: [:service, :version, :kind],
         unit: {:native, :millisecond}
       ),
 
       # Custom web metrics
       counter(
         "web.fallback.error",
-        tags: [:version, :route, :error_code]
+        tags: [:service, :version, :route, :error_code]
       )
     ]
   end
