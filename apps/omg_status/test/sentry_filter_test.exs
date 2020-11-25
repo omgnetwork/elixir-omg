@@ -29,6 +29,6 @@ defmodule OMG.Status.SentryFilterTest do
              %Phoenix.NotAcceptableError{plug_status: 406},
              event_source: :plug,
              result: :sync
-           ) = :excluded
+           ) == :excluded
   end
 end
