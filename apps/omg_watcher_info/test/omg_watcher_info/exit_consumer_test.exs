@@ -52,8 +52,8 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
       txhash = Crypto.hash(<<pos_1>>)
 
       event_data = [
-        %{log_index: 2, eth_height: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_1}},
-        %{log_index: 1, eth_height: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{txhash: txhash, oindex: 1}}
+        %{log_index: 2, eth_height: 2, root_chain_txhash: @root_chain_txhash2, utxo_pos: pos_1},
+        %{log_index: 1, eth_height: 1, root_chain_txhash: @root_chain_txhash1, txhash: txhash, oindex: 1}
       ]
 
       send_events_and_wait_until_processed(event_data)
@@ -68,8 +68,8 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
 
       # Note: event data is the same for InFlightExitStarted and InFlightExitOutputWithdrawn events
       event_data = [
-        %{log_index: 2, eth_height: 2, root_chain_txhash: @root_chain_txhash2, call_data: %{utxo_pos: pos_2}},
-        %{log_index: 1, eth_height: 1, root_chain_txhash: @root_chain_txhash1, call_data: %{utxo_pos: pos_1}}
+        %{log_index: 2, eth_height: 2, root_chain_txhash: @root_chain_txhash2, utxo_pos: pos_2},
+        %{log_index: 1, eth_height: 1, root_chain_txhash: @root_chain_txhash1, utxo_pos: pos_1}
       ]
 
       send_events_and_wait_until_processed(event_data)
@@ -87,7 +87,8 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
           log_index: 2,
           eth_height: 2,
           root_chain_txhash: @root_chain_txhash2,
-          call_data: %{txhash: txhash, oindex: oindex}
+          txhash: txhash,
+          oindex: oindex
         }
       ]
 
@@ -106,7 +107,8 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
           log_index: 2,
           eth_height: 2,
           root_chain_txhash: @root_chain_txhash2,
-          call_data: %{txhash: txhash, oindex: oindex}
+          txhash: txhash,
+          oindex: oindex
         }
       ]
 
@@ -130,7 +132,8 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
           log_index: expected_log_index,
           eth_height: expected_eth_height,
           root_chain_txhash: expected_root_hash,
-          call_data: %{txhash: txhash, oindex: oindex}
+          txhash: txhash,
+          oindex: oindex
         }
       ])
 
@@ -149,7 +152,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
           log_index: 2,
           root_chain_txhash: @root_chain_txhash2,
           eth_height: expected_eth_height,
-          call_data: %{utxo_pos: Position.encode(txo_pos)}
+          utxo_pos: Position.encode(txo_pos)
         }
       ]
 

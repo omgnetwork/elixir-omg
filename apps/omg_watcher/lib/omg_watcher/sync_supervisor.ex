@@ -110,10 +110,10 @@ defmodule OMG.Watcher.SyncSupervisor do
        ets_bucket: events_bucket(),
        events: [
          [name: :deposit_created, enrich: false],
-         [name: :exit_started, enrich: true],
+         [name: :exit_started, enrich: false],
          [name: :exit_finalized, enrich: false],
          [name: :exit_challenged, enrich: false],
-         [name: :in_flight_exit_started, enrich: true],
+         [name: :in_flight_exit_started, enrich: false],
          [name: :in_flight_exit_deleted, enrich: false],
          [name: :in_flight_exit_input_piggybacked, enrich: false],
          [name: :in_flight_exit_output_piggybacked, enrich: false],

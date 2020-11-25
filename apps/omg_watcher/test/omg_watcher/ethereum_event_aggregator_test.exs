@@ -259,7 +259,6 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
         to_block
         |> exit_started_log()
         |> Abi.decode_log()
-        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
       in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
       in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
@@ -339,7 +338,6 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
         to_block
         |> exit_started_log()
         |> Abi.decode_log()
-        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
       assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
 

@@ -258,7 +258,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
              DB.EthEvent.insert_exits!(
                [
                  %{
-                   call_data: %{utxo_pos: expected_utxo_encoded_position},
+                   utxo_pos: expected_utxo_encoded_position,
                    root_chain_txhash: expected_exit_root_chain_txhash,
                    log_index: expected_log_index,
                    eth_height: expected_exit_eth_height
@@ -291,13 +291,13 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       %{
         root_chain_txhash: Crypto.hash(<<1000::256>>),
         log_index: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))},
+        utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0)),
         eth_height: 2
       },
       %{
         root_chain_txhash: Crypto.hash(<<1000::256>>),
         log_index: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))},
+        utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0)),
         eth_height: 2
       }
     ]
@@ -327,13 +327,13 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
         root_chain_txhash: expected_eth_txhash,
         log_index: expected_log_index,
         eth_height: expected_eth_height,
-        call_data: %{utxo_pos: Utxo.Position.encode(utxo_pos1)}
+        utxo_pos: Utxo.Position.encode(utxo_pos1)
       },
       %{
         root_chain_txhash: expected_eth_txhash,
         log_index: expected_log_index,
         eth_height: expected_eth_height,
-        call_data: %{utxo_pos: Utxo.Position.encode(utxo_pos2)}
+        utxo_pos: Utxo.Position.encode(utxo_pos2)
       }
     ]
 
@@ -387,13 +387,15 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
         root_chain_txhash: expected_eth_txhash1,
         log_index: expected_log_index1,
         eth_height: expected_eth_height1,
-        call_data: %{txhash: txhash1, oindex: oindex1}
+        txhash: txhash1,
+        oindex: oindex1
       },
       %{
         root_chain_txhash: expected_eth_txhash2,
         log_index: expected_log_index2,
         eth_height: expected_eth_height2,
-        call_data: %{txhash: txhash2, oindex: oindex2}
+        txhash: txhash2,
+        oindex: oindex2
       }
     ]
 

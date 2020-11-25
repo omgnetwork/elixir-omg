@@ -615,7 +615,7 @@ defmodule OMG.State.CoreTest do
 
     assert utxo_pos_exits ==
              utxo_pos_exits
-             |> Enum.map(&%{call_data: %{utxo_pos: Utxo.Position.encode(&1)}})
+             |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
              |> Core.extract_exiting_utxo_positions(state_empty)
 
     assert utxo_pos_exits ==
@@ -695,7 +695,7 @@ defmodule OMG.State.CoreTest do
 
     state = state |> Core.exec(tx, @fee) |> success?
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
+    utxo_pos_exits_in_flight = [%{in_flight_tx: Transaction.raw_txbytes(tx)}]
 
     utxo_pos_exits_piggyback = [
       %{tx_hash: Transaction.raw_txhash(tx), output_index: 0, omg_data: %{piggyback_type: :output}}
@@ -731,7 +731,7 @@ defmodule OMG.State.CoreTest do
 
     tx = create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
+    utxo_pos_exits_in_flight = [%{in_flight_tx: Transaction.raw_txbytes(tx)}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
     exiting_utxos = Core.extract_exiting_utxo_positions(utxo_pos_exits_in_flight, state)
