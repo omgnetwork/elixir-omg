@@ -28,10 +28,10 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
        ets_bucket: table,
        events: [
          [name: :deposit_created, enrich: false],
-         [name: :exit_started, enrich: true],
+         [name: :exit_started, enrich: false],
          [name: :in_flight_exit_input_piggybacked, enrich: false],
          [name: :in_flight_exit_output_piggybacked, enrich: false],
-         [name: :in_flight_exit_started, enrich: true],
+         [name: :in_flight_exit_started, enrich: false],
          [name: :in_flight_exit_deleted, enrich: false]
        ]}
     )
@@ -79,7 +79,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                [
                  signature: "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])",
                  name: :in_flight_exit_started,
-                 enrich: true
+                 enrich: false
                ],
                [
                  signature: "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
@@ -94,7 +94,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                [
                  signature: "ExitStarted(address,uint168,uint256)",
                  name: :exit_started,
-                 enrich: true
+                 enrich: false
                ],
                [
                  signature: "DepositCreated(address,uint256,address,uint256)",

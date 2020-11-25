@@ -46,8 +46,10 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     scheduled_finalization_time = block_timestamp + 100
 
     event = %{
-      utxo_pos: enc_pos,
-      output_tx: txbytes,
+      call_data: %{
+        utxo_pos: enc_pos,
+        output_tx: txbytes
+      },
       owner: owner,
       eth_height: eth_height,
       exit_id: exit_id,
@@ -104,10 +106,12 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     %{
-      in_flight_tx: Transaction.raw_txbytes(tx),
-      input_txs: input_txs,
-      input_utxos_pos: input_utxos_pos,
-      in_flight_tx_sigs: sigs,
+      call_data: %{
+        in_flight_tx: Transaction.raw_txbytes(tx),
+        input_txs: input_txs,
+        input_utxos_pos: input_utxos_pos,
+        in_flight_tx_sigs: sigs
+      },
       eth_height: eth_height
     }
   end

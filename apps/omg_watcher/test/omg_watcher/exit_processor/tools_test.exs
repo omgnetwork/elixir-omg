@@ -126,8 +126,8 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
 
       # Note: Piggyback to input in log_index: 2 is ignored
       assert [
-               %{log_index: 3, root_chain_txhash: <<13::256>>, call_data: %{txhash: ^txhash, oindex: 3}},
-               %{log_index: 1, root_chain_txhash: <<11::256>>, call_data: %{txhash: ^txhash, oindex: 1}}
+               %{log_index: 3, root_chain_txhash: <<13::256>>, txhash: ^txhash, oindex: 3},
+               %{log_index: 1, root_chain_txhash: <<11::256>>, txhash: ^txhash, oindex: 1}
              ] = Tools.to_bus_events_data(piggyback_events)
     end
   end
