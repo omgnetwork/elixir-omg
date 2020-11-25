@@ -82,7 +82,6 @@ brew "gmp"
 brew "libtool"
 brew "cmake"
 brew "rocksdb"
-brew "wget"
 EOF
 }
 

@@ -4,24 +4,32 @@ defmodule LoadTest.Application do
   """
   use Application
 
+  alias LoadTest.Connection.ConnectionDefaults
+  alias LoadTest.Ethereum.NonceTracker
+  alias LoadTest.Service.Datadog
+  alias LoadTest.Service.Faucet
+
   def start(_type, _args) do
+    :ok = start_hackney_pool()
+
+    NonceTracker.init()
+
+    children = [{Faucet, fetch_faucet_config()}, {Datadog, []}]
+
+    Supervisor.start_link(children, strategy: :one_for_one, restart: :temporary)
+  end
+
+  defp start_hackney_pool() do
     pool_size = Application.fetch_env!(:load_test, :pool_size)
     max_connections = Application.fetch_env!(:load_test, :max_connection)
 
-    :ok =
-      :hackney_pool.start_pool(
-        LoadTest.Connection.ConnectionDefaults.pool_name(),
-        timeout: 180_000,
-        connect_timeout: 30_000,
-        pool_size: pool_size,
-        max_connections: max_connections
-      )
-
-    LoadTest.Ethereum.NonceTracker.init()
-
-    faucet_config = fetch_faucet_config()
-    # using temporary strategy as it creates and funds a new Ethereum account on each start
-    Supervisor.start_link([{LoadTest.Service.Faucet, faucet_config}], strategy: :one_for_one, restart: :temporary)
+    :hackney_pool.start_pool(
+      ConnectionDefaults.pool_name(),
+      timeout: 180_000,
+      connect_timeout: 30_000,
+      pool_size: pool_size,
+      max_connections: max_connections
+    )
   end
 
   def stop(_app) do

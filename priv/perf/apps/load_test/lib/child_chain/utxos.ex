@@ -16,23 +16,27 @@ defmodule LoadTest.ChildChain.Utxos do
   @moduledoc """
   Utility functions for utxos
   """
+  require Logger
+
   alias ExPlasma.Encoding
   alias ExPlasma.Utxo
   alias LoadTest.ChildChain.Transaction
-  alias LoadTest.Connection.WatcherInfo, as: Connection
-  alias WatcherInfoAPI.Api
-  alias WatcherInfoAPI.Model
+  alias LoadTest.Service.Sync
 
   @doc """
   Returns an addresses utxos.
   """
   @spec get_utxos(Utxo.address_binary()) :: list(Utxo.t())
   def get_utxos(address) do
-    body = %Model.AddressBodySchema1{
+    body = %WatcherInfoAPI.Model.AddressBodySchema1{
       address: Encoding.to_hex(address)
     }
 
-    {:ok, response} = Api.Account.account_get_utxos(Connection.client(), body)
+    {:ok, response} =
+      WatcherInfoAPI.Api.Account.account_get_utxos(
+        LoadTest.Connection.WatcherInfo.client(),
+        body
+      )
 
     utxos = Jason.decode!(response.body)["data"]
 
@@ -96,5 +100,25 @@ defmodule LoadTest.ChildChain.Utxos do
       )
 
     utxo
+  end
+
+  @doc """
+  Retries until the utxo is found.
+  """
+  @spec wait_for_utxo(Utxo.address_binary(), Utxo.t(), pos_integer()) :: :ok
+  def wait_for_utxo(address, utxo, timeout \\ 100_000) do
+    func = fn ->
+      find_utxo(address, utxo)
+    end
+
+    Sync.repeat_until_success(func, timeout, "waiting for utxo")
+  end
+
+  defp find_utxo(address, utxo) do
+    utxos = get_utxos(address)
+
+    if Enum.find(utxos, fn x -> Utxo.pos(x) == Utxo.pos(utxo) end) do
+      :ok
+    end
   end
 end

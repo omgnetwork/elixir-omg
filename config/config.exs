@@ -21,6 +21,7 @@ config :logger, Sentry.LoggerBackend,
   ignore_plug: true
 
 config :sentry,
+  filter: OMG.Status.SentryFilter,
   dsn: nil,
   environment_name: nil,
   included_environments: [],
@@ -41,22 +42,6 @@ config :omg, :eip_712_domain,
   version: "1",
   salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
 
-config :omg_child_chain,
-  submission_finality_margin: 20,
-  block_queue_eth_height_check_interval_ms: 6_000,
-  block_submit_every_nth: 1,
-  block_submit_max_gas_price: 20_000_000_000,
-  metrics_collection_interval: 60_000,
-  fee_adapter_check_interval_ms: 10_000,
-  fee_buffer_duration_ms: 30_000,
-  fee_adapter: {OMG.ChildChain.Fees.FileAdapter, opts: [specs_file_path: nil]}
-
-config :omg_child_chain, OMG.ChildChain.Tracer,
-  service: :omg_child_chain,
-  adapter: SpandexDatadog.Adapter,
-  disabled?: true,
-  type: :omg_child_chain
-
 # Configures the endpoint
 # https://ninenines.eu/docs/en/cowboy/2.4/manual/cowboy_http/
 # defaults are:
@@ -65,26 +50,12 @@ config :omg_child_chain, OMG.ChildChain.Tracer,
 # max_headers: 100,
 # max_request_line_length: 8096
 # ]
-config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
-  render_errors: [view: OMG.ChildChainRPC.Web.Views.Error, accepts: ~w(json)],
-  enable_cors: true,
-  http: [:inet6, port: 9656, protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]],
-  url: [host: "cc.example.com", port: 80],
-  code_reloader: false
 
 # Use Poison for JSON parsing in Phoenix
 config :phoenix,
   json_library: Jason,
   serve_endpoints: true,
   persistent: true
-
-config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
-  service: :web,
-  adapter: SpandexDatadog.Adapter,
-  disabled?: true,
-  type: :web
-
-config :spandex_phoenix, tracer: OMG.ChildChainRPC.Tracer
 
 config :omg_db,
   metrics_collection_interval: 60_000
@@ -230,8 +201,5 @@ config :omg_watcher_rpc, OMG.WatcherRPC.Tracer,
 config :spandex_phoenix, tracer: OMG.WatcherRPC.Tracer
 
 config :briefly, directory: ["/tmp/omisego"]
-
-# `watcher_url` must match respective `:omg_watcher_rpc, OMG.WatcherRPC.Web.Endpoint`
-config :omg_performance, watcher_url: "localhost:7434"
 
 import_config "#{Mix.env()}.exs"

@@ -14,7 +14,7 @@
 defmodule OMG.Watcher.EthereumEventAggregator do
   @moduledoc """
   This process combines all plasma contract events we're interested in and does eth_getLogs + enriches them if needed
-  for all Ethereum Event Listener processes. 
+  for all Ethereum Event Listener processes.
   """
   use GenServer
   require Logger
@@ -50,6 +50,11 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   @spec in_flight_exit_started(GenServer.server(), pos_integer(), pos_integer()) :: result()
   def in_flight_exit_started(server \\ __MODULE__, from_block, to_block) do
     forward_call(server, :in_flight_exit_started, from_block, to_block, @timeout)
+  end
+
+  @spec in_flight_exit_deleted(GenServer.server(), pos_integer(), pos_integer()) :: result()
+  def in_flight_exit_deleted(server \\ __MODULE__, from_block, to_block) do
+    forward_call(server, :in_flight_exit_deleted, from_block, to_block, @timeout)
   end
 
   @spec in_flight_exit_piggybacked(GenServer.server(), pos_integer(), pos_integer()) :: result()

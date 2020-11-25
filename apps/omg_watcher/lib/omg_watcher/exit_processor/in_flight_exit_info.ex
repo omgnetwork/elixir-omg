@@ -193,6 +193,16 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {:put, :in_flight_exit_info, {ife_hash, value}}
   end
 
+  @doc """
+  Returns all input utxos for given in-flight exits
+  """
+  @spec get_input_utxos(list(t())) :: list(Utxo.Position.t())
+  def get_input_utxos(in_flight_exits) do
+    in_flight_exits
+    |> Enum.map(& &1.input_utxos_pos)
+    |> List.flatten()
+  end
+
   defp assert_utxo_pos_type(Utxo.position(blknum, txindex, oindex))
        when is_integer(blknum) and is_integer(txindex) and is_integer(oindex),
        do: :ok
@@ -416,6 +426,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         oldest_competitor: oldest_competitor_pos
       }),
       do: is_older?(seen_in_pos, oldest_competitor_pos)
+
+  @doc """
+  Converts integer to contract's in-flight exit id
+  """
+  @spec to_contract_id(non_neg_integer) :: <<_::192>>
+  def to_contract_id(id), do: <<id::192>>
 
   @doc """
   Checks if the competitor being seen at `competitor_pos` (`nil` if unseen) is viable to challenge with, considering the

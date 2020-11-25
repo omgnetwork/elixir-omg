@@ -48,7 +48,7 @@ defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
       %{blknum: blknum_2} = insert(:pending_block)
       %{blknum: blknum_3} = insert(:pending_block)
 
-      assert_receive {:trace, ^pid, :receive, :timeout}, @interval
+      assert_receive {:trace, ^pid, :receive, :timeout}, @interval + 50
       get_state(pid)
 
       assert [%{blknum: ^blknum_1}] = get_all_blocks()

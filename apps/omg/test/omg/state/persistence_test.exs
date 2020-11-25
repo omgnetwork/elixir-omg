@@ -135,40 +135,12 @@ defmodule OMG.State.PersistenceTest do
     :ok = restart_state()
 
     assert {:ok, [db_block]} = OMG.DB.blocks([hash])
-    %Block{number: @blknum1, transactions: [payment_tx, _fee_tx], hash: ^hash} = Block.from_db_value(db_block)
+    %Block{number: @blknum1, transactions: [payment_tx], hash: ^hash} = Block.from_db_value(db_block)
 
     assert {:ok, tx} == Transaction.Recovered.recover_from(payment_tx)
 
     assert {:ok, 1000} ==
              tx |> Transaction.get_inputs() |> hd() |> Utxo.Position.to_input_db_key() |> OMG.DB.spent_blknum()
-  end
-
-  @tag fixtures: [:alice]
-  test "fee tx are persisted", %{alice: alice} do
-    token1 = <<1::160>>
-
-    tx =
-      create_recovered(
-        [{1, 0, 0, alice}, {2, 0, 0, alice}],
-        [{alice, @eth, 19}, {alice, token1, 60}]
-      )
-
-    [
-      %{owner: alice, currency: @eth, amount: 20, blknum: 1},
-      %{owner: alice, currency: token1, amount: 60, blknum: 2}
-    ]
-    |> persist_deposit()
-    |> exec(tx)
-    |> persist_form()
-
-    assert {:ok, [hash]} = OMG.DB.block_hashes([@blknum1])
-
-    :ok = restart_state()
-
-    assert {:ok, [db_block]} = OMG.DB.blocks([hash])
-    assert %Block{transactions: [_payment_tx, eth_fee_tx]} = Block.from_db_value(db_block)
-
-    assert OMG.State.utxo_exists?(Utxo.position(1000, 1, 0))
   end
 
   @tag fixtures: [:alice]
@@ -197,13 +169,13 @@ defmodule OMG.State.PersistenceTest do
     {:ok, _, _} = OMG.State.exit_utxos([Utxo.position(1, 0, 0)])
 
     # exit db_updates won't get persisted yet, but alice tries to spent it immediately
-    assert :utxo_not_found == exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}]))
+    assert exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}])) == :utxo_not_found
 
     # retry above with empty in-memory utxoset
     :ok = restart_state()
 
     {:ok, _, _} = OMG.State.exit_utxos([Utxo.position(1, 0, 0)])
-    assert :utxo_not_found == exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}]))
+    assert exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 20}])) == :utxo_not_found
   end
 
   defp persist_deposit(deposits) do
@@ -218,12 +190,12 @@ defmodule OMG.State.PersistenceTest do
   defp persist_form(:ok), do: persist_form()
 
   defp persist_form() do
-    OMG.State.form_block()
+    state = :sys.get_state(OMG.State)
 
-    # because `form_block` is non-blocking operation we need to wait it finishes
-    # easiest to do this is to schedule another operation on `OMG.State` which is blocking
-    _ = OMG.State.utxo_exists?(Utxo.position(0, 0, 0))
+    {:ok, {_block, db_updates}, new_state} = OMG.State.Core.form_block(state)
 
+    :ok = OMG.DB.multi_update(db_updates)
+    :sys.replace_state(OMG.State, fn _ -> new_state end)
     :ok
   end
 

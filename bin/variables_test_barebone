@@ -19,7 +19,10 @@ export ETHEREUM_HEIGHT_CHECK_INTERVAL_MS=800
 export ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
 export ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
 export FEE_CLAIMER_ADDRESS=0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837
-export FEE_ADAPTER=file
+export FEE_ADAPTER=feed
+export FEE_FEED_URL=http://127.0.0.1:4000/api/v1
+export STORED_FEE_UPDATE_INTERVAL_MINUTES=1
+export FEE_CHANGE_TOLERANCE_PERCENT=1
 # Fee specs file path needs to be an absolute path as the childchain will start deep in the _build subdirectory
 export FEE_SPECS_FILE_PATH=$(pwd)/priv/dev-artifacts/fee_specs.dev.json
 export DD_HOSTNAME=localhost

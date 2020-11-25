@@ -47,7 +47,8 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
     "too_short_hash" => "0x" <> String.duplicate("00", 31),
     "len_1" => "1",
     "len_2" => <<1, 2, 3, 4, 5>>,
-    "max_len_1" => [1, 2, 3, 4, 5]
+    "max_len_1" => [1, 2, 3, 4, 5],
+    "min_len_1" => [1, 2, 3]
   }
 
   describe "Basic validation:" do
@@ -119,6 +120,16 @@ defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
 
     test "max_length: negative cases" do
       assert {:error, {:validation_error, "max_len_1", {:max_length, 3}}} == expect(@params, "max_len_1", max_length: 3)
+    end
+
+    test "min_length: positive cases" do
+      assert {:ok, [1, 2, 3]} == expect(@params, "min_len_1", min_length: 0)
+      assert {:ok, [1, 2, 3]} == expect(@params, "min_len_1", min_length: 2)
+      assert {:ok, [1, 2, 3]} == expect(@params, "min_len_1", min_length: 3)
+    end
+
+    test "min_length: negative cases" do
+      assert {:error, {:validation_error, "min_len_1", {:min_length, 4}}} == expect(@params, "min_len_1", min_length: 4)
     end
 
     test "list: positive cases" do

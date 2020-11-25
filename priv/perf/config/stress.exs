@@ -30,4 +30,8 @@ config :load_test,
     concurrent_sessions: 100,
     iterations: 10,
     merge_scenario_sessions: true
+  },
+  standard_exit_test_config: %{
+    concurrent_sessions: 1,
+    exits_per_session: 10
   }

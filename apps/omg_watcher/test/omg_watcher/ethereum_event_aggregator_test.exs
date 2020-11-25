@@ -31,7 +31,8 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
          [name: :exit_started, enrich: true],
          [name: :in_flight_exit_input_piggybacked, enrich: false],
          [name: :in_flight_exit_output_piggybacked, enrich: false],
-         [name: :in_flight_exit_started, enrich: true]
+         [name: :in_flight_exit_started, enrich: true],
+         [name: :in_flight_exit_deleted, enrich: false]
        ]}
     )
 
@@ -71,6 +72,11 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
     } do
       assert event_fetcher_name |> :sys.get_state() |> Map.get(:events) == [
                [
+                 signature: "InFlightExitDeleted(uint160)",
+                 name: :in_flight_exit_deleted,
+                 enrich: false
+               ],
+               [
                  signature: "InFlightExitStarted(address,bytes32)",
                  name: :in_flight_exit_started,
                  enrich: true
@@ -107,6 +113,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
                  "InFlightExitInputPiggybacked(address,bytes32,uint16)",
                  "ExitStarted(address,uint168)",
+                 "InFlightExitDeleted(uint168)",
                  "DepositCreated(address,uint256,address,uint256)"
                ])
     end
@@ -225,7 +232,8 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
              EthereumEventAggregatorTest.deposit_created_log(from_block + 1),
              EthereumEventAggregatorTest.exit_started_log(to_block),
              EthereumEventAggregatorTest.in_flight_exit_output_piggybacked_log(from_block),
-             EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block)
+             EthereumEventAggregatorTest.in_flight_exit_input_piggybacked_log(to_block),
+             EthereumEventAggregatorTest.in_flight_exit_deleted_log(from_block)
            ]}
         end
 
@@ -255,6 +263,8 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
 
       in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
       in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
+
+      exit_deleted = from_block |> in_flight_exit_deleted_log() |> Abi.decode_log()
       # now we're asserting that the API returns the correct events based on the range
       assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
 
@@ -264,10 +274,14 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
       assert EthereumEventAggregator.deposit_created(event_fetcher_name, from_block, to_block) ==
                {:ok, [deposit_created, deposit_created_2]}
 
+      assert EthereumEventAggregator.in_flight_exit_deleted(event_fetcher_name, from_block, to_block) ==
+               {:ok, [exit_deleted]}
+
       # and now we're asserting that the API calls actually stored the events above
       # also that the events were stored at the right blknum key
       assert Enum.sort(:ets.tab2list(table)) ==
                Enum.sort([
+                 {from_block, get_signature_from_event(events, :in_flight_exit_deleted), [exit_deleted]},
                  {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
                  {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
                   [in_flight_exit_output_piggybacked_log]},
@@ -279,12 +293,14 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  {from_block + 1, get_signature_from_event(events, :in_flight_exit_started), []},
                  {from_block + 1, get_signature_from_event(events, :in_flight_exit_input_piggybacked), []},
                  {from_block + 1, get_signature_from_event(events, :exit_started), []},
+                 {from_block + 1, get_signature_from_event(events, :in_flight_exit_deleted), []},
                  {to_block, get_signature_from_event(events, :deposit_created), []},
                  {to_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked), []},
                  {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
                  {to_block, get_signature_from_event(events, :in_flight_exit_input_piggybacked),
                   [in_flight_exit_input_piggybacked_log]},
-                 {to_block, get_signature_from_event(events, :in_flight_exit_started), []}
+                 {to_block, get_signature_from_event(events, :in_flight_exit_started), []},
+                 {to_block, get_signature_from_event(events, :in_flight_exit_deleted), []}
                ])
     end
 
@@ -337,6 +353,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
 
       assert Enum.sort(:ets.tab2list(table)) ==
                Enum.sort([
+                 {from_block, get_signature_from_event(events, :in_flight_exit_deleted), []},
                  {from_block, get_signature_from_event(events, :deposit_created), [deposit_created]},
                  {to_block, get_signature_from_event(events, :exit_started), [exit_started_log]},
                  {from_block, get_signature_from_event(events, :in_flight_exit_output_piggybacked),
@@ -525,6 +542,24 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
         "0xff90b77303e56bd230a9adf4a6553a95f5ffb563486205d6fba25d3e46594940"
       ],
       "transactionHash" => "0x0cc9e5556bbd6eeaf4302f44adca215786ff08cfa44a34be1760eca60f97364f",
+      "transactionIndex" => "0x0"
+    }
+  end
+
+  def in_flight_exit_deleted_log(block_number) do
+    %{
+      :event_signature => "InFlightExitDeleted(uint160)",
+      "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
+      "blockHash" => "0xcafbc4b710c5fab8f3d719f65053637407231ecde31a859f1709e3478a2eda54",
+      "blockNumber" => "0x" <> Integer.to_string(block_number, 16),
+      "data" => "0x",
+      "logIndex" => "0x2",
+      "removed" => false,
+      "topics" => [
+        "0x1991c4c350498b0cc937c6a08bc5bdecf2e4fdd9d918052a880f102e43dbe45c",
+        "0x000000000000000000000000003fd275046f2823936fd97c1e3c8b225464d7f1"
+      ],
+      "transactionHash" => "0xbe310ade41278c5607620311b79363aa520ac46c7ba754bf3027d501c5a95f40",
       "transactionIndex" => "0x0"
     }
   end

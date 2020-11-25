@@ -2,11 +2,8 @@
   "skip_files": [
     "apps/omg/test/support",
     "apps/omg_bus/test/support",
-    "apps/omg_child_chain/test/support",
-    "apps/omg_child_chain_rpc/test/support",
     "apps/omg_db/test/support",
     "apps/omg_eth/test/support",
-    "apps/omg_performance/test/support",
     "apps/omg_status/test/support",
     "apps/omg_utils/test/support",
     "apps/omg_watcher/test/support",
