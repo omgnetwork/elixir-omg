@@ -25,11 +25,10 @@ defmodule OMG.Status.SentryFilterTest do
       end
     )
 
-    assert :excluded =
-             Sentry.capture_exception(
-               %Phoenix.NotAcceptableError{plug_status: 406},
-               event_source: :plug,
-               result: :sync
-             )
+    assert Sentry.capture_exception(
+             %Phoenix.NotAcceptableError{plug_status: 406},
+             event_source: :plug,
+             result: :sync
+           ) = :excluded
   end
 end
