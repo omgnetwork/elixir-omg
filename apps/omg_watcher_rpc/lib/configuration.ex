@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Configuration do
 
   @spec version() :: String.t()
   def version() do
-    OMG.Utils.HttpRPC.Response.version(@app)
+    OMG.Utils.AppVersion.version(@app)
   end
 
   @spec service_name() :: atom()

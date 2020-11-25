@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Status.SentryFilter do
-  @moduledoc """
-  Sentry callback for filtering events.
-  """
-  @behaviour Sentry.EventFilter
+defmodule OMG.Utils.AppVersionTest do
+  use ExUnit.Case, async: true
 
-  # when the development environment restarts it lacks network access
-  # something to do with Cloud DNS
-  def exclude_exception?(%MatchError{term: {:error, :nxdomain}}, _), do: true
+  alias OMG.Utils.AppVersion
 
-  # Ignoring 406 status code invalid headers exception
-  def exclude_exception?(%Phoenix.NotAcceptableError{plug_status: 406}, _), do: true
-
-  def exclude_exception?(%Plug.Parsers.RequestTooLargeError{}, _), do: true
-
-  def exclude_exception?(_, _), do: false
+  describe "version/1" do
+    test "returns a compliant semver when given an application" do
+      # Using :elixir as the app because it is certain to be running during the test
+      version = AppVersion.version(:elixir)
+      assert {:ok, _} = Version.parse(version)
+    end
+  end
 end
