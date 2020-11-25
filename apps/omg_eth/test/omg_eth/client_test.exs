@@ -46,14 +46,4 @@ defmodule OMG.Eth.ClientTest do
 
     assert Client.node_ready(test_name) == :ok
   end
-
-  test "node_ready/0 returns client unavailable ", %{test: test_name} do
-    defmodule test_name do
-      def eth_syncing() do
-        {:error, :econnrefused}
-      end
-    end
-
-    assert Client.node_ready(test_name) == {:error, :geth_not_listening}
-  end
 end

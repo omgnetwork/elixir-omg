@@ -27,5 +27,7 @@ defmodule OMG.Status.SentryFilter do
 
   def exclude_exception?(%Plug.Parsers.RequestTooLargeError{}, _), do: true
 
+  def exclude_exception?(%CaseClauseError{term: {:error, :econnrefused}}, _), do: true
+
   def exclude_exception?(_, _), do: false
 end
