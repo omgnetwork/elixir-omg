@@ -16,6 +16,7 @@ defmodule OMG.WatcherRPC.Web.Endpoint do
   use Sentry.PlugCapture
   use Phoenix.Endpoint, otp_app: :omg_watcher_rpc
 
+  plug(OMG.Utils.RemoteIP)
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)
   plug(Plug.Telemetry, event_prefix: [:watcher_rpc, :endpoint])

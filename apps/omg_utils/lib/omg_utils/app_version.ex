@@ -12,20 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Status.SentryFilter do
-  @moduledoc """
-  Sentry callback for filtering events.
+defmodule OMG.Utils.AppVersion do
+  @moduledoc false
+
+  @sha String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+
+  @doc """
+  Derive the running service's version for adding to a response.
   """
-  @behaviour Sentry.EventFilter
-
-  # when the development environment restarts it lacks network access
-  # something to do with Cloud DNS
-  def exclude_exception?(%MatchError{term: {:error, :nxdomain}}, _), do: true
-
-  # Ignoring 406 status code invalid headers exception
-  def exclude_exception?(%Phoenix.NotAcceptableError{plug_status: 406}, _), do: true
-
-  def exclude_exception?(%Plug.Parsers.RequestTooLargeError{}, _), do: true
-
-  def exclude_exception?(_, _), do: false
+  @spec version(Application.app()) :: String.t()
+  def version(app) do
+    {:ok, vsn} = :application.get_key(app, :vsn)
+    List.to_string(vsn) <> "+" <> @sha
+  end
 end
