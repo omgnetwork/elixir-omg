@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Configuration do
-  @moduledoc """
-  Provides access to applications configuration
+defmodule OMG.Utils.AppVersion do
+  @moduledoc false
+
+  @sha String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
+
+  @doc """
+  Derive the running service's version for adding to a response.
   """
-  @app :omg_watcher_rpc
-
-  @spec version() :: String.t()
-  def version() do
-    OMG.Utils.AppVersion.version(@app)
-  end
-
-  @spec service_name() :: atom()
-  def service_name() do
-    Application.get_env(@app, :api_mode)
+  @spec version(Application.app()) :: String.t()
+  def version(app) do
+    {:ok, vsn} = :application.get_key(app, :vsn)
+    List.to_string(vsn) <> "+" <> @sha
   end
 end

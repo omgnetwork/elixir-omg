@@ -12,19 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.WatcherRPC.Configuration do
-  @moduledoc """
-  Provides access to applications configuration
-  """
-  @app :omg_watcher_rpc
+defmodule OMG.Utils.AppVersionTest do
+  use ExUnit.Case, async: true
 
-  @spec version() :: String.t()
-  def version() do
-    OMG.Utils.AppVersion.version(@app)
-  end
+  alias OMG.Utils.AppVersion
 
-  @spec service_name() :: atom()
-  def service_name() do
-    Application.get_env(@app, :api_mode)
+  describe "version/1" do
+    test "returns a compliant semver when given an application" do
+      # Using :elixir as the app because it is certain to be running during the test
+      version = AppVersion.version(:elixir)
+      assert {:ok, _} = Version.parse(version)
+    end
   end
 end
