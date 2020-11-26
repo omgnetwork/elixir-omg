@@ -40,11 +40,7 @@ defmodule OMG.Eth.Encoding do
   # because https://github.com/rrrene/credo/issues/583, we need to:
   # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
   @spec from_hex(<<_::16, _::_*8>>) :: binary
-  def from_hex("0x" <> encoded) do
-    encoded
-    |> String.downcase()
-    |> Base.decode16!(case: :lower)
-  end
+  def from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :mixed)
 
   @doc """
   Decodes to an integer, see `to_hex`

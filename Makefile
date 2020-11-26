@@ -199,7 +199,9 @@ init-contracts: clean-contracts
 	PAYMENT_EIP712_LIBMOCK=$$(cat plasma-contracts/build/paymentEip712LibMock) && \
 	MERKLE_WRAPPER=$$(cat plasma-contracts/build/merkleWrapper) && \
 	ERC20_MINTABLE=$$(cat plasma-contracts/build/erc20Mintable) && \
-	sh ../bin/generate-localchain-env AUTHORITY_ADDRESS=$$AUTHORITY_ADDRESS ETH_VAULT=$$ETH_VAULT \
+	sh ../bin/generate-localchain-env AUTHORITY_ADDRESS=$$AUTHORITY_ADDRESS ETH_VAULT=$$ETH_VAULT && \
+	cd ../bin/eip55_normalizer && \
+        mix run -e "Eip55Normalizer.run()" ../../localchain_contract_addresses.env && \
 	ERC20_VAULT=$$ERC20_VAULT PAYMENT_EXIT_GAME=$$PAYMENT_EXIT_GAME \
 	PLASMA_FRAMEWORK_TX_HASH=$$PLASMA_FRAMEWORK_TX_HASH PLASMA_FRAMEWORK=$$PLASMA_FRAMEWORK \
 	PAYMENT_EIP712_LIBMOCK=$$PAYMENT_EIP712_LIBMOCK MERKLE_WRAPPER=$$MERKLE_WRAPPER ERC20_MINTABLE=$$ERC20_MINTABLE

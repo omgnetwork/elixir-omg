@@ -21,7 +21,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
 
     contract_addresses_value = %{
-      plasma_framework: String.downcase(plasma_framework)
+      plasma_framework: plasma_framework
     }
 
     %{
