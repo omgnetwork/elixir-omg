@@ -358,8 +358,8 @@ jobs:
       MIX_ENV: test
     steps:
       - checkout
-      - setup_childchain
       - install_elixir
+      - setup_childchain
       - install_deps
       - run:
           name: Compile
@@ -605,6 +605,7 @@ jobs:
     parallelism: 4
     steps:
       - checkout
+      - install_elixir
       - run:
           name: "Pull Submodules"
           command: |
@@ -627,7 +628,6 @@ jobs:
           command: make cabbage-logs
           background: true
       - check_docker_status
-      - install_elixir
       - run: sh .circleci/status.sh
       - run:
           name: Run specs
@@ -650,6 +650,7 @@ jobs:
       STATIX_TAG: "env:perf_circleci"
     steps:
       - checkout
+      - install_elixir
       - run:
           name: Setup data dir
           command: |
@@ -659,7 +660,6 @@ jobs:
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
-      - install_elixir
       - run:
           name: Start daemon services
           command: |
@@ -717,6 +717,7 @@ jobs:
       REORG: true
     steps:
       - checkout
+      - install_elixir
       - run:
           name: "Pull Submodules"
           command: |
@@ -741,7 +742,6 @@ jobs:
           command: make cabbage-logs-reorg
           background: true
       - check_docker_status
-      - install_elixir
       - run: sh .circleci/status.sh
       - run:
           name: Print watcher logs
@@ -780,6 +780,7 @@ jobs:
       TERM: xterm-256color
     steps:
       - checkout
+      - install_elixir
       - run:
           name: "Pull Submodules"
           command: |
@@ -792,7 +793,6 @@ jobs:
           command: make start-services
           background: true
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
-      - install_elixir
       - install_deps
       - run: make install-hex-rebar
       - restore_cache:
