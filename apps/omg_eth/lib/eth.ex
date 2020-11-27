@@ -32,7 +32,7 @@ defmodule OMG.Eth do
   alias OMG.Eth.RootChain.SubmitBlock
 
   require Logger
-  import OMG.Eth.Encoding, only: [from_hex: 1, to_hex: 1, int_from_hex: 1]
+  import OMG.Eth.Encoding, only: [from_hex: 2, to_hex: 1, int_from_hex: 1]
 
   @type address :: <<_::160>>
   @type hash :: <<_::256>>
@@ -58,8 +58,8 @@ defmodule OMG.Eth do
   @spec submit_block(binary(), pos_integer(), pos_integer()) ::
           {:error, binary() | atom() | map()} | {:ok, <<_::256>>}
   def submit_block(hash, nonce, gas_price) do
-    contract = from_hex(Configuration.contracts().plasma_framework)
-    from = from_hex(Configuration.authority_address())
+    contract = from_hex(Configuration.contracts().plasma_framework, :mixed)
+    from = from_hex(Configuration.authority_address(), :mixed)
     backend = Configuration.eth_node()
     SubmitBlock.submit(backend, hash, nonce, gas_price, from, contract)
   end
