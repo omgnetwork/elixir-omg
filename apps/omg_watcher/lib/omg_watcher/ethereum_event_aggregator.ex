@@ -345,5 +345,5 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     end
   end
 
-  defp from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :lower)
+  defp from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :mixed)
 end

@@ -98,7 +98,7 @@ defmodule OMG.Eth.RootChain do
   @spec get_root_deployment_height() ::
           {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height() do
-    plasma_framework = Configuration.contracts().plasma_framework
+    plasma_framework = String.downcase(Configuration.contracts().plasma_framework)
     txhash = Configuration.txhash_contract()
 
     case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
