@@ -31,7 +31,7 @@ defmodule OMG.TypedDataHash.Config do
     verifying_contract_addr =
       Application.get_env(:omg_eth, :contract_addr)
       |> Access.get(:plasma_framework)
-      |> Encoding.from_hex()
+      |> Encoding.from_hex(:mixed)
 
     Application.fetch_env!(:omg, :eip_712_domain)
     |> Map.new()
