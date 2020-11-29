@@ -81,7 +81,7 @@ defmodule OMG.Watcher.Monitor do
   # so we do not attempt to restart the exit from the supervisor, if the alarm clears, we restart it then.
   # We declare the sytem unhealthy
   def handle_info({:EXIT, _from, reason}, state) do
-    _ = Logger.error("Watcher supervisor crashed. Raising alarm. Reason #{inspect(reason)}")
+    _ = Logger.warn("Watcher supervisor crashed. Raising alarm. Reason #{inspect(reason)}")
     state.alarm_module.set(state.alarm_module.main_supervisor_halted(__MODULE__))
 
     {:noreply, state}
