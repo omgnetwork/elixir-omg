@@ -119,7 +119,7 @@ Longer-running integration tests (requires compiling contracts):
 mix test --trace --only integration
 ```
 
-For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg) or build steps (https://github.com/omgnetwork/elixir-omg/blob/master/.circleci/config.yml).
+For other kinds of checks, refer to the CI/CD pipeline (https://app.circleci.com/pipelines/github/omgnetwork/elixir-omg) or build steps (https://github.com/omgnetwork/elixir-omg/blob/master/.circleci/config.yml).
 
 To run a development `iex` REPL with all code loaded:
 ```bash

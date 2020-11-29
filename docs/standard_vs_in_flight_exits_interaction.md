@@ -38,7 +38,7 @@ We flag all the inputs when canonical because the current interaction game would
 
 #### Previous design on SE <> IFE interaction
 
-Previously we had a set of rules and action on the SE <> IFE interaction. It takes some time to evolve to the current one. See the original doc on `0.2` branch used for `RootChain.sol`: https://github.com/omisego/elixir-omg/blob/v0.2/docs/standard_vs_in_flight_exits_interaction.md.
+Previously we had a set of rules and action on the SE <> IFE interaction. It takes some time to evolve to the current one. See the original doc on `0.2` branch used for `RootChain.sol`: https://github.com/omgnetwork/elixir-omg/blob/v0.2.0/docs/standard_vs_in_flight_exits_interaction.md.
 
 We end up change the mechanism heavily for two reasons:
 1. Simplicity on the rule

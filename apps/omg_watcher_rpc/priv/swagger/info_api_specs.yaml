@@ -6,8 +6,8 @@ info:
     API specification of the Watcher's Informational Service
     Error codes are available in [html](https://github.com/omgnetwork/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
   contact:
-    name: OmiseGO
-    email: omisego@omisego.co
+    name: OMG Network
+    email: engineering@omg.network
   license:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
     url: 'https://omg.network/'

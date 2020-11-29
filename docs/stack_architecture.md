@@ -37,10 +37,10 @@ The watcher first and foremost plays a critical security role in the system. The
 
 #### Specifications
 
-- [Current API](https://developer.omisego.co/elixir-omg/docs-ui/?url=0.2/security_critical_api_specs.yaml)
+- [Current API](https://docs.omg.network/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=master%2Fsecurity_critical_api_specs)
 
 - Events
-  - [Byzantine Events](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events)
+  - [Byzantine Events](https://github.com/omgnetwork/elixir-omg/blob/master/docs/api_specs/status_events_specs.md)
 
 ### Informational API Service
 
@@ -56,7 +56,7 @@ Non-critical convenience API proxy and provide data about the chain.
 
 #### Specifications
 
-- [Current API](https://developer.omisego.co/elixir-omg/docs-ui/?url=0.2/info_api_specs.yaml)
+- [Current API](https://github.com/omgnetwork/elixir-omg/blob/master/docs/api_specs/status_events_specs.md)
 
 ### Integration libraries
 
