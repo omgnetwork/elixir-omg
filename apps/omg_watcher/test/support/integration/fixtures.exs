@@ -35,7 +35,7 @@ defmodule OMG.Watcher.Integration.Fixtures do
     {:ok, _} = DevHelper.import_unlock_fund(alice)
 
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value)
-    token_addr = Encoding.from_hex(token_addr)
+    token_addr = Encoding.from_hex(token_addr, :mixed)
     {:ok, _} = Eth.Token.mint(alice.addr, some_value, token_addr) |> DevHelper.transact_sync!()
     token_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value, token_addr)
 
