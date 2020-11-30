@@ -22,7 +22,7 @@ defmodule OMG.Eth.RootChain do
   """
 
   require Logger
-  import OMG.Eth.Encoding, only: [from_hex: 1, int_from_hex: 1]
+  import OMG.Eth.Encoding, only: [from_hex: 2, int_from_hex: 1]
 
   alias OMG.Eth
   alias OMG.Eth.Configuration
@@ -56,7 +56,7 @@ defmodule OMG.Eth.RootChain do
   Returns lists of block submissions from Ethereum logs
   """
   def get_block_submitted_events(from_height, to_height) do
-    contract = from_hex(Configuration.contracts().plasma_framework)
+    contract = from_hex(Configuration.contracts().plasma_framework, :mixed)
     signature = "BlockSubmitted(uint256)"
     {:ok, logs} = Rpc.get_ethereum_events(from_height, to_height, signature, contract)
 
