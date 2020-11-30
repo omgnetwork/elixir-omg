@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @type combined_index_t() :: {:input, 0..unquote(@max_inputs - 1)} | {:output, 0..unquote(@max_outputs - 1)}
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
-  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
+  # https://github.com/omgnetwork/elixir-omg/pull/361#discussion_r247926222
 
   @enforce_keys [
     :tx,

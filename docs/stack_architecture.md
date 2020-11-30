@@ -1,4 +1,4 @@
-# OmiseGO Client Architecture
+# OMG Network Client Architecture
 
 This describes the client services stack that communicates with the child chain and root chain to secure the entire Plasma construction and ease application development. An application provider will run these client services on their own or use hosted versions.
 
@@ -37,10 +37,10 @@ The watcher first and foremost plays a critical security role in the system. The
 
 #### Specifications
 
-- [Current API](https://developer.omisego.co/elixir-omg/docs-ui/?url=0.2/security_critical_api_specs.yaml)
+- [Current API](https://docs.omg.network/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=master%2Finfo_api_specs)
 
 - Events
-  - [Byzantine Events](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events)
+  - [Byzantine Events](https://github.com/omgnetwork/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events)
 
 ### Informational API Service
 
@@ -56,7 +56,7 @@ Non-critical convenience API proxy and provide data about the chain.
 
 #### Specifications
 
-- [Current API](https://developer.omisego.co/elixir-omg/docs-ui/?url=0.2/info_api_specs.yaml)
+- [Current API](https://docs.omg.network/elixir-omg/docs-ui/?url=master%2Foperator_api_specs.yaml&urls.primaryName=master%2Finfo_api_specs)
 
 ### Integration libraries
 
@@ -76,14 +76,14 @@ Native wrappers to the Watcher and Informational API Service for supported langu
 
 #### Current implementations
 
-- [omg-js-lib](https://github.com/omisego/omg-js)
+- [omg-js-lib](https://github.com/omgnetwork/omg-js)
 
 
 ### Application Layer
 
 #### Purpose
 
-Third party applications that use the OmiseGO Network for value transfer and exchange.
+Third party applications that use the OMG Network for value transfer and exchange.
 
 #### Design principles
 

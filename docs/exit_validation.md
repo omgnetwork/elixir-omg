@@ -59,7 +59,7 @@ In other words, `sla_margin` is usually picked to be ample (to avoid spurious ma
 2. If an exit is invalidated with a transaction submitted *before* `start_eth_height + sla_margin` it must be challenged (`:invalid_exit` event)
 3. If an exit is invalidated with a transaction submitted *after* `start_eth_height + sla_margin` it must be challenged **AND** the Watcher prompts to exit. The Watcher prompts by both `:invalid_exit` and `:unchallenged_exit` events. Users should not deposit or spend
 4. If an exit is invalid and remains unchallenged *after* `start_eth_height + sla_margin` it must be challenged **AND** the Watcher prompts to exit. The Watcher prompts by both `:invalid_exit` and `:unchallenged_exit` events. Users should not deposit or spend.
-5. The `unchallenged_exit` event also covers the case where the invalid exit finalizes, causing an insolvent chain until [issue #1318 is solved](github.com/omisego/elixir-omg/issues/1318).
+5. The `unchallenged_exit` event also covers the case where the invalid exit finalizes, causing an insolvent chain until [issue #1318 is solved](https://github.com/omgnetwork/elixir-omg/issues/1318).
 
 More on the [`unchallenged_exit` condition](#unchallenged_exit-condition).
 
@@ -78,10 +78,10 @@ Assumptions:
     * if `false` and exit is older than `sla_margin` -> emit additionally an `:unchallenged_exit` event which promts mass exit
 4. Spend UTXOs in `OMG.State` on exit finalization
     * if the spent UTXO is present at the moment, forget the exit from validation - this is a valid finalization
-    * if the spent UTXO is missing, keep on emitting `:unchallenged_exit` (until [issue #1318 is solved](github.com/omisego/elixir-omg/issues/1318)) - this is an invalid finalization.
+    * if the spent UTXO is missing, keep on emitting `:unchallenged_exit` (until [issue #1318 is solved](https://github.com/omgnetwork/elixir-omg/issues/1318)) - this is an invalid finalization.
 5. `ExitProcessor` recognizes exits that are (as seen at the tip of the root chain) already gone, when pulled from old logs.
 This prevents spurious event raising during syncing.
-This is the current behavior ("inactive on recognition"), to be substituted by a more verbose one in [#1318](github.com/omisego/elixir-omg/issues/1318)
+This is the current behavior ("inactive on recognition"), to be substituted by a more verbose one in [#1318](https://github.com/omgnetwork/elixir-omg/issues/1318)
 6. Checking the validation of exits is user's responsibility.
 This is done by calling `/status.get` endpoint.
 
@@ -132,5 +132,5 @@ An alternative is to always check the current status of every exit, before takin
 All the above rules will apply analogically to in-flight exits.
 See [MoreVP](./morevp.md) for specs and introduction to in-flight exits.
 Invalid attempts to do an in-flight related action prompt challenges.
-Absence of challenges within the `sla_margin`, as well as invalid finalization, should result in client prompting to mass exit (to be implemented in [issue #1275](github.com/omisego/elixir-omg/issues/1275)).
+Absence of challenges within the `sla_margin`, as well as invalid finalization, should result in client prompting to mass exit (to be implemented in [issue #1275](https://github.com/omgnetwork/elixir-omg/issues/1275)).
 `OMG.State` is modified on IFE finalization.

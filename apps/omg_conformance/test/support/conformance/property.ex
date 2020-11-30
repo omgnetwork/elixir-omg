@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -108,7 +108,7 @@ defmodule Support.Conformance.PropertyGenerators do
   # taken from ex_plasma, where they have been taken from:
   # Contract settings
   # These are being hard-coded from the same values on the contracts.
-  # See: https://github.com/omisego/plasma-contracts/blob/master/plasma_framework/contracts/src/utils/PosLib.sol#L16-L23
+  # See: https://github.com/omgnetwork/plasma-contracts/blob/master/plasma_framework/contracts/src/utils/PosLib.sol#L16-L23
   # TODO: when this moves to `ex_plasma`, fix this properly
   @block_offset 1_000_000_000
   @transaction_offset 10_000

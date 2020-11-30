@@ -1,6 +1,6 @@
 # Tesuji Plasma Blockchain Design
 
-This document describes in detail the blockchain (consensus) design used by the first iteration of OmiseGO Plasma-based implementation.
+This document describes in detail the blockchain (consensus) design used by the first iteration of OMG Plasma-based implementation.
 The design is heavily based on [Minimal Viable Plasma design](https://ethresear.ch/t/minimal-viable-plasma/426), but incorporates several modifications.
 The reader is assumed to have prior knowledge of Ethereum and familiarity with general ideas behind [Plasma](http://plasma.io).
 
@@ -211,7 +211,7 @@ If the child chain operator submits an invalid block or withholds a submitted bl
 
 ### Transactions
 
-Transactions, their semantics and encoding are described in detail in the [Transactions section of the contracts integration document](https://github.com/omisego/plasma-contracts/blob/master/plasma_framework/docs/integration-docs/integration-doc.md#transactions),
+Transactions, their semantics and encoding are described in detail in the [Transactions section of the contracts integration document](https://github.com/omgnetwork/plasma-contracts/blob/master/plasma_framework/docs/integration-docs/integration-doc.md#transactions),
 
 **NOTE** To create a valid transaction, a user needs to have access to inputs pointers (UTXO positions or OutputIDs or other) of all the UTXOs that they intend to spend.
 The Child Chain server doesn't provide this data, it is the responsibility of the Watcher (or Watcher Info) service intended to be ran by the users.
