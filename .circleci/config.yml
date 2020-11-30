@@ -358,8 +358,8 @@ jobs:
       MIX_ENV: test
     steps:
       - checkout
-      - install_elixir
       - setup_childchain
+      - install_elixir
       - install_deps
       - run:
           name: Compile
