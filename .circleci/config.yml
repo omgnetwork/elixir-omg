@@ -80,6 +80,19 @@ commands:
     steps:
       # otherwise docker compose down errors with ERROR: Couldn't find env file
       - run: touch localchain_contract_addresses.env
+      - restore_cache:
+          key: v2-asdf-install
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.8.0
+            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
+            source $BASH_ENV
+            asdf plugin-add erlang || asdf plugin-update erlang
+            asdf plugin-add elixir || asdf plugin-update elixir
+            asdf install
+          no_output_timeout: 2400
+      - run: make install-hex-rebar
       - run: docker-compose down
       - run: sudo rm -rf data/
       - run:
