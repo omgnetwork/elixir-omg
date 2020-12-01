@@ -34,7 +34,7 @@ mix do local.hex --force, local.rebar --force
 
 ## Clone repo
 ```
-git clone https://github.com/omisego/elixir-omg
+git clone https://github.com/omgnetwork/elixir-omg
 ```
 
 ## Build

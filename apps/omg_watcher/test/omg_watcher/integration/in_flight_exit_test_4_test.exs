@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ defmodule OMG.Watcher.Integration.InFlightExit4Test do
   # bumping the timeout to three minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 180_000
 
-  # NOTE: if https://github.com/omisego/elixir-omg/issues/994 is taken care of, this behavior will change, see comments
+  # NOTE: if https://github.com/omgnetwork/elixir-omg/issues/994 is taken care of, this behavior will change, see comments
   #       therein.
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :token, :alice_deposits]
   test "finalization of output from non-included IFE tx - all is good",

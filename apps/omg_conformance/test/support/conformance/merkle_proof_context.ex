@@ -1,4 +1,4 @@
-# Copyright 2020 OmiseGO Pte Ltd
+# Copyright 2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -201,7 +201,7 @@ defmodule Support.Conformance.MerkleProofContext do
   # `pragmatic_binary/0` generator is here to speed up the generator a bit and also to allow for more repetition in the
   # explored domain
   # TODO: rethink this again, and compare with discussions here:
-  # https://github.com/omisego/elixir-omg/pull/1251
+  # https://github.com/omgnetwork/elixir-omg/pull/1251
   # Can the binaries be generated more efficiently and explore the cases interesting to us better?
   @n_prescribed_binaries 20
   @prescribed_binaries for i <- 0..@n_prescribed_binaries, do: :binary.encode_unsigned(i)

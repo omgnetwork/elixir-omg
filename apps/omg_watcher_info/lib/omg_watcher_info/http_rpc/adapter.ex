@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ defmodule OMG.WatcherInfo.HttpRPC.Adapter do
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.Utils.AppVersion
+
   require Logger
 
   @doc """
@@ -24,7 +26,7 @@ defmodule OMG.WatcherInfo.HttpRPC.Adapter do
   """
   def rpc_post(body, path, url) do
     addr = "#{url}/#{path}"
-    headers = [{"content-type", "application/json"}]
+    headers = [{"content-type", "application/json"}, {"X-Watcher-Version", AppVersion.version(:omg_watcher_info)}]
 
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do

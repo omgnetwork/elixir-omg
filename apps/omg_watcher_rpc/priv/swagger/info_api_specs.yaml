@@ -4,13 +4,13 @@ info:
   title: Watcher Info API
   description: |
     API specification of the Watcher's Informational Service
-    Error codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
+    Error codes are available in [html](https://github.com/omgnetwork/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.
   contact:
-    name: OmiseGO
-    email: omisego@omisego.co
+    name: OMG Network
+    email: engineering@omg.network
   license:
     name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
-    url: 'https://omisego.network/'
+    url: 'https://omg.network/'
 servers:
   - url: 'https://watcher-info.ropsten.v1.omg.network/'
   - url: 'http://localhost:7534/'

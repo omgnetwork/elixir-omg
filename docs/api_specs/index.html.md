@@ -1,5 +1,5 @@
 ---
-title: OmiseGO Network APIs Reference
+title: OMG Network APIs Reference
 
 language_tabs: # must be one of https://git.io/vQNgJ
   - shell

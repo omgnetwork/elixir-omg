@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -191,7 +191,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   end
 
   defp forward_call(_, _, from_block, to_block, _) when from_block > to_block do
-    _ = Logger.error("From block #{from_block} was bigger then to_block #{to_block}")
+    _ = Logger.error("From block #{from_block} was bigger than to_block #{to_block}")
     {:error, :check_range}
   end
 

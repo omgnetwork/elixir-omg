@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,15 +20,14 @@ defmodule OMG.Status.SentryFilter do
 
   # when the development environment restarts it lacks network access
   # something to do with Cloud DNS
-  def exclude_exception?(%MatchError{term: {:error, :nxdomain}}, _) do
-    true
-  end
+  def exclude_exception?(%MatchError{term: {:error, :nxdomain}}, _), do: true
 
-  def exclude_exception?(%Plug.Parsers.RequestTooLargeError{}, _) do
-    true
-  end
+  # Ignoring 406 status code invalid headers exception
+  def exclude_exception?(%Phoenix.NotAcceptableError{plug_status: 406}, _), do: true
 
-  def exclude_exception?(_, _) do
-    false
-  end
+  def exclude_exception?(%Plug.Parsers.RequestTooLargeError{}, _), do: true
+
+  def exclude_exception?(%CaseClauseError{term: {:error, :econnrefused}}, _), do: true
+
+  def exclude_exception?(_, _), do: false
 end
