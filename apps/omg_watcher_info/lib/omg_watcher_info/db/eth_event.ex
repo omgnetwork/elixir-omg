@@ -244,7 +244,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
       %DB.TxOutput{} = tx_output ->
         :ok = insert_exit_if_not_exist(ethevent, tx_output)
 
-      # it dies when output is expected to exist (most of the cases, see: `elixir-omg/issues/1760`)
+      # The transaction's output is expected to be found in the DB unless explicitly allowed by `ensure_output = false`
+      # More explanation can be found in [the issue discussion](https://github.com/omgnetwork/elixir-omg/issues/1760#issuecomment-722313713).
       nil when not ensure_output ->
         :noop
     end

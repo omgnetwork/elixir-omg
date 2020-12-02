@@ -31,13 +31,15 @@ defmodule OMG.WatcherInfo.BlockApplicator do
       {:ok, _} ->
         :ok
 
+      # Ensures insert idempotency. Trying to add block with the same `blknum` that already exists takes no effect.
+      # See also [comment](https://github.com/omgnetwork/elixir-omg/pull/1769#discussion_r528700434)
       {:error, changeset} ->
         [{:blknum, {_msg, [constraint: :unique, constraint_name: _name]}}] = changeset.errors()
         :ok
     end
   end
 
-  defp to_pending_block(%{} = block) do
+  defp to_pending_block(block) do
     data = %{
       eth_height: block.eth_height,
       blknum: block.number,

@@ -20,6 +20,8 @@ defmodule OMG.WatcherInfo.BlockApplicatorTest do
   alias OMG.WatcherInfo.BlockApplicator
   alias OMG.WatcherInfo.DB
 
+  import Ecto.Query, only: [where: 2]
+
   setup do
     block_application = %BlockApplication{
       number: 1_000,
@@ -51,10 +53,12 @@ defmodule OMG.WatcherInfo.BlockApplicatorTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "inserts the the same block does not break", %{block_application: block_application} do
+    test "insert block operation is idempotent", %{block_application: block_application} do
+      blknum = block_application.number
       :ok = BlockApplicator.insert_block!(block_application)
 
       assert :ok = BlockApplicator.insert_block!(block_application)
+      assert %DB.PendingBlock{blknum: ^blknum} = DB.PendingBlock |> where(blknum: ^blknum) |> DB.Repo.one()
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

@@ -493,7 +493,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
   end
 
   @tag fixtures: [:initial_blocks]
-  test "only one exit type can be asssotiated to output which is retrievable by output_id",
+  test "only one exit type can be associated to output which is retrievable by output_id",
        %{initial_blocks: blocks} do
     # Get the transaction with _unspent_ output
     {blknum, txindex, txhash, _tx} = Enum.find(blocks, fn {blknum, _, _, _} -> blknum == 2000 end)
