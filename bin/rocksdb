@@ -1,5 +1,12 @@
 #!/usr/bin/env sh
 
+fancy_echo() {
+  local fmt="$1"; shift
+
+  # shellcheck disable=SC2059
+  printf "\\n$fmt\\n" "$@"
+}
+
 install_linux_rocksdb(){
   echo "Installing Rocksdb v6.14.5"
   mkdir tmp_rocksdb \

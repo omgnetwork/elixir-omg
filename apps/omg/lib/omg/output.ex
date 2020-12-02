@@ -30,16 +30,23 @@ defmodule OMG.Output do
           currency: Crypto.address_t(),
           amount: non_neg_integer()
         }
-
+  @type error_t() :: {:error, atom()}
   defstruct [:output_type, :owner, :currency, :amount]
 
   @doc """
   Reconstructs the structure from a list of RLP items
   """
+  @spec reconstruct(any()) :: t() | error_t()
+  def reconstruct(_rlp_data)
+
   def reconstruct([raw_type, [_owner, _currency, _amount]] = rlp_data) when is_binary(raw_type) do
-    with :ok <- validate_data(rlp_data),
-         {:ok, utxo} <- ExPlasma.Utxo.new(rlp_data),
-         do: %__MODULE__{output_type: utxo.output_type, owner: utxo.owner, currency: utxo.currency, amount: utxo.amount}
+    with {:ok, type, owner, currency, amont} <- clean_and_validate_data(rlp_data),
+         do: %__MODULE__{
+           output_type: type,
+           owner: owner,
+           currency: currency,
+           amount: amont
+         }
   end
 
   def reconstruct([_raw_type, [_owner, _currency, _amount]]), do: {:error, :unrecognized_output_type}
@@ -60,14 +67,14 @@ defmodule OMG.Output do
 
   # TODO(achiurizo)
   # remove the validation here and port the error tuple response handling into ex_plasma.
-  defp validate_data([raw_type, [owner, currency, amount]]) do
+  defp clean_and_validate_data([raw_type, [owner, currency, amount]]) do
     with {:ok, type} <- RawData.parse_uint256(raw_type),
          {:ok, _} <- valid_output_type?(type),
-         {:ok, _} <- RawData.parse_address(owner),
+         {:ok, owner1} <- RawData.parse_address(owner),
          {:ok, _} <- non_zero_owner?(owner),
-         {:ok, _} <- RawData.parse_address(currency),
-         {:ok, _} <- RawData.parse_amount(amount),
-         do: :ok
+         {:ok, currency1} <- RawData.parse_address(currency),
+         {:ok, amount1} <- RawData.parse_amount(amount),
+         do: {:ok, type, owner1, currency1, amount1}
   end
 
   defp non_zero_owner?(<<0::160>>), do: {:error, :output_guard_cant_be_zero}

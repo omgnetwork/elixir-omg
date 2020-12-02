@@ -18,11 +18,11 @@ defmodule Support.RootChainHelper do
   """
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1]
 
+  alias ExPlasma.Crypto
   alias OMG.Eth.Blockchain.BitHelper
   alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.TransactionHelper
-
   @tx_defaults OMG.Eth.Defaults.tx_defaults()
 
   @type optional_addr_t() :: <<_::160>> | nil
@@ -284,8 +284,7 @@ defmodule Support.RootChainHelper do
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
     topic =
       "DepositCreated(address,uint256,address,uint256)"
-      |> ExKeccak.hash_256()
-      |> elem(1)
+      |> Crypto.keccak_hash()
       |> to_hex()
 
     [%{blknum: deposit_blknum}] =

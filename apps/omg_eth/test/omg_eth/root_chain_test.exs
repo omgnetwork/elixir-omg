@@ -15,13 +15,14 @@
 defmodule OMG.Eth.RootChainTest do
   use ExUnit.Case, async: false
 
+  alias ExPlasma.Builder
+  alias ExPlasma.Crypto
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.Abi
   alias Support.DevHelper
   alias Support.RootChainHelper
-
   @eth "0x0000000000000000000000000000000000000000"
   @moduletag :common
 
@@ -63,8 +64,13 @@ defmodule OMG.Eth.RootChainTest do
 
   defp deposit_then_start_exit(owner, amount, currency) do
     owner = Encoding.from_hex(owner)
-    {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: owner, currency: currency, amount: amount)
-    rlp = ExPlasma.Transaction.encode(deposit)
+
+    deposit =
+      ExPlasma.payment_v1()
+      |> Builder.new()
+      |> Builder.add_output(output_guard: owner, token: currency, amount: amount)
+
+    {:ok, rlp} = ExPlasma.Transaction.encode(deposit)
 
     {:ok, deposit_tx} =
       rlp
@@ -75,8 +81,8 @@ defmodule OMG.Eth.RootChainTest do
     deposit_blknum = RootChainHelper.deposit_blknum_from_receipt(deposit_tx)
     deposit_txindex = OMG.Eth.Encoding.int_from_hex(deposit_txlog["transactionIndex"])
 
-    utxo_pos = ExPlasma.Utxo.pos(%{blknum: deposit_blknum, txindex: deposit_txindex, oindex: 0})
-    proof = ExPlasma.Encoding.merkle_proof([rlp], 0)
+    utxo_pos = ExPlasma.Output.Position.pos(%{blknum: deposit_blknum, txindex: deposit_txindex, oindex: 0})
+    proof = ExPlasma.Merkle.proof([rlp], 0)
 
     {:ok, start_exit_tx} =
       utxo_pos
@@ -89,8 +95,7 @@ defmodule OMG.Eth.RootChainTest do
   defp exit_id_from_receipt(%{"logs" => logs}) do
     topic =
       "ExitStarted(address,uint160)"
-      |> ExKeccak.hash_256()
-      |> elem(1)
+      |> Crypto.keccak_hash()
       |> Encoding.to_hex()
 
     [%{exit_id: exit_id}] =

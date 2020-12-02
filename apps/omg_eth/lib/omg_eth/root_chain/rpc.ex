@@ -17,6 +17,7 @@ defmodule OMG.Eth.RootChain.Rpc do
   """
   require Logger
   alias OMG.Eth.Encoding
+  alias ExPlasma.Crypto
 
   def call_contract(client \\ Ethereumex.HttpClient, contract, signature, args) do
     data = signature |> ABI.encode(args) |> Encoding.to_hex()
@@ -68,8 +69,7 @@ defmodule OMG.Eth.RootChain.Rpc do
 
   defp event_topic_for_signature(signature) do
     signature
-    |> ExKeccak.hash_256()
-    |> elem(1)
+    |> Crypto.keccak_hash()
     |> Encoding.to_hex()
   end
 

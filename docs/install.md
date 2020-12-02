@@ -54,5 +54,5 @@ mix test
 To run integration tests (requires **not** having `geth` running in the background):
 ```
 make init_test
-mix test --trace --only integration
+mix test   --only integration
 ```

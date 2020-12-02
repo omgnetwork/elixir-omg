@@ -48,6 +48,7 @@ defmodule OMG.BlockTest do
              }
     end
 
+    @tag timeout: 60_000 * 3
     @tag fixtures: [:stable_alice, :stable_bob]
     test "correctly calculates hash for a lot of transactions", %{
       stable_alice: alice,

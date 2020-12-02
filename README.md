@@ -116,7 +116,7 @@ mix test
 
 Longer-running integration tests (requires compiling contracts):
 ```bash
-mix test --trace --only integration
+mix test   --only integration
 ```
 
 For other kinds of checks, refer to the CI/CD pipeline (https://app.circleci.com/pipelines/github/omgnetwork/elixir-omg) or build steps (https://github.com/omgnetwork/elixir-omg/blob/master/.circleci/config.yml).
@@ -207,7 +207,7 @@ cd priv/cabbage
 make install
 make generate_api_code
 mix deps.get
-REORG=true mix test --only reorg --trace
+REORG=true mix test --only reorg
 ```
 
 # Working with API Spec's

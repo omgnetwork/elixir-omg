@@ -181,13 +181,13 @@ jobs:
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
-      - run: mix test --trace
+      - run: mix test
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration --trace` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration  ` works
             export SHELL=/bin/bash
-            mix test --only integration --trace
+            mix test --only integration
           no_output_timeout: 30m
   barebuild_macos:
     executor: metal_macos
@@ -218,7 +218,7 @@ jobs:
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
-      - run: mix test --trace
+      - run: mix test
   build:
     executor: builder
     environment:
@@ -298,7 +298,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 295 ]; then
+            if [ $_counter -gt 289 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -360,9 +360,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test
             else
-              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test   ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -481,9 +481,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher  --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher  --exclude common --exclude test
             else
-              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche  --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche  --exclude common --exclude test   ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -506,9 +506,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test
             else
-              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test   ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -531,9 +531,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info
+              mix coveralls.html --parallel --umbrella   --exclude common --exclude watcher --exclude watcher_info
             else
-              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info  ||
+              mix coveralls.circle --parallel --umbrella   --exclude common --exclude watcher --exclude watcher_info  ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -555,7 +555,7 @@ jobs:
           command: |
             export SHELL=/bin/bash
             # no coverage calculation, coverage is on the other tests
-            mix test --only property --trace
+            mix test --only property
 
   integration_tests:
     executor: builder_pg_geth
@@ -572,9 +572,9 @@ jobs:
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test   --only integration` works
             export SHELL=/bin/bash
-            mix test --trace --only integration
+            mix test   --only integration
 
   dialyzer:
     executor: builder_pg
@@ -786,7 +786,7 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test --only deposit --trace
+            mix test --only deposit
           no_output_timeout: 30m
 
   test_barebone_release:

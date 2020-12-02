@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherRPC.Web.Controller.DepositTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
 
   import OMG.WatcherInfo.Factory

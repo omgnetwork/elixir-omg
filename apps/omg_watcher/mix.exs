@@ -22,7 +22,7 @@ defmodule OMG.Watcher.MixProject do
     [
       mod: {OMG.Watcher.Application, []},
       start_phases: [{:attach_telemetry, []}],
-      extra_applications: [:logger, :runtime_tools, :telemetry]
+      extra_applications: [:logger, :runtime_tools, :telemetry, :phoenix, :poison]
     ]
   end
 
@@ -37,7 +37,6 @@ defmodule OMG.Watcher.MixProject do
       # there's no apparent reason why libsecp256k1, spandex need to be included as dependencies
       # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from
       # the parent (main) mix.exs
-
       {:spandex, "~> 3.0.2"},
 
       # UMBRELLA

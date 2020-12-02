@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.PendingBlockQueueLengthChecker.StorageTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import OMG.WatcherInfo.Factory
 

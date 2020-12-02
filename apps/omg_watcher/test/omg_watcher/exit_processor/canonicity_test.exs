@@ -502,7 +502,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       standard_exiting_pos = Utxo.position(2_000, 0, 1)
       processor = processor |> start_se_from(standard_exit_tx, standard_exiting_pos) |> start_ife_from(ife_tx)
 
-      assert %{utxos_to_check: [Utxo.position(1, 0, 0), standard_exiting_pos]} =
+      assert %{utxos_to_check: [Utxo.position(1, 0, 0), _standard_exiting_pos]} =
                %ExitProcessor.Request{blknum_now: @late_blknum}
                |> Core.determine_utxo_existence_to_get(processor)
     end

@@ -129,7 +129,12 @@ defmodule OMG.Watcher.BlockGetter do
   # :apply_block pipeline of steps
 
   @doc """
-  Stateful validation and execution of transactions on `OMG.State`. Reacts in case that returns any failed transactions.
+  Read top down:
+   - (execute_transactions) Stateful validation and execution of transactions on `OMG.State`. Reacts in case that returns any failed transactions.
+  - (run_block_download_task) Schedules more blocks to download in case some work downloading is finished and we want to progress.
+  - (close_and_apply_block) Marks a block as applied and updates `OMG.DB` values. Also commits the updates to `OMG.DB` that `OMG.State` handed off
+  containing the data coming from the newly applied block.
+  - (check_validity) Updates its view of validity of the chain.
   """
   def handle_continue({:apply_block_step, :execute_transactions, block_application}, state) do
     tx_exec_results = for(tx <- block_application.transactions, do: OMG.State.exec(tx, :ignore_fees))
@@ -150,18 +155,11 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  @doc """
-  Schedules more blocks to download in case some work downloading is finished and we want to progress.
-  """
   def handle_continue({:apply_block_step, :run_block_download_task, block_application}, state) do
     {:noreply, run_block_download_task(state),
      {:continue, {:apply_block_step, :close_and_apply_block, block_application}}}
   end
 
-  @doc """
-  Marks a block as applied and updates `OMG.DB` values. Also commits the updates to `OMG.DB` that `OMG.State` handed off
-  containing the data coming from the newly applied block.
-  """
   def handle_continue({:apply_block_step, :close_and_apply_block, block_application}, state) do
     {:ok, db_updates_from_state} = OMG.State.close_block()
 
@@ -183,9 +181,6 @@ defmodule OMG.Watcher.BlockGetter do
     {:noreply, state, {:continue, {:apply_block_step, :check_validity}}}
   end
 
-  @doc """
-  Updates its view of validity of the chain.
-  """
   def handle_continue({:apply_block_step, :check_validity}, state) do
     exit_processor_results = ExitProcessor.check_validity()
     state = Core.consider_exits(state, exit_processor_results)
