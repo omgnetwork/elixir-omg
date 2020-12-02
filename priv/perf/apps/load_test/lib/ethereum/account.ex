@@ -57,7 +57,7 @@ defmodule LoadTest.Ethereum.Account do
   end
 
   defp compute_public_key(private_key) do
-    {:ok, _} = :libsecp256k1.ec_pubkey_create(private_key, :uncompressed)
+    ExSecp256k1.create_public_key(private_key)
   end
 
   defp compute_address(<<pub::binary-size(64)>>) do

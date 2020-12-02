@@ -284,7 +284,8 @@ defmodule Support.RootChainHelper do
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
     topic =
       "DepositCreated(address,uint256,address,uint256)"
-      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+      |> ExKeccak.hash_256()
+      |> elem(1)
       |> to_hex()
 
     [%{blknum: deposit_blknum}] =

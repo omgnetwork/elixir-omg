@@ -68,7 +68,8 @@ defmodule OMG.Eth.RootChain.Rpc do
 
   defp event_topic_for_signature(signature) do
     signature
-    |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+    |> ExKeccak.hash_256()
+    |> elem(1)
     |> Encoding.to_hex()
   end
 

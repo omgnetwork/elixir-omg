@@ -25,7 +25,7 @@ defmodule OMG.Eth.RootChainTest do
   @eth "0x0000000000000000000000000000000000000000"
   @moduletag :common
 
-  setup do
+  setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
 
     on_exit(exit_fn)
@@ -89,7 +89,8 @@ defmodule OMG.Eth.RootChainTest do
   defp exit_id_from_receipt(%{"logs" => logs}) do
     topic =
       "ExitStarted(address,uint160)"
-      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+      |> ExKeccak.hash_256()
+      |> elem(1)
       |> Encoding.to_hex()
 
     [%{exit_id: exit_id}] =

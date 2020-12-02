@@ -83,6 +83,13 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     forward_call(server, :in_flight_exit_withdrawn, from_block, to_block, @timeout)
   end
 
+  defstruct delete_events_threshold_ethereum_block_height: 1000,
+            ets_bucket: nil,
+            event_signatures: [],
+            events: [],
+            contracts: [],
+            rpc: nil
+
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: Keyword.get(opts, :name, __MODULE__))
   end
@@ -108,9 +115,9 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     rpc = Keyword.get(opts, :rpc, Rpc)
 
     {:ok,
-     %{
-       # 200 blocks of events will be kept in memory
-       delete_events_threshold_height_blknum: 200,
+     %__MODULE__{
+       # 1000 blocks of events will be kept in memory
+       delete_events_threshold_ethereum_block_height: 1000,
        ets_bucket: ets_bucket,
        event_signatures: events_signatures,
        events: events,
@@ -289,8 +296,10 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     # block_number <= new_height - delete_events_threshold -> true end)
     match_spec = [
       {{:"$1", :"$2", :"$3"},
-       [{:"=<", :"$1", {:-, {:const, new_height_blknum}, {:const, state.delete_events_threshold_height_blknum}}}],
-       [true]}
+       [
+         {:"=<", :"$1",
+          {:-, {:const, new_height_blknum}, {:const, state.delete_events_threshold_ethereum_block_height}}}
+       ], [true]}
     ]
 
     :ets.select_delete(state.ets_bucket, match_spec)

@@ -1,2 +1,3 @@
-erlang 22.3
-elixir 1.10.2
+elixir 1.11.2
+erlang 23.1.4
+rust 1.46.0

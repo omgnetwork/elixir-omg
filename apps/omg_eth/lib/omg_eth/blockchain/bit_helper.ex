@@ -39,7 +39,7 @@ defmodule OMG.Eth.Blockchain.BitHelper do
   """
   @spec kec(binary()) :: keccak_hash
   def kec(data) do
-    :keccakf1600.sha3_256(data)
+    elem(ExKeccak.hash_256(data), 1)
   end
 
   @doc """

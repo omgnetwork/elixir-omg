@@ -41,7 +41,7 @@ defmodule OMG.Crypto do
       171, 76, 106, 229, 69, 102, 203, 7, 21, 134, 230, 92, 23, 209, 187, 12>>
   """
   @spec hash(binary) :: hash_t()
-  def hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
+  def hash(message), do: elem(ExKeccak.hash_256(message), 1)
 
   @doc """
   Recovers the address of the signer from a binary-encoded signature.

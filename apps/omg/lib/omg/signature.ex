@@ -68,7 +68,7 @@ defmodule OMG.Signature do
         v - @base_recovery_id
       end
 
-    case :libsecp256k1.ecdsa_recover_compact(hash, signature, :uncompressed, recovery_id) do
+    case ExSecp256k1.recover_compact(hash, signature, recovery_id) do
       {:ok, <<_byte::8, public_key::binary()>>} -> {:ok, public_key}
       {:error, reason} -> {:error, to_string(reason)}
     end
