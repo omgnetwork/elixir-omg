@@ -1,17 +1,17 @@
 plugins:
-- '@semantic-release/commit-analyzer':
-  preset: 'angular'
-  releaseRules:
-    - type: 'refactor'
-      release: 'patch'
-    - type: 'style'
-      release: 'patch'
-    - type: 'feat'
-      release: 'patch'
-    - type: 'chore'
-      release: 'patch'
-    - breaking: true
-      release: 'minor'
+- - '@semantic-release/commit-analyzer'
+  - preset: 'angular'
+    releaseRules:
+      - type: 'refactor'
+        release: 'patch'
+      - type: 'style'
+        release: 'patch'
+      - type: 'feat'
+        release: 'patch'
+      - type: 'chore'
+        release: 'patch'
+      - breaking: true
+        release: 'minor'
 - '@semantic-release/release-notes-generator'
 - '@semantic-release/github'
 tagFormat: 'v${version}'
