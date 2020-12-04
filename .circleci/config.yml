@@ -952,6 +952,13 @@ jobs:
       - checkout
       - run: APP_VERSION="${CIRCLE_TAG#*v}" sh .circleci/ci_increase_chart_version.sh
 
+  release:
+    docker:
+      - image: node:15.2.1
+    steps:
+      - checkout
+      - run: npx -y semantic-release@17.2.3
+
   coveralls_report:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
@@ -1161,3 +1168,24 @@ workflows:
       - increase_chart_version_watcher_info_release:
           requires: [publish_watcher, publish_watcher_info]
           filters: *only_release_tag
+      - release:
+          requires: [
+            test_barebone_release,
+            test_docker_compose_release,
+            watcher_coveralls_and_integration_tests,
+            watcher_info_coveralls_and_integration_tests,
+            common_coveralls_and_integration_tests,
+            test,
+            property_tests,
+            dialyzer,
+            lint,
+            lint_version,
+            audit_deps
+          ]
+          context:
+          - shared-semantic-release
+          filters:
+            branches:
+              only: /^master$/
+            tags:
+              ignore: /.*/
