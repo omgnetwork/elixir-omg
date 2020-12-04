@@ -20,6 +20,8 @@ defmodule LoadTest.Ethereum.BitHelper do
 
   use Bitwise
 
+  alias ExPlasma.Crypto
+
   @type keccak_hash :: binary()
 
   @doc """
@@ -27,7 +29,7 @@ defmodule LoadTest.Ethereum.BitHelper do
   """
   @spec kec(binary()) :: keccak_hash
   def kec(data) do
-    :keccakf1600.sha3_256(data)
+    Crypto.keccak_hash(data)
   end
 
   @doc """

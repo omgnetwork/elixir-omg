@@ -21,6 +21,8 @@ defmodule OMG.Utxo.Position do
   # these two offset constants are driven by the constants from the RootChain.sol contract
   @input_pointer_output_type 1
 
+  alias ExPlasma.Output, as: ExPlasmaOutput
+  alias ExPlasma.Output.Position, as: ExPlasmaPosition
   alias OMG.Utxo
   require Utxo
 
@@ -52,9 +54,9 @@ defmodule OMG.Utxo.Position do
       iex> OMG.Utxo.Position.encode(utxo_pos)
       4_000_050_001
   """
-  @spec encode(t()) :: non_neg_integer()
+  @spec encode(t()) :: pos_integer()
   def encode(Utxo.position(blknum, txindex, oindex)) when is_position(blknum, txindex, oindex),
-    do: ExPlasma.Utxo.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
+    do: ExPlasmaPosition.pos(%{blknum: blknum, txindex: txindex, oindex: oindex})
 
   @doc """
   Decode an integer or binary into a utxo position tuple.
@@ -167,12 +169,19 @@ defmodule OMG.Utxo.Position do
   """
   @spec get_data_for_rlp(t()) :: binary()
   def get_data_for_rlp(Utxo.position(blknum, txindex, oindex)) do
-    utxo = %ExPlasma.Utxo{blknum: blknum, txindex: txindex, oindex: oindex}
-    ExPlasma.Utxo.to_rlp(utxo)
+    utxo = ExPlasmaPosition.new(blknum, txindex, oindex)
+    ExPlasmaPosition.to_rlp(utxo)
   end
 
-  defp do_decode(encoded) do
-    with {:ok, utxo} <- ExPlasma.Utxo.new(encoded),
-         do: {:ok, Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)}
+  defp do_decode(encoded) when is_binary(encoded) do
+    {:ok, %ExPlasmaOutput{output_id: %{blknum: blknum, txindex: txindex, oindex: oindex}}} =
+      ExPlasmaOutput.decode_id(encoded)
+
+    {:ok, Utxo.position(blknum, txindex, oindex)}
+  end
+
+  defp do_decode(encoded) when is_integer(encoded) do
+    {:ok, utxo} = ExPlasmaPosition.to_map(encoded)
+    {:ok, Utxo.position(utxo.blknum, utxo.txindex, utxo.oindex)}
   end
 end

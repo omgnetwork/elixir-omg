@@ -18,7 +18,6 @@ defmodule OMG.State.Transaction.FeeTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.Output
   alias OMG.State.Transaction
 
   @eth OMG.Eth.zero_address()

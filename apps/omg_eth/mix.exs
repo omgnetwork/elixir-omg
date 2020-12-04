@@ -35,7 +35,8 @@ defmodule OMG.Eth.MixProject do
 
   defp deps() do
     [
-      {:ex_abi, "~> 0.4"},
+      {:ex_abi, "~> 0.5.1"},
+      {:ex_plasma, "~> 0.2.0"},
       {:ethereumex, "~> 0.6.0"},
       # Umbrella
       {:omg_bus, in_umbrella: true},
