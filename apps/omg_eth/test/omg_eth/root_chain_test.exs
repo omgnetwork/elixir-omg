@@ -17,6 +17,7 @@ defmodule OMG.Eth.RootChainTest do
 
   alias ExPlasma.Builder
   alias ExPlasma.Crypto
+  alias ExPlasma.Transaction.Type.PaymentV1
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
@@ -64,13 +65,8 @@ defmodule OMG.Eth.RootChainTest do
 
   defp deposit_then_start_exit(owner, amount, currency) do
     owner = Encoding.from_hex(owner)
-
-    deposit =
-      ExPlasma.payment_v1()
-      |> Builder.new()
-      |> Builder.add_output(output_guard: owner, token: currency, amount: amount)
-
-    {:ok, rlp} = ExPlasma.Transaction.encode(deposit, signed: false)
+    currency = Encoding.from_hex(currency)
+    rlp = deposit_transaction(amount, owner, currency)
 
     {:ok, deposit_tx} =
       rlp
@@ -114,5 +110,16 @@ defmodule OMG.Eth.RootChainTest do
     add_exit_queue = RootChainHelper.add_exit_queue(1, "0x0000000000000000000000000000000000000000")
 
     {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
+  end
+
+  defp deposit_transaction(amount_in_wei, address, currency) do
+    address
+    |> deposit(currency, amount_in_wei)
+    |> ExPlasma.encode!(signed: false)
+  end
+
+  defp deposit(owner, token, amount) do
+    output = PaymentV1.new_output(owner, token, amount)
+    Builder.new(ExPlasma.payment_v1(), outputs: [output])
   end
 end

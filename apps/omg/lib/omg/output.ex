@@ -68,13 +68,13 @@ defmodule OMG.Output do
   # TODO(achiurizo)
   # remove the validation here and port the error tuple response handling into ex_plasma.
   defp clean_and_validate_data([raw_type, [owner, currency, amount]]) do
-    with {:ok, type} <- RawData.parse_uint256(raw_type),
-         {:ok, _} <- valid_output_type?(type),
-         {:ok, owner1} <- RawData.parse_address(owner),
+    with {:ok, parsed_type} <- RawData.parse_uint256(raw_type),
+         {:ok, _} <- valid_output_type?(parsed_type),
+         {:ok, parsed_owner} <- RawData.parse_address(owner),
          {:ok, _} <- non_zero_owner?(owner),
-         {:ok, currency1} <- RawData.parse_address(currency),
-         {:ok, amount1} <- RawData.parse_amount(amount),
-         do: {:ok, type, owner1, currency1, amount1}
+         {:ok, parsed_currency} <- RawData.parse_address(currency),
+         {:ok, parsed_amount} <- RawData.parse_amount(amount),
+         do: {:ok, parsed_type, parsed_owner, parsed_currency, parsed_amount}
   end
 
   defp non_zero_owner?(<<0::160>>), do: {:error, :output_guard_cant_be_zero}

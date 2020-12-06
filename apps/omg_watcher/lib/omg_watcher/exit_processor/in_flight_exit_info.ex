@@ -506,7 +506,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       {:ok, Utxo.position(_, _, _) = decoded} -> decoded
       # The position was huge so it denoted a non-included transaction.
       # Use a special value denoting "age" of a non-included transaction
-      {:error, {:blknum, :exceeds_maximum}} -> :no_position
+      {:error, :encoded_utxo_position_too_low} -> :no_position
     end
   end
 

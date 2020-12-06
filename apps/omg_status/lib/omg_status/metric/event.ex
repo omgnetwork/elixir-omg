@@ -59,7 +59,6 @@ defmodule OMG.Status.Metric.Event do
   :read - OMG.DB KV layer has three types of actions: write, read,  multiread
   :multiread - OMG.DB KV layer has three types of actions: write, read,  multiread
   @services - We're interested in the events queue length that particular OMG.EthereumEventListener service process
-   is handling.  We're interested in the message queue length of particular OMG.EthereumEventListener service process
   """
   def name(:transaction_submission), do: "transaction_submission"
   def name(:transaction_submission_success), do: "transaction_submission_success"

@@ -21,7 +21,7 @@ defmodule OMG.Eth.Blockchain.BitHelper do
   use Bitwise
 
   alias ExPlasma.Crypto
-  @type keccak_hash :: binary()
+  @type keccak_hash :: <<_::256>>
 
   @doc """
   Returns the keccak sha256 of a given input.
