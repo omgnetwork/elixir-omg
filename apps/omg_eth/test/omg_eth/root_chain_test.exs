@@ -70,7 +70,7 @@ defmodule OMG.Eth.RootChainTest do
       |> Builder.new()
       |> Builder.add_output(output_guard: owner, token: currency, amount: amount)
 
-    {:ok, rlp} = ExPlasma.Transaction.encode(deposit)
+    {:ok, rlp} = ExPlasma.Transaction.encode(deposit, signed: false)
 
     {:ok, deposit_tx} =
       rlp
