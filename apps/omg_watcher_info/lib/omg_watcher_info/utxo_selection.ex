@@ -17,215 +17,166 @@ defmodule OMG.WatcherInfo.UtxoSelection do
   Provides Utxos selection and merging algorithms.
   """
 
-  alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.TypedDataHash
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.DB
+  alias OMG.WatcherInfo.Transaction, as: TransactionCreator
 
   require Transaction
   require Transaction.Payment
 
-  @type payment_t() :: %{
-          owner: Crypto.address_t() | nil,
-          currency: Transaction.Payment.currency(),
-          amount: pos_integer()
-        }
-
-  @type fee_t() :: %{
-          currency: Transaction.Payment.currency(),
-          amount: non_neg_integer()
-        }
-
-  @type order_t() :: %{
-          owner: Crypto.address_t(),
-          payments: nonempty_list(payment_t()),
-          fee: fee_t(),
-          metadata: binary() | nil
-        }
-
-  @type transaction_t() :: %{
-          inputs: nonempty_list(%DB.TxOutput{}),
-          outputs: nonempty_list(payment_t()),
-          fee: fee_t(),
-          txbytes: Transaction.tx_bytes() | nil,
-          metadata: Transaction.metadata(),
-          sign_hash: Crypto.hash_t() | nil,
-          typed_data: TypedDataHash.Types.typedDataSignRequest_t()
-        }
-
-  @type advice_t() ::
-          {:ok,
-           %{
-             result: :complete | :intermediate,
-             transactions: nonempty_list(transaction_t())
-           }}
-          | {:error, {:insufficient_funds, list(map())}}
-          | {:error, :too_many_outputs}
-          | {:error, :empty_transaction}
-
-  @empty_metadata <<0::256>>
+  @type currency_t() :: Transaction.Payment.currency()
+  @type utxos_map_t() :: %{currency_t() => utxo_list_t()}
+  @type utxo_list_t() :: list(%DB.TxOutput{})
 
   @doc """
-  Given order finds spender's inputs sufficient to perform a payment.
-  If also provided with receiver's address, creates and encodes a transaction.
-  TODO: seems unocovered by any tests
+  Defines and prioritises available UTXOs for stealth merge based on the available and selected sets.
+  - Excludes currencies not already used in the transaction and UTXOs in the selected set.
+  - Prioritises currencies that have the largest number of UTXOs
+  - Sorts by ascending order of UTXO value within the currency groupings ("dust first").
   """
-  @spec create_advice(%{Transaction.Payment.currency() => list(%DB.TxOutput{})}, order_t()) :: advice_t()
-  def create_advice(utxos, %{owner: owner, payments: payments, fee: fee} = order) do
-    needed_funds = needed_funds(payments, fee)
-    token_utxo_selection = select_utxo(utxos, needed_funds)
+  @spec prioritize_merge_utxos(utxos_map_t(), utxos_map_t()) :: utxo_list_t()
+  def prioritize_merge_utxos(utxos, selected_utxos) do
+    utxos_hash =
+      selected_utxos
+      |> Enum.flat_map(fn {_ccy, utxos} -> utxos end)
+      |> Enum.reduce(%{}, fn utxo, acc -> Map.put(acc, utxo.child_chain_utxohash, true) end)
 
-    with {:ok, funds} <- funds_sufficient?(token_utxo_selection) do
-      utxo_count =
-        funds
-        |> Stream.map(fn {_, utxos} -> length(utxos) end)
-        |> Enum.sum()
+    case utxos_hash do
+      hashes_map when map_size(hashes_map) == 0 ->
+        []
 
-      if utxo_count <= Transaction.Payment.max_inputs(),
-        do: create_transaction(funds, order) |> respond(:complete),
-        else: create_merge(owner, funds) |> respond(:intermediate)
+      hashes_map ->
+        selected_utxos
+        |> Enum.map(&prioritize_utxos_by_currency(&1, utxos, hashes_map))
+        |> Enum.sort_by(&length/1, :desc)
+        |> Enum.map(fn currency_utxos -> currency_utxos |> Enum.slice(0, 3) |> Enum.reverse() end)
+        |> Enum.reduce(fn utxos, acc -> utxos ++ acc end)
+        |> Enum.reverse()
     end
   end
 
-  # Given available Utxo set and needed amount, we try to find an Utxo which fully satisfies the payment (without
-  # the change). If this fails, we start to collect Utxos (starting from largest amount) which will cover the payment.
-  # We return {token, {change, [utxos for payment]}}, change > 0 means insufficient funds.
-  # NOTE: order of Utxo list is implicitly assumed for the algorithm to work deterministically,
-  # see: `OMG.WatcherInfo.DB.TxOutput.get_sorted_grouped_utxos`
-  @spec select_utxo(%{Transaction.Payment.currency() => list(%DB.TxOutput{})}, %{
-          Transaction.Payment.currency() => pos_integer()
-        }) ::
-          list({Transaction.Payment.currency(), {integer, list(%DB.TxOutput{})}})
-  defp select_utxo(utxos, needed_funds) do
-    Enum.map(needed_funds, fn {token, need} ->
-      token_utxos = Map.get(utxos, token, [])
+  @doc """
+  Given a map of UTXOs sufficient for the transaction and a set of available UTXOs,
+  adds UTXOs to the transaction for "stealth merge" until the limit is reached or
+  no UTXOs are available. Agnostic to the priority ordering of available UTXOs.
+  Returns an updated map of UTXOs for the transaction.
+  """
+  @spec add_utxos_for_stealth_merge(utxo_list_t(), utxos_map_t()) :: utxos_map_t()
+  def add_utxos_for_stealth_merge([], selected_utxos), do: selected_utxos
 
-      {token,
-       case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
-         nil ->
-           Enum.reduce_while(token_utxos, {need, []}, fn
-             _, {need, acc} when need <= 0 -> {:halt, {need, acc}}
-             %DB.TxOutput{amount: amount} = utxo, {need, acc} -> {:cont, {need - amount, [utxo | acc]}}
-           end)
+  def add_utxos_for_stealth_merge(available_utxos, selected_utxos) do
+    case get_number_of_utxos(selected_utxos) do
+      Transaction.Payment.max_inputs() ->
+        selected_utxos
 
-         utxo ->
-           {0, [utxo]}
-       end}
+      _ ->
+        [priority_utxo | remaining_available_utxos] = available_utxos
+
+        stealth_merge_utxos =
+          Map.update!(selected_utxos, priority_utxo.currency, fn current_utxos ->
+            [priority_utxo | current_utxos]
+          end)
+
+        add_utxos_for_stealth_merge(remaining_available_utxos, stealth_merge_utxos)
+    end
+  end
+
+  @doc """
+  Given the available set of UTXOs and the net amount by currency, tries to find a UTXO that satisfies the payment with no change.
+  If this fails, starts to collect UTXOs (starting from the largest amount) until the payment is covered.
+  Returns {currency, { variance, [utxos] }}. A `variance` greater than zero means insufficient funds.
+  The ordering of UTXOs in descending order of amount is implicitly assumed for this algorithm to work deterministically.
+  """
+  @spec select_utxos(%{currency_t() => pos_integer()}, utxos_map_t()) ::
+          list({currency_t(), {integer, utxo_list_t()}})
+  def select_utxos(net_amount, utxos) do
+    Enum.map(net_amount, fn {token, need} ->
+      selected_utxos =
+        utxos
+        |> Map.get(token, [])
+        |> find_utxos_by_token(need)
+
+      {token, selected_utxos}
     end)
   end
 
-  # Sums up payments by token. Fee is included.
-  defp needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
-    needed_funds =
+  @doc """
+  Sums up payable amount by token, including the fee.
+  """
+  @spec calculate_net_amount(list(TransactionCreator.payment_t()), %{amount: pos_integer(), currency: currency_t()}) ::
+          %{currency_t() => pos_integer()}
+  def calculate_net_amount(payments, %{currency: fee_currency, amount: fee_amount}) do
+    net_amount_map =
       payments
-      |> Enum.group_by(& &1.currency)
+      |> Enum.group_by(fn payment -> payment.currency end)
       |> Stream.map(fn {token, payment} ->
-        {token, payment |> Stream.map(& &1.amount) |> Enum.sum()}
+        {token, payment |> Stream.map(fn payment -> payment.amount end) |> Enum.sum()}
       end)
       |> Map.new()
 
-    Map.update(needed_funds, fee_currency, fee_amount, &(&1 + fee_amount))
+    Map.update(net_amount_map, fee_currency, fee_amount, fn amount -> amount + fee_amount end)
   end
 
-  # See also comment to `select_utxo` function
-  defp funds_sufficient?(utxo_selection) do
+  @doc """
+  Checks if the result of `select_utxos/2` covers the amount(s) of the transaction order.
+  """
+  @spec review_selected_utxos([
+          {currency :: currency_t(), {variance :: integer(), selected_utxos :: utxo_list_t()}}
+        ]) ::
+          {:ok, utxos_map_t()}
+          | {:error, {:insufficient_funds, [%{token: String.t(), missing: pos_integer()}]}}
+  def review_selected_utxos(utxo_selection) do
     missing_funds =
       utxo_selection
-      |> Stream.filter(fn {_, {missing, _}} -> missing > 0 end)
-      |> Enum.map(fn {token, {missing, _}} -> %{token: OMG.Utils.HttpRPC.Encoding.to_hex(token), missing: missing} end)
-
-    if Enum.empty?(missing_funds),
-      do: {:ok, utxo_selection |> Enum.map(fn {token, {_, utxos}} -> {token, utxos} end)},
-      else: {:error, {:insufficient_funds, missing_funds}}
-  end
-
-  defp create_transaction(utxos_per_token, %{owner: owner, payments: payments, metadata: metadata, fee: fee}) do
-    rests =
-      utxos_per_token
-      |> Stream.map(fn {token, utxos} ->
-        outputs = [fee | payments] |> Stream.filter(&(&1.currency == token)) |> Stream.map(& &1.amount) |> Enum.sum()
-
-        inputs = utxos |> Stream.map(& &1.amount) |> Enum.sum()
-        %{amount: inputs - outputs, owner: owner, currency: token}
+      |> Stream.filter(fn {_currency, {variance, _selected_utxos}} -> variance > 0 end)
+      |> Enum.map(fn {currency, {missing, _selected_utxos}} ->
+        %{token: Encoding.to_hex(currency), missing: missing}
       end)
-      |> Enum.filter(&(&1.amount > 0))
 
-    outputs = payments ++ rests
-
-    inputs =
-      utxos_per_token
-      |> Enum.map(fn {_, utxos} -> utxos end)
-      |> List.flatten()
-
-    cond do
-      Enum.count(outputs) > Transaction.Payment.max_outputs() ->
-        {:error, :too_many_outputs}
-
-      Enum.empty?(inputs) ->
-        {:error, :empty_transaction}
-
+    case Enum.empty?(missing_funds) do
       true ->
-        raw_tx = create_raw_transaction(inputs, outputs, metadata)
-
         {:ok,
-         %{
-           inputs: inputs,
-           outputs: outputs,
-           fee: fee,
-           metadata: metadata,
-           txbytes: create_txbytes(raw_tx),
-           sign_hash: compute_sign_hash(raw_tx)
-         }}
+         Enum.reduce(utxo_selection, %{}, fn {token, {_missing_amount, utxos}}, acc ->
+           Map.put(acc, token, utxos)
+         end)}
+
+      _ ->
+        {:error, {:insufficient_funds, missing_funds}}
     end
   end
 
-  defp create_merge(owner, utxos_per_token) do
-    utxos_per_token
-    |> Enum.map(fn {token, utxos} ->
-      Stream.chunk_every(utxos, Transaction.Payment.max_outputs())
-      |> Enum.map(fn
-        [_single_input] ->
-          # merge not needed
-          []
+  defp recursively_find_utxos(_, need, selected_utxos) when need <= 0, do: {need, selected_utxos}
+  defp recursively_find_utxos([], need, _), do: {need, []}
 
-        inputs ->
-          create_transaction([{token, inputs}], %{
-            fee: %{amount: 0, currency: token},
-            metadata: @empty_metadata,
-            owner: owner,
-            payments: []
-          })
-      end)
+  defp recursively_find_utxos([utxo | utxos], need, selected_utxos),
+    do: recursively_find_utxos(utxos, need - utxo.amount, [utxo | selected_utxos])
+
+  defp find_utxos_by_token(token_utxos, need) do
+    case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
+      nil ->
+        recursively_find_utxos(token_utxos, need, [])
+
+      utxo ->
+        {0, [utxo]}
+    end
+  end
+
+  defp prioritize_utxos_by_currency({currency, _utxos}, utxos, selected_utxo_hashes) do
+    utxos[currency]
+    |> filter_unselected(selected_utxo_hashes)
+    |> Enum.sort_by(fn utxo -> utxo.amount end, :asc)
+  end
+
+  @spec filter_unselected(utxo_list_t(), %{currency_t() => boolean()}) :: utxo_list_t()
+  defp filter_unselected(available_utxos, selected_utxo_hashes) do
+    Enum.filter(available_utxos, fn utxo ->
+      !Map.has_key?(selected_utxo_hashes, utxo.child_chain_utxohash)
     end)
-    |> List.flatten()
-    |> Enum.map(fn {:ok, tx} -> tx end)
   end
 
-  defp create_raw_transaction(inputs, outputs, metadata) do
-    if Enum.any?(outputs, &(&1.owner == nil)),
-      do: nil,
-      else:
-        Transaction.Payment.new(
-          inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
-          outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
-          metadata || @empty_metadata
-        )
+  @spec get_number_of_utxos(utxos_map_t()) :: integer()
+  defp get_number_of_utxos(utxos_by_currency) do
+    Enum.reduce(utxos_by_currency, 0, fn {_currency, utxos}, acc -> length(utxos) + acc end)
   end
-
-  defp create_txbytes(tx) do
-    with tx when not is_nil(tx) <- tx,
-         do: Transaction.raw_txbytes(tx)
-  end
-
-  defp compute_sign_hash(tx) do
-    with tx when not is_nil(tx) <- tx,
-         do: TypedDataHash.hash_struct(tx)
-  end
-
-  defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}
-
-  defp respond(transactions, result) when is_list(transactions),
-    do: {:ok, %{result: result, transactions: transactions}}
-
-  defp respond(error, _), do: error
 end

@@ -54,6 +54,8 @@ paths:
     $ref: 'transaction/paths.yaml#/transaction.all'
   /transaction.create:
     $ref: 'transaction/paths.yaml#/transaction.create'
+  /transaction.merge:
+    $ref: 'transaction/paths.yaml#/transaction.merge'
   /transaction.get:
     $ref: 'transaction/paths.yaml#/transaction.get'
   /transaction.submit_typed:

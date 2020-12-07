@@ -221,21 +221,6 @@ defmodule OMG.State.Core do
   end
 
   @doc """
-  Generates `Transaction.Fee` transactions and executes them on state.
-  Returns modified state.
-  """
-  @spec claim_fees(state :: t()) :: t()
-  def claim_fees(state) do
-    state.height
-    |> Transaction.Fee.claim_collected(state.fee_claimer_address, state.fees_paid)
-    |> Stream.map(&to_recovered_fee_tx/1)
-    |> Enum.reduce(state, fn tx, curr_state ->
-      {:ok, _, new_state} = exec(curr_state, tx, :no_fees_required)
-      new_state
-    end)
-  end
-
-  @doc """
    - Generates block and calculates it's root hash for submission
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
@@ -465,8 +450,9 @@ defmodule OMG.State.Core do
 
   defp disallow_payments(state), do: %Core{state | fee_claiming_started: true}
 
-  defp flush_collected_fees_for_token(state, %Output{currency: token}),
-    do: %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
+  defp flush_collected_fees_for_token(state, %Output{currency: token}) do
+    %Core{state | fees_paid: Map.delete(state.fees_paid, token)}
+  end
 
   # Effects of a payment transaction - spends all inputs and creates all outputs
   # Relies on the polymorphic `get_inputs` and `get_outputs` of `Transaction`
@@ -488,7 +474,9 @@ defmodule OMG.State.Core do
     end)
   end
 
-  defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
+  defp deposit_to_utxo(deposit) do
+    %{blknum: blknum, currency: cur, owner: owner, amount: amount} = deposit
+
     Transaction.Payment.new([], [{owner, cur, amount}])
     |> utxos_from(blknum, 0)
     |> Enum.map(& &1)
@@ -499,15 +487,8 @@ defmodule OMG.State.Core do
   # This is useful when trying to do something with the outputs that are piggybacked (like exit them), without their
   # position.
   # Only relevant for output piggybacks
-  defp find_utxo_matching_piggyback(
-         %{omg_data: %{piggyback_type: :output}, tx_hash: tx_hash, output_index: oindex},
-         %Core{utxos: utxos}
-       ),
-       do: UtxoSet.find_matching_utxo(utxos, tx_hash, oindex)
-
-  defp to_recovered_fee_tx(%Transaction.Fee{} = fee_tx) do
-    %Transaction.Signed{raw_tx: fee_tx, sigs: []}
-    |> Transaction.Signed.encode()
-    |> Transaction.Recovered.recover_from!()
+  defp find_utxo_matching_piggyback(piggyback_events, state) do
+    %{omg_data: %{piggyback_type: :output}, tx_hash: tx_hash, output_index: oindex} = piggyback_events
+    UtxoSet.find_matching_utxo(state.utxos, tx_hash, oindex)
   end
 end

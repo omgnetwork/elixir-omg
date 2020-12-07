@@ -133,7 +133,13 @@ defmodule Support.Conformance.SignaturesHashes do
   defp call_contract(contract, signature, args, return_types) do
     data = ABI.encode(signature, args)
 
-    {:ok, return} = Ethereumex.HttpClient.eth_call(%{to: Encoding.to_hex(contract), data: Encoding.to_hex(data)})
+    {:ok, return} =
+      Ethereumex.HttpClient.eth_call(%{
+        from: Encoding.to_hex(contract),
+        to: Encoding.to_hex(contract),
+        data: Encoding.to_hex(data)
+      })
+
     decode_answer(return, return_types)
   end
 

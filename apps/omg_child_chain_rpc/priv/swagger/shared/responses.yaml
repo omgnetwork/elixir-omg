@@ -1,6 +1,0 @@
-InternalServerError:
-  description: Returns an internal server error
-  content:
-    application/json:
-      schema:
-        $ref: 'response_schemas.yaml#/ErrorResponseSchema'
