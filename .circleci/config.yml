@@ -786,7 +786,7 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test --only deposit
+            mix test --only deposit --trace
           no_output_timeout: 30m
 
   test_barebone_release:
