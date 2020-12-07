@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.BlockApplicatorTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.WatcherInfo.BlockApplicator
