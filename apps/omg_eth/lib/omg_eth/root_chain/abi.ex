@@ -15,6 +15,7 @@ defmodule OMG.Eth.RootChain.Abi do
   @moduledoc """
   Functions that provide ethereum log decoding
   """
+  alias ExPlasma.Crypto
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain.AbiEventSelector
   alias OMG.Eth.RootChain.AbiFunctionSelector
@@ -22,7 +23,7 @@ defmodule OMG.Eth.RootChain.Abi do
 
   def decode_function(enriched_data, signature) do
     "0x" <> data = enriched_data
-    <<method_id::binary-size(4), _::binary>> = :keccakf1600.hash(:sha3_256, signature)
+    <<method_id::binary-size(4), _::binary>> = Crypto.keccak_hash(signature)
     method_id |> Encoding.to_hex() |> Kernel.<>(data) |> Encoding.from_hex() |> decode_function()
   end
 

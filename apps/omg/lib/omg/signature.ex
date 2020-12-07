@@ -54,7 +54,7 @@ defmodule OMG.Signature do
        8, 168, 253, 23, 180, 72, 166, 133, 84, 25, 156, 71, 208, 143, 251, 16, 212, 184>>}
   """
   @spec recover_public(keccak_hash(), hash_v, hash_r, hash_s, integer() | nil) ::
-          {:ok, public_key} | {:error, String.t()}
+          {:ok, public_key} | {:error, atom()}
   def recover_public(hash, v, r, s, chain_id \\ nil) do
     signature =
       pad(:binary.encode_unsigned(r), @signature_len) <>
@@ -68,9 +68,9 @@ defmodule OMG.Signature do
         v - @base_recovery_id
       end
 
-    case :libsecp256k1.ecdsa_recover_compact(hash, signature, :uncompressed, recovery_id) do
+    case ExSecp256k1.recover_compact(hash, signature, recovery_id) do
       {:ok, <<_byte::8, public_key::binary()>>} -> {:ok, public_key}
-      {:error, reason} -> {:error, to_string(reason)}
+      {:error, reason} -> {:error, reason}
     end
   end
 

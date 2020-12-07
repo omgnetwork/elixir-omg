@@ -19,12 +19,12 @@ executors:
 
   builder:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200410
+      - image: omisegoimages/elixir-omg-builder:stable-20201201
     working_directory: ~/src
 
   builder_pg:
     docker:
-      - image: omisegoimages/elixir-omg-builder:stable-20200410
+      - image: omisegoimages/elixir-omg-builder:stable-20201201
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -34,7 +34,7 @@ executors:
 
   builder_pg_geth:
     docker:
-      - image: omisegoimages/elixir-omg-tester:stable-20200410
+      - image: omisegoimages/elixir-omg-tester:stable-20201201
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: omisego_dev
@@ -44,10 +44,24 @@ executors:
 
   deployer:
     docker:
-      - image: omisegoimages/elixir-omg-deploy:stable-20200410
+      - image: omisegoimages/elixir-omg-deploy:stable-20201201
     working_directory: ~/src
 
 commands:
+  add_rust_to_path:
+    description: "Add path to PATH env var"
+    steps:
+      - run:
+          name: Add rust to PATH env
+          command: echo 'export PATH=~/.cargo/bin/:$PATH' >> $BASH_ENV
+  install_rust:
+    description: "Install Rust"
+    steps:
+      - run:
+          name: Install Rust
+          command: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      - add_rust_to_path
+
   setup_elixir-omg_workspace:
     description: "Setup workspace"
     steps:
@@ -125,8 +139,10 @@ commands:
             source $BASH_ENV
             asdf plugin-add erlang || asdf plugin-update erlang
             asdf plugin-add elixir || asdf plugin-update elixir
+            asdf plugin-add rust || asdf plugin-update rust
             asdf install
           no_output_timeout: 2400
+      - install_rust
       - save_cache:
           key: v2-asdf-install
           paths:
@@ -165,13 +181,13 @@ jobs:
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
-      - run: mix test --trace
+      - run: mix test
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration --trace` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --only integration  ` works
             export SHELL=/bin/bash
-            mix test --only integration --trace
+            mix test --only integration
           no_output_timeout: 30m
   barebuild_macos:
     executor: metal_macos
@@ -202,7 +218,7 @@ jobs:
           no_output_timeout: 2400
       - run: make deps-elixir-omg
       - run: ERLANG_ROCKSDB_BUILDOPTS='-j 2' make build-test
-      - run: mix test --trace
+      - run: mix test
   build:
     executor: builder
     environment:
@@ -282,7 +298,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 295 ]; then
+            if [ $_counter -gt 289 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -344,16 +360,16 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test
             else
-              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher --exclude watcher_info  --exclude common --exclude test   ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
 
   watcher_mix_based_childchain:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     environment:
       MIX_ENV: test
     steps:
@@ -465,9 +481,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher  --exclude common --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include watcher_info --exclude watcher  --exclude common --exclude test
             else
-              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche  --exclude common --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include watcher_info --exclude watche  --exclude common --exclude test   ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -490,9 +506,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test --trace
+              mix coveralls.html --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test
             else
-              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test --trace ||
+              mix coveralls.circle --parallel --umbrella --include common --exclude watcher --exclude watcher_info  --exclude test   ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -515,9 +531,9 @@ jobs:
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
-              mix coveralls.html --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info
+              mix coveralls.html --parallel --umbrella   --exclude common --exclude watcher --exclude watcher_info
             else
-              mix coveralls.circle --parallel --umbrella --trace --exclude common --exclude watcher --exclude watcher_info  ||
+              mix coveralls.circle --parallel --umbrella   --exclude common --exclude watcher --exclude watcher_info  ||
                 # if mix failed, then coveralls_report won't run, so signal done here and return original exit status
                 (retval=$? && curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done" && exit $retval)
             fi
@@ -539,7 +555,7 @@ jobs:
           command: |
             export SHELL=/bin/bash
             # no coverage calculation, coverage is on the other tests
-            mix test --only property --trace
+            mix test --only property
 
   integration_tests:
     executor: builder_pg_geth
@@ -556,9 +572,9 @@ jobs:
       - run:
           name: Integration Tests
           command: |
-            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test --trace --only integration` works
+            # Slow, serial integration test, run nightly. Here to make sure the standard `mix test   --only integration` works
             export SHELL=/bin/bash
-            mix test --trace --only integration
+            mix test   --only integration
 
   dialyzer:
     executor: builder_pg
@@ -599,7 +615,7 @@ jobs:
 
   test_docker_compose_release:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     environment:
       SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
     parallelism: 4
@@ -644,7 +660,7 @@ jobs:
   test_docker_compose_performance:
     description: "These are not actually performance tests, we're checking if the scripts work"
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     environment:
       PERF_IMAGE_NAME: "omisego/perf:latest"
       STATIX_TAG: "env:perf_circleci"
@@ -712,7 +728,7 @@ jobs:
 
   test_docker_compose_reorg:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     environment:
       REORG: true
     steps:
@@ -770,12 +786,12 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            mix test --only deposit --trace
+            mix test --only deposit
           no_output_timeout: 30m
 
   test_barebone_release:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     environment:
       TERM: xterm-256color
     steps:
@@ -864,7 +880,7 @@ jobs:
 
   publish_watcher:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     environment:
       WATCHER_IMAGE_NAME: "omisego/watcher"
     steps:
@@ -882,7 +898,7 @@ jobs:
 
   publish_perf:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     environment:
       PERF_IMAGE_NAME: "omisego/perf"
     steps:
@@ -892,7 +908,7 @@ jobs:
 
   publish_watcher_info:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     environment:
       WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info"
     steps:

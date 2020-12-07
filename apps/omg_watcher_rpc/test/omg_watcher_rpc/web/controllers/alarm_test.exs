@@ -73,7 +73,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
     ]
 
     for header <- required_headers do
-      assert header in Keyword.keys(response.resp_headers)
+      assert header in Enum.map(response.resp_headers, &elem(&1, 0))
     end
 
     # CORS check

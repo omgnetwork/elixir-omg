@@ -38,8 +38,7 @@ defmodule OMG.State.Transaction.Signed do
   """
   @spec encode(t()) :: tx_bytes()
   def encode(%__MODULE__{raw_tx: %{} = raw_tx, sigs: sigs}) do
-    [sigs | Transaction.Protocol.get_data_for_rlp(raw_tx)]
-    |> ExRLP.encode()
+    ExRLP.encode([sigs | Transaction.Protocol.get_data_for_rlp(raw_tx)])
   end
 
   @doc """
@@ -81,12 +80,14 @@ defmodule OMG.State.Transaction.Signed do
   end
 
   defp get_reversed_witnesses(raw_txhash, raw_tx, raw_witnesses) do
-    raw_witnesses
-    |> Enum.reduce_while({:ok, []}, fn raw_witness, acc -> get_witness(raw_txhash, raw_tx, raw_witness, acc) end)
+    Enum.reduce_while(raw_witnesses, {:ok, []}, fn raw_witness, acc ->
+      get_witness(raw_txhash, raw_tx, raw_witness, acc)
+    end)
   end
 
   defp get_witness(raw_txhash, raw_tx, raw_witness, {:ok, witnesses}) do
-    Witness.recover(raw_witness, raw_txhash, raw_tx)
+    raw_witness
+    |> Witness.recover(raw_txhash, raw_tx)
     |> case do
       {:ok, witness} -> {:cont, {:ok, [witness | witnesses]}}
       error -> {:halt, error}

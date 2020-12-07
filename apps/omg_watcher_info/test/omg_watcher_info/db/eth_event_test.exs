@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.DB.EthEventTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use OMG.Fixtures
 
   alias OMG.Crypto

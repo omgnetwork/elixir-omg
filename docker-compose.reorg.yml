@@ -4,7 +4,7 @@ services:
     entrypoint: ["echo", "clique geth is disabled for reorgs"]
 
   geth-1:
-    image: ethereum/client-go:v1.9.12
+    image: ethereum/client-go:v1.9.15
     container_name: geth-1
     environment:
       - ACCOUNT=0x6de4b3b9c28e9c3e84c2b2d3a875c947a84de68d
@@ -30,7 +30,7 @@ services:
         ipv4_address: 172.27.0.201
 
   geth-2:
-    image: ethereum/client-go:v1.9.12
+    image: ethereum/client-go:v1.9.15
     container_name: geth-2
     depends_on:
       - geth-1

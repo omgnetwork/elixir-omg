@@ -18,7 +18,7 @@ defmodule Utils.MixProject do
   end
 
   def application() do
-    []
+    [extra_applications: [:plug]]
   end
 
   # Specifies which paths to compile per environment.

@@ -14,7 +14,7 @@
 
 defmodule OMG.WatcherInfo.PendingBlockProcessorTest do
   use ExUnitFixtures
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import Ecto.Query, only: [from: 2]
   import OMG.WatcherInfo.Factory

@@ -32,7 +32,7 @@ defmodule OMG.DB.MixProject do
 
   defp deps() do
     [
-      {:rocksdb, "~> 1.3", system_env: [{"ERLANG_ROCKSDB_OPTS", "-DWITH_SYSTEM_ROCKSDB=ON"}]},
+      {:rocksdb, "~> 1.6", system_env: [{"ERLANG_ROCKSDB_OPTS", "-DWITH_SYSTEM_ROCKSDB=ON"}]},
       {:omg_status, in_umbrella: true},
       # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see

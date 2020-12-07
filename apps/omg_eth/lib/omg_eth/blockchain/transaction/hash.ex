@@ -88,8 +88,7 @@ defmodule OMG.Eth.Blockchain.Transaction.Hash do
   @spec sign_hash(BitHelper.keccak_hash(), private_key, integer() | nil) ::
           {hash_v, hash_r, hash_s}
   def sign_hash(hash, private_key, chain_id \\ nil) do
-    {:ok, <<r::size(256), s::size(256)>>, recovery_id} =
-      :libsecp256k1.ecdsa_sign_compact(hash, private_key, :default, <<>>)
+    {:ok, {<<r::size(256), s::size(256)>>, recovery_id}} = ExSecp256k1.sign_compact(hash, private_key)
 
     # Fork Ψ EIP-155
     recovery_id =

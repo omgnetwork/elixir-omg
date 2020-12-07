@@ -20,7 +20,7 @@ services:
         ipv4_address: 172.27.0.107
 
   geth:
-    image: ethereum/client-go:v1.9.12
+    image: ethereum/client-go:v1.9.15
     entrypoint: /bin/sh -c ". data/command"
     environment:
       RPC_PORT: 8545
@@ -95,8 +95,7 @@ services:
       retries: 5
       start_period: 60s
     depends_on:
-      nginx:
-        condition: service_healthy
+      - nginx
     networks:
       chain_net:
         ipv4_address: 172.27.0.103

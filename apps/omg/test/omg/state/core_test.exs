@@ -1035,6 +1035,7 @@ defmodule OMG.State.CoreTest do
 
     # this test takes ~26 seconds on my machine
     @tag slow: true
+    @tag timeout: 60_000 * 3
     test "long running full block test", %{alice: alice, state_empty: state, fees: fees} do
       Logger.warn("slow test is running, use --exclude slow to skip")
 

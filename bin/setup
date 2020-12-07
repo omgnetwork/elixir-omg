@@ -54,24 +54,6 @@ install_linux_geth(){
   && rm -r gethDownload
 }
 
-install_linux_rocksdb(){
-  echo "Installing Rocksdb v6.2.2"
-  mkdir tmp_rocksdb \
-  && cd tmp_rocksdb \
-  && git clone https://github.com/facebook/rocksdb.git \
-  && cd rocksdb  \
-  && git checkout v6.2.2 \
-  && make shared_lib \
-  && sudo mkdir -p /usr/local/rocksdb/lib \
-  && sudo mkdir -p /usr/local/rocksdb/include \
-  && sudo cp -P librocksdb.so* /usr/local/rocksdb/lib \
-  && sudo cp -P /usr/local/rocksdb/lib/librocksdb.so* /usr/lib/ \
-  && sudo cp -rP include /usr/local/rocksdb/ \
-  && sudo cp -rP include/* /usr/include/ \
-  && cd ../../ \
-  && rm -rf tmp_rocksdb
-}
-
 install_darwin_deps(){
     fancy_echo "Installing dependencies via brew"
     brew bundle --file=- <<EOF
@@ -81,7 +63,6 @@ brew "autoconf"
 brew "gmp"
 brew "libtool"
 brew "cmake"
-brew "rocksdb"
 EOF
 }
 
@@ -92,7 +73,7 @@ install_deps() {
     Linux*)
       install_linux_deps
       install_linux_geth
-      install_linux_rocksdb
+      . $PWD/bin/rocksdb
       if [ -z "$CIRCLE_SHA1" ]; then
         install_linux_postgres
       else
@@ -101,6 +82,7 @@ install_deps() {
       ;;
     Darwin*)
       install_darwin_deps
+      . $PWD/bin/rocksdb
       ;;
     *)
       fancy_echo "Unknown system"
@@ -148,7 +130,5 @@ fi
 fancy_echo "Installing elixir dependencies."
 mix local.hex --force
 mix local.rebar --force
-
-mix deps.get
 
 fancy_echo "You're all set!"

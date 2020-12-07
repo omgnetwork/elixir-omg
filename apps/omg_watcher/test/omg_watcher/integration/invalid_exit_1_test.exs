@@ -40,10 +40,10 @@ defmodule OMG.Watcher.Integration.InvalidExit1Test do
     Process.sleep(11_000)
 
     %{"blknum" => first_tx_blknum} =
-      OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}]) |> WatcherHelper.submit()
+      [{deposit_blknum, 0, 0, alice}] |> OMG.TestHelper.create_encoded(@eth, [{alice, 9}]) |> WatcherHelper.submit()
 
     %{"blknum" => second_tx_blknum} =
-      OMG.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 8}]) |> WatcherHelper.submit()
+      [{first_tx_blknum, 0, 0, alice}] |> OMG.TestHelper.create_encoded(@eth, [{alice, 8}]) |> WatcherHelper.submit()
 
     Process.sleep(11_000)
     IntegrationTest.wait_for_block_fetch(second_tx_blknum, @timeout)
@@ -52,7 +52,8 @@ defmodule OMG.Watcher.Integration.InvalidExit1Test do
       WatcherHelper.get_exit_data(first_tx_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      RootChainHelper.start_exit(tx_utxo_pos, txbytes, proof, alice.addr)
+      tx_utxo_pos
+      |> RootChainHelper.start_exit(txbytes, proof, alice.addr)
       |> DevHelper.transact_sync!()
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)

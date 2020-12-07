@@ -1,0 +1,58 @@
+#!/usr/bin/env sh
+
+fancy_echo() {
+  local fmt="$1"; shift
+
+  # shellcheck disable=SC2059
+  printf "\\n$fmt\\n" "$@"
+}
+
+install_linux_rocksdb(){
+  echo "Installing Rocksdb v6.14.5"
+  mkdir tmp_rocksdb \
+  && cd tmp_rocksdb \
+  && git clone https://github.com/facebook/rocksdb.git \
+  && cd rocksdb  \
+  && git checkout v6.14.5 \
+  && make shared_lib \
+  && sudo mkdir -p /usr/local/rocksdb/lib \
+  && sudo mkdir -p /usr/local/rocksdb/include \
+  && sudo cp -P librocksdb.so* /usr/local/rocksdb/lib \
+  && sudo cp -P /usr/local/rocksdb/lib/librocksdb.so* /usr/lib/ \
+  && sudo cp -rP include /usr/local/rocksdb/ \
+  && sudo cp -rP include/* /usr/include/ \
+  && cd ../../ \
+  && rm -rf tmp_rocksdb
+}
+
+install_rocksdb_source(){
+  git clone https://github.com/facebook/rocksdb.git
+  cd rocksdb/
+  git checkout tags/v6.14.5
+  make clean
+  make static_lib
+  make shared_lib
+  make install INSTALL_PATH=/usr/local/Cellar/rocksdb/6.14.5
+}
+
+
+install_deps() {
+  local sys=`uname -s`
+  echo $sys
+  case $sys in
+    Linux*)
+      install_linux_rocksdb
+      ;;
+    Darwin*)
+      install_rocksdb_source
+      ;;
+    *)
+      fancy_echo "Unknown system"
+      exit 1
+      ;;
+  esac
+}
+# Exit if any subcommand fails
+set -e
+
+install_deps

@@ -265,7 +265,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     potential_block_withholding_numbers =
       potential_block_withholdings
       |> Enum.filter(fn {_, %PotentialWithholding{downloading: downloading}} -> !downloading end)
-      |> Enum.map(fn {key, __} -> key end)
+      |> Enum.map(fn {key, _} -> key end)
 
     potential_next_block_numbers =
       first_block_number
@@ -329,14 +329,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
         block_timestamp,
         _time
       ) do
-    _ =
-      Logger.debug(fn ->
-        short_hash = returned_hash |> OMG.Eth.Encoding.to_hex() |> Binary.drop(-48)
-
-        "Validating block \##{inspect(requested_number)} #{inspect(short_hash)}... " <>
-          "with #{inspect(length(transactions))} txs"
-      end)
-
     with true <- returned_hash == requested_hash || {:error, :bad_returned_hash},
          true <- number == requested_number || {:error, :bad_returned_number},
          {:ok, recovered_txs} <- recover_all_txs(transactions),

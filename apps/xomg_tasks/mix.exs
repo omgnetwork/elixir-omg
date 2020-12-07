@@ -21,6 +21,6 @@ defmodule OMG.XomgTasks.MixProject do
   end
 
   def application() do
-    []
+    [extra_applications: [:iex, :logger]]
   end
 end

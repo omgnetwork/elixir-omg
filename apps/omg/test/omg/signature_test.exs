@@ -15,11 +15,12 @@
 defmodule OMG.SignatureTest do
   use ExUnit.Case, async: true
   doctest OMG.Signature
+  alias OMG.Crypto
   alias OMG.Signature
 
   describe "recover_public/3" do
     test "returns an error from an invalid hash" do
-      {:error, "Recovery id invalid 0-3"} =
+      {:error, :invalid_recovery_id} =
         Signature.recover_public(
           <<2::256>>,
           55,
@@ -34,7 +35,7 @@ defmodule OMG.SignatureTest do
           case: :lower
         )
 
-      hash = :keccakf1600.sha3_256(data)
+      hash = Crypto.hash(data)
       v = 27
       r = 18_515_461_264_373_351_373_200_002_665_853_028_612_451_056_578_545_711_640_558_177_340_181_847_433_846
       s = 46_948_507_304_638_947_509_940_763_649_030_358_759_909_902_576_025_900_602_547_168_820_602_576_006_531
@@ -56,7 +57,7 @@ defmodule OMG.SignatureTest do
           case: :lower
         )
 
-      hash = :keccakf1600.sha3_256(data)
+      hash = Crypto.hash(data)
       {:ok, public_key} = Signature.recover_public(hash, v, r, s, 1)
 
       assert public_key ==
