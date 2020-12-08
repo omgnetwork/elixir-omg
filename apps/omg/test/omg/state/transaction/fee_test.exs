@@ -56,38 +56,4 @@ defmodule OMG.State.Transaction.FeeTest do
               }} = Transaction.Recovered.recover_from(tx_rlp)
     end
   end
-
-  describe "claim_collected/3" do
-    test "no fees collected result in empty fee-txs list", %{alice: owner} do
-      assert Transaction.Fee.claim_collected(1000, owner, %{}) == []
-    end
-
-    test "fee-txs are sorted by currency", %{alice: owner} do
-      fees_paid = %{
-        @other_token => 111,
-        @eth => 100
-      }
-
-      assert [
-               eth_fee_tx,
-               other_fee_tx
-             ] = Transaction.Fee.claim_collected(1000, owner, fees_paid)
-
-      assert [
-               %Output{
-                 owner: ^owner,
-                 currency: @eth,
-                 amount: 100
-               }
-             ] = Transaction.get_outputs(eth_fee_tx)
-
-      assert [
-               %Output{
-                 owner: ^owner,
-                 currency: @other_token,
-                 amount: 111
-               }
-             ] = Transaction.get_outputs(other_fee_tx)
-    end
-  end
 end

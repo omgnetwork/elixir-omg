@@ -1,4 +1,5 @@
 use Mix.Config
+ethereum_events_check_interval_ms = 400
 
 parse_contracts = fn ->
   local_umbrella_path = Path.join([File.cwd!(), "../../", "localchain_contract_addresses.env"])
@@ -46,32 +47,10 @@ config :omg_utils,
 
 config :omg,
   deposit_finality_margin: 1,
-  ethereum_events_check_interval_ms: 10,
+  ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   coordinator_eth_height_check_interval_ms: 10,
   environment: :test,
   fee_claimer_address: Base.decode16!("DEAD000000000000000000000000000000000000")
-
-config :omg_child_chain,
-  block_queue_eth_height_check_interval_ms: 100,
-  fee_adapter_check_interval_ms: 1_000,
-  fee_buffer_duration_ms: 5_000,
-  fee_adapter:
-    {OMG.ChildChain.Fees.FileAdapter,
-     opts: [
-       specs_file_path: Path.join(__DIR__, "../apps/omg_child_chain/test/omg_child_chain/support/fee_specs.json")
-     ]}
-
-# We need to start OMG.ChildChainRPC.Web.Endpoint with HTTP server for Performance and Watcher tests to work
-# as a drawback lightweight (without HTTP server) controller tests are no longer an option.
-config :omg_child_chain_rpc, OMG.ChildChainRPC.Web.Endpoint,
-  http: [port: 9657],
-  server: true
-
-config :omg_child_chain_rpc, OMG.ChildChainRPC.Tracer,
-  disabled?: true,
-  env: "test"
-
-config :omg_child_chain_rpc, environment: :test
 
 # config :omg_db,
 #  path: Path.join([System.get_env("HOME"), ".omg/data"])
@@ -95,13 +74,11 @@ config :omg_eth,
   },
   node_logging_in_debug: true,
   # Lower the event check interval too low and geth will die
-  ethereum_events_check_interval_ms: 400,
+  ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   min_exit_period_seconds: 22,
   ethereum_block_time_seconds: 1,
   eth_node: :geth,
   run_test_eth_dev_node: true
-
-config :omg_performance, watcher_url: "localhost:7435"
 
 config :omg_status,
   metrics: false,
@@ -130,11 +107,12 @@ config :os_mon,
   disk_almost_full_threshold: 0.99,
   disk_space_check_interval: 120
 
-config :omg_watcher, child_chain_url: "http://localhost:9657"
+config :omg_watcher, child_chain_url: "http://localhost:9656"
 
 config :omg_watcher,
   # NOTE `exit_processor_sla_margin` can't be made shorter. At 8 it sometimes
   # causes unchallenged exits events because `geth --dev` is too fast
+  # Chaning this value for dockerized geth in OMG.Watcher.Fixtures!!!
   exit_processor_sla_margin: 10,
   # this means we allow the `sla_margin` above be larger than the `min_exit_period`
   exit_processor_sla_margin_forced: true,
@@ -147,13 +125,13 @@ config :omg_watcher, OMG.Watcher.Tracer,
   disabled?: true,
   env: "test"
 
-config :omg_watcher_info, child_chain_url: "http://localhost:9657"
+config :omg_watcher_info, child_chain_url: "http://localhost:9656"
 
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   ownership_timeout: 180_000,
   pool: Ecto.Adapters.SQL.Sandbox,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: "postgres://omisego_dev:omisego_dev@localhost:5432/omisego_test"
+  url: System.get_env("TEST_DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost:5432/omisego_test")
 
 config :omg_watcher_info, OMG.WatcherInfo.Tracer,
   disabled?: true,

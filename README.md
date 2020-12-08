@@ -81,24 +81,32 @@ make init_test
 
 # Testing & development
 
-Docker building of source code and dependencies used to directly use common `mix` folders like `_build` and `deps`. To support workflows that switch between bare metal and Docker containers we've introduced `_build_docker` and `deps_docker` folders.
+Docker building of source code and dependencies used to directly use common `mix` folders like `_build` and `deps`. To support workflows that switch between bare metal and Docker containers we've introduced `_build_docker` and `deps_docker` folders:
+
+```sh
+sudo rm -rf _build_docker
+sudo rm -rf deps_docker
+
+mkdir _build_docker && chmod 777 _build_docker
+mkdir deps_docker && chmod 777 deps_docker
+```
+
+Pull in the compatible Plasma contracts snapshot:
+```bash
+make init_test
+```
 
 You can setup the docker environment to run testing and development tasks:
 
 ```sh
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --entrypoint bash elixir-omg
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.datadog.yml run --rm --entrypoint bash elixir-omg
 ```
 
 Once the shell has loaded, you can continue and run additional tasks.
 
 Get the necessary dependencies for building:
 ```bash
-mix deps.get
-```
-
-Pull in the compatible Plasma contracts snapshot:
-```bash
-make init_test
+cd app && mix deps.get
 ```
 
 Quick test (no integration tests):
@@ -133,7 +141,6 @@ mkdir data && chmod 777 data
 
 Make services:
 ```bash
-make docker-child_chain
 make docker-watcher
 make docker-watcher_info
 ```
@@ -184,7 +191,6 @@ mkdir data1 && chmod 777 data1 && mkdir data2 && chmod 777 data2 && mkdir data &
 
 Make services:
 ```bash
-make docker-child_chain
 make docker-watcher
 make docker-watcher_info
 ```

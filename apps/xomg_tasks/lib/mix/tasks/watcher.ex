@@ -26,6 +26,7 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
 
   def run(args) do
     args
+    |> config_db("--db")
     |> generic_prepare_args()
     |> generic_run([:omg_watcher, :omg_watcher_rpc])
   end

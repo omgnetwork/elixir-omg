@@ -43,7 +43,15 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     |> WatcherRPCResponse.add_app_infos()
   end
 
+  def render("merge.json", %{response: advice}) do
+    render_transactions(advice)
+  end
+
   def render("create.json", %{response: advice}) do
+    render_transactions(advice)
+  end
+
+  defp render_transactions(advice) do
     transactions =
       advice.transactions
       |> Enum.map(fn tx -> Map.update!(tx, :inputs, &render_txoutputs/1) end)

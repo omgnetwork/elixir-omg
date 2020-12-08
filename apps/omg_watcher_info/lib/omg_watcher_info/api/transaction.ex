@@ -22,11 +22,22 @@ defmodule OMG.WatcherInfo.API.Transaction do
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.HttpRPC.Client
-  alias OMG.WatcherInfo.UtxoSelection
+  alias OMG.WatcherInfo.Transaction, as: TransactionCreator
+
   require Utxo
+  require Transaction.Payment
 
   @default_transactions_limit 200
-  @empty_metadata <<0::256>>
+
+  @type create_t() ::
+          {:ok,
+           %{
+             result: :complete | :intermediate,
+             transactions: nonempty_list(TransactionCreator.transaction_with_typed_data_t())
+           }}
+          | {:error, :too_many_outputs}
+          | {:error, :empty_transaction}
+          | {:error, {:insufficient_funds, list(map())}}
 
   @doc """
   Retrieves a specific transaction by id
@@ -77,55 +88,123 @@ defmodule OMG.WatcherInfo.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
-  @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
+  @spec create(TransactionCreator.order_t()) :: create_t()
   def create(order) do
-    utxos = DB.TxOutput.get_sorted_grouped_utxos(order.owner)
-    UtxoSelection.create_advice(utxos, order)
+    owner_inputs =
+      order.owner
+      |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
+      |> TransactionCreator.select_inputs(order)
+
+    case owner_inputs do
+      {:ok, inputs} ->
+        inputs
+        |> get_utxos_count()
+        |> create_transaction(inputs, order)
+
+      err ->
+        err
+    end
   end
 
-  @spec include_typed_data(UtxoSelection.advice_t()) :: UtxoSelection.advice_t()
-  def include_typed_data({:error, _} = err), do: err
-
-  def include_typed_data({:ok, %{transactions: txs} = advice}),
-    do: {
-      :ok,
-      %{advice | transactions: Enum.map(txs, fn tx -> Map.put_new(tx, :typed_data, add_type_specs(tx)) end)}
-    }
-
-  defp add_type_specs(%{inputs: inputs, outputs: outputs, metadata: metadata}) do
-    alias OMG.TypedDataHash
-
-    message =
-      [
-        create_inputs(inputs),
-        create_outputs(outputs),
-        [metadata: metadata || @empty_metadata]
-      ]
-      |> Enum.concat()
-      |> Map.new()
-
-    %{
-      domain: TypedDataHash.Config.domain_data_from_config(),
-      message: message
-    }
-    |> Map.merge(TypedDataHash.Types.eip712_types_specification())
+  @doc """
+  Converts parameter keyword list to a map before passing it to multi-clause "handle_merge/`1"
+  """
+  @spec merge(Keyword.t()) :: create_t()
+  def merge(parameters) do
+    parameters |> Map.new() |> handle_merge()
   end
 
-  defp create_inputs(inputs) do
-    empty_gen = fn -> %{blknum: 0, txindex: 0, oindex: 0} end
+  @spec handle_merge(map()) :: create_t()
+  defp handle_merge(%{address: address, currency: currency}) do
+    merge_inputs =
+      address
+      |> DB.TxOutput.get_sorted_grouped_utxos(:asc)
+      |> Map.get(currency, [])
 
+    case merge_inputs do
+      [] ->
+        {:error, :no_inputs_found}
+
+      [_single_input] ->
+        {:error, :single_input}
+
+      inputs ->
+        {:ok, TransactionCreator.generate_merge_transactions(inputs)}
+    end
+  end
+
+  defp handle_merge(%{utxo_positions: utxo_positions}) do
+    with {:ok, inputs} <- get_merge_inputs(utxo_positions),
+         :ok <- no_duplicates(inputs),
+         :ok <- single_owner(inputs),
+         :ok <- single_currency(inputs) do
+      {:ok, TransactionCreator.generate_merge_transactions(inputs)}
+    end
+  end
+
+  defp get_utxos_count(currencies) do
+    Enum.reduce(currencies, 0, fn {_, currency_inputs}, acc -> acc + length(currency_inputs) end)
+  end
+
+  defp create_transaction(utxos_count, inputs, _order) when utxos_count > Transaction.Payment.max_inputs() do
+    transactions =
+      inputs
+      |> Enum.reduce([], fn {_, token_inputs}, acc ->
+        merged_transactions =
+          token_inputs
+          |> TransactionCreator.generate_merge_transactions()
+          |> Enum.reverse()
+
+        merged_transactions ++ acc
+      end)
+      |> Enum.reverse()
+
+    respond({:ok, transactions}, :intermediate)
+  end
+
+  defp create_transaction(_utxos_count, inputs, order) do
     inputs
-    |> Stream.map(&Map.take(&1, [:blknum, :txindex, :oindex]))
-    |> Stream.concat(Stream.repeatedly(empty_gen))
-    |> (&Enum.zip([:input0, :input1, :input2, :input3], &1)).()
+    |> TransactionCreator.create(order)
+    |> respond(:complete)
   end
 
-  defp create_outputs(outputs) do
-    zero_addr = OMG.Eth.zero_address()
-    empty_gen = fn -> %{owner: zero_addr, currency: zero_addr, amount: 0} end
-
-    outputs
-    |> Stream.concat(Stream.repeatedly(empty_gen))
-    |> (&Enum.zip([:output0, :output1, :output2, :output3], &1)).()
+  @spec get_merge_inputs(list()) :: {:ok, list()} | {:error, atom()}
+  defp get_merge_inputs(utxo_positions) do
+    Enum.reduce_while(utxo_positions, {:ok, []}, fn encoded_position, {:ok, acc} ->
+      case encoded_position |> Utxo.Position.decode!() |> DB.TxOutput.get_by_position() do
+        nil -> {:halt, {:error, :position_not_found}}
+        input -> {:cont, {:ok, [input | acc]}}
+      end
+    end)
   end
+
+  @spec no_duplicates(list()) :: :ok | {:error, :duplicate_input_positions}
+  defp no_duplicates(inputs) do
+    inputs
+    |> Enum.uniq()
+    |> length()
+    |> case do
+      n when n == length(inputs) -> :ok
+      _ -> {:error, :duplicate_input_positions}
+    end
+  end
+
+  @spec single_owner(list()) :: :ok | {:error, :multiple_input_owners}
+  defp single_owner(inputs) do
+    case inputs |> Enum.uniq_by(fn input -> input.owner end) |> length() do
+      1 -> :ok
+      _ -> {:error, :multiple_input_owners}
+    end
+  end
+
+  @spec single_currency(list()) :: :ok | {:error, :multiple_currencies}
+  defp single_currency(inputs) do
+    case inputs |> Enum.uniq_by(fn input -> input.currency end) |> length() do
+      1 -> :ok
+      _ -> {:error, :multiple_currencies}
+    end
+  end
+
+  defp respond({:ok, transactions}, result), do: {:ok, %{result: result, transactions: transactions}}
+  defp respond(error, _), do: error
 end

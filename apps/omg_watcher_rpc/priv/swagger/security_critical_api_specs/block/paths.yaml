@@ -1,0 +1,19 @@
+block.validate:
+  post:
+    tags:
+      - Block
+    summary: Verifies the stateless validity of a block. 
+    description: |
+      - Verifies that given Merkle root matches reconstructed Merkle root.
+      - Verifies that (payment and fee) transactions  are correctly formed.
+      - Verifies that there are no duplicate inputs at the block level.
+      - Verifies that the number of transactions falls within the accepted range.
+      - Verifies that fee transactions are correctly placed and unique per currency.
+    operationId: validate
+    requestBody:
+      $ref: 'request_bodies.yaml#/BlockValidateBodySchema'
+    responses:
+      200:
+        $ref: 'responses.yaml#/BlockValidateResponse'
+      500:
+        $ref: '../responses.yaml#/InternalServerError'

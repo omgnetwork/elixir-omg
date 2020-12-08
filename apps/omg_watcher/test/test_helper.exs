@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [watcher: true, common: true, integration: true, property: true, wrappers: true])
+ExUnit.configure(
+  exclude: [mix_based_child_chain: true, watcher: true, common: true, integration: true, property: true, wrappers: true]
+)
+
 ExUnitFixtures.start()
 ExUnit.start()
 

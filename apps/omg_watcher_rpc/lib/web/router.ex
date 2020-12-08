@@ -52,6 +52,8 @@ defmodule OMG.WatcherRPC.Web.Router do
 
     post("/account.get_exitable_utxos", Controller.Account, :get_exitable_utxos)
 
+    post("/block.validate", Controller.Block, :validate_block)
+
     post("/utxo.get_exit_data", Controller.Utxo, :get_utxo_exit)
     post("/utxo.get_challenge_data", Controller.Challenge, :get_utxo_challenge)
 
@@ -82,6 +84,7 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/transaction.get", Controller.Transaction, :get_transaction)
     post("/transaction.create", Controller.Transaction, :create)
     post("/transaction.submit_typed", Controller.Transaction, :submit_typed)
+    post("/transaction.merge", Controller.Transaction, :merge)
 
     post("/block.get", Controller.Block, :get_block)
 

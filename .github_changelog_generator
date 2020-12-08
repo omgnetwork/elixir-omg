@@ -1,6 +1,16 @@
-issues=true
-issues-wo-labels=false
-unreleased=false
-since-tag=v0.0.1
-exclude-tags=sirn-deploy
+# Issue/PR filter
+release-branch=master
+since-tag=v0.4.8
+exclude-tags-regex=.*-pre.*
+unreleased=true
+
+issues=false
+pull-requests=true
+pr-wo-labels=true
+
+# Categories
+pr-label=### Untagged pull requests
+
+# When updating the sections here, also update the `ONE_OF_LABELS` env vars in the `.github/workflows/enforce-changelog-labels.yml` file
+configure-sections={"api":{"prefix":"### API changes","labels":["api"]}, "breaking":{"prefix":"### Breaking changes","labels":["breaking"]}, "enhancement":{"prefix":"### Enhancements","labels":["enhancement"]}, "bug":{"prefix":"### Bug fixes","labels":["bug"]}, "chore":{"prefix":"### Chores","labels":["chore"]}, "documentation":{"prefix":"### Documentation updates","labels":["documentation"]}}
 

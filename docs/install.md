@@ -41,7 +41,7 @@ git clone https://github.com/omisego/elixir-omg
 ```
 cd elixir-omg
 mix deps.get
-mix deps.compile
+mix compile
 ```
 
 ## Check this works!
