@@ -54,7 +54,7 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       method_id: <<25, 145, 196, 195>>,
       returns: [],
       type: :event,
-      types: [uint: 160]
+      types: [uint: 168]
     }
   end
 

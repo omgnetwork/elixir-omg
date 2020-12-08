@@ -503,37 +503,9 @@ defmodule OMG.Eth.RootChain.AbiTest do
            }
   end
 
-  test "if in flight exit finalized can be decoded" do
-    in_flight_exit_finalized_log = %{
-      :event_signature => "InFlightExitOutputWithdrawn(uint168,uint16)",
-      "address" => "0x89afce326e7da55647d22e24336c6a2816c99f6b",
-      "blockHash" => "0xa27ed6299f3d74954e2c32629a5d807743627f8e57f83c8cbeaa4351da73f597",
-      "blockNumber" => "0x3e8",
-      "data" => "0x",
-      "logIndex" => "0x0",
-      "removed" => false,
-      "topics" => [
-        "0x1991c4c350498b0cc937c6a08bc5bdecf2e4fdd9d918052a880f102e43dbe45c",
-        "0x00000000000000000000000000d1d291fd21f1899f4c9d621f65dd1e0aa2355d"
-      ],
-      "transactionHash" => "0xbe310ade41278c5607620311b79363aa520ac46c7ba754bf3027d501c5a95f40",
-      "transactionIndex" => "0x0"
-    }
-
-    assert Abi.decode_log(in_flight_exit_deleted_log) == %{
-             eth_height: 1000,
-             event_signature: "InFlightExitDeleted(uint160)",
-             exit_id: 4_679_199_003_952_701_118_642_806_135_853_996_264_334_177_629,
-             log_index: 0,
-             root_chain_txhash:
-               <<190, 49, 10, 222, 65, 39, 140, 86, 7, 98, 3, 17, 183, 147, 99, 170, 82, 10, 196, 108, 123, 167, 84,
-                 191, 48, 39, 213, 1, 197, 169, 95, 64>>
-           }
-  end
-
   test "if in flight exit output withdrawn can be decoded" do
     in_flight_exit_output_withdrawn_log = %{
-      :event_signature => "InFlightExitOutputWithdrawn(uint160,uint16)",
+      :event_signature => "InFlightExitOutputWithdrawn(uint168,uint16)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0x2218cd9358fd6ed3b720b512b645a88a9a3ed9f472e6192fae202f60e40ac7a2",
       "blockNumber" => "0x14f",

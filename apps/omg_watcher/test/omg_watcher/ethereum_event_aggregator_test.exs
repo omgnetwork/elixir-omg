@@ -72,7 +72,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
     } do
       assert event_fetcher_name |> :sys.get_state() |> Map.get(:events) == [
                [
-                 signature: "InFlightExitDeleted(uint160)",
+                 signature: "InFlightExitDeleted(uint168)",
                  name: :in_flight_exit_deleted,
                  enrich: false
                ],
@@ -113,7 +113,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
                  "InFlightExitInputPiggybacked(address,bytes32,uint16)",
                  "ExitStarted(address,uint168)",
-                 "InFlightExitDeleted(uint160)",
+                 "InFlightExitDeleted(uint168)",
                  "DepositCreated(address,uint256,address,uint256)"
                ])
     end
@@ -548,7 +548,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
 
   def in_flight_exit_deleted_log(block_number) do
     %{
-      :event_signature => "InFlightExitDeleted(uint160)",
+      :event_signature => "InFlightExitDeleted(uint168)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0xcafbc4b710c5fab8f3d719f65053637407231ecde31a859f1709e3478a2eda54",
       "blockNumber" => "0x" <> Integer.to_string(block_number, 16),
