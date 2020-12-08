@@ -38,7 +38,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
 
     on_exit(exit_fn)
 
-    [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex)]
+    [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex, :mixed)]
   end
 
   property "any root hash and proof created by the Elixir implementation validates in the contract, for all leaves",

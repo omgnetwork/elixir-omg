@@ -120,12 +120,18 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
        when is_binary(txhash_contract) and
               is_binary(authority_address) and is_map(contract_addresses) and is_integer(min_exit_period_seconds) and
               is_binary(contract_semver) and is_binary(network) do
-    contract_addresses = Enum.into(contract_addresses, %{}, fn {name, addr} -> {name, String.downcase(addr)} end)
+    contract_addresses =
+      Enum.into(contract_addresses, %{}, fn {name, addr} ->
+        value = encode_eip55(addr)
+        {name, value}
+      end)
+
+    authority_address_formatted = encode_eip55(authority_address)
 
     Config.Reader.merge(config,
       omg_eth: [
-        txhash_contract: String.downcase(txhash_contract),
-        authority_address: String.downcase(authority_address),
+        txhash_contract: txhash_contract,
+        authority_address: authority_address_formatted,
         contract_addr: contract_addresses,
         min_exit_period_seconds: min_exit_period_seconds,
         contract_semver: contract_semver,
@@ -209,5 +215,16 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   defp on_load() do
     {:ok, _} = Application.ensure_all_started(:logger)
     {:ok, _} = Application.ensure_all_started(:ethereumex)
+  end
+
+  defp encode_eip55(value) do
+    case value do
+      "" ->
+        ""
+
+      other ->
+        {:ok, address} = EIP55.encode(other)
+        address
+    end
   end
 end

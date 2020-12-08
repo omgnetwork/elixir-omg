@@ -291,20 +291,16 @@ defmodule OMG.State.Core do
   def extract_exiting_utxo_positions([%{utxo_pos: _} | _] = utxo_position_events, state),
     do: utxo_position_events |> Enum.map(& &1.utxo_pos) |> extract_exiting_utxo_positions(state)
 
-  # list of full exit events (from ethereum listeners)
-  def extract_exiting_utxo_positions([%{call_data: %{utxo_pos: _}} | _] = utxo_position_events, state),
-    do: utxo_position_events |> Enum.map(& &1.call_data) |> extract_exiting_utxo_positions(state)
-
   # list of utxo positions (encoded)
   def extract_exiting_utxo_positions([encoded_utxo_pos | _] = encoded_utxo_positions, %Core{})
       when is_integer(encoded_utxo_pos),
       do: Enum.map(encoded_utxo_positions, &Utxo.Position.decode!/1)
 
   # list of IFE input/output piggybacked events
-  def extract_exiting_utxo_positions([%{call_data: %{in_flight_tx: _}} | _] = start_ife_events, %Core{}) do
+  def extract_exiting_utxo_positions([%{in_flight_tx: _} | _] = start_ife_events, %Core{}) do
     _ = Logger.info("Recognized exits from IFE starts #{inspect(start_ife_events)}")
 
-    Enum.flat_map(start_ife_events, fn %{call_data: %{in_flight_tx: tx_bytes}} ->
+    Enum.flat_map(start_ife_events, fn %{in_flight_tx: tx_bytes} ->
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)

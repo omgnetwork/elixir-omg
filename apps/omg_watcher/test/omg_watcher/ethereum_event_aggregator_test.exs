@@ -28,10 +28,10 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
        ets_bucket: table,
        events: [
          [name: :deposit_created, enrich: false],
-         [name: :exit_started, enrich: true],
+         [name: :exit_started, enrich: false],
          [name: :in_flight_exit_input_piggybacked, enrich: false],
          [name: :in_flight_exit_output_piggybacked, enrich: false],
-         [name: :in_flight_exit_started, enrich: true],
+         [name: :in_flight_exit_started, enrich: false],
          [name: :in_flight_exit_deleted, enrich: false]
        ]}
     )
@@ -77,9 +77,9 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  enrich: false
                ],
                [
-                 signature: "InFlightExitStarted(address,bytes32)",
+                 signature: "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])",
                  name: :in_flight_exit_started,
-                 enrich: true
+                 enrich: false
                ],
                [
                  signature: "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
@@ -92,9 +92,9 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  enrich: false
                ],
                [
-                 signature: "ExitStarted(address,uint168)",
+                 signature: "ExitStarted(address,uint168,uint256)",
                  name: :exit_started,
-                 enrich: true
+                 enrich: false
                ],
                [
                  signature: "DepositCreated(address,uint256,address,uint256)",
@@ -109,12 +109,12 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
     } do
       assert event_fetcher_name |> :sys.get_state() |> Map.get(:event_signatures) |> Enum.sort() ==
                Enum.sort([
-                 "InFlightExitStarted(address,bytes32)",
-                 "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
-                 "InFlightExitInputPiggybacked(address,bytes32,uint16)",
-                 "ExitStarted(address,uint168)",
+                 "DepositCreated(address,uint256,address,uint256)",
+                 "ExitStarted(address,uint168,uint256)",
                  "InFlightExitDeleted(uint168)",
-                 "DepositCreated(address,uint256,address,uint256)"
+                 "InFlightExitInputPiggybacked(address,bytes32,uint16)",
+                 "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
+                 "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])"
                ])
     end
   end
@@ -259,7 +259,6 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
         to_block
         |> exit_started_log()
         |> Abi.decode_log()
-        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
       in_flight_exit_output_piggybacked_log = from_block |> in_flight_exit_output_piggybacked_log() |> Abi.decode_log()
       in_flight_exit_input_piggybacked_log = to_block |> in_flight_exit_input_piggybacked_log() |> Abi.decode_log()
@@ -339,7 +338,6 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
         to_block
         |> exit_started_log()
         |> Abi.decode_log()
-        |> Map.put(:call_data, start_standard_exit_log() |> from_hex |> Abi.decode_function())
 
       assert EthereumEventAggregator.exit_started(event_fetcher_name, from_block, to_block) == {:ok, [exit_started_log]}
 
@@ -492,15 +490,16 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
 
   def exit_started_log(block_number) do
     %{
-      :event_signature => "ExitStarted(address,uint168)",
+      :event_signature => "ExitStarted(address,uint168,uint256)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0x1bee6f75c74ceeb4817dc160e2fb56dd1337a9fc2980a2b013252cf1e620f246",
       "blockNumber" => "0x" <> Integer.to_string(block_number, 16),
-      "data" => "0x000000000000000000000037a26a7116a84365892bb31bea5819301a2ba85b34",
+      "data" =>
+        "0x000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000b",
       "logIndex" => "0x1",
       "removed" => false,
       "topics" => [
-        "0x570921d6b65091f346909e31e89c2dfb6e742cc37e36d747be92c170d29e383e",
+        "0xe0ffc2e7d623cb04e12318e11dd2c9df46dbfba8ac0c429dd49885f35785cf63",
         "0x00000000000000000000000008858124b3b880c68b360fd319cc61da27545e9a"
       ],
       "transactionHash" => "0x4a8248b88a17b2be4c6086a1984622de1a60dda3c9dd9ece1ef97ed18efa028c",

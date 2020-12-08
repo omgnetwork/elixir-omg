@@ -32,7 +32,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   require Utxo
 
   @typep available_event_type_t() :: :standard_exit | :in_flight_exit
-  @typep output_pointer_t() :: %{utxo_pos: pos_integer()} | %{txhash: Crypto.hash_t(), oindex: non_neg_integer()}
 
   @primary_key false
   schema "ethevents" do
@@ -170,28 +169,38 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     |> Paginator.set_data(paginator)
   end
 
-  @spec utxo_exit_from_exit_event(%{
-          call_data: output_pointer_t(),
-          root_chain_txhash: charlist(),
-          log_index: non_neg_integer(),
-          eth_height: pos_integer()
-        }) ::
+  @spec utxo_exit_from_exit_event(
+          %{
+            utxo_pos: non_neg_integer(),
+            root_chain_txhash: charlist(),
+            log_index: non_neg_integer(),
+            eth_height: pos_integer()
+          }
+          | %{
+              oindex: non_neg_integer(),
+              txhash: binary(),
+              root_chain_txhash: charlist(),
+              log_index: non_neg_integer(),
+              eth_height: pos_integer()
+            }
+        ) ::
           %{
             root_chain_txhash: binary(),
             log_index: non_neg_integer(),
             eth_height: pos_integer(),
             output_pointer: tuple()
           }
-  defp utxo_exit_from_exit_event(%{
-         call_data: output_pointer,
-         root_chain_txhash: root_chain_txhash,
-         log_index: log_index,
-         eth_height: eth_height
-       }) do
+  defp utxo_exit_from_exit_event(
+         %{
+           root_chain_txhash: root_chain_txhash,
+           log_index: log_index,
+           eth_height: eth_height
+         } = event
+       ) do
     %{
       root_chain_txhash: root_chain_txhash,
       log_index: log_index,
-      output_pointer: transform_output_pointer(output_pointer),
+      output_pointer: transform_output_pointer(event),
       eth_height: eth_height
     }
   end

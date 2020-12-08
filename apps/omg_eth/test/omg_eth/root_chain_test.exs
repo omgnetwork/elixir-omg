@@ -62,7 +62,7 @@ defmodule OMG.Eth.RootChainTest do
   end
 
   defp deposit_then_start_exit(owner, amount, currency) do
-    owner = Encoding.from_hex(owner)
+    owner = Encoding.from_hex(owner, :mixed)
     {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: owner, currency: currency, amount: amount)
     rlp = ExPlasma.Transaction.encode(deposit)
 

@@ -52,7 +52,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("ETHEREUM_NETWORK", "RINKEBY")
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
     authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    assert authority_address == "authority_address_value"
+    assert authority_address == "0x4e3Aeff70F022A6d4CC5947423887E7152826Cf9"
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
     assert plasma_framework == contract_addresses_value.plasma_framework
@@ -86,13 +86,15 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     plasma_framework: plasma_framework,
     contract_addresses_value: contract_addresses_value
   } do
+    authority_address = "0x4e3aeff70f022a6d4cc5947423887e7152826cf7"
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", authority_address)
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    assert authority_address == "authority_address_value"
+    found_authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
+    {:ok, eip55_address} = EIP55.encode(authority_address)
+    assert found_authority_address == eip55_address
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
     assert plasma_framework == contract_addresses_value.plasma_framework
@@ -105,34 +107,38 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     plasma_framework: plasma_framework,
     contract_addresses_value: contract_addresses_value
   } do
+    authority_address = "0x4e3aeff70f022a6d4cc5947423887e7152826cf8"
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("TXHASH_CONTRACT", "Txhash_contract_value")
-    :ok = System.put_env("AUTHORITY_ADDRESS", "Authority_address_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", authority_address)
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    assert authority_address == "authority_address_value"
+    found_authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
+    {:ok, eip55_address} = EIP55.encode(authority_address)
+    assert found_authority_address == eip55_address
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
     assert plasma_framework == contract_addresses_value.plasma_framework
 
     txhash_contract_value = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:txhash_contract)
-    assert txhash_contract_value == "txhash_contract_value"
+    assert txhash_contract_value == "Txhash_contract_value"
   end
 
   test "contract details from env for localchain", %{
     plasma_framework: plasma_framework,
     contract_addresses_value: contract_addresses_value
   } do
+    authority_address = "0x4e3aeff70f022a6d4cc5947423887e7152826cf9"
     :ok = System.put_env("ETHEREUM_NETWORK", "localchain")
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", authority_address)
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
-    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    assert authority_address == "authority_address_value"
+    found_authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
+    {:ok, eip55_address} = EIP55.encode(authority_address)
+    assert found_authority_address == eip55_address
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
     assert plasma_framework == contract_addresses_value.plasma_framework
@@ -146,7 +152,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   } do
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", "0x4e3aeff70f022a6d4cc5947423887e7152826cf1")
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
@@ -158,17 +164,19 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     plasma_framework: plasma_framework,
     contract_addresses_value: contract_addresses_value
   } do
+    authority_address = "0x4e3aeff70f022a6d4cc5947423887e7152826cf5"
     :ok = System.put_env("ETHEREUM_NETWORK", "rinkeby")
     :ok = System.put_env("TXHASH_CONTRACT", "txhash_contract_value")
-    :ok = System.put_env("AUTHORITY_ADDRESS", "authority_address_value")
+    :ok = System.put_env("AUTHORITY_ADDRESS", authority_address)
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
 
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
     min_exit_period_seconds = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:min_exit_period_seconds)
     assert min_exit_period_seconds == 20
 
-    authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    assert authority_address == "authority_address_value"
+    found_authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
+    {:ok, eip55_address} = EIP55.encode(authority_address)
+    assert found_authority_address == eip55_address
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
     assert plasma_framework == contract_addresses_value.plasma_framework
@@ -222,10 +230,12 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   defp handle(conn) do
     plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
 
+    {:ok, authority_address} = EIP55.encode("0x4e3aeff70f022a6d4cc5947423887e7152826cf9")
+
     exchanger_body = %{
       plasma_framework_tx_hash: "txhash_contract_value",
       plasma_framework: nil,
-      authority_address: "authority_address_value"
+      authority_address: authority_address
     }
 
     body = exchanger_body |> Map.put(:plasma_framework, plasma_framework) |> Jason.encode!()

@@ -375,15 +375,16 @@ defmodule OMG.Eth.RootChain.AbiTest do
 
   test "if in flight exit started can be decoded" do
     in_flight_exit_started_log = %{
-      :event_signature => "InFlightExitStarted(address,bytes32)",
+      :event_signature => "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0xc8d61620144825f38394feb2c9c1d721a161ed67c123c3cb1af787fb366866c1",
       "blockNumber" => "0x2d6",
-      "data" => "0x",
+      "data" =>
+        "0x000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000368657900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000b00000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000047465737400000000000000000000000000000000000000000000000000000000",
       "logIndex" => "0x0",
       "removed" => false,
       "topics" => [
-        "0xd5f1fe9d48880b57daa227004b16d320c0eb885d6c49d472d54c16a05fa3179e",
+        "0x254a634e2edb606f4eb11675bef950159020723005e1c1c60a4199c68640d7c2",
         "0x0000000000000000000000002c6a9f42318025cd6627baf21c468201622020df",
         "0x4f46053b5df585094cc652ddd8c365962a3889c2053592f18331b95a7dff620e"
       ],
@@ -393,7 +394,7 @@ defmodule OMG.Eth.RootChain.AbiTest do
 
     assert Abi.decode_log(in_flight_exit_started_log) == %{
              eth_height: 726,
-             event_signature: "InFlightExitStarted(address,bytes32)",
+             event_signature: "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])",
              initiator: <<44, 106, 159, 66, 49, 128, 37, 205, 102, 39, 186, 242, 28, 70, 130, 1, 98, 32, 32, 223>>,
              log_index: 0,
              root_chain_txhash:
@@ -401,7 +402,10 @@ defmodule OMG.Eth.RootChain.AbiTest do
                  116, 18, 181, 234, 13, 252, 178, 241, 161, 51>>,
              tx_hash:
                <<79, 70, 5, 59, 93, 245, 133, 9, 76, 198, 82, 221, 216, 195, 101, 150, 42, 56, 137, 194, 5, 53, 146,
-                 241, 131, 49, 185, 90, 125, 255, 98, 14>>
+                 241, 131, 49, 185, 90, 125, 255, 98, 14>>,
+             in_flight_tx: "hey",
+             in_flight_tx_witnesses: ["test"],
+             input_utxos_pos: [11, 22]
            }
   end
 
@@ -535,15 +539,16 @@ defmodule OMG.Eth.RootChain.AbiTest do
 
   test "if exit started can be decoded" do
     exit_started_log = %{
-      :event_signature => "ExitStarted(address,uint168)",
+      :event_signature => "ExitStarted(address,uint168,uint256)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0x1bee6f75c74ceeb4817dc160e2fb56dd1337a9fc2980a2b013252cf1e620f246",
-      "blockNumber" => "0x2f7",
-      "data" => "0x000000000000000000000037a26a7116a84365892bb31bea5819301a2ba85b34",
+      "blockNumber" => "0x" <> Integer.to_string(726, 16),
+      "data" =>
+        "0x000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000b",
       "logIndex" => "0x1",
       "removed" => false,
       "topics" => [
-        "0x570921d6b65091f346909e31e89c2dfb6e742cc37e36d747be92c170d29e383e",
+        "0xe0ffc2e7d623cb04e12318e11dd2c9df46dbfba8ac0c429dd49885f35785cf63",
         "0x00000000000000000000000008858124b3b880c68b360fd319cc61da27545e9a"
       ],
       "transactionHash" => "0x4a8248b88a17b2be4c6086a1984622de1a60dda3c9dd9ece1ef97ed18efa028c",
@@ -551,14 +556,15 @@ defmodule OMG.Eth.RootChain.AbiTest do
     }
 
     assert Abi.decode_log(exit_started_log) == %{
-             eth_height: 759,
-             event_signature: "ExitStarted(address,uint168)",
-             exit_id: 81_309_820_288_462_349_357_922_495_476_773_313_169_175_330_970_420,
+             eth_height: 726,
+             event_signature: "ExitStarted(address,uint168,uint256)",
              log_index: 1,
-             owner: <<8, 133, 129, 36, 179, 184, 128, 198, 139, 54, 15, 211, 25, 204, 97, 218, 39, 84, 94, 154>>,
              root_chain_txhash:
                <<74, 130, 72, 184, 138, 23, 178, 190, 76, 96, 134, 161, 152, 70, 34, 222, 26, 96, 221, 163, 201, 221,
-                 158, 206, 30, 249, 126, 209, 142, 250, 2, 140>>
+                 158, 206, 30, 249, 126, 209, 142, 250, 2, 140>>,
+             exit_id: 10,
+             owner: <<8, 133, 129, 36, 179, 184, 128, 198, 139, 54, 15, 211, 25, 204, 97, 218, 39, 84, 94, 154>>,
+             utxo_pos: 11
            }
   end
 

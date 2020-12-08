@@ -1,0 +1,4 @@
+%{
+  "eip_55": {:hex, :eip_55, "0.1.0", "ca0b4bb4276ab58787144a2f5d9d62abc58708be78b58ff51d8a9b9165088a74", [:mix], [{:ex_sha3, "~> 0.1", [hex: :ex_sha3, repo: "hexpm", optional: false]}], "hexpm", "6613ba20070ecec70e42c525151b8ac7645b0e83ea42fa47231d3b4de772d916"},
+  "ex_sha3": {:hex, :ex_sha3, "0.1.1", "8972638de7ded220cb885d6a8889c0df9da0d581d25c3b1b94a85a226b6fe874", [:mix], [], "hexpm", "3c0da4d7ca4c31dd1c7c4077b394f1fe113fbcdd8ae597683896570dcdb06841"},
+}

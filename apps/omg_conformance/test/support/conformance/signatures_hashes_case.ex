@@ -44,6 +44,6 @@ defmodule Support.Conformance.SignaturesHashesCase do
       exit_fn.()
     end)
 
-    [contract: OMG.Eth.Encoding.from_hex(signtest_addr_hex)]
+    [contract: OMG.Eth.Encoding.from_hex(signtest_addr_hex, :mixed)]
   end
 end
