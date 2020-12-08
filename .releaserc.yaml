@@ -16,3 +16,9 @@ plugins:
 - '@semantic-release/github'
 tagFormat: 'v${version}'
 dryRun: true
+# observing that job would not be running as it was considered as from PR branch
+# looks that unfortunately that is how it is designed:
+# https://github.com/semantic-release/semantic-release/issues/1166#issuecomment-500094323
+# this workaround is from:
+# https://github.com/semantic-release/semantic-release/issues/1074#issuecomment-696922883
+ci: false
