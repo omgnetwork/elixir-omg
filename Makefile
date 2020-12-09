@@ -202,9 +202,7 @@ init-contracts: clean-contracts
 	ERC20_VAULT=$$ERC20_VAULT PAYMENT_EXIT_GAME=$$PAYMENT_EXIT_GAME \
 	PLASMA_FRAMEWORK_TX_HASH=$$PLASMA_FRAMEWORK_TX_HASH PLASMA_FRAMEWORK=$$PLASMA_FRAMEWORK \
 	PAYMENT_EIP712_LIBMOCK=$$PAYMENT_EIP712_LIBMOCK MERKLE_WRAPPER=$$MERKLE_WRAPPER ERC20_MINTABLE=$$ERC20_MINTABLE \
-	sh ../bin/generate-localchain-env && \
-	cd ../bin/eip55_normalizer && \
-        mix deps.get && mix run -e "Eip55Normalizer.run()" ../../localchain_contract_addresses.env
+	sh ../bin/generate-localchain-env
 
 
 init-contracts-reorg: clean-contracts
