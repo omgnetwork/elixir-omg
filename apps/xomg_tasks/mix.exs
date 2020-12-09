@@ -7,9 +7,15 @@ defmodule OMG.XomgTasks.MixProject do
   use Mix.Project
 
   def project() do
+    version = "git"
+      |> System.cmd(["describe", "--tags", "--abbrev=0"])
+      |> elem(0)
+      |> String.replace("v", "")
+      |> String.replace("\n", "")
+
     [
       app: :xomg_tasks,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version,
       build_path: "../../_build",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",

@@ -4,9 +4,15 @@ defmodule OMG.Eth.MixProject do
   require Logger
 
   def project() do
+    version = "git"
+      |> System.cmd(["describe", "--tags", "--abbrev=0"])
+      |> elem(0)
+      |> String.replace("v", "")
+      |> String.replace("\n", "")
+
     [
       app: :omg_eth,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version,
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
