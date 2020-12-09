@@ -2,7 +2,8 @@ defmodule Utils.MixProject do
   use Mix.Project
 
   def project() do
-    version = "git"
+    version =
+      "git"
       |> System.cmd(["describe", "--tags", "--abbrev=0"])
       |> elem(0)
       |> String.replace("v", "")
