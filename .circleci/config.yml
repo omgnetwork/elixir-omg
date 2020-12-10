@@ -882,7 +882,7 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     environment:
-      WATCHER_IMAGE_NAME: "omisego/watcher"
+      WATCHER_IMAGE_NAME: "omisego/watcher-v2"
     steps:
       - checkout
       - run: make docker-watcher WATCHER_IMAGE_NAME=$WATCHER_IMAGE_NAME
@@ -910,7 +910,7 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     environment:
-      WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info"
+      WATCHER_INFO_IMAGE_NAME: "omisego/watcher_info-v2"
     steps:
       - checkout
       - run: make docker-watcher_info WATCHER_INFO_IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME
