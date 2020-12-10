@@ -84,7 +84,11 @@ defmodule OMG.Eth.RootChain.Fields do
     contracts_naming = [
       {"challenger", :challenger},
       {"challengeTxPosition", :competitor_position},
-      {"txHash", :tx_hash}
+      {"txHash", :tx_hash},
+      {"inFlightTxInputIndex", :in_flight_tx_input_index},
+      {"challengeTx", :challenge_tx},
+      {"challengeTxInputIndex", :challenge_tx_input_index},
+      {"challengeTxWitness", :challenge_tx_witness}
     ]
 
     reduce_naming(data, contracts_naming)

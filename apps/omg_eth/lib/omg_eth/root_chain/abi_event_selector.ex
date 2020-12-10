@@ -68,12 +68,20 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
   def in_flight_exit_challenged() do
     %ABI.FunctionSelector{
       function: "InFlightExitChallenged",
-      input_names: ["challenger", "txHash", "challengeTxPosition"],
-      inputs_indexed: [true, true, false],
-      method_id: <<104, 116, 1, 150>>,
+      input_names: [
+        "challenger",
+        "txHash",
+        "challengeTxPosition",
+        "inFlightTxInputIndex",
+        "challengeTx",
+        "challengeTxInputIndex",
+        "challengeTxWitness"
+      ],
+      inputs_indexed: [true, true, false, false, false, false, false],
+      method_id: <<141, 128, 235, 79>>,
       returns: [],
       type: :event,
-      types: [:address, {:bytes, 32}, {:uint, 256}]
+      types: [:address, {:bytes, 32}, {:uint, 256}, {:uint, 16}, :bytes, {:uint, 16}, :bytes]
     }
   end
 

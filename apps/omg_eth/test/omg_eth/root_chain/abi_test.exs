@@ -182,15 +182,16 @@ defmodule OMG.Eth.RootChain.AbiTest do
 
   test "if in flight exit challanged can be decoded" do
     in_flight_exit_challanged_log = %{
-      :event_signature => "InFlightExitChallenged(address,bytes32,uint256)",
+      :event_signature => "InFlightExitChallenged(address,bytes32,uint256,uint16,bytes,uint16,bytes)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0xcfffb9645dc8d73acc4c825b67ba62924c62402cc125564b655f469e0adeef32",
       "blockNumber" => "0x196",
-      "data" => "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "data" =>
+        "0x000000000000000000000000000000000000000000000000000000000000000b000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000003686579000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000036865790000000000000000000000000000000000000000000000000000000000",
       "logIndex" => "0x0",
       "removed" => false,
       "topics" => [
-        "0x687401968e501bda2d2d6f880dd1a0a56ff50b1787185ee0b6f4c3fb9fc417ab",
+        "0x8d80eb4f245f436d007299a3a1ba7abf25588af9cdcf918b697a8b6455272d58",
         "0x0000000000000000000000007ae8190d9968cbb3b52e56a56b2cd4cd5e15a44f",
         "0x7532528ec22439a9a1ed5f4fce6cd66d71625add6202cefb970c10d04f2d5091"
       ],
@@ -200,17 +201,20 @@ defmodule OMG.Eth.RootChain.AbiTest do
 
     assert Abi.decode_log(in_flight_exit_challanged_log) == %{
              challenger: <<122, 232, 25, 13, 153, 104, 203, 179, 181, 46, 86, 165, 107, 44, 212, 205, 94, 21, 164, 79>>,
-             competitor_position:
-               115_792_089_237_316_195_423_570_985_008_687_907_853_269_984_665_640_564_039_457_584_007_913_129_639_935,
+             competitor_position: 11,
              eth_height: 406,
-             event_signature: "InFlightExitChallenged(address,bytes32,uint256)",
+             event_signature: "InFlightExitChallenged(address,bytes32,uint256,uint16,bytes,uint16,bytes)",
              log_index: 0,
              root_chain_txhash:
                <<217, 227, 179, 170, 255, 129, 86, 218, 184, 176, 4, 136, 45, 59, 206, 131, 75, 168, 66, 201, 93, 239,
                  247, 236, 151, 218, 143, 148, 47, 135, 10, 180>>,
              tx_hash:
                <<117, 50, 82, 142, 194, 36, 57, 169, 161, 237, 95, 79, 206, 108, 214, 109, 113, 98, 90, 221, 98, 2, 206,
-                 251, 151, 12, 16, 208, 79, 45, 80, 145>>
+                 251, 151, 12, 16, 208, 79, 45, 80, 145>>,
+             challenge_tx: "hey",
+             challenge_tx_input_index: 12,
+             challenge_tx_witness: "hey",
+             in_flight_tx_input_index: 10
            }
   end
 
