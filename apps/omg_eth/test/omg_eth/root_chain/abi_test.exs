@@ -213,7 +213,7 @@ defmodule OMG.Eth.RootChain.AbiTest do
                  251, 151, 12, 16, 208, 79, 45, 80, 145>>,
              challenge_tx: "hey",
              challenge_tx_input_index: 12,
-             challenge_tx_witness: "hey",
+             challenge_tx_sig: "hey",
              in_flight_tx_input_index: 10
            }
   end
@@ -408,7 +408,7 @@ defmodule OMG.Eth.RootChain.AbiTest do
                <<79, 70, 5, 59, 93, 245, 133, 9, 76, 198, 82, 221, 216, 195, 101, 150, 42, 56, 137, 194, 5, 53, 146,
                  241, 131, 49, 185, 90, 125, 255, 98, 14>>,
              in_flight_tx: "hey",
-             in_flight_tx_witnesses: ["test"],
+             in_flight_tx_sigs: ["test"],
              input_utxos_pos: [11, 22]
            }
   end

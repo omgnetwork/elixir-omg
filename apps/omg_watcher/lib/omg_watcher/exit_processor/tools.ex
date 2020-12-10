@@ -94,7 +94,6 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   """
   @spec to_bus_events_data(list(eth_event_with_exiting_positions_t())) ::
           list(%{
-            call_data: map(),
             root_chain_txhash: charlist(),
             log_index: non_neg_integer(),
             eth_height: pos_integer()
@@ -115,7 +114,7 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
     utxo_positions
     |> Enum.map(
       &%{
-        call_data: %{utxo_pos: utxo_pos_transform.(&1)},
+        utxo_pos: utxo_pos_transform.(&1),
         root_chain_txhash: root_chain_txhash,
         eth_height: eth_height,
         log_index: log_index

@@ -88,7 +88,7 @@ defmodule OMG.Eth.RootChain.Fields do
       {"inFlightTxInputIndex", :in_flight_tx_input_index},
       {"challengeTx", :challenge_tx},
       {"challengeTxInputIndex", :challenge_tx_input_index},
-      {"challengeTxWitness", :challenge_tx_witness}
+      {"challengeTxWitness", :challenge_tx_sig}
     ]
 
     reduce_naming(data, contracts_naming)
@@ -148,7 +148,7 @@ defmodule OMG.Eth.RootChain.Fields do
       {"tx_hash", :tx_hash},
       {"in_flight_tx", :in_flight_tx},
       {"input_utxos_pos", :input_utxos_pos},
-      {"in_flight_tx_witnesses", :in_flight_tx_witnesses}
+      {"in_flight_tx_witnesses", :in_flight_tx_sigs}
     ]
 
     reduce_naming(data, contracts_naming)

@@ -63,7 +63,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
         contract_status,
         %{
           eth_height: eth_height,
-          call_data: %{output_tx: txbytes},
+          output_tx: txbytes,
           exit_id: exit_id,
           root_chain_txhash: root_chain_txhash,
           scheduled_finalization_time: scheduled_finalization_time,
@@ -91,7 +91,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   def new_key(_contract_status, exit_info),
     do: utxo_pos_for(exit_info)
 
-  defp utxo_pos_for(%{call_data: %{utxo_pos: utxo_pos_enc}} = _exit_info),
+  defp utxo_pos_for(%{utxo_pos: utxo_pos_enc} = _exit_info),
     do: Utxo.Position.decode!(utxo_pos_enc)
 
   @spec do_new(map(), list(keyword())) :: t()

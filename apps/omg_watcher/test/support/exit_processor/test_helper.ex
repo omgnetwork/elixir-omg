@@ -46,10 +46,8 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     scheduled_finalization_time = block_timestamp + 100
 
     event = %{
-      call_data: %{
-        utxo_pos: enc_pos,
-        output_tx: txbytes
-      },
+      utxo_pos: enc_pos,
+      output_tx: txbytes,
       owner: owner,
       eth_height: eth_height,
       exit_id: exit_id,
@@ -106,12 +104,10 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     %{
-      call_data: %{
-        in_flight_tx: Transaction.raw_txbytes(tx),
-        input_txs: input_txs,
-        input_utxos_pos: input_utxos_pos,
-        in_flight_tx_sigs: sigs
-      },
+      in_flight_tx: Transaction.raw_txbytes(tx),
+      input_txs: input_txs,
+      input_utxos_pos: input_utxos_pos,
+      in_flight_tx_sigs: sigs,
       eth_height: eth_height
     }
   end
@@ -130,11 +126,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     %{
       tx_hash: Transaction.raw_txhash(tx),
       competitor_position: competitor_position,
-      call_data: %{
-        competing_tx: txbytes(comp),
-        competing_tx_input_index: Keyword.get(opts, :competing_tx_input_index, 0),
-        competing_tx_sig: Keyword.get(opts, :competing_tx_sig, sig(comp))
-      }
+      competing_tx: txbytes(comp),
+      competing_tx_input_index: Keyword.get(opts, :competing_tx_input_index, 0),
+      competing_tx_sig: Keyword.get(opts, :competing_tx_sig, sig(comp))
     }
   end
 

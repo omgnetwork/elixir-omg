@@ -72,7 +72,7 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
     {tx_hash, struct!(__MODULE__, competitor_map)}
   end
 
-  def new(%{call_data: %{competing_tx: tx_bytes, competing_tx_input_index: index, competing_tx_sig: sig}}),
+  def new(%{competing_tx: tx_bytes, competing_tx_input_index: index, competing_tx_sig: sig}),
     do: do_new(tx_bytes, index, sig)
 
   defp do_new(tx_bytes, competing_input_index, competing_input_signature) do

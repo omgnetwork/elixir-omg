@@ -47,7 +47,7 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
       utxo_pos = Utxo.Position.encode(utxo_1)
 
       assert [
-               %{log_index: 1, root_chain_txhash: <<1::256>>, call_data: %{utxo_pos: ^utxo_pos}}
+               %{log_index: 1, root_chain_txhash: <<1::256>>, utxo_pos: ^utxo_pos}
              ] = Tools.to_bus_events_data([{f1, [utxo_1]}])
     end
 
@@ -56,9 +56,9 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
       [utxo_pos_1, utxo_pos_2, utxo_pos_3 | _] = Enum.map(utxos, &Utxo.Position.encode/1)
 
       assert [
-               %{log_index: 2, root_chain_txhash: <<2::256>>, eth_height: 2, call_data: %{utxo_pos: ^utxo_pos_2}},
-               %{log_index: 2, root_chain_txhash: <<2::256>>, eth_height: 2, call_data: %{utxo_pos: ^utxo_pos_3}},
-               %{log_index: 1, root_chain_txhash: <<1::256>>, eth_height: 1, call_data: %{utxo_pos: ^utxo_pos_1}}
+               %{log_index: 2, root_chain_txhash: <<2::256>>, eth_height: 2, utxo_pos: ^utxo_pos_2},
+               %{log_index: 2, root_chain_txhash: <<2::256>>, eth_height: 2, utxo_pos: ^utxo_pos_3},
+               %{log_index: 1, root_chain_txhash: <<1::256>>, eth_height: 1, utxo_pos: ^utxo_pos_1}
              ] = Tools.to_bus_events_data([{f1, [utxo_1]}, {f2, [utxo_2, utxo_3]}])
     end
 
@@ -67,7 +67,7 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
       utxo_pos = Utxo.Position.encode(utxo_1)
 
       assert [
-               %{log_index: 2, root_chain_txhash: <<2::256>>, call_data: %{utxo_pos: ^utxo_pos}}
+               %{log_index: 2, root_chain_txhash: <<2::256>>, utxo_pos: ^utxo_pos}
              ] = Tools.to_bus_events_data([{f1, []}, {f2, [utxo_1]}])
     end
 
@@ -88,9 +88,9 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
       ]
 
       assert [
-               %{log_index: 2, root_chain_txhash: <<12::256>>, eth_height: 111, call_data: %{utxo_pos: ^utxo_pos_3}},
-               %{log_index: 1, root_chain_txhash: <<11::256>>, eth_height: 110, call_data: %{utxo_pos: ^utxo_pos_1}},
-               %{log_index: 1, root_chain_txhash: <<11::256>>, eth_height: 110, call_data: %{utxo_pos: ^utxo_pos_2}}
+               %{log_index: 2, root_chain_txhash: <<12::256>>, eth_height: 111, utxo_pos: ^utxo_pos_3},
+               %{log_index: 1, root_chain_txhash: <<11::256>>, eth_height: 110, utxo_pos: ^utxo_pos_1},
+               %{log_index: 1, root_chain_txhash: <<11::256>>, eth_height: 110, utxo_pos: ^utxo_pos_2}
              ] = Tools.to_bus_events_data(events_with_utxos)
     end
 
