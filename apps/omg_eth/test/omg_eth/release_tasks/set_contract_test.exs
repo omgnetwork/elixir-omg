@@ -16,6 +16,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   use ExUnit.Case, async: true
 
   alias OMG.Eth.ReleaseTasks.SetContract
+  alias OMG.Eth.ReleaseTasks.SetContract.EIP55
 
   setup_all do
     plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
@@ -93,7 +94,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     :ok = System.put_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK", plasma_framework)
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
     found_authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    {:ok, eip55_address} = EIP55.encode(authority_address)
+    eip55_address = EIP55.encode!(authority_address)
     assert found_authority_address == eip55_address
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
@@ -115,7 +116,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
 
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
     found_authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    {:ok, eip55_address} = EIP55.encode(authority_address)
+    eip55_address = EIP55.encode!(authority_address)
     assert found_authority_address == eip55_address
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
@@ -137,7 +138,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
 
     config = SetContract.load([], rpc_api: __MODULE__.Rpc)
     found_authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    {:ok, eip55_address} = EIP55.encode(authority_address)
+    eip55_address = EIP55.encode!(authority_address)
     assert found_authority_address == eip55_address
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
@@ -175,7 +176,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
     assert min_exit_period_seconds == 20
 
     found_authority_address = config |> Keyword.fetch!(:omg_eth) |> Keyword.fetch!(:authority_address)
-    {:ok, eip55_address} = EIP55.encode(authority_address)
+    eip55_address = EIP55.encode!(authority_address)
     assert found_authority_address == eip55_address
 
     plasma_framework = config |> Keyword.get(:omg_eth) |> Keyword.fetch!(:contract_addr) |> Map.get(:plasma_framework)
@@ -230,7 +231,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContractTest do
   defp handle(conn) do
     plasma_framework = Support.SnapshotContracts.parse_contracts()["CONTRACT_ADDRESS_PLASMA_FRAMEWORK"]
 
-    {:ok, authority_address} = EIP55.encode("0x4e3aeff70f022a6d4cc5947423887e7152826cf9")
+    authority_address = EIP55.encode!("0x4e3aeff70f022a6d4cc5947423887e7152826cf9")
 
     exchanger_body = %{
       plasma_framework_tx_hash: "txhash_contract_value",

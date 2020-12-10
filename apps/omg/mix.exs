@@ -36,7 +36,6 @@ defmodule OMG.MixProject do
       {:ex_rlp, "~> 0.5.3"},
       {:merkle_tree, "~> 2.0.0"},
       {:telemetry, "~> 0.4.1"},
-      {:eip_55, "~> 0.1"},
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
       {:omg_db, in_umbrella: true},

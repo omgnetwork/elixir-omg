@@ -18,6 +18,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
   require Logger
 
   alias OMG.Eth.Encoding
+  alias OMG.Eth.ReleaseTasks.SetContract.EIP55
   alias OMG.Eth.RootChain.Abi
   alias OMG.Eth.RootChain.Rpc
 
@@ -223,8 +224,7 @@ defmodule OMG.Eth.ReleaseTasks.SetContract do
         ""
 
       other ->
-        {:ok, address} = EIP55.encode(other)
-        address
+        EIP55.encode!(other)
     end
   end
 end
