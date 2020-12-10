@@ -166,7 +166,10 @@ defmodule OMG.Umbrella.MixProject do
   defp docker(), do: if(System.get_env("DOCKER"), do: "_docker", else: "")
 
   defp current_version() do
-    String.replace(elem(System.cmd("git", ["describe", "--tags"]), 0), "\n", "")
+    "git"
+    |> System.cmd(["describe", "--tags"])
+    |> elem(0)
+    |> String.replace("\n", "")
   end
 
   defp steps() do
