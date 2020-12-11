@@ -292,14 +292,14 @@ docker-watcher_info-prod:
 
 docker-watcher-build:
 	docker build -f Dockerfile.watcher \
-		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
+		--build-arg release_version=$$(git describe --tags) \
 		--cache-from $(WATCHER_IMAGE_NAME) \
 		-t $(WATCHER_IMAGE_NAME) \
 		.
 
 docker-watcher_info-build:
 	docker build -f Dockerfile.watcher_info \
-		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
+		--build-arg release_version=$$(git describe --tags) \
 		--cache-from $(WATCHER_INFO_IMAGE_NAME) \
 		-t $(WATCHER_INFO_IMAGE_NAME) \
 		.

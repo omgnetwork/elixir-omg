@@ -4,7 +4,7 @@ defmodule OMG.Status.Mixfile do
   def project() do
     [
       app: :omg_status,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -29,6 +29,14 @@ defmodule OMG.Status.Mixfile do
       extra_applications: [:logger, :sasl, :os_mon, :statix, :telemetry],
       included_applications: [:vmstats]
     ]
+  end
+
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
   end
 
   defp deps(),
