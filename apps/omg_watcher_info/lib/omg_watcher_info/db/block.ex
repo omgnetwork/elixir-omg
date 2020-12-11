@@ -155,24 +155,18 @@ defmodule OMG.WatcherInfo.DB.Block do
   Takes a pending block, decode its data and inserts its content in the database.
   """
   # sobelow_skip ["Misc.BinToTerm"]
-  @spec insert_from_pending_block(PendingBlock.t()) :: {:ok, %__MODULE__{}} | {:error, any()}
+  @spec insert_from_block_application(map()) :: {:ok, %__MODULE__{}} | {:error, binary(), Ecto.Changeset.t(), any()}
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
-  def insert_from_pending_block(pending_block) do
-    %{
-      transactions: transactions,
-      blknum: block_number,
-      blkhash: blkhash,
-      timestamp: timestamp,
-      eth_height: eth_height
-    } = :erlang.binary_to_term(pending_block.data)
+  def insert_from_block_application(block_application) do
+    %{number: block_number, transactions: transactions} = block_application
 
     {db_txs, db_outputs, db_inputs} = prepare_db_transactions(transactions, block_number)
 
     current_block = %{
       blknum: block_number,
-      hash: blkhash,
-      timestamp: timestamp,
-      eth_height: eth_height
+      hash: block_application.hash,
+      timestamp: block_application.timestamp,
+      eth_height: block_application.eth_height
     }
 
     db_txs_stream = Chunk.chunk(db_txs)
@@ -184,7 +178,6 @@ defmodule OMG.WatcherInfo.DB.Block do
       |> prepare_inserts(db_txs_stream, "db_txs_", DB.Transaction)
       |> prepare_inserts(db_outputs_stream, "db_outputs_", DB.TxOutput)
       |> DB.TxOutput.spend_utxos(db_inputs)
-      |> Ecto.Multi.delete("pending_block", pending_block, [])
 
     {insert_duration, result} = :timer.tc(DB.Repo, :transaction, [multi])
 

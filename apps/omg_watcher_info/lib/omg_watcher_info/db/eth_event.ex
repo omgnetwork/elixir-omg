@@ -213,16 +213,14 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           available_event_type_t(),
           boolean()
         ) :: :ok | :noop
-  defp insert_exit!(
-         %{
-           root_chain_txhash: root_chain_txhash,
-           log_index: log_index,
-           eth_height: eth_height,
-           output_pointer: output_pointer
-         },
-         event_type,
-         ensure_output
-       ) do
+  defp insert_exit!(event, event_type, ensure_output) do
+    %{
+      root_chain_txhash: root_chain_txhash,
+      log_index: log_index,
+      eth_height: eth_height,
+      output_pointer: output_pointer
+    } = event
+
     root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
 
     ethevent =

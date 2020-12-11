@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO: delete me
 defmodule OMG.WatcherInfo.PendingBlockProcessor do
   @moduledoc """
   This module is in charge of processing the queue of pending blocks that are waiting to

@@ -23,12 +23,16 @@ defmodule OMG.WatcherInfo.BlockApplicatorTest do
   import Ecto.Query, only: [where: 2]
 
   setup do
+    eth = OMG.Eth.zero_address()
+    alice = OMG.TestHelper.generate_entity()
+    tx = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{alice, 100}])
+
     block_application = %BlockApplication{
       number: 1_000,
       eth_height: 1,
       eth_height_done: true,
       hash: "0x1000",
-      transactions: [],
+      transactions: [tx],
       timestamp: 1_576_500_000
     }
 
@@ -40,16 +44,7 @@ defmodule OMG.WatcherInfo.BlockApplicatorTest do
     test "inserts the given block application into pending block", %{block_application: block_application} do
       assert :ok = BlockApplicator.insert_block!(block_application)
 
-      expected_data =
-        :erlang.term_to_binary(%{
-          eth_height: block_application.eth_height,
-          blknum: block_application.number,
-          blkhash: block_application.hash,
-          timestamp: block_application.timestamp,
-          transactions: block_application.transactions
-        })
-
-      assert [%DB.PendingBlock{blknum: 1_000, data: ^expected_data}] = DB.Repo.all(DB.PendingBlock)
+      assert [%DB.Block{blknum: 1_000}] = DB.Repo.all(DB.Block)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -58,7 +53,7 @@ defmodule OMG.WatcherInfo.BlockApplicatorTest do
       :ok = BlockApplicator.insert_block!(block_application)
 
       assert :ok = BlockApplicator.insert_block!(block_application)
-      assert %DB.PendingBlock{blknum: ^blknum} = DB.PendingBlock |> where(blknum: ^blknum) |> DB.Repo.one()
+      assert %DB.Block{blknum: ^blknum} = DB.Block |> where(blknum: ^blknum) |> DB.Repo.one()
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

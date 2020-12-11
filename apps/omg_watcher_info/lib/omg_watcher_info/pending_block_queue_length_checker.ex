@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO: delete me
 defmodule OMG.WatcherInfo.PendingBlockQueueLengthChecker do
   @moduledoc """
   Periodically checks the size of the pending block queue and reports it to telemetry.

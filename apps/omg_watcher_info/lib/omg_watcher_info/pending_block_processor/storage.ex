@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO: Delete me
 defmodule OMG.WatcherInfo.PendingBlockProcessor.Storage do
   @moduledoc """
   Contains storage related functions of the PendingBlockProcessor
@@ -27,6 +28,6 @@ defmodule OMG.WatcherInfo.PendingBlockProcessor.Storage do
 
   @spec process_block(PendingBlock.t()) :: {:ok, %Block{}} | {:error, any()}
   def process_block(block) do
-    Block.insert_from_pending_block(block)
+    # Block.insert_from_pending_block(block)
   end
 end

@@ -25,32 +25,16 @@ defmodule OMG.WatcherInfo.BlockApplicator do
   @spec insert_block!(OMG.Watcher.BlockGetter.BlockApplication.t()) :: :ok
   def insert_block!(block) do
     block
-    |> to_pending_block()
-    |> DB.PendingBlock.insert()
+    |> DB.Block.insert_from_block_application()
     |> case do
       {:ok, _} ->
         :ok
 
       # Ensures insert idempotency. Trying to add block with the same `blknum` that already exists takes no effect.
       # See also [comment](https://github.com/omgnetwork/elixir-omg/pull/1769#discussion_r528700434)
-      {:error, changeset} ->
+      {:error, "current_block", changeset, _explain} ->
         [{:blknum, {_msg, [constraint: :unique, constraint_name: _name]}}] = changeset.errors()
         :ok
     end
-  end
-
-  defp to_pending_block(block) do
-    data = %{
-      eth_height: block.eth_height,
-      blknum: block.number,
-      blkhash: block.hash,
-      timestamp: block.timestamp,
-      transactions: block.transactions
-    }
-
-    %{
-      data: :erlang.term_to_binary(data),
-      blknum: block.number
-    }
   end
 end
