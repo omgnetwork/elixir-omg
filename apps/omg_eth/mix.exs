@@ -4,16 +4,9 @@ defmodule OMG.Eth.MixProject do
   require Logger
 
   def project() do
-    version =
-      "git"
-      |> System.cmd(["describe", "--tags", "--abbrev=0"])
-      |> elem(0)
-      |> String.replace("v", "")
-      |> String.replace("\n", "")
-
     [
       app: :omg_eth,
-      version: version,
+      version: version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -32,6 +25,14 @@ defmodule OMG.Eth.MixProject do
       start_phases: [{:attach_telemetry, []}],
       extra_applications: [:sasl, :logger, :ex_plasma, :ex_rlp]
     ]
+  end
+
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
   end
 
   # Specifies which paths to compile per environment.
