@@ -146,7 +146,7 @@ defmodule OMG.EthereumEventListener do
 
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
-        :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(state), state.service_name)
+        :ok = RootChainCoordinator.check_in(state.synced_height, state.service_name)
         {:ok, _} = schedule_get_events(state.ethereum_events_check_interval_ms)
         {:noreply, {state, callbacks}}
 
@@ -158,31 +158,32 @@ defmodule OMG.EthereumEventListener do
   end
 
   # see `handle_info/2`, clause for `:sync`
-  @decorate span(service: :ethereum_event_listener, type: :backend, name: "sync_height/2")
+  @decorate span(service: :ethereum_event_listener, type: :backend, name: "sync_height/3")
   defp sync_height(state, callbacks, sync_guide) do
-    {:ok, events, db_updates, height_to_check_in, new_state} =
-      Core.get_events_range_for_download(state, sync_guide)
-      |> maybe_update_event_cache(callbacks.get_ethereum_events_callback)
-      |> Core.get_events(sync_guide.sync_height)
+    {events, new_state} =
+      state
+      |> Core.calc_events_range_set_height(sync_guide)
+      |> get_events(callbacks.get_ethereum_events_callback)
 
-    :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, state)
+    db_update = [{:put, new_state.synced_height_update_key, new_state.synced_height}]
+    :ok = :telemetry.execute([:process, __MODULE__], %{events: events}, new_state)
 
     {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
     :ok = publish_events(events)
-    :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
-    :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
+    :ok = OMG.DB.multi_update(db_update ++ db_updates_from_callback)
+    :ok = RootChainCoordinator.check_in(new_state.synced_height, new_state.service_name)
 
     new_state
   end
 
-  @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
-  defp maybe_update_event_cache({:get_events, {from, to}, %Core{} = state}, get_ethereum_events_callback) do
-    {:ok, new_events} = get_ethereum_events_callback.(from, to)
-    Core.add_new_events(state, new_events)
+  defp get_events({{from, to}, state}, get_events_callback) do
+    {:ok, new_events} = get_events_callback.(from, to)
+    {new_events, state}
   end
 
-  @decorate span(service: :ethereum_event_listener, type: :backend, name: "maybe_update_event_cache/2")
-  defp maybe_update_event_cache({:dont_fetch_events, %Core{} = state}, _callback), do: state
+  defp get_events({:dont_fetch_events, state}, _callback) do
+    {[], state}
+  end
 
   defp schedule_get_events(ethereum_events_check_interval_ms) do
     :timer.send_after(ethereum_events_check_interval_ms, self(), :sync)
