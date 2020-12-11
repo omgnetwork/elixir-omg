@@ -2,9 +2,16 @@ defmodule OMG.WatcherRPC.Mixfile do
   use Mix.Project
 
   def project() do
+    version =
+      "git"
+      |> System.cmd(["describe", "--tags", "--abbrev=0"])
+      |> elem(0)
+      |> String.replace("v", "")
+      |> String.replace("\n", "")
+
     [
       app: :omg_watcher_rpc,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -23,6 +30,14 @@ defmodule OMG.WatcherRPC.Mixfile do
       mod: {OMG.WatcherRPC.Application, []},
       extra_applications: [:logger, :runtime_tools, :telemetry]
     ]
+  end
+
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
   end
 
   # Specifies which paths to compile per environment.
