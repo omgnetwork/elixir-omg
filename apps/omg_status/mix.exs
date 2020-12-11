@@ -4,7 +4,7 @@ defmodule OMG.Status.Mixfile do
   def project() do
     [
       app: :omg_status,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -31,13 +31,21 @@ defmodule OMG.Status.Mixfile do
     ]
   end
 
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
+  end
+
   defp deps(),
     do: [
       {:telemetry, "~> 0.4.1"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_metrics_statsd, "~> 0.3.0"},
       {:sentry, "~> 8.0"},
-      {:statix, git: "https://github.com/omisego/statix.git", branch: "otp-21.3.8.4-support-global-tag-patch"},
+      {:statix, git: "https://github.com/omgnetwork/statix", branch: "otp-21.3.8.4-support-global-tag-patch"},
       {:spandex_datadog, "~> 1.0"},
       {:decorator, "~> 1.2"},
       {:vmstats, "~> 2.3", runtime: false},

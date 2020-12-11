@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,8 +90,7 @@ defmodule LoadTest.Ethereum.Hash do
   @spec sign_hash(BitHelper.keccak_hash(), private_key, integer() | nil) ::
           {hash_v, hash_r, hash_s}
   def sign_hash(hash, private_key, chain_id \\ nil) do
-    {:ok, <<r::size(256), s::size(256)>>, recovery_id} =
-      :libsecp256k1.ecdsa_sign_compact(hash, private_key, :default, <<>>)
+    {:ok, {<<r::size(256), s::size(256)>>, recovery_id}} = ExSecp256k1.sign_compact(hash, private_key)
 
     # Fork Ψ EIP-155
     recovery_id =

@@ -23,7 +23,7 @@ defmodule OMG.Umbrella.MixProject do
       test_paths: test_paths(),
       aliases: aliases(),
       # Docs
-      source_url: "https://github.com/omisego/elixir-omg",
+      source_url: "https://github.com/omgnetwork/elixir-omg",
       version: current_version(),
       releases: [
         watcher: [
@@ -115,10 +115,9 @@ defmodule OMG.Umbrella.MixProject do
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,
-        git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
+        git: "https://github.com/omgnetwork/ex_unit_fixtures", branch: "feature/require_files_not_load", only: [:test]
       },
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false},
-      {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git", branch: "elixir-only", override: true},
       {:spandex, "~> 3.0.2"}
     ]
   end
@@ -167,8 +166,10 @@ defmodule OMG.Umbrella.MixProject do
   defp docker(), do: if(System.get_env("DOCKER"), do: "_docker", else: "")
 
   defp current_version() do
-    sha = String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
-    "#{String.trim(File.read!("VERSION"))}" <> "+" <> sha
+    "git"
+    |> System.cmd(["describe", "--tags"])
+    |> elem(0)
+    |> String.replace("\n", "")
   end
 
   defp steps() do

@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -131,14 +131,8 @@ defmodule LoadTest.WatcherInfo.Transaction do
     end
   end
 
-  defp signature_digest(hash_digest, private_key_binary) do
-    {:ok, <<r::size(256), s::size(256)>>, recovery_id} =
-      :libsecp256k1.ecdsa_sign_compact(
-        hash_digest,
-        private_key_binary,
-        :default,
-        <<>>
-      )
+  defp signature_digest(hash_digest, private_key) do
+    {:ok, {<<r::size(256), s::size(256)>>, recovery_id}} = ExSecp256k1.sign_compact(hash_digest, private_key)
 
     # EIP-155
     # See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md

@@ -1,0 +1,24 @@
+plugins:
+- - '@semantic-release/commit-analyzer'
+  - preset: 'angular'
+    releaseRules:
+      - type: 'refactor'
+        release: 'patch'
+      - type: 'style'
+        release: 'patch'
+      - type: 'feat'
+        release: 'patch'
+      - type: 'chore'
+        release: 'patch'
+      - breaking: true
+        release: 'minor'
+- '@semantic-release/release-notes-generator'
+- '@semantic-release/github'
+tagFormat: 'v${version}'
+dryRun: true
+# observing that job would not be running as it was considered as from PR branch
+# looks that unfortunately that is how it is designed:
+# https://github.com/semantic-release/semantic-release/issues/1166#issuecomment-500094323
+# this workaround is from:
+# https://github.com/semantic-release/semantic-release/issues/1074#issuecomment-696922883
+ci: false

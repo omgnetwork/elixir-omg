@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,20 +71,14 @@ defmodule OMG.WatcherInfo.Fixtures do
   deffixture phoenix_ecto_sandbox(web_endpoint) do
     :ok = web_endpoint
 
-    {:ok, pid} =
-      Supervisor.start_link(
-        [%{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor}],
-        strategy: :one_for_one,
-        name: WatcherInfo.Supervisor
-      )
+    Supervisor.start_link(
+      [%{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor}],
+      strategy: :one_for_one,
+      name: WatcherInfo.Supervisor
+    )
 
     :ok = SQL.Sandbox.checkout(DB.Repo)
     SQL.Sandbox.mode(DB.Repo, {:shared, self()})
-    # setup and body test are performed in one process, `on_exit` is performed in another
-    on_exit(fn ->
-      wait_for_process(pid)
-      :ok
-    end)
   end
 
   deffixture initial_blocks(alice, bob, blocks_inserter, initial_deposits) do
@@ -181,18 +175,17 @@ defmodule OMG.WatcherInfo.Fixtures do
     result
   rescue
     e in MatchError ->
-      %MatchError{
-        term:
-          {:error,
-           {:shutdown,
-            {:failed_to_start_child, {:ranch_listener_sup, OMG.WatcherRPC.Web.Endpoint.HTTP},
-             {:shutdown,
-              {:failed_to_start_child, :ranch_acceptors_sup,
-               {:listen_error, OMG.WatcherRPC.Web.Endpoint.HTTP, :eaddrinuse}}}}}}
-      } = e
+      case e do
+        %MatchError{
+          term:
+            {:error, {:shutdown, {:failed_to_start_child, {:ranch_listener_sup, OMG.WatcherRPC.Web.Endpoint.HTTP}, _}}}
+        } ->
+          :ok = Process.sleep(5)
+          ensure_web_started(module, function, args, counter - 1)
 
-      :ok = Process.sleep(5)
-      ensure_web_started(module, function, args, counter - 1)
+        %MatchError{term: {:error, {:already_started, pid}}} ->
+          {:ok, pid}
+      end
   end
 
   defp wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do

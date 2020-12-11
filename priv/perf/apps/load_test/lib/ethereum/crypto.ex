@@ -11,7 +11,7 @@ defmodule LoadTest.Ethereum.Crypto do
   see https://hexdocs.pm/exth_crypto/ExthCrypto.Hash.html#kec/0
   """
   @spec hash(binary) :: hash_t()
-  def hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
+  def hash(message), do: elem(ExKeccak.hash_256(message), 1)
 
   @doc """
   Generates private key. Internally uses OpenSSL RAND_bytes. May throw if there is not enough entropy.

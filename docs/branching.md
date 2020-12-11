@@ -2,7 +2,7 @@
 
 This document aims to discuss and document the relations between branches and deployments of `elixir-omg`, with respect to branches and deployments of `plasma-contracts`.
 
-It is a refinement of the [OIP4 branching model](https://github.com/omisego/OIP/blob/master/0004-ewallet-release-and-versioning.md), applicable to `elixir-omg` and `plasma-contracts` versioning.
+It is a refinement of the [OIP4 branching model](https://github.com/omgnetwork/OIP/blob/master/0004-ewallet-release-and-versioning.md), applicable to `elixir-omg` and `plasma-contracts` versioning.
 
 Rationale:
 - the history and the relations between the versions are readable and simple to understand

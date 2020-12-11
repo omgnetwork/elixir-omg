@@ -4,7 +4,7 @@ defmodule OMG.DB.MixProject do
   def project() do
     [
       app: :omg_db,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -25,6 +25,14 @@ defmodule OMG.DB.MixProject do
     ]
   end
 
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
+  end
+
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:prod), do: ["lib"]
   defp elixirc_paths(:dev), do: ["lib"]
@@ -32,7 +40,7 @@ defmodule OMG.DB.MixProject do
 
   defp deps() do
     [
-      {:rocksdb, "~> 1.3", system_env: [{"ERLANG_ROCKSDB_OPTS", "-DWITH_SYSTEM_ROCKSDB=ON"}]},
+      {:rocksdb, "~> 1.6", system_env: [{"ERLANG_ROCKSDB_OPTS", "-DWITH_SYSTEM_ROCKSDB=ON"}]},
       {:omg_status, in_umbrella: true},
       # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see

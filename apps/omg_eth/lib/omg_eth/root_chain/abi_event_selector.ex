@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,6 +61,19 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
       returns: [],
       type: :event,
       types: [uint: 168]
+    }
+  end
+
+  @spec in_flight_exit_deleted() :: ABI.FunctionSelector.t()
+  def in_flight_exit_deleted() do
+    %ABI.FunctionSelector{
+      function: "InFlightExitDeleted",
+      input_names: ["exitId"],
+      inputs_indexed: [true],
+      method_id: <<25, 145, 196, 195>>,
+      returns: [],
+      type: :event,
+      types: [uint: 160]
     }
   end
 

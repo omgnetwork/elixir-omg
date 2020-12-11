@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -81,7 +81,7 @@ defmodule OMG.Watcher.Monitor do
   # so we do not attempt to restart the exit from the supervisor, if the alarm clears, we restart it then.
   # We declare the sytem unhealthy
   def handle_info({:EXIT, _from, reason}, state) do
-    _ = Logger.error("Watcher supervisor crashed. Raising alarm. Reason #{inspect(reason)}")
+    _ = Logger.warn("Watcher supervisor crashed. Raising alarm. Reason #{inspect(reason)}")
     state.alarm_module.set(state.alarm_module.main_supervisor_halted(__MODULE__))
 
     {:noreply, state}

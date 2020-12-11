@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ defmodule OMG.BlockTest do
              }
     end
 
+    @tag timeout: 60_000 * 3
     @tag fixtures: [:stable_alice, :stable_bob]
     test "correctly calculates hash for a lot of transactions", %{
       stable_alice: alice,

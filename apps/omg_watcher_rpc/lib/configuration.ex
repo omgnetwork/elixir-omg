@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Configuration do
 
   @spec version() :: String.t()
   def version() do
-    OMG.Utils.HttpRPC.Response.version(@app)
+    OMG.Utils.AppVersion.version(@app)
   end
 
   @spec service_name() :: atom()

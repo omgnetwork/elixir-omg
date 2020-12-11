@@ -82,7 +82,7 @@ all: clean build-watcher-prod build-watcher_info-prod
 WATCHER_IMAGE_NAME      ?= "omisego/watcher:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20200410"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20201207"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -293,14 +293,14 @@ docker-watcher_info-prod:
 
 docker-watcher-build:
 	docker build -f Dockerfile.watcher \
-		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
+		--build-arg release_version=$$(git describe --tags) \
 		--cache-from $(WATCHER_IMAGE_NAME) \
 		-t $(WATCHER_IMAGE_NAME) \
 		.
 
 docker-watcher_info-build:
 	docker build -f Dockerfile.watcher_info \
-		--build-arg release_version=$$(cat $(PWD)/VERSION)+$$(git rev-parse --short=7 HEAD) \
+		--build-arg release_version=$$(git describe --tags) \
 		--cache-from $(WATCHER_INFO_IMAGE_NAME) \
 		-t $(WATCHER_INFO_IMAGE_NAME) \
 		.

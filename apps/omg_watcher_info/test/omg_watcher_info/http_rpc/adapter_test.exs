@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,9 @@
 defmodule OMG.WatcherInfo.HttpRPC.AdapterTest do
   use ExUnit.Case, async: true
 
+  import FakeServer
+
+  alias OMG.Utils.AppVersion
   alias OMG.WatcherInfo.HttpRPC.Adapter
 
   describe "get_unparsed_response_body/1" do
@@ -64,6 +67,21 @@ defmodule OMG.WatcherInfo.HttpRPC.AdapterTest do
       body = "{\r\n  \"malformed\": \"body\"\r\n}"
       assert {:error, response} = Adapter.get_response_body(%HTTPoison.Response{status_code: 200, body: body})
       assert response == {:malformed_response, %{"malformed" => "body"}}
+    end
+  end
+
+  describe "rpc_post/3" do
+    test_with_server "includes X-Watcher-Version header" do
+      route("/path", FakeServer.Response.ok())
+      _ = Adapter.rpc_post(%{}, "path", FakeServer.address())
+
+      expected_watcher_version = AppVersion.version(:omg_watcher_info)
+
+      assert request_received(
+               "/path",
+               method: "POST",
+               headers: %{"content-type" => "application/json", "x-watcher-version" => expected_watcher_version}
+             )
     end
   end
 end

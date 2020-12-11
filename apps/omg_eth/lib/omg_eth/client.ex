@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,13 +29,15 @@ defmodule OMG.Eth.Client do
     end
   end
 
-  @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
-  @spec node_ready(module()) :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
+  @spec node_ready() :: :ok | {:error, :geth_still_syncing}
+  @spec node_ready(module()) :: :ok | {:error, :geth_still_syncing}
   def node_ready(client \\ Ethereumex.HttpClient) do
     case client.eth_syncing() do
-      {:ok, false} -> :ok
-      {:ok, _} -> {:error, :geth_still_syncing}
-      {:error, :econnrefused} -> {:error, :geth_not_listening}
+      {:ok, false} ->
+        :ok
+
+      {:ok, _} ->
+        {:error, :geth_still_syncing}
     end
   end
 end

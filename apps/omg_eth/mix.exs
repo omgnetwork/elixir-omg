@@ -6,7 +6,7 @@ defmodule OMG.Eth.MixProject do
   def project() do
     [
       app: :omg_eth,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -23,8 +23,16 @@ defmodule OMG.Eth.MixProject do
     [
       mod: {OMG.Eth.Application, []},
       start_phases: [{:attach_telemetry, []}],
-      extra_applications: [:sasl, :logger]
+      extra_applications: [:sasl, :logger, :ex_plasma, :ex_rlp]
     ]
+  end
+
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
   end
 
   # Specifies which paths to compile per environment.
@@ -35,8 +43,9 @@ defmodule OMG.Eth.MixProject do
 
   defp deps() do
     [
-      {:ex_abi, "~> 0.4"},
+      {:ex_abi, "~> 0.5.1"},
       {:ethereumex, "~> 0.6.0"},
+      {:ex_secp256k1, "~> 0.1.2"},
       # Umbrella
       {:omg_bus, in_umbrella: true},
       {:omg_status, in_umbrella: true},
