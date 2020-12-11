@@ -33,6 +33,28 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   @typep available_event_type_t() :: :standard_exit | :in_flight_exit
 
+  @typep exit_event() ::
+           %{
+             utxo_pos: non_neg_integer(),
+             root_chain_txhash: charlist(),
+             log_index: non_neg_integer(),
+             eth_height: pos_integer()
+           }
+           | %{
+               oindex: non_neg_integer(),
+               txhash: binary(),
+               root_chain_txhash: charlist(),
+               log_index: non_neg_integer(),
+               eth_height: pos_integer()
+             }
+
+  @typep utxo_exit() :: %{
+           root_chain_txhash: binary(),
+           log_index: non_neg_integer(),
+           eth_height: pos_integer(),
+           output_pointer: tuple()
+         }
+
   @primary_key false
   schema "ethevents" do
     field(:root_chain_txhash, :binary, primary_key: true)
@@ -169,34 +191,14 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
     |> Paginator.set_data(paginator)
   end
 
-  @spec utxo_exit_from_exit_event(
-          %{
-            utxo_pos: non_neg_integer(),
-            root_chain_txhash: charlist(),
-            log_index: non_neg_integer(),
-            eth_height: pos_integer()
-          }
-          | %{
-              oindex: non_neg_integer(),
-              txhash: binary(),
-              root_chain_txhash: charlist(),
-              log_index: non_neg_integer(),
-              eth_height: pos_integer()
-            }
-        ) ::
-          %{
-            root_chain_txhash: binary(),
-            log_index: non_neg_integer(),
-            eth_height: pos_integer(),
-            output_pointer: tuple()
-          }
+  @spec utxo_exit_from_exit_event(exit_event()) :: utxo_exit()
   defp utxo_exit_from_exit_event(event) do
-  
-         %{
-           root_chain_txhash: root_chain_txhash,
-           log_index: log_index,
-           eth_height: eth_height
-         } = event
+    %{
+      root_chain_txhash: root_chain_txhash,
+      log_index: log_index,
+      eth_height: eth_height
+    } = event
+
     %{
       root_chain_txhash: root_chain_txhash,
       log_index: log_index,
