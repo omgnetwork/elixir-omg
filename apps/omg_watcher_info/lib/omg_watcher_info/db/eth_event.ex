@@ -190,13 +190,13 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
             eth_height: pos_integer(),
             output_pointer: tuple()
           }
-  defp utxo_exit_from_exit_event(
+  defp utxo_exit_from_exit_event(event) do
+  
          %{
            root_chain_txhash: root_chain_txhash,
            log_index: log_index,
            eth_height: eth_height
          } = event
-       ) do
     %{
       root_chain_txhash: root_chain_txhash,
       log_index: log_index,
