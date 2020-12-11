@@ -19,10 +19,18 @@ defmodule OMG.WatcherInfo.BlockApplicator do
 
   alias OMG.WatcherInfo.DB
 
+  @type block_application_t :: %{
+          eth_height: pos_integer(),
+          hash: binary(),
+          number: pos_integer(),
+          timestamp: pos_integer(),
+          transactions: [OMG.State.Transaction.Recovered.t()]
+        }
+
   @doc """
-  Inserts a block to pending blocks, does not break when block already exists.
+  Inserts a block along with transactions and outputs, does not break when block already exists.
   """
-  @spec insert_block!(OMG.Watcher.BlockGetter.BlockApplication.t()) :: :ok
+  @spec insert_block!(block_application_t()) :: :ok
   def insert_block!(block) do
     block
     |> DB.Block.insert_from_block_application()

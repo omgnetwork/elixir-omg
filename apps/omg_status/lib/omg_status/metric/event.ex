@@ -54,7 +54,6 @@ defmodule OMG.Status.Metric.Event do
   :watcher_exit_processor_message_queue_len - OMG.Watcher.ExitProcessor message queue length
   :eventer_message_queue_len - OMG.Watcher.Eventer message queue length
   :db_message_queue_len - OMG.DB server implementation (OMG.DB.LevelDB.Server, or OMG.DB.RocksDB.Server,)  message queue length
-  :pending_block_queue_length - OMG.WatcherInfo.DB.PendingBlock queue length
   :write - OMG.DB KV layer has three types of actions: write, read,  multiread
   :read - OMG.DB KV layer has three types of actions: write, read,  multiread
   :multiread - OMG.DB KV layer has three types of actions: write, read,  multiread
@@ -78,7 +77,6 @@ defmodule OMG.Status.Metric.Event do
   def name(:watcher_exit_processor_message_queue_len), do: "watcher_exit_processor_message_queue_len"
   def name(:eventer_message_queue_len), do: "eventer_message_queue_len"
   def name(:db_message_queue_len), do: "db_message_queue_len"
-  def name(:pending_block_queue_length), do: "pending_block_queue_length"
   def name(:write), do: "db_write"
   def name(:read), do: "db_read"
   def name(:multiread), do: "db_multiread"

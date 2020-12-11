@@ -25,7 +25,6 @@ defmodule OMG.WatcherInfo.DB.Block do
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Block.Chunk
-  alias OMG.WatcherInfo.DB.PendingBlock
 
   import Ecto.Query, only: [from: 2]
 
@@ -152,7 +151,7 @@ defmodule OMG.WatcherInfo.DB.Block do
   end
 
   @doc """
-  Takes a pending block, decode its data and inserts its content in the database.
+  Takes a block application and inserts block into the database.
   """
   # sobelow_skip ["Misc.BinToTerm"]
   @spec insert_from_block_application(map()) :: {:ok, %__MODULE__{}} | {:error, binary(), Ecto.Changeset.t(), any()}

@@ -21,7 +21,6 @@ defmodule OMG.WatcherInfo.Supervisor do
   use OMG.Utils.LoggerExt
 
   alias OMG.WatcherInfo
-  alias OMG.WatcherInfo.Configuration
 
   if Mix.env() == :test do
     defmodule Sandbox do
@@ -62,13 +61,8 @@ defmodule OMG.WatcherInfo.Supervisor do
         }
       ] ++ @children_run_after_repo
 
-    children = [
-      {OMG.WatcherInfo.PendingBlockProcessor, [processing_interval: Configuration.pending_block_processing_interval()]},
-      {OMG.WatcherInfo.PendingBlockQueueLengthChecker, [check_interval: Configuration.block_queue_check_interval()]}
-    ]
-
     opts = [strategy: :one_for_one]
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(top_children ++ children, opts)
+    Supervisor.init(top_children, opts)
   end
 end
