@@ -94,7 +94,6 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   """
   @spec to_bus_events_data(list(eth_event_with_exiting_positions_t())) ::
           list(%{
-            call_data: map(),
             root_chain_txhash: charlist(),
             log_index: non_neg_integer(),
             eth_height: pos_integer()
@@ -115,7 +114,7 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
     utxo_positions
     |> Enum.map(
       &%{
-        call_data: %{utxo_pos: utxo_pos_transform.(&1)},
+        utxo_pos: utxo_pos_transform.(&1),
         root_chain_txhash: root_chain_txhash,
         eth_height: eth_height,
         log_index: log_index
@@ -144,10 +143,11 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
     # If transaction was included in plasma block, output is created and could be spend by this event
     [
       %{
-        call_data: %{txhash: txhash, oindex: oindex},
         root_chain_txhash: root_chain_txhash,
         log_index: log_index,
-        eth_height: eth_height
+        eth_height: eth_height,
+        txhash: txhash,
+        oindex: oindex
       }
       | bus_events
     ]

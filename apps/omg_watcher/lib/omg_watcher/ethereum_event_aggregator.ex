@@ -204,35 +204,12 @@ defmodule OMG.Watcher.EthereumEventAggregator do
   defp retrieve_and_store_logs(from_block, to_block, state) do
     from_block
     |> get_logs(to_block, state)
-    |> enrich_logs_with_call_data(state)
     |> store_logs(from_block, to_block, state)
   end
 
   defp get_logs(from_height, to_height, state) do
     {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, state.contracts)
     Enum.map(logs, &Abi.decode_log(&1))
-  end
-
-  # we get the logs from RPC and we cross check with the event definition if we need to enrich them
-  defp enrich_logs_with_call_data(decoded_logs, state) do
-    events = state.events
-    rpc = state.rpc
-
-    Enum.map(decoded_logs, fn decoded_log ->
-      decoded_log_signature = decoded_log.event_signature
-
-      event = Enum.find(events, fn event -> Keyword.fetch!(event, :signature) == decoded_log_signature end)
-
-      case Keyword.fetch!(event, :enrich) do
-        true ->
-          {:ok, enriched_data} = rpc.get_call_data(decoded_log.root_chain_txhash)
-          enriched_data_decoded = enriched_data |> from_hex |> Abi.decode_function()
-          Map.put(decoded_log, :call_data, enriched_data_decoded)
-
-        _ ->
-          decoded_log
-      end
-    end)
   end
 
   defp store_logs(decoded_logs, from_block, to_block, state) do
@@ -345,5 +322,5 @@ defmodule OMG.Watcher.EthereumEventAggregator do
     end
   end
 
-  defp from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :lower)
+  defp from_hex("0x" <> encoded), do: Base.decode16!(encoded, case: :mixed)
 end

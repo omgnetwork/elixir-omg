@@ -39,7 +39,7 @@ defmodule OMG.Conformance.MerkleProofTest do
 
     on_exit(exit_fn)
 
-    [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex)]
+    [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex, :mixed)]
   end
 
   test "a simple, 3-leaf merkle proof validates fine", %{contract: contract} do

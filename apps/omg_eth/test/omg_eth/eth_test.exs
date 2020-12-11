@@ -43,7 +43,7 @@ defmodule OMG.EthTest do
   end
 
   test "submit_block/1 submits a block to the contract" do
-    response = Eth.submit_block(<<234::256>>, 1, 20_000_000_000)
+    response = Eth.submit_block(<<234::256>>, 0, 20_000_000_000)
 
     assert {:ok, _} = DevHelper.transact_sync!(response)
   end

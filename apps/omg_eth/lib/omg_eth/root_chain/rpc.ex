@@ -57,15 +57,6 @@ defmodule OMG.Eth.RootChain.Rpc do
     get_ethereum_events(block_from, block_to, [signature], [contract])
   end
 
-  def get_call_data(root_chain_txhash) do
-    {:ok, %{"input" => input}} =
-      root_chain_txhash
-      |> Encoding.to_hex()
-      |> Ethereumex.HttpClient.eth_get_transaction_by_hash()
-
-    {:ok, input}
-  end
-
   defp event_topic_for_signature(signature) do
     signature
     |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())

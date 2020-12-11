@@ -102,12 +102,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def new_kv(
         %{
           eth_height: eth_height,
-          call_data: %{
-            in_flight_tx: tx_bytes,
-            in_flight_tx_sigs: signatures,
-            input_txs: input_txs,
-            input_utxos_pos: input_utxos_pos
-          }
+          in_flight_tx: tx_bytes,
+          in_flight_tx_sigs: signatures,
+          input_txs: input_txs,
+          input_utxos_pos: input_utxos_pos
         },
         {contract_status, contract_ife_id}
       ) do

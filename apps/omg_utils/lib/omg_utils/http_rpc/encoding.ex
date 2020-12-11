@@ -37,5 +37,5 @@ defmodule OMG.Utils.HttpRPC.Encoding do
 
   # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
   @spec from_hex!(<<_::16, _::_*8>>) :: binary
-  def from_hex!("0x" <> encoded), do: Base.decode16!(encoded, case: :lower)
+  def from_hex!("0x" <> encoded), do: Base.decode16!(encoded, case: :mixed)
 end

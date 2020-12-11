@@ -352,14 +352,14 @@ defmodule OMG.Watcher.ExitProcessor do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} in-flight exits: #{inspect(exits)}")
 
     contract_ife_ids =
-      Enum.map(exits, fn %{call_data: %{in_flight_tx: txbytes}} ->
+      Enum.map(exits, fn %{in_flight_tx: txbytes} ->
         ExPlasma.InFlightExit.txbytes_to_id(txbytes)
       end)
 
     # Prepare events data for internal bus
     :ok =
       exits
-      |> Enum.map(fn %{call_data: %{input_utxos_pos: inputs}} = event ->
+      |> Enum.map(fn %{input_utxos_pos: inputs} = event ->
         {event, inputs}
       end)
       |> Tools.to_bus_events_data()
@@ -742,7 +742,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @spec put_timestamp_and_sft(map(), pos_integer(), pos_integer()) :: map()
   defp put_timestamp_and_sft(
-         %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos_enc}} = exit_event,
+         %{eth_height: eth_height, utxo_pos: utxo_pos_enc} = exit_event,
          min_exit_period_seconds,
          child_block_interval
        ) do

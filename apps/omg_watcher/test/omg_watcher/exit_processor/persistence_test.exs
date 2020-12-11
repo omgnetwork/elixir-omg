@@ -63,7 +63,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
            owner: alice.addr,
            eth_height: 2,
            exit_id: 1,
-           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1},
+           utxo_pos: Utxo.Position.encode(@utxo_pos1),
+           output_tx: txbytes1,
            root_chain_txhash: <<1::256>>,
            block_timestamp: 1,
            scheduled_finalization_time: 2
@@ -72,7 +73,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
            owner: alice.addr,
            eth_height: 4,
            exit_id: 2,
-           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2},
+           utxo_pos: Utxo.Position.encode(@utxo_pos2),
+           output_tx: txbytes2,
            root_chain_txhash: <<2::256>>,
            block_timestamp: 3,
            scheduled_finalization_time: 4
@@ -143,11 +145,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     challenge = %{
       tx_hash: hash,
       competitor_position: Utxo.Position.encode(@utxo_pos2),
-      call_data: %{
-        competing_tx: Transaction.raw_txbytes(competing_tx),
-        competing_tx_input_index: 0,
-        competing_tx_sig: @zero_sig
-      }
+      competing_tx: Transaction.raw_txbytes(competing_tx),
+      competing_tx_input_index: 0,
+      competing_tx_sig: @zero_sig
     }
 
     piggybacks1 = [

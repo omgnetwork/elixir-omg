@@ -80,6 +80,19 @@ commands:
     steps:
       # otherwise docker compose down errors with ERROR: Couldn't find env file
       - run: touch localchain_contract_addresses.env
+      - restore_cache:
+          key: v2-asdf-install
+      - run:
+          name: Install Erlang and Elixir
+          command: |
+            [ -d ~/.asdf-vm ] || git clone https://github.com/asdf-vm/asdf.git ~/.asdf-vm --branch v0.8.0
+            echo 'source ~/.asdf-vm/asdf.sh' >> $BASH_ENV
+            source $BASH_ENV
+            asdf plugin-add erlang || asdf plugin-update erlang
+            asdf plugin-add elixir || asdf plugin-update elixir
+            asdf install
+          no_output_timeout: 2400
+      - run: make install-hex-rebar
       - run: docker-compose down
       - run: sudo rm -rf data/
       - run:
@@ -605,6 +618,7 @@ jobs:
     parallelism: 4
     steps:
       - checkout
+      - install_elixir
       - run:
           name: "Pull Submodules"
           command: |
@@ -620,14 +634,13 @@ jobs:
           name: Start daemon services
           command: |
             make init_test
-            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
+            cp ./localchain_contract_addresses.env ./priv/cabbage/localchain_contract_addresses.env
             docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Log daemon services
           command: make cabbage-logs
           background: true
       - check_docker_status
-      - install_elixir
       - run: sh .circleci/status.sh
       - run:
           name: Run specs
@@ -650,6 +663,7 @@ jobs:
       STATIX_TAG: "env:perf_circleci"
     steps:
       - checkout
+      - install_elixir
       - run:
           name: Setup data dir
           command: |
@@ -659,7 +673,6 @@ jobs:
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
-      - install_elixir
       - run:
           name: Start daemon services
           command: |
@@ -717,6 +730,7 @@ jobs:
       REORG: true
     steps:
       - checkout
+      - install_elixir
       - run:
           name: "Pull Submodules"
           command: |
@@ -734,14 +748,13 @@ jobs:
           name: Start daemon services
           command: |
             make init_test_reorg
-            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
+            cp ./localchain_contract_addresses.env ./priv/cabbage/localchain_contract_addresses.env
             docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Log daemon services
           command: make cabbage-logs-reorg
           background: true
       - check_docker_status
-      - install_elixir
       - run: sh .circleci/status.sh
       - run:
           name: Print watcher logs
@@ -780,6 +793,7 @@ jobs:
       TERM: xterm-256color
     steps:
       - checkout
+      - install_elixir
       - run:
           name: "Pull Submodules"
           command: |
@@ -792,7 +806,6 @@ jobs:
           command: make start-services
           background: true
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
-      - install_elixir
       - install_deps
       - run: make install-hex-rebar
       - restore_cache:
