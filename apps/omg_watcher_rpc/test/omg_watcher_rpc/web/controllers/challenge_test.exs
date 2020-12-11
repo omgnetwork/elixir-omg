@@ -33,19 +33,15 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   test "challenge data is properly formatted", %{alice: alice} do
     DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1, eth_height: 1}])
 
-    mined_block = %{
-      transactions: [
-        OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
-      ],
-      blknum: 1000,
-      blkhash: <<?#::256>>,
+    block_application = %{
+      transactions: [OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])],
+      number: 1000,
+      hash: <<?#::256>>,
       timestamp: :os.system_time(:second),
       eth_height: 1
     }
 
-    pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 11_000})
-
-    DB.Block.insert_from_pending_block(pending_block)
+    {:ok, _} = DB.Block.insert_from_block_application(block_application)
 
     utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()
 
