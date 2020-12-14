@@ -265,7 +265,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  }
                ],
                :standard_exit,
-               true
+               nil
              )
 
     %{data: utxos_after_exit} = DB.TxOutput.get_utxos(address: expected_owner)
@@ -303,7 +303,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, true)
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, "InFlightExitStarted")
   end
 
   @tag fixtures: [:alice, :initial_blocks]
@@ -338,7 +338,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, true)
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, "InFlightExitStarted")
 
     txo1 = DB.TxOutput.get_by_position(utxo_pos1)
     assert txo1 != nil
@@ -398,7 +398,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, true)
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, "InFlightExitOutputWithdrawn")
 
     assert_txoutput_spent_by_event(
       txhash1,
@@ -420,7 +420,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
   end
 
   @tag fixtures: [:initial_blocks]
-  test "Allows for missing output when explicitly allowed" do
+  test "Allows for missing output when the event explicitly allows it" do
     max_blknum = DB.Repo.aggregate(DB.TxOutput, :max, :blknum)
     pos_from_future = Utxo.position(max_blknum + 1, 0, 0)
 
@@ -433,7 +433,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, false)
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, "InFlightTxOutputPiggybacked")
   end
 
   @tag fixtures: [:initial_blocks]
@@ -451,7 +451,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     ]
 
     assert_raise CaseClauseError, fn ->
-      DB.EthEvent.insert_exits!(exits, :in_flight_exit, true)
+      DB.EthEvent.insert_exits!(exits, :in_flight_exit, "InFlightExitOutputWithdrawn")
     end
   end
 
@@ -481,7 +481,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  }
                ],
                :in_flight_exit,
-               true
+               "InFlightExitStarted"
              )
 
     assert %DB.TxOutput{ethevents: events} = DB.TxOutput.get_by_position(Utxo.position(1, 0, 0))
@@ -510,7 +510,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  }
                ],
                :standard_exit,
-               true
+               nil
              )
 
     assert :ok =
@@ -524,7 +524,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  }
                ],
                :in_flight_exit,
-               true
+               "InFlightExitStarted"
              )
 
     assert %DB.TxOutput{ethevents: events} = DB.TxOutput.get_by_output_id(txhash, 0)
