@@ -890,8 +890,8 @@ jobs:
           name: "cp release"
           command: |
             mkdir current_release/
-            cp _build_docker/prod/watcher-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz current_release/
-            md5sum current_release/watcher-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz | awk '{print $1}' >> current_release/md5
+            cp _build_docker/prod/watcher-$(git describe --tags).tar.gz current_release/
+            md5sum current_release/watcher-$(git describe --tags).tar.gz | awk '{print $1}' >> current_release/md5
       - store_artifacts:
           path: current_release/
       - run: IMAGE_NAME=$WATCHER_IMAGE_NAME sh .circleci/ci_publish.sh
@@ -918,8 +918,8 @@ jobs:
           name: "cp release"
           command: |
             mkdir current_release/
-            cp _build_docker/prod/watcher_info-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz current_release/
-            md5sum current_release/watcher_info-$(cat VERSION)+$(git rev-parse --short=7 HEAD).tar.gz | awk '{print $1}' >> current_release/md5
+            cp _build_docker/prod/watcher_info-$(git describe --tags).tar.gz current_release/
+            md5sum current_release/watcher_info-$(git describe --tags).tar.gz | awk '{print $1}' >> current_release/md5
       - store_artifacts:
           path: current_release/
       - run: IMAGE_NAME=$WATCHER_INFO_IMAGE_NAME sh .circleci/ci_publish.sh
