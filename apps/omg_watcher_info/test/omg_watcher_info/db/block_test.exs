@@ -351,7 +351,9 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
         eth_height: 1
       }
 
-      {:error, "current_block", changeset, %{}} = DB.Block.insert_from_block_application(block_application)
+      {:ok, _block} = DB.Block.insert_from_block_application(block_application)
+
+      assert {:error, "current_block", changeset, %{}} = DB.Block.insert_from_block_application(block_application)
 
       assert changeset.errors == [
                blknum: {"has already been taken", [constraint: :unique, constraint_name: "blocks_pkey"]}
