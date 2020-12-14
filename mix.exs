@@ -111,7 +111,6 @@ defmodule OMG.Umbrella.MixProject do
       {:credo, "~> 1.3", only: [:dev, :test], runtime: false},
       # https://github.com/xadhoom/excoveralls.git `52c6c8e5d7fe9abb814e5e3e546c863b9b2b41b7` rebased on `master`
       # more or less around v0.11.1
-      {:libsecp256k1, git: "https://github.com/omgnetwork/libsecp256k1", branch: "elixir-only", override: true},
       {:excoveralls, "~> 0.12.3"},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
