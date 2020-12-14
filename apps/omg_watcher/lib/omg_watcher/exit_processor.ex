@@ -417,7 +417,7 @@ defmodule OMG.Watcher.ExitProcessor do
     :ok = publish_internal_bus_events(events, "InFlightExitStarted")
 
     if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
-      do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_exits!, [events, :in_flight_exit, "InFlightExitStarted"])
+      do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_exits!, [events, :in_flight_exit, :InFlightExitStarted])
 
     {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
     ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
@@ -459,7 +459,7 @@ defmodule OMG.Watcher.ExitProcessor do
         Kernel.apply(
           OMG.WatcherInfo.DB.EthEvent,
           :insert_exits!,
-          [events, :in_flight_exit, "InFlightTxOutputPiggybacked"]
+          [events, :in_flight_exit, :InFlightTxOutputPiggybacked]
         )
 
     {:reply, {:ok, db_updates}, new_state}
@@ -522,7 +522,7 @@ defmodule OMG.Watcher.ExitProcessor do
         Kernel.apply(
           OMG.WatcherInfo.DB.EthEvent,
           :insert_exits!,
-          [events, :in_flight_exit, "InFlightExitOutputWithdrawn"]
+          [events, :in_flight_exit, :InFlightExitOutputWithdrawn]
         )
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}

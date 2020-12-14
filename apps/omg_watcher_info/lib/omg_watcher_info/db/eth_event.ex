@@ -119,7 +119,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @doc """
   Uses a list of encoded `Utxo.Position`s to insert the exits (if not already inserted before)
   """
-  @spec insert_exits!([event_data_t()], available_event_type_t(), binary()) :: :ok
+  @spec insert_exits!([event_data_t()], available_event_type_t(), atom()) :: :ok
   def insert_exits!(exits, event_type, event_type_detailed) do
     ensure_output = expect_output_existence?(event_type, event_type_detailed)
 
@@ -323,6 +323,6 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   # Tells whether processing exit event, exited outout has to be present in the database
   # For more see: https://github.com/omgnetwork/elixir-omg/issues/1760#issuecomment-722313713
   defp expect_output_existence?(:standard_exit, _), do: true
-  defp expect_output_existence?(:in_flight_exit, "InFlightTxOutputPiggybacked"), do: false
+  defp expect_output_existence?(:in_flight_exit, :InFlightTxOutputPiggybacked), do: false
   defp expect_output_existence?(:in_flight_exit, _any), do: true
 end

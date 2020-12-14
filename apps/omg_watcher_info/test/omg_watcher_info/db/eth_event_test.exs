@@ -303,7 +303,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, "InFlightExitStarted")
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, :InFlightExitStarted)
   end
 
   @tag fixtures: [:alice, :initial_blocks]
@@ -338,7 +338,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, "InFlightExitStarted")
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, :InFlightExitStarted)
 
     txo1 = DB.TxOutput.get_by_position(utxo_pos1)
     assert txo1 != nil
@@ -398,7 +398,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, "InFlightExitOutputWithdrawn")
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, :InFlightExitOutputWithdrawn)
 
     assert_txoutput_spent_by_event(
       txhash1,
@@ -433,7 +433,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, "InFlightTxOutputPiggybacked")
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, :InFlightTxOutputPiggybacked)
   end
 
   @tag fixtures: [:initial_blocks]
@@ -451,7 +451,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
     ]
 
     assert_raise CaseClauseError, fn ->
-      DB.EthEvent.insert_exits!(exits, :in_flight_exit, "InFlightExitOutputWithdrawn")
+      DB.EthEvent.insert_exits!(exits, :in_flight_exit, :InFlightExitOutputWithdrawn)
     end
   end
 
@@ -481,7 +481,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  }
                ],
                :in_flight_exit,
-               "InFlightExitStarted"
+               :InFlightExitStarted
              )
 
     assert %DB.TxOutput{ethevents: events} = DB.TxOutput.get_by_position(Utxo.position(1, 0, 0))
@@ -524,7 +524,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                  }
                ],
                :in_flight_exit,
-               "InFlightExitStarted"
+               :InFlightExitStarted
              )
 
     assert %DB.TxOutput{ethevents: events} = DB.TxOutput.get_by_output_id(txhash, 0)
