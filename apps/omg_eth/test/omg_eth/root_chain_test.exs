@@ -64,7 +64,7 @@ defmodule OMG.Eth.RootChainTest do
   end
 
   defp deposit_then_start_exit(owner, amount, currency) do
-    owner = Encoding.from_hex(owner)
+    owner = Encoding.from_hex(owner, :mixed)
     currency = Encoding.from_hex(currency)
     rlp = deposit_transaction(amount, owner, currency)
 
