@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,17 +15,19 @@
 defmodule OMG.Eth.RootChainTest do
   use ExUnit.Case, async: false
 
+  alias ExPlasma.Builder
+  alias ExPlasma.Crypto
+  alias ExPlasma.Transaction.Type.PaymentV1
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.Abi
   alias Support.DevHelper
   alias Support.RootChainHelper
-
   @eth "0x0000000000000000000000000000000000000000"
   @moduletag :common
 
-  setup do
+  setup_all do
     {:ok, exit_fn} = Support.DevNode.start()
 
     on_exit(exit_fn)
@@ -62,9 +64,9 @@ defmodule OMG.Eth.RootChainTest do
   end
 
   defp deposit_then_start_exit(owner, amount, currency) do
-    owner = Encoding.from_hex(owner, :mixed)
-    {:ok, deposit} = ExPlasma.Transaction.Deposit.new(owner: owner, currency: currency, amount: amount)
-    rlp = ExPlasma.Transaction.encode(deposit)
+    owner = Encoding.from_hex(owner)
+    currency = Encoding.from_hex(currency)
+    rlp = deposit_transaction(amount, owner, currency)
 
     {:ok, deposit_tx} =
       rlp
@@ -75,8 +77,8 @@ defmodule OMG.Eth.RootChainTest do
     deposit_blknum = RootChainHelper.deposit_blknum_from_receipt(deposit_tx)
     deposit_txindex = OMG.Eth.Encoding.int_from_hex(deposit_txlog["transactionIndex"])
 
-    utxo_pos = ExPlasma.Utxo.pos(%{blknum: deposit_blknum, txindex: deposit_txindex, oindex: 0})
-    proof = ExPlasma.Encoding.merkle_proof([rlp], 0)
+    utxo_pos = ExPlasma.Output.Position.pos(%{blknum: deposit_blknum, txindex: deposit_txindex, oindex: 0})
+    proof = ExPlasma.Merkle.proof([rlp], 0)
 
     {:ok, start_exit_tx} =
       utxo_pos
@@ -88,8 +90,8 @@ defmodule OMG.Eth.RootChainTest do
 
   defp exit_id_from_receipt(%{"logs" => logs}) do
     topic =
-      "ExitStarted(address,uint168)"
-      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+      "ExitStarted(address,uint160)"
+      |> Crypto.keccak_hash()
       |> Encoding.to_hex()
 
     [%{exit_id: exit_id}] =
@@ -108,5 +110,16 @@ defmodule OMG.Eth.RootChainTest do
     add_exit_queue = RootChainHelper.add_exit_queue(1, "0x0000000000000000000000000000000000000000")
 
     {:ok, %{"status" => "0x1"}} = Support.DevHelper.transact_sync!(add_exit_queue)
+  end
+
+  defp deposit_transaction(amount_in_wei, address, currency) do
+    address
+    |> deposit(currency, amount_in_wei)
+    |> ExPlasma.encode!(signed: false)
+  end
+
+  defp deposit(owner, token, amount) do
+    output = PaymentV1.new_output(owner, token, amount)
+    Builder.new(ExPlasma.payment_v1(), outputs: [output])
   end
 end
