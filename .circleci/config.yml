@@ -1026,11 +1026,6 @@ jobs:
 
 workflows:
   version: 2
-  test-fix:
-    jobs:
-      - build
-      - publish_watcher
-      - publish_watcher_info
   nightly:
     triggers:
       - schedule:
