@@ -9,7 +9,8 @@ defmodule OMG.Eth.ReleaseTasks.SetContract.EIP55 do
 
     hash =
       address
-      |> :keccakf1600.sha3_256()
+      |> ExKeccak.hash_256()
+      |> elem(1)
       |> Base.encode16(case: :lower)
       |> String.graphemes()
 
