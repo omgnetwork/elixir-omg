@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ defmodule Support.RootChainHelper do
   """
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 2]
 
+  alias ExPlasma.Crypto
   alias OMG.Eth.Blockchain.BitHelper
   alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain.Abi
@@ -284,7 +285,7 @@ defmodule Support.RootChainHelper do
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
     topic =
       "DepositCreated(address,uint256,address,uint256)"
-      |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+      |> Crypto.keccak_hash()
       |> to_hex()
 
     [%{blknum: deposit_blknum}] =

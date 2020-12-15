@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ defmodule OMG.Status.DatadogEvent.AlarmConsumer do
   Mandatory params are in Keyword form:
   - :publisher is Module that implements a function `event/3` (title, message, option). It's purpose is to forward
   alarms to a collector (for example, Datadog)
-  - :alarm_handler (http://erlang.org/doc/man/alarm_handler.html) is a gen_event process that allows us to install our alarm handler ontu. Our installed handler will than receive 
+  - :alarm_handler (http://erlang.org/doc/man/alarm_handler.html) is a gen_event process that allows us to install our alarm handler ontu. Our installed handler will than receive
   system alarms (set and cleared) and cast us the alarms.
   - :dd_alarm_handler is the module that we install as alarm_handler and will get notified of set and cleared alarms and forward them to THIS AlarmConsumer process.
   - :release is the mode this current process is runing under (for example, currently we support watcher, child chain or watcher info)

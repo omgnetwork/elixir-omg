@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ defmodule Support.WatcherHelper do
     ]
 
     for header <- required_headers do
-      assert header in Keyword.keys(response.resp_headers)
+      assert header in Enum.map(response.resp_headers, &elem(&1, 0))
     end
 
     # CORS check

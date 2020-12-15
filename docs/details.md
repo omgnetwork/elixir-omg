@@ -58,7 +58,7 @@ The available RPC calls are defined by `omg_child_chain` in `api.ex` - paths fol
 All requests shall be POST with parameters provided in the request body in JSON object.
 Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.
 
-For API documentation see: https://developer.omisego.co/elixir-omg/.
+For API documentation see: https://docs.omg.network/.
 
 ## Ethereum private key management
 
@@ -115,7 +115,7 @@ Assuming:
 - 15 second block interval on Ethereum, on average
 - weekly cadence of funding, i.e. `days_in_interval == 7`
 - allowing gas price up to 40 Gwei
-- `gas_per_submission == 71505` (checked for `RootChain.sol` [at this revision](https://github.com/omisego/plasma-contracts/commit/50653d52169a01a7d7d0b9e2e4e3c4a4b904f128).
+- `gas_per_submission == 71505` (checked for `RootChain.sol` [at this revision](https://github.com/omgnetwork/plasma-contracts/commit/50653d52169a01a7d7d0b9e2e4e3c4a4b904f128).
 C.f. [here](https://rinkeby.etherscan.io/tx/0x1a79fdfa310f91625d93e25139e15299b4ab272ae504c56b5798a018f6f4dc7b))
 
 we get
@@ -160,7 +160,7 @@ The watcher is listening on port `7434` by default. And watcher info listens on 
 
 ### Endpoints
 
-For API documentation see: https://developer.omisego.co/elixir-omg/
+For API documentation see: https://docs.omg.network/
 
 ### Ethereum private key management
 

@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -234,8 +234,8 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
       }
 
       assert %{
-               @eth => [input_1, merge_1],
-               @other_token => [input_2, merge_2]
+               @eth => [^merge_1, ^input_1],
+               @other_token => [^merge_2, ^input_2]
              } = UtxoSelection.add_utxos_for_stealth_merge([merge_1, merge_2], inputs)
     end
   end

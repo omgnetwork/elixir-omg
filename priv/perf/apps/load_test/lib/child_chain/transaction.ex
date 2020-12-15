@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -162,7 +162,7 @@ defmodule LoadTest.ChildChain.Transaction do
 
   defp parse_inputs(inputs_rlp) do
     with true <- Enum.count(inputs_rlp) <= 4 || {:error, :too_many_inputs},
-         # NOTE: workaround for https://github.com/omisego/ex_plasma/issues/19.
+         # NOTE: workaround for https://github.com/omgnetwork/ex_plasma/issues/19.
          #       remove, when this is blocked on `ex_plasma` end
          true <- Enum.all?(inputs_rlp, &(&1 != <<0::256>>)) || {:error, :malformed_inputs},
          do: {:ok, Enum.map(inputs_rlp, &parse_input!/1)}

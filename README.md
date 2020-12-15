@@ -1,6 +1,6 @@
 <img src="docs/assets/logo.png" width="100" height="100" align="right" />
 
-The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
+The `elixir-omg` repository contains OMG Network's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
 [![Build Status](https://circleci.com/gh/omgnetwork/elixir-omg.svg?style=svg)](https://circleci.com/gh/omgnetwork/elixir-omg) [![Coverage Status](https://coveralls.io/repos/github/omisego/elixir-omg/badge.svg?branch=master)](https://coveralls.io/github/omisego/elixir-omg?branch=master)
 
@@ -116,10 +116,10 @@ mix test
 
 Longer-running integration tests (requires compiling contracts):
 ```bash
-mix test --trace --only integration
+mix test   --only integration
 ```
 
-For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg) or build steps (https://github.com/omisego/elixir-omg/blob/master/.circleci/config.yml).
+For other kinds of checks, refer to the CI/CD pipeline (https://app.circleci.com/pipelines/github/omgnetwork/elixir-omg) or build steps (https://github.com/omgnetwork/elixir-omg/blob/master/.circleci/config.yml).
 
 To run a development `iex` REPL with all code loaded:
 ```bash
@@ -207,7 +207,7 @@ cd priv/cabbage
 make install
 make generate_api_code
 mix deps.get
-REORG=true mix test --only reorg --trace
+REORG=true mix test --only reorg
 ```
 
 # Working with API Spec's
@@ -215,7 +215,7 @@ REORG=true mix test --only reorg --trace
 This repo contains `gh-pages` branch intended to host [Swagger-based](https://docs.omg.network/elixir-omg/) API specification.
 Branch `gh-pages` is totally diseparated from other development branches and contains just Slate generated page's files.
 
-See [gh-pages README](https://github.com/omisego/elixir-omg/tree/gh-pages) for more details.
+See [gh-pages README](https://github.com/omgnetwork/elixir-omg/tree/gh-pages) for more details.
 
 # More details about the design and architecture
 

@@ -4,7 +4,7 @@ defmodule OMG.Conformance.MixProject do
   def project() do
     [
       app: :omg_conformance,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -21,6 +21,14 @@ defmodule OMG.Conformance.MixProject do
     [
       extra_applications: [:logger]
     ]
+  end
+
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
   end
 
   defp elixirc_paths(:prod), do: ["lib"]

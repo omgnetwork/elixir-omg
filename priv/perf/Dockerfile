@@ -1,6 +1,11 @@
-FROM elixir:1.10.4-alpine
+FROM elixir:1.11.2-alpine
 
-RUN apk add git curl bash maven jq \
+RUN apk add --no-cache rust \
+        cargo \
+        git \
+        curl \
+        bash \
+        maven jq \
         autoconf \
         automake \
         gmp \

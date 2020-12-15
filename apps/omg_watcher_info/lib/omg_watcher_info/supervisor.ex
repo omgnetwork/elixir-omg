@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ defmodule OMG.WatcherInfo.Supervisor do
 
   def init(:ok) do
     # why sandbox is in this code
-    # https://github.com/omisego/elixir-omg/pull/562
+    # https://github.com/omgnetwork/elixir-omg/pull/562
     top_children =
       [
         %{

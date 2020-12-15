@@ -34,7 +34,7 @@ mix do local.hex --force, local.rebar --force
 
 ## Clone repo
 ```
-git clone https://github.com/omisego/elixir-omg
+git clone https://github.com/omgnetwork/elixir-omg
 ```
 
 ## Build
@@ -54,5 +54,5 @@ mix test
 To run integration tests (requires **not** having `geth` running in the background):
 ```
 make init_test
-mix test --trace --only integration
+mix test   --only integration
 ```

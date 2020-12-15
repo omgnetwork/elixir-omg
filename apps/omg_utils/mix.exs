@@ -4,7 +4,7 @@ defmodule Utils.MixProject do
   def project() do
     [
       app: :omg_utils,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -18,7 +18,15 @@ defmodule Utils.MixProject do
   end
 
   def application() do
-    []
+    [extra_applications: [:plug]]
+  end
+
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
   end
 
   # Specifies which paths to compile per environment.

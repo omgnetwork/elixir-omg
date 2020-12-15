@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ defmodule OMG.Eth.Blockchain.BitHelper do
 
   use Bitwise
 
-  @type keccak_hash :: binary()
+  alias ExPlasma.Crypto
+  @type keccak_hash :: <<_::256>>
 
   @doc """
   Returns the keccak sha256 of a given input.
@@ -39,7 +40,7 @@ defmodule OMG.Eth.Blockchain.BitHelper do
   """
   @spec kec(binary()) :: keccak_hash
   def kec(data) do
-    :keccakf1600.sha3_256(data)
+    Crypto.keccak_hash(data)
   end
 
   @doc """

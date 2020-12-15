@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -157,14 +157,6 @@ defmodule OMG.Utils.HttpRPC.ResponseTest do
 
     # meta-key is removed from sanitized response
     assert response |> Map.get(:skip_hex_encode) |> is_nil()
-  end
-
-  describe "version/1" do
-    test "returns a compliant semver when given an application" do
-      # Using :elixir as the app because it is certain to be running during the test
-      version = Response.version(:elixir)
-      assert {:ok, _} = Version.parse(version)
-    end
   end
 
   defp unload_ecto() do

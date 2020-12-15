@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@ defmodule OMG.Utils.HttpRPC.Response do
   Serializes the response into expected result/data format.
   """
   alias OMG.Utils.HttpRPC.Encoding
-
-  @sha String.replace(elem(System.cmd("git", ["rev-parse", "--short=7", "HEAD"]), 0), "\n", "")
 
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
@@ -73,15 +71,6 @@ defmodule OMG.Utils.HttpRPC.Response do
   def sanitize({{key, value}, _}), do: Map.put_new(%{}, key, value)
   def sanitize({key, value}), do: Map.put_new(%{}, key, value)
   def sanitize(value), do: value
-
-  @doc """
-  Derive the running service's version for adding to a response.
-  """
-  @spec version(Application.app()) :: String.t()
-  def version(app) do
-    {:ok, vsn} = :application.get_key(app, :vsn)
-    List.to_string(vsn) <> "+" <> @sha
-  end
 
   defp do_filter(map_or_struct) do
     if :code.is_loaded(Ecto) do

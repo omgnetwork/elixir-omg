@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ defmodule OMG.Eth.RootChain.Rpc do
    Does RPC calls for enriching event functions or bare events polling to plasma contracts.
   """
   require Logger
+  alias ExPlasma.Crypto
   alias OMG.Eth.Encoding
 
   def call_contract(client \\ Ethereumex.HttpClient, contract, signature, args) do
@@ -59,7 +60,7 @@ defmodule OMG.Eth.RootChain.Rpc do
 
   defp event_topic_for_signature(signature) do
     signature
-    |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+    |> Crypto.keccak_hash()
     |> Encoding.to_hex()
   end
 

@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ defmodule OMG.DevCrypto do
   defp der_to_raw(<<4::integer-size(8), data::binary>>), do: data
 
   defp get_public_key(private_key) do
-    case :libsecp256k1.ec_pubkey_create(private_key, :uncompressed) do
+    case ExSecp256k1.create_public_key(private_key) do
       {:ok, public_key} -> {:ok, public_key}
       {:error, reason} -> {:error, to_string(reason)}
     end

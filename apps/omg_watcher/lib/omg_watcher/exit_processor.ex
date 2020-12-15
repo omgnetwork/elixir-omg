@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -59,8 +59,14 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new exits are tracked.
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+
+  - takes a list of standard exit start events from the contract
+  - fetches the currently observed exit status in the contract (to decide if exits are "inactive on recognition", which
+    helps cover the case when the Watcher is syncing up)
+  - updates the `ExitProcessor`'s state
+  - returns `db_updates`
   """
-  # empty list clause to not block the server for no-ops
+
   def new_exits([]), do: {:ok, []}
 
   def new_exits(exits) do
@@ -71,6 +77,12 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new in flight exits are tracked.
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+
+  - takes a list of IFE exit start events from the contract
+  - fetches the currently observed exit status in the contract (to decide if exits are "inactive on recognition", which
+    helps cover the case when the Watcher is syncing up)
+  - updates the `ExitProcessor`'s state
+  - returns `db_updates`
   """
   # empty list clause to not block the server for no-ops
   def new_in_flight_exits([]), do: {:ok, []}
@@ -83,8 +95,10 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new in flight exits are tracked.
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+  - spends input utxos
+  - deletes in-flight exits from state
   """
-  # empty list clause to not block the server for no-ops
+
   def delete_in_flight_exits([]), do: {:ok, []}
 
   def delete_in_flight_exits(in_flight_exit_deleted_events) do
@@ -95,8 +109,14 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - finalized exits are untracked _if valid_ otherwise raises alert
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+  - takes a list of standard exit finalization events from the contract
+  - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`) (`Core.exit_key_by_exit_id/2`)
+  - marks as spent these UTXOs in `OMG.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
+  - reflects this result in the `ExitProcessor`'s state
+  - returns `db_updates`, concatenated with those related to the call to `OMG.State`
+
   """
-  # empty list clause to not block the server for no-ops
+
   def finalize_exits([]), do: {:ok, []}
 
   def finalize_exits(finalizations) do
@@ -107,8 +127,11 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - new piggybacks are tracked, if invalid raises an alert
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+  - takes a list of IFE piggybacking events from the contract
+  - updates the `ExitProcessor`'s state
+  - returns `db_updates`
   """
-  # empty list clause to not block the server for no-ops
+
   def piggyback_exits([]), do: {:ok, []}
 
   def piggyback_exits(piggybacks) do
@@ -119,8 +142,11 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - challenged exits are untracked
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+  - takes a list of standard exit challenge events from the contract
+  - updates the `ExitProcessor`'s state
+  - returns `db_updates`
   """
-  # empty list clause to not block the server for no-ops
+
   def challenge_exits([]), do: {:ok, []}
 
   def challenge_exits(challenges) do
@@ -135,8 +161,11 @@ defmodule OMG.Watcher.ExitProcessor do
   Competitors are stored for future use (i.e. to challenge an in flight exit).
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+    - takes a list of IFE exit canonicity challenge events from the contract
+  - updates the `ExitProcessor`'s state
+  - returns `db_updates`
   """
-  # empty list clause to not block the server for no-ops
+
   def new_ife_challenges([]), do: {:ok, []}
 
   def new_ife_challenges(challenges) do
@@ -149,8 +178,11 @@ defmodule OMG.Watcher.ExitProcessor do
   Marks the IFE as canonical and perists information about the inclusion age as responded with in the contract.
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+  - takes a list of IFE exit canonicity challenge response events from the contract
+  - updates the `ExitProcessor`'s state
+  - returns `db_updates`
   """
-  # empty list clause to not block the server for no-ops
+
   def respond_to_in_flight_exits_challenges([]), do: {:ok, []}
 
   def respond_to_in_flight_exits_challenges(responds) do
@@ -161,8 +193,11 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in state.
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+    - takes a list of IFE piggyback challenge events from the contract
+  - updates the `ExitProcessor`'s state
+  - returns `db_updates`
   """
-  # empty list clause to not block the server for no-ops
+
   def challenge_piggybacks([]), do: {:ok, []}
 
   def challenge_piggybacks(challenges) do
@@ -173,8 +208,16 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in state - finalized outputs are applied to the state.
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
+  - takes a list of IFE exit finalization events from the contract
+  - pulls current information on IFE transaction inclusion
+  - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`)
+    (`Core.prepare_utxo_exits_for_in_flight_exit_finalizations/2`)
+  - marks as spent these UTXOs in `OMG.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
+  - reflects this result in the `ExitProcessor`'s state
+  - returns `db_updates`, concatenated with those related to the call to `OMG.State`
+
   """
-  # empty list clause to not block the server for no-ops
+
   def finalize_in_flight_exits([]), do: {:ok, []}
 
   def finalize_in_flight_exits(finalizations) do
@@ -187,6 +230,11 @@ defmodule OMG.Watcher.ExitProcessor do
 
   This function may also update some internal caches to make subsequent calls not redo the work,
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
+
+  - pulls current information on IFE transaction inclusion
+  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - combines this information to discover the state of all the exits to report (mainly byzantine events)
+
   """
   def check_validity() do
     GenServer.call(__MODULE__, :check_validity, @timeout)
@@ -207,6 +255,10 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns all information required to produce a transaction to the root chain contract to present a competitor for
   a non-canonical in-flight exit
+
+  - pulls current information on IFE transaction inclusion
+  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - combines this information to compose the challenge data
   """
   @spec get_competitor_for_ife(binary()) ::
           {:ok, ExitProcessor.Canonicity.competitor_data_t()}
@@ -219,6 +271,10 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
   for a challenged in-flight exit
+
+  - pulls current information on IFE transaction inclusion
+  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - combines this information to compose the challenge data
   """
   @spec prove_canonical_for_ife(binary()) ::
           {:ok, ExitProcessor.Canonicity.prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
@@ -228,6 +284,8 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Returns all information required to challenge an invalid input piggyback
+  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - combines this information to compose the challenge data
   """
   @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
           {:ok, ExitProcessor.Piggyback.input_challenge_data()}
@@ -238,6 +296,10 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Returns all information required to challenge an invalid output piggyback
+  - pulls current information on IFE transaction inclusion
+  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - combines this information to compose the challenge data
+
   """
   @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
           {:ok, ExitProcessor.Piggyback.output_challenge_data()}
@@ -248,6 +310,9 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Returns challenge for an invalid standard exit
+  - leverages `OMG.State` to quickly learn if the exiting UTXO exists or was spent
+  - pulls some additional data from `OMG.DB`, if needed
+  - combines this information to compose the challenge data
   """
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, StandardExit.Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
@@ -309,15 +374,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, processor}
   end
 
-  @doc """
-  See `new_exits/1`. Flow:
-
-  - takes a list of standard exit start events from the contract
-  - fetches the currently observed exit status in the contract (to decide if exits are "inactive on recognition", which
-    helps cover the case when the Watcher is syncing up)
-  - updates the `ExitProcessor`'s state
-  - returns `db_updates`
-  """
   def handle_call({:new_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} exits: #{inspect(exits)}")
 
@@ -339,21 +395,12 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
-  @doc """
-  See `new_in_flight_exits/1`. Flow:
-
-  - takes a list of IFE exit start events from the contract
-  - fetches the currently observed exit status in the contract (to decide if exits are "inactive on recognition", which
-    helps cover the case when the Watcher is syncing up)
-  - updates the `ExitProcessor`'s state
-  - returns `db_updates`
-  """
   def handle_call({:new_in_flight_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} in-flight exits: #{inspect(exits)}")
 
     contract_ife_ids =
       Enum.map(exits, fn %{in_flight_tx: txbytes} ->
-        ExPlasma.InFlightExit.txbytes_to_id(txbytes)
+        ExPlasma.InFlightExit.tx_bytes_to_id(txbytes)
       end)
 
     # Prepare events data for internal bus
@@ -371,11 +418,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
-  @doc """
-  See `delete_in_flight_exits/1`. Flow:
-  - spends input utxos
-  - deletes in-flight exits from state
-  """
   def handle_call({:delete_in_flight_exits, deletions}, _from, state) do
     _ =
       if not Enum.empty?(deletions),
@@ -387,15 +429,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
 
-  @doc """
-  See `finalize_exits/1`. Flow:
-
-  - takes a list of standard exit finalization events from the contract
-  - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`) (`Core.exit_key_by_exit_id/2`)
-  - marks as spent these UTXOs in `OMG.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
-  - reflects this result in the `ExitProcessor`'s state
-  - returns `db_updates`, concatenated with those related to the call to `OMG.State`
-  """
   def handle_call({:finalize_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} finalizations: #{inspect(exits)}")
 
@@ -407,13 +440,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
 
-  @doc """
-  See `piggyback_exits/1`. Flow:
-
-  - takes a list of IFE piggybacking events from the contract
-  - updates the `ExitProcessor`'s state
-  - returns `db_updates`
-  """
   def handle_call({:piggyback_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} piggybacks: #{inspect(exits)}")
     {new_state, db_updates} = Core.new_piggybacks(state, exits)
@@ -426,26 +452,12 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
-  @doc """
-  See `challenge_exits/1`. Flow:
-
-  - takes a list of standard exit challenge events from the contract
-  - updates the `ExitProcessor`'s state
-  - returns `db_updates`
-  """
   def handle_call({:challenge_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} challenges: #{inspect(exits)}")
     {new_state, db_updates} = Core.challenge_exits(state, exits)
     {:reply, {:ok, db_updates}, new_state}
   end
 
-  @doc """
-  See `new_ife_challenges/1`. Flow:
-
-  - takes a list of IFE exit canonicity challenge events from the contract
-  - updates the `ExitProcessor`'s state
-  - returns `db_updates`
-  """
   def handle_call({:new_ife_challenges, challenges}, _from, state) do
     _ =
       if not Enum.empty?(challenges),
@@ -454,14 +466,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {new_state, db_updates} = Core.new_ife_challenges(state, challenges)
     {:reply, {:ok, db_updates}, new_state}
   end
-
-  @doc """
-  See `challenge_piggybacks/1`. Flow:
-
-  - takes a list of IFE piggyback challenge events from the contract
-  - updates the `ExitProcessor`'s state
-  - returns `db_updates`
-  """
 
   def handle_call({:challenge_piggybacks, challenges}, _from, state) do
     _ =
@@ -472,13 +476,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
-  @doc """
-  See `respond_to_in_flight_exits_challenges/1`. Flow:
-
-  - takes a list of IFE exit canonicity challenge response events from the contract
-  - updates the `ExitProcessor`'s state
-  - returns `db_updates`
-  """
   def handle_call({:respond_to_in_flight_exits_challenges, responds}, _from, state) do
     _ =
       if not Enum.empty?(responds),
@@ -487,18 +484,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {new_state, db_updates} = Core.respond_to_in_flight_exits_challenges(state, responds)
     {:reply, {:ok, db_updates}, new_state}
   end
-
-  @doc """
-  See `finalize_in_flight_exits/1`. Flow:
-
-  - takes a list of IFE exit finalization events from the contract
-  - pulls current information on IFE transaction inclusion
-  - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`)
-    (`Core.prepare_utxo_exits_for_in_flight_exit_finalizations/2`)
-  - marks as spent these UTXOs in `OMG.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
-  - reflects this result in the `ExitProcessor`'s state
-  - returns `db_updates`, concatenated with those related to the call to `OMG.State`
-  """
 
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
     _ = Logger.info("Recognized #{Enum.count(finalizations)} ife finalizations: #{inspect(finalizations)}")
@@ -510,7 +495,7 @@ defmodule OMG.Watcher.ExitProcessor do
       Core.prepare_utxo_exits_for_in_flight_exit_finalizations(state2, finalizations)
 
     # NOTE: it's not straightforward to track from utxo position returned when exiting utxo in State to ife id
-    # See issue #671 https://github.com/omisego/elixir-omg/issues/671
+    # See issue #671 https://github.com/omgnetwork/elixir-omg/issues/671
     {invalidities, state_db_updates} =
       Enum.reduce(exiting_positions, {%{}, []}, &collect_invalidities_and_state_db_updates/2)
 
@@ -524,13 +509,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end
 
-  @doc """
-  See `check_validity/0`. Flow:
-
-  - pulls current information on IFE transaction inclusion
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
-  - combines this information to discover the state of all the exits to report (mainly byzantine events)
-  """
   def handle_call(:check_validity, _from, state) do
     new_state = update_with_ife_txs_from_blocks(state)
 
@@ -542,20 +520,10 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, response, new_state}
   end
 
-  @doc """
-  See `get_active_in_flight_exits/0`.
-  """
   def handle_call(:get_active_in_flight_exits, _from, state) do
     {:reply, {:ok, Core.get_active_in_flight_exits(state)}, state}
   end
 
-  @doc """
-  See `get_competitor_for_ife/1`. Flow:
-
-  - pulls current information on IFE transaction inclusion
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
-  - combines this information to compose the challenge data
-  """
   def handle_call({:get_competitor_for_ife, txbytes}, _from, state) do
     # TODO: run_status_gets and getting all non-existent UTXO positions imaginable can be optimized out heavily
     #       only the UTXO positions being inputs to `txbytes` must be looked at, but it becomes problematic as
@@ -570,25 +538,12 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, competitor_result, new_state}
   end
 
-  @doc """
-  See `prove_canonical_for_ife/1`. Flow:
-
-  - pulls current information on IFE transaction inclusion
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
-  - combines this information to compose the challenge data
-  """
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
     new_state = update_with_ife_txs_from_blocks(state)
     canonicity_result = Core.prove_canonical_for_ife(new_state, txbytes)
     {:reply, canonicity_result, new_state}
   end
 
-  @doc """
-  See `get_input_challenge_data/2`. Flow:
-
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
-  - combines this information to compose the challenge data
-  """
   def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
     response =
       %ExitProcessor.Request{}
@@ -598,13 +553,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, response, state}
   end
 
-  @doc """
-  See `get_output_challenge_data/2`. Flow:
-
-  - pulls current information on IFE transaction inclusion
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
-  - combines this information to compose the challenge data
-  """
   def handle_call({:get_output_challenge_data, txbytes, output_index}, _from, state) do
     new_state = update_with_ife_txs_from_blocks(state)
 
@@ -616,13 +564,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, response, new_state}
   end
 
-  @doc """
-  See `create_challenge/1`. Flow:
-
-  - leverages `OMG.State` to quickly learn if the exiting UTXO exists or was spent
-  - pulls some additional data from `OMG.DB`, if needed
-  - combines this information to compose the challenge data
-  """
   def handle_call({:create_challenge, exiting_utxo_pos}, _from, state) do
     request = %ExitProcessor.Request{se_exiting_pos: exiting_utxo_pos}
     exiting_utxo_exists = State.utxo_exists?(exiting_utxo_pos)

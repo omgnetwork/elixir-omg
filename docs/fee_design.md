@@ -133,9 +133,9 @@ As a result, a high level steps of adding fee exit feature would be:
 
 ## Reference
 
-* Tetsuji blockchain fee design: https://github.com/omisego/elixir-omg/blob/master/docs/tesuji_blockchain_design.md#fees
+* Tetsuji blockchain fee design: https://github.com/omgnetwork/elixir-omg/blob/master/docs/tesuji_blockchain_design.md#fees
 * Scope of Five Guys
-* Fee exit high level discussion: https://github.com/omisego/plasma-contracts/issues/165
+* Fee exit high level discussion: https://github.com/omgnetwork/plasma-contracts/issues/165
 
 ## FAQ
 
@@ -155,7 +155,7 @@ Q3: Since smart contracts do not check the fee logic, how do we handle in-flight
 
 > In the future, we are planning to include the IFE transaction into the block if not already there. We might only include the transactions that follows the fee rules to a block. If an IFE occurs that does not follow the fee rules, it can still be a valid in-flight exit and be processed.
 
-> See: https://github.com/omisego/elixir-omg/issues/994
+> See: https://github.com/omgnetwork/elixir-omg/issues/994
 
 Q4: Should we collect fees when spending the fee transaction's output to a *payment* transaction?
 

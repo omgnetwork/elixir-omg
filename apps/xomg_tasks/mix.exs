@@ -9,7 +9,7 @@ defmodule OMG.XomgTasks.MixProject do
   def project() do
     [
       app: :xomg_tasks,
-      version: "#{String.trim(File.read!("../../VERSION"))}",
+      version: version(),
       build_path: "../../_build",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
@@ -21,6 +21,14 @@ defmodule OMG.XomgTasks.MixProject do
   end
 
   def application() do
-    []
+    [extra_applications: [:iex, :logger]]
+  end
+
+  defp version() do
+    "git"
+    |> System.cmd(["describe", "--tags", "--abbrev=0"])
+    |> elem(0)
+    |> String.replace("v", "")
+    |> String.replace("\n", "")
   end
 end

@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias OMG.DB.ReleaseTasks.InitKeyValueDB
   alias OMG.DB.ReleaseTasks.SetKeyValueDB
@@ -51,7 +51,7 @@ defmodule OMG.DB.ReleaseTasks.InitKeyValueDBTest do
     :ok = System.put_env("DB_PATH", dir)
 
     _ = SetKeyValueDB.load([], release: :watcher)
-    _ = InitKeyValueDB.run()
+    :ok = InitKeyValueDB.run()
 
     {:error, _} = InitKeyValueDB.run()
     :ok = System.delete_env("DB_PATH")

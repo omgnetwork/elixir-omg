@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ defmodule OMG.Crypto do
   For unsafe code, limited to `:test` and `:dev` environments and related to private key handling refer to:
   `OMG.DevCrypto` in `test/support`
   """
+  alias ExPlasma.Crypto
   alias OMG.Signature
 
   @type sig_t() :: <<_::520>>
@@ -41,22 +42,22 @@ defmodule OMG.Crypto do
       171, 76, 106, 229, 69, 102, 203, 7, 21, 134, 230, 92, 23, 209, 187, 12>>
   """
   @spec hash(binary) :: hash_t()
-  def hash(message), do: ExthCrypto.Hash.hash(message, ExthCrypto.Hash.kec())
+  def hash(message), do: Crypto.keccak_hash(message)
 
   @doc """
   Recovers the address of the signer from a binary-encoded signature.
   """
-  @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, :signature_corrupt | binary}
+  @spec recover_address(hash_t(), sig_t()) :: {:ok, address_t()} | {:error, atom()}
   def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     case Signature.recover_public(digest, packed_signature) do
       {:ok, pub} ->
         generate_address(pub)
 
-      {:error, "Recovery id invalid 0-3"} ->
+      {:error, :recovery_id_not_u8} ->
         {:error, :signature_corrupt}
 
-      other ->
-        other
+      {:error, _} = error ->
+        error
     end
   end
 

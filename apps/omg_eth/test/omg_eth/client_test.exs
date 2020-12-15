@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,15 +45,5 @@ defmodule OMG.Eth.ClientTest do
     end
 
     assert Client.node_ready(test_name) == :ok
-  end
-
-  test "node_ready/0 returns client unavailable ", %{test: test_name} do
-    defmodule test_name do
-      def eth_syncing() do
-        {:error, :econnrefused}
-      end
-    end
-
-    assert Client.node_ready(test_name) == {:error, :geth_not_listening}
   end
 end

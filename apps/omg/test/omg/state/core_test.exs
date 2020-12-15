@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OmiseGO Pte Ltd
+# Copyright 2019-2020 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1035,6 +1035,7 @@ defmodule OMG.State.CoreTest do
 
     # this test takes ~26 seconds on my machine
     @tag slow: true
+    @tag timeout: 60_000 * 3
     test "long running full block test", %{alice: alice, state_empty: state, fees: fees} do
       Logger.warn("slow test is running, use --exclude slow to skip")
 
