@@ -414,7 +414,7 @@ defmodule OMG.Watcher.ExitProcessor do
       end)
       |> Tools.to_bus_events_data()
 
-    :ok = publish_internal_bus_events(events, "InFlightExitStarted")
+    :ok = publish_internal_bus_events(events, :InFlightExitStarted)
 
     if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
       do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_exits!, [events, :in_flight_exit, :InFlightExitStarted])
@@ -452,7 +452,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {new_state, db_updates} = Core.new_piggybacks(state, exits)
 
     events = Tools.to_bus_events_data(exits)
-    :ok = publish_internal_bus_events(events, "InFlightTxOutputPiggybacked")
+    :ok = publish_internal_bus_events(events, :InFlightTxOutputPiggybacked)
 
     if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
       do:
