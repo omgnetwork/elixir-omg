@@ -726,7 +726,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp publish_internal_bus_events([], _), do: :ok
 
-  defp publish_internal_bus_events(events_data, topic) when is_list(events_data) and is_binary(topic) do
+  defp publish_internal_bus_events(events_data, topic) when is_list(events_data) and is_atom(topic) do
     {:watcher, topic}
     |> OMG.Bus.Event.new(:data, events_data)
     |> OMG.Bus.direct_local_broadcast()
