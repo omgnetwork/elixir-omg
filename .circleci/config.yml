@@ -166,6 +166,16 @@ commands:
             sudo apt-get update &&
             ./bin/setup
           no_output_timeout: 2400
+  install_and_setup_gcloud:
+    description: Installs and sets up gcloud to fetch feefeed
+    command: |
+      wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-272.0.0-linux-x86_64.tar.gz -O gcloud-sdk.tar.gz
+            tar zxf gcloud-sdk.tar.gz google-cloud-sdk
+            mv google-cloud-sdk ~/.google-cloud-sdk
+            ~/.google-cloud-sdk/install.sh --quiet
+            echo $GCP_KEY_FILE | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project ${GCP_PROJECT}
+            gcloud --quiet config set compute/zone ${GCP_ZONE}
 
 jobs:
   barebuild:
@@ -632,6 +642,7 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
+      - install_and_setup_gcloud
       - run:
           name: Start daemon services
           command: |
@@ -672,6 +683,7 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
+      - install_and_setup_gcloud
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
@@ -746,6 +758,7 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
+      - install_and_setup_gcloud
       - run:
           name: Start daemon services
           command: |
