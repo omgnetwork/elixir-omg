@@ -74,6 +74,12 @@ commands:
     steps:
       - run: printf "%s\\n" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
+  gcloud_login:
+    steps:
+      - run: |
+          echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+          gcloud auth configure-docker --quiet
+
   make_docker_images:
     description: Builds docker images
     steps:
@@ -631,6 +637,7 @@ jobs:
           command: |
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
+      - gcloud_login
       - make_docker_images
       - run:
           name: Start daemon services
