@@ -28,6 +28,7 @@ defmodule OMG.Status.Metric.Event do
     :ife_exit_finalizer,
     :in_flight_exit,
     :in_flight_exit_processor,
+    :in_flight_exit_deleted_processor,
     :piggyback,
     :piggyback_challenges_processor,
     :piggyback_processor,
@@ -98,6 +99,7 @@ defmodule OMG.Status.Metric.Event do
   defp events_name(:exit_finalizer), do: "exit_finalizer_ethereum_events"
   defp events_name(:exit_challenger), do: "exit_challenger_ethereum_events"
   defp events_name(:in_flight_exit_processor), do: "in_flight_exit_processor_ethereum_events"
+  defp events_name(:in_flight_exit_deleted_processor), do: "in_flight_exit_deleted_processor_ethereum_events"
   defp events_name(:piggyback_processor), do: "piggyback_processor_ethereum_events"
   defp events_name(:competitor_processor), do: "competitor_processor_ethereum_events"
   defp events_name(:challenges_responds_processor), do: "challenges_responds_processor_ethereum_events"
