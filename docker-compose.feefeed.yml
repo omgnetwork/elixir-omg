@@ -33,8 +33,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      nginx:
-        condition: service_healthy
     restart: always
     healthcheck:
       test: curl -v --silent http://localhost:4000/api/v1/fees 2>&1 | grep contract_address
