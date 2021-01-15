@@ -32,6 +32,11 @@ services:
     environment:
       - POSTGRES_USER=omisegodev
       - POSTGRES_PASSWORD=omisegodev
+    healthcheck:
+      test: pg_isready -U omisego_dev
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
       chain_net:
         ipv4_address: 172.27.0.107
