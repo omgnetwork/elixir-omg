@@ -638,6 +638,7 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - gcloud_login
+      - run: pip3 install docker-compose --upgrade
       - make_docker_images
       - run:
           name: Start daemon services
