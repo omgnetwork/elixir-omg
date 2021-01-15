@@ -63,27 +63,66 @@ services:
       chain_net:
         ipv4_address: 172.27.0.110
 
+  # childchain:
+  #   image: omisego/childchain-v2:latest
+  #   command: "full_local"
+  #   container_name: childchain
+  #   env_file:
+  #     - ./localchain_contract_addresses.env
+  #   environment:
+  #     - DATABASE_URL=postgresql://engine_repo:engine_repo@172.27.0.107:5432/engine_repo
+  #     - ETHEREUM_RPC_URL=http://172.27.0.108:80
+  #     - LOGGER_BACKEND=console
+  #     - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+  #     - FEE_FEED_URL=http://172.27.0.110:4000/api/v1/fees
+  #     - FEE_CHANGE_TOLERANCE_PERCENT=20
+  #     - FEE_ADAPTER=FEED
+  #     - STORED_FEE_UPDATE_INTERVAL_MINUTES=40
+  #     - FEE_CLAIMER_ADDRESS="0x0000000000000000000000000000000000000000"
+  #   depends_on:
+  #     - feefeed
+  #     - nginx
+  #     - geth
+  #   restart: always
+  #   networks:
+  #     chain_net:
+  #       ipv4_address: 172.27.0.103
   childchain:
-    image: omisego/childchain-v2:latest
+    image: omisego/child_chain:latest
     command: "full_local"
     container_name: childchain
     env_file:
       - ./localchain_contract_addresses.env
+      - ./fees_setup.env
     environment:
-      - DATABASE_URL=postgresql://engine_repo:engine_repo@172.27.0.107:5432/engine_repo
+      - ETHEREUM_NETWORK=LOCALCHAIN
       - ETHEREUM_RPC_URL=http://172.27.0.108:80
-      - LOGGER_BACKEND=console
+      - APP_ENV=local_docker_development
+      - DD_HOSTNAME=datadog
+      - DD_DISABLED=true
+      - DB_PATH=/data
       - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
-      - FEE_FEED_URL=http://172.27.0.110:4000/api/v1/fees
-      - FEE_CHANGE_TOLERANCE_PERCENT=20
-      - FEE_ADAPTER=FEED
-      - STORED_FEE_UPDATE_INTERVAL_MINUTES=40
-      - FEE_CLAIMER_ADDRESS="0x0000000000000000000000000000000000000000"
+      - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+      - LOGGER_BACKEND=console
+      - RELEASE_COOKIE=development
+      - NODE_HOST=127.0.0.1
+    restart: always
+    ports:
+      - "9656:9656"
+    expose:
+      - "9656"
+    volumes:
+      - ./data:/data
+      - ./priv/dev-artifacts:/dev-artifacts
+    healthcheck:
+      test: curl localhost:9656
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     depends_on:
-      - feefeed
       - nginx
       - geth
-    restart: always
     networks:
       chain_net:
         ipv4_address: 172.27.0.103
