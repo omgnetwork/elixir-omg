@@ -168,8 +168,9 @@ commands:
           no_output_timeout: 2400
   install_and_setup_gcloud:
     description: Installs and sets up gcloud to fetch feefeed
-    command: |
-      wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-272.0.0-linux-x86_64.tar.gz -O gcloud-sdk.tar.gz
+    steps:
+      - run: |
+          wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-272.0.0-linux-x86_64.tar.gz -O gcloud-sdk.tar.gz
             tar zxf gcloud-sdk.tar.gz google-cloud-sdk
             mv google-cloud-sdk ~/.google-cloud-sdk
             ~/.google-cloud-sdk/install.sh --quiet
