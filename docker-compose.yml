@@ -36,32 +36,32 @@ services:
       chain_net:
         ipv4_address: 172.27.0.107
 
-  feefeed:
-    image: "omisego/feefeed:latest"
-    command: "start"
-    container_name: feefeed
-    environment:
-      - GITHUB_TOKEN=""
-      - GITHUB_ORGANISATION=omgnetwork
-      - GITHUB_REPO=fee-rules-public
-      - GITHUB_BRANCH=master
-      - RULES_FETCH_INTERVAL=180
-      - GITHUB_FILENAME=fee_rules
-      - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.107:5432/feefeed
-      - SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
-      - DATADOG_DISABLED=true
-      - DATADOG_HOST="localhost"
-      - ETHEREUM_NODE_URL=http://172.27.0.108:80
-    ports:
-      - "4000:4000"
-    expose:
-      - "4000"
-    depends_on:
-      - postgres
-    restart: always
-    networks:
-      chain_net:
-        ipv4_address: 172.27.0.110
+  # feefeed:
+  #   image: "omisego/feefeed:latest"
+  #   command: "start"
+  #   container_name: feefeed
+  #   environment:
+  #     - GITHUB_TOKEN=""
+  #     - GITHUB_ORGANISATION=omgnetwork
+  #     - GITHUB_REPO=fee-rules-public
+  #     - GITHUB_BRANCH=master
+  #     - RULES_FETCH_INTERVAL=180
+  #     - GITHUB_FILENAME=fee_rules
+  #     - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.107:5432/feefeed
+  #     - SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
+  #     - DATADOG_DISABLED=true
+  #     - DATADOG_HOST="localhost"
+  #     - ETHEREUM_NODE_URL=http://172.27.0.108:80
+  #   ports:
+  #     - "4000:4000"
+  #   expose:
+  #     - "4000"
+  #   depends_on:
+  #     - postgres
+  #   restart: always
+  #   networks:
+  #     chain_net:
+  #       ipv4_address: 172.27.0.110
 
   # childchain:
   #   image: omisego/childchain-v2:latest
