@@ -170,6 +170,7 @@ commands:
     description: Installs and sets up gcloud to fetch feefeed
     steps:
       - run: |
+          export CLOUDSDK_PYTHON=/usr/bin/python
           wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-323.0.0-linux-x86_64.tar.gz -O gcloud-sdk.tar.gz
             tar zxf gcloud-sdk.tar.gz google-cloud-sdk
             mv google-cloud-sdk ~/.google-cloud-sdk
@@ -178,7 +179,6 @@ commands:
             gcloud --quiet config set project ${GCP_PROJECT}
             gcloud --quiet config set compute/zone ${GCP_ZONE}
             gcloud --quiet auth configure-docker
-            export CLOUDSDK_PYTHON=/usr/bin/python
 
 jobs:
   barebuild:
