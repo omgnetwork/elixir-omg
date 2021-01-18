@@ -177,6 +177,7 @@ commands:
             echo $GCP_KEY_FILE | gcloud auth activate-service-account $GCP_SERVICE_EMAIL --key-file=-
             gcloud --quiet config set project ${GCP_PROJECT}
             gcloud --quiet config set compute/zone ${GCP_ZONE}
+            gcloud --quiet auth configure-docker
 
 jobs:
   barebuild:
