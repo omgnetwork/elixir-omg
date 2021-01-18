@@ -655,6 +655,8 @@ jobs:
       - run: sh .circleci/status.sh
       - run:
           name: Run specs
+          environment:
+            EXIT_ID_SIZE: "168"
           command: |
             cd priv/cabbage
             make install
@@ -789,6 +791,8 @@ jobs:
           background: true
       - run:
           name: Run specs
+          environment:
+            EXIT_ID_SIZE: "168"
           command: |
             cd priv/cabbage
             make install
