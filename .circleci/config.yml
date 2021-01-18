@@ -170,6 +170,7 @@ commands:
     description: Installs and sets up gcloud to fetch feefeed
     steps:
       - run: |
+          export LD_LIBRARY_PATH=/usr/local/lib
           export CLOUDSDK_PYTHON=/usr/bin/python
           wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-323.0.0-linux-x86_64.tar.gz -O gcloud-sdk.tar.gz
             tar zxf gcloud-sdk.tar.gz google-cloud-sdk
