@@ -681,6 +681,8 @@ jobs:
     environment:
       PERF_IMAGE_NAME: "omisego/perf:latest"
       STATIX_TAG: "env:perf_circleci"
+      LD_LIBRARY_PATH: /usr/local/lib
+      CLOUDSDK_PYTHON: /usr/bin/python
     steps:
       - checkout
       - run:
@@ -749,6 +751,8 @@ jobs:
       image: ubuntu-2004:202010-01
     environment:
       REORG: true
+      LD_LIBRARY_PATH: /usr/local/lib
+      CLOUDSDK_PYTHON: /usr/bin/python
     steps:
       - checkout
       - run:
@@ -813,6 +817,8 @@ jobs:
       image: ubuntu-2004:202010-01
     environment:
       TERM: xterm-256color
+      LD_LIBRARY_PATH: /usr/local/lib
+      CLOUDSDK_PYTHON: /usr/bin/python
     steps:
       - checkout
       - run:
