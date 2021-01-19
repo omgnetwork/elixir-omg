@@ -57,6 +57,20 @@ defmodule OMG.State.PersistenceTest do
         strategy: :one_for_one
       )
 
+    Application.ensure_all_started(:postgrex)
+    Application.ensure_all_started(:spandex_ecto)
+    Application.ensure_all_started(:ecto)
+
+    {:ok, _} =
+      Supervisor.start_link(
+        [%{id: OMG.WatcherInfo.DB.Repo, start: {OMG.WatcherInfo.DB.Repo, :start_link, []}, type: :supervisor}],
+        strategy: :one_for_one,
+        name: WatcherInfo.Supervisor
+      )
+
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
+
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)
 
@@ -226,7 +240,8 @@ defmodule OMG.State.PersistenceTest do
         owner: owner.addr,
         currency: currency,
         amount: amount,
-        blknum: blknum
+        blknum: blknum,
+        eth_height: 1
       }
     end)
   end

@@ -69,15 +69,17 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
-  defp insert_deposit!(%{
-         root_chain_txhash: root_chain_txhash,
-         log_index: log_index,
-         blknum: blknum,
-         owner: owner,
-         eth_height: eth_height,
-         currency: currency,
-         amount: amount
-       }) do
+  defp insert_deposit!(params) do
+    %{
+      root_chain_txhash: root_chain_txhash,
+      log_index: log_index,
+      blknum: blknum,
+      owner: owner,
+      eth_height: eth_height,
+      currency: currency,
+      amount: amount
+    } = params
+
     event_type = :deposit
     position = Utxo.position(blknum, 0, 0)
     root_chain_txhash_event = generate_root_chain_txhash_event(root_chain_txhash, log_index)
