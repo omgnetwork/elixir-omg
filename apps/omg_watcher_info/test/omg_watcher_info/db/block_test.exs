@@ -314,68 +314,56 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     end
   end
 
-  describe "insert_from_pending_block/1" do
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "inserts the block, its transactions and transaction outputs" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-
+  describe "insert_from_block_application/1" do
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "inserts the block, its transactions and transaction outputs", %{alice: alice, bob: bob} do
       tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
       tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
-      mined_block = %{
+      block_application = %{
         transactions: [tx_1, tx_2],
-        blknum: 1000,
-        blkhash: "0x1000",
+        number: 1000,
+        hash: "0x1000",
         timestamp: 1_576_500_000,
         eth_height: 1
       }
 
-      pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 1000})
-
-      {:ok, block} = DB.Block.insert_from_pending_block(pending_block)
+      {:ok, block} = DB.Block.insert_from_block_application(block_application)
 
       assert %DB.Block{} = block["current_block"]
       current_block_hash = block["current_block"].hash
-      assert mined_block.blkhash == current_block_hash
+      assert block_application.hash == current_block_hash
 
       assert DB.Repo.get(DB.Transaction, tx_1.tx_hash)
       assert DB.Repo.get(DB.Transaction, tx_2.tx_hash)
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns an error when inserting with an existing blknum" do
-      existing = insert(:block, blknum: 1000, hash: "0x1000", eth_height: 1, timestamp: 100)
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "returns an error when inserting with an existing blknum", %{alice: alice, bob: bob} do
       tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
       tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
-      mined_block = %{
+      block_application = %{
         transactions: [tx_1, tx_2],
-        blknum: existing.blknum,
-        blkhash: existing.hash,
+        number: 1000,
+        hash: "0x1000",
         timestamp: 1_576_500_000,
-        eth_height: existing.eth_height
+        eth_height: 1
       }
 
-      pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: existing.blknum})
+      {:ok, _block} = DB.Block.insert_from_block_application(block_application)
 
-      {:error, "current_block", changeset, %{}} = DB.Block.insert_from_pending_block(pending_block)
+      assert {:error, "current_block", changeset, %{}} = DB.Block.insert_from_block_application(block_application)
 
       assert changeset.errors == [
                blknum: {"has already been taken", [constraint: :unique, constraint_name: "blocks_pkey"]}
              ]
     end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     @tag :watcher_info
     @tag timeout: :infinity
-    test "full block test" do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
-
+    test "full block test", %{alice: alice, bob: bob} do
       tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 1}])
       tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}])
 
@@ -387,21 +375,19 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
           OMG.TestHelper.create_recovered([{1, 0, 0, a}], @eth, [{b, amount}])
         end)
 
-      mined_block = %{
+      block_application = %{
         transactions: [tx_1, tx_2] ++ transactions,
-        blknum: 1000,
-        blkhash: "0x1000",
+        number: 1000,
+        hash: "0x1000",
         timestamp: 1_576_500_000,
         eth_height: 1
       }
 
-      pending_block = insert(:pending_block, %{data: :erlang.term_to_binary(mined_block), blknum: 1000})
-
-      {:ok, block} = DB.Block.insert_from_pending_block(pending_block)
+      {:ok, block} = DB.Block.insert_from_block_application(block_application)
 
       assert %DB.Block{} = block["current_block"]
       current_block_hash = block["current_block"].hash
-      assert mined_block.blkhash == current_block_hash
+      assert block_application.hash == current_block_hash
 
       assert DB.Repo.get(DB.Transaction, tx_1.tx_hash)
       assert DB.Repo.get(DB.Transaction, tx_2.tx_hash)

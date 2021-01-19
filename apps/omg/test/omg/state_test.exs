@@ -21,6 +21,7 @@ defmodule OMG.StateTest do
 
   use OMG.DB.Fixtures
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias OMG.State
   alias OMG.TestHelper
   alias OMG.Utxo
@@ -37,6 +38,20 @@ defmodule OMG.StateTest do
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     # the pubsub is required, because `OMG.State` is broadcasting to the `OMG.Bus`
     {:ok, bus_apps} = Application.ensure_all_started(:omg_bus)
+
+    Application.ensure_all_started(:postgrex)
+    Application.ensure_all_started(:spandex_ecto)
+    Application.ensure_all_started(:ecto)
+
+    {:ok, _} =
+      Supervisor.start_link(
+        [%{id: OMG.WatcherInfo.DB.Repo, start: {OMG.WatcherInfo.DB.Repo, :start_link, []}, type: :supervisor}],
+        strategy: :one_for_one,
+        name: WatcherInfo.Supervisor
+      )
+
+    :ok = Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
+    Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
 
     on_exit(fn ->
       (started_apps ++ bus_apps)
@@ -68,7 +83,19 @@ defmodule OMG.StateTest do
     fee = %{@eth => [1]}
 
     # deposits, transactions, utxo existence
-    assert {:ok, _} = State.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}])
+    assert {:ok, _} =
+             State.deposit([
+               %{
+                 owner: alice.addr,
+                 currency: @eth,
+                 amount: 10,
+                 blknum: 1,
+                 root_chain_txhash: <<1::256>>,
+                 eth_height: 1,
+                 log_index: 0
+               }
+             ])
+
     assert true == State.utxo_exists?(Utxo.position(1, 0, 0))
 
     assert {:ok, _} = State.exec(TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 9}]), fee)
