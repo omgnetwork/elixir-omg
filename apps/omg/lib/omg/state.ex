@@ -193,6 +193,9 @@ defmodule OMG.State do
   end
 
   def handle_call({:deposit, deposits}, _from, state) do
+    if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
+      do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_deposits!, [deposits])
+
     {:ok, db_updates, new_state} = Core.deposit(deposits, state)
 
     {:reply, {:ok, db_updates}, new_state}
