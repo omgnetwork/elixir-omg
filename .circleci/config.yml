@@ -166,6 +166,20 @@ commands:
             sudo apt-get update &&
             ./bin/setup
           no_output_timeout: 2400
+  install_and_setup_gcloud:
+    description: Installs and sets up gcloud to fetch feefeed
+    steps:
+      - run: |
+          export LD_LIBRARY_PATH=/usr/local/lib
+          export CLOUDSDK_PYTHON=/usr/bin/python
+          wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-323.0.0-linux-x86_64.tar.gz -O gcloud-sdk.tar.gz
+            tar zxf gcloud-sdk.tar.gz google-cloud-sdk
+            mv google-cloud-sdk ~/.google-cloud-sdk
+            ~/.google-cloud-sdk/install.sh --quiet
+            echo $GCP_KEY_FILE | gcloud auth activate-service-account $GCP_SERVICE_EMAIL --key-file=-
+            gcloud --quiet config set project ${GCP_PROJECT}
+            gcloud --quiet config set compute/zone ${GCP_ZONE}
+            gcloud --quiet auth configure-docker
 
 jobs:
   barebuild:
@@ -618,6 +632,8 @@ jobs:
       image: ubuntu-2004:202010-01
     environment:
       SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
+      LD_LIBRARY_PATH: /usr/local/lib
+      CLOUDSDK_PYTHON: /usr/bin/python
     parallelism: 4
     steps:
       - checkout
@@ -632,6 +648,7 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
+      - install_and_setup_gcloud
       - run:
           name: Start daemon services
           command: |
@@ -664,6 +681,8 @@ jobs:
     environment:
       PERF_IMAGE_NAME: "omisego/perf:latest"
       STATIX_TAG: "env:perf_circleci"
+      LD_LIBRARY_PATH: /usr/local/lib
+      CLOUDSDK_PYTHON: /usr/bin/python
     steps:
       - checkout
       - run:
@@ -672,6 +691,7 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
+      - install_and_setup_gcloud
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
@@ -731,6 +751,8 @@ jobs:
       image: ubuntu-2004:202010-01
     environment:
       REORG: true
+      LD_LIBRARY_PATH: /usr/local/lib
+      CLOUDSDK_PYTHON: /usr/bin/python
     steps:
       - checkout
       - run:
@@ -746,6 +768,7 @@ jobs:
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
       - make_docker_images
+      - install_and_setup_gcloud
       - run:
           name: Start daemon services
           command: |
@@ -794,6 +817,8 @@ jobs:
       image: ubuntu-2004:202010-01
     environment:
       TERM: xterm-256color
+      LD_LIBRARY_PATH: /usr/local/lib
+      CLOUDSDK_PYTHON: /usr/bin/python
     steps:
       - checkout
       - run:
@@ -802,6 +827,7 @@ jobs:
             git submodule init
             git submodule update --remote
       - run: echo 'export PATH=~/.cargo/bin:$PATH' >> $BASH_ENV
+      - install_and_setup_gcloud
       - docker_login
       - run:
           name: Start geth, postgres, feefeed and pull in blockchain snapshot

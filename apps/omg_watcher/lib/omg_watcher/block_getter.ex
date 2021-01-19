@@ -141,10 +141,8 @@ defmodule OMG.Watcher.BlockGetter do
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
-        :ok =
-          {:child_chain, "block.get"}
-          |> OMG.Bus.Event.new(:block_received, block_application)
-          |> OMG.Bus.direct_local_broadcast()
+        if Code.ensure_loaded?(OMG.WatcherInfo.DB.Block),
+          do: Kernel.apply(OMG.WatcherInfo.BlockApplicator, :insert_block!, [block_application])
 
         {:noreply, state, {:continue, {:apply_block_step, :run_block_download_task, block_application}}}
 

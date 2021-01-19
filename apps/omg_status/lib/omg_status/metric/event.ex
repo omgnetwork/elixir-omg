@@ -28,6 +28,7 @@ defmodule OMG.Status.Metric.Event do
     :ife_exit_finalizer,
     :in_flight_exit,
     :in_flight_exit_processor,
+    :in_flight_exit_deleted_processor,
     :piggyback,
     :piggyback_challenges_processor,
     :piggyback_processor,
@@ -54,7 +55,6 @@ defmodule OMG.Status.Metric.Event do
   :watcher_exit_processor_message_queue_len - OMG.Watcher.ExitProcessor message queue length
   :eventer_message_queue_len - OMG.Watcher.Eventer message queue length
   :db_message_queue_len - OMG.DB server implementation (OMG.DB.LevelDB.Server, or OMG.DB.RocksDB.Server,)  message queue length
-  :pending_block_queue_length - OMG.WatcherInfo.DB.PendingBlock queue length
   :write - OMG.DB KV layer has three types of actions: write, read,  multiread
   :read - OMG.DB KV layer has three types of actions: write, read,  multiread
   :multiread - OMG.DB KV layer has three types of actions: write, read,  multiread
@@ -78,7 +78,6 @@ defmodule OMG.Status.Metric.Event do
   def name(:watcher_exit_processor_message_queue_len), do: "watcher_exit_processor_message_queue_len"
   def name(:eventer_message_queue_len), do: "eventer_message_queue_len"
   def name(:db_message_queue_len), do: "db_message_queue_len"
-  def name(:pending_block_queue_length), do: "pending_block_queue_length"
   def name(:write), do: "db_write"
   def name(:read), do: "db_read"
   def name(:multiread), do: "db_multiread"
@@ -100,6 +99,7 @@ defmodule OMG.Status.Metric.Event do
   defp events_name(:exit_finalizer), do: "exit_finalizer_ethereum_events"
   defp events_name(:exit_challenger), do: "exit_challenger_ethereum_events"
   defp events_name(:in_flight_exit_processor), do: "in_flight_exit_processor_ethereum_events"
+  defp events_name(:in_flight_exit_deleted_processor), do: "in_flight_exit_deleted_processor_ethereum_events"
   defp events_name(:piggyback_processor), do: "piggyback_processor_ethereum_events"
   defp events_name(:competitor_processor), do: "competitor_processor_ethereum_events"
   defp events_name(:challenges_responds_processor), do: "challenges_responds_processor_ethereum_events"
