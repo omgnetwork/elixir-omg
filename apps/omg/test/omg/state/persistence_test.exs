@@ -23,6 +23,7 @@ defmodule OMG.State.PersistenceTest do
 
   require OMG.Utxo
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias OMG.Block
   alias OMG.Eth.Configuration
   alias OMG.State.Transaction
@@ -68,8 +69,8 @@ defmodule OMG.State.PersistenceTest do
         name: WatcherInfo.Supervisor
       )
 
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
+    :ok = Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
+    Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
 
     on_exit(fn ->
       Application.put_env(:omg_db, :path, nil)

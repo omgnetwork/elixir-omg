@@ -21,6 +21,7 @@ defmodule OMG.StateTest do
 
   use OMG.DB.Fixtures
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias OMG.State
   alias OMG.TestHelper
   alias OMG.Utxo
@@ -49,8 +50,8 @@ defmodule OMG.StateTest do
         name: WatcherInfo.Supervisor
       )
 
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
+    :ok = Sandbox.checkout(OMG.WatcherInfo.DB.Repo)
+    Sandbox.mode(OMG.WatcherInfo.DB.Repo, {:shared, self()})
 
     on_exit(fn ->
       (started_apps ++ bus_apps)
