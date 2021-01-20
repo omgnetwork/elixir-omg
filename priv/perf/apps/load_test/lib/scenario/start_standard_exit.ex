@@ -12,19 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-<<<<<<< HEAD:apps/omg_utils/test/omg_utils/app_version_tet.exs
-defmodule OMG.Utils.AppVersionTest do
-  use ExUnit.Case, async: true
-
-  alias OMG.Utils.AppVersion
-
-  describe "version/1" do
-    test "returns a compliant semver when given an application" do
-      # Using :elixir as the app because it is certain to be running during the test
-      version = AppVersion.version(:elixir)
-      assert {:ok, _} = Version.parse(version)
-    end
-=======
 defmodule LoadTest.Scenario.StartStandardExit do
   @moduledoc """
   Starts a standard exit.
@@ -50,6 +37,5 @@ defmodule LoadTest.Scenario.StartStandardExit do
       |> Exit.start_exit(exiter, gas_price)
 
     Session.assign(session, tx_hash: tx_hash)
->>>>>>> origin/master:priv/perf/apps/load_test/lib/scenario/start_standard_exit.ex
   end
 end

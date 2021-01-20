@@ -431,7 +431,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
         root_chain_txhash: Crypto.hash(<<6::256>>),
         log_index: 0,
         eth_height: 0,
-        call_data: %{utxo_pos: Utxo.Position.encode(pos_from_future)}
+        utxo_pos: Utxo.Position.encode(pos_from_future)
       }
     ]
 
@@ -448,7 +448,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
         root_chain_txhash: Crypto.hash(<<6::256>>),
         log_index: 0,
         eth_height: 0,
-        call_data: %{utxo_pos: Utxo.Position.encode(pos_from_future)}
+        utxo_pos: Utxo.Position.encode(pos_from_future)
       }
     ]
 
@@ -479,7 +479,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                    root_chain_txhash: Crypto.hash(<<1001::256>>),
                    eth_height: 2,
                    log_index: 1,
-                   call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))}
+                   utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))
                  }
                ],
                :in_flight_exit,
@@ -508,7 +508,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                    root_chain_txhash: Crypto.hash(<<1001::256>>),
                    eth_height: 1,
                    log_index: 0,
-                   call_data: %{utxo_pos: utxo_pos}
+                   utxo_pos: utxo_pos
                  }
                ],
                :standard_exit,
@@ -522,7 +522,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                    root_chain_txhash: Crypto.hash(<<1002::256>>),
                    eth_height: 2,
                    log_index: 1,
-                   call_data: %{utxo_pos: utxo_pos}
+                   utxo_pos: utxo_pos
                  }
                ],
                :in_flight_exit,
