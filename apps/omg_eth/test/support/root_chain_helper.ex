@@ -39,7 +39,7 @@ defmodule Support.RootChainHelper do
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
   @gas_piggyback 1_000_000
 
-  @standard_exit_bond 14_000_000_000_000_000
+  @standard_exit_bond 23_300_000_000_000_000
   @ife_bond 37_000_000_000_000_000
   @piggyback_bond 28_000_000_000_000_000
 

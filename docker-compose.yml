@@ -28,7 +28,7 @@ services:
       - "5432:5432"
     volumes:
       - ./docker/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
-      - ./docker/postgres/data:/var/lib/postgresql/data
+      - ./data/postgres/data:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=omisegodev
       - POSTGRES_PASSWORD=omisegodev
@@ -41,16 +41,29 @@ services:
       chain_net:
         ipv4_address: 172.27.0.107
 
+  feefeed:
+    image: omisego/feefeed_mock:latest
+    volumes:
+      - ./docker/static_feefeed/:/www-data/
+    ports:
+      - "4000:80"
+    expose:
+      - "4000"
+    networks:
+      chain_net:
+        ipv4_address: 172.27.0.110
   # feefeed:
-  #   image: "omisego/feefeed:latest"
+  #   image: gcr.io/omisego-development/feefeed:latest
   #   command: "start"
   #   container_name: feefeed
   #   environment:
   #     - GITHUB_TOKEN=""
   #     - GITHUB_ORGANISATION=omgnetwork
   #     - GITHUB_REPO=fee-rules-public
+  #     - SENTRY_DSN=""
   #     - GITHUB_BRANCH=master
-  #     - RULES_FETCH_INTERVAL=180
+  #     - RULES_FETCH_INTERVAL=200
+  #     - RATES_FETCH_INTERVAL=200
   #     - GITHUB_FILENAME=fee_rules
   #     - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.107:5432/feefeed
   #     - SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
@@ -68,68 +81,71 @@ services:
   #     chain_net:
   #       ipv4_address: 172.27.0.110
 
-  # childchain:
-  #   image: omisego/childchain-v2:latest
-  #   command: "full_local"
-  #   container_name: childchain
-  #   env_file:
-  #     - ./localchain_contract_addresses.env
-  #   environment:
-  #     - DATABASE_URL=postgresql://engine_repo:engine_repo@172.27.0.107:5432/engine_repo
-  #     - ETHEREUM_RPC_URL=http://172.27.0.108:80
-  #     - LOGGER_BACKEND=console
-  #     - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
-  #     - FEE_FEED_URL=http://172.27.0.110:4000/api/v1/fees
-  #     - FEE_CHANGE_TOLERANCE_PERCENT=20
-  #     - FEE_ADAPTER=FEED
-  #     - STORED_FEE_UPDATE_INTERVAL_MINUTES=40
-  #     - FEE_CLAIMER_ADDRESS="0x0000000000000000000000000000000000000000"
-  #   depends_on:
-  #     - feefeed
-  #     - nginx
-  #     - geth
-  #   restart: always
-  #   networks:
-  #     chain_net:
-  #       ipv4_address: 172.27.0.103
   childchain:
-    image: omisego/child_chain:latest
+    image: omisego/childchain-v2:latest
     command: "full_local"
     container_name: childchain
     env_file:
       - ./localchain_contract_addresses.env
-      - ./fees_setup.env
     environment:
-      - ETHEREUM_NETWORK=LOCALCHAIN
+      #- COLLECT_FEES=0
+      - DATABASE_URL=postgresql://engine_repo:engine_repo@172.27.0.107:5432/engine_repo
       - ETHEREUM_RPC_URL=http://172.27.0.108:80
-      - APP_ENV=local_docker_development
-      - DD_HOSTNAME=datadog
-      - DD_DISABLED=true
-      - DB_PATH=/data
-      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
-      - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
       - LOGGER_BACKEND=console
-      - RELEASE_COOKIE=development
-      - NODE_HOST=127.0.0.1
-    restart: always
-    volumes:
-      - ./data:/data
-      - ./priv/dev-artifacts:/dev-artifacts
-    healthcheck:
-      test: curl localhost:9656
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+      #- FEE_FEED_URL=http://172.27.0.110:4000/api/v1/fees
+      - FEE_FEED_URL=http://172.27.0.110/file.json
+      - FEE_CHANGE_TOLERANCE_PERCENT=20
+      - FEE_ADAPTER=FEED
+      - STORED_FEE_UPDATE_INTERVAL_MINUTES=40
+      - FEE_CLAIMER_ADDRESS=0x24F3402Cd22F03ff81B56941fE048AD0F4EED5A1
+      - PRIVATE_KEY=7f30f140fd4724519e5017c0895f158d68bbbe4a81c0c10dbb25a0006e348807
     depends_on:
+      - feefeed
       - nginx
       - geth
+    restart: always
     networks:
       chain_net:
         ipv4_address: 172.27.0.103
+  # childchain:
+  #   image: omisego/child_chain:latest
+  #   command: "full_local"
+  #   container_name: childchain
+  #   env_file:
+  #     - ./localchain_contract_addresses.env
+  #     - ./fees_setup.env
+  #   environment:
+  #     - ETHEREUM_NETWORK=LOCALCHAIN
+  #     - ETHEREUM_RPC_URL=http://172.27.0.108:80
+  #     - APP_ENV=local_docker_development
+  #     - DD_HOSTNAME=datadog
+  #     - DD_DISABLED=true
+  #     - DB_PATH=/data
+  #     - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
+  #     - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
+  #     - LOGGER_BACKEND=console
+  #     - RELEASE_COOKIE=development
+  #     - NODE_HOST=127.0.0.1
+  #   restart: always
+  #   volumes:
+  #     - ./data:/data
+  #     - ./priv/dev-artifacts:/dev-artifacts
+  #   healthcheck:
+  #     test: curl localhost:9656
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 60s
+  #   depends_on:
+  #     - nginx
+  #     - geth
+  #   networks:
+  #     chain_net:
+  #       ipv4_address: 172.27.0.103
 
   geth:
-    image: ethereum/client-go:v1.9.15
+    image: ethereum/client-go:v1.9.12
     entrypoint: /bin/sh -c ". data/command"
     environment:
       RPC_PORT: 8545

@@ -158,7 +158,8 @@ defmodule OMG.Eth.RootChain.Fields do
     contracts_naming = [
       {"owner", :owner},
       {"exit_id", :exit_id},
-      {"utxo_pos", :utxo_pos}
+      {"utxo_pos", :utxo_pos},
+      {"output_tx", :output_tx}
     ]
 
     reduce_naming(data, contracts_naming)

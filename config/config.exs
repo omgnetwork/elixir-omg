@@ -142,7 +142,7 @@ config :omg_watcher, OMG.Watcher.Tracer,
   type: :omg_watcher
 
 config :omg_watcher_info,
-  child_chain_url: "http://localhost:9656",
+  child_chain_url: "http://localhost:9656/v1",
   namespace: OMG.WatcherInfo,
   ecto_repos: [OMG.WatcherInfo.DB.Repo],
   metrics_collection_interval: 60_000,

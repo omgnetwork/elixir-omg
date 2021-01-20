@@ -88,8 +88,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     )
   end
 
-  def new_key(_contract_status, exit_info),
-    do: utxo_pos_for(exit_info)
+  def new_key(exit_info), do: utxo_pos_for(exit_info)
 
   defp utxo_pos_for(%{utxo_pos: utxo_pos_enc} = _exit_info),
     do: Utxo.Position.decode!(utxo_pos_enc)
@@ -149,6 +148,15 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   end
 
   # processes the return value of `Eth.get_standard_exit_structs(exit_ids)`
+  #     struct StandardExit {
+  #     bool exitable;
+  #     uint256 utxoPos;
+  #     bytes32 outputId;
+  #     address payable exitTarget;
+  #     uint256 amount;
+  #     uint256 bondSize;
+  #     uint256 bountySize;
+  # }
   # `exitable` will be `false` if the exit was challenged
   # `exitable` will be `false` ALONG WITH the whole tuple holding zeroees, if the exit was processed successfully
   # **NOTE** one can only rely on the zero-nonzero of this data, since for processed exits this data will be all zeros

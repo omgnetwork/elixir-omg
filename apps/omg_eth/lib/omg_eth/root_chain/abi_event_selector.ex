@@ -23,12 +23,12 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
   def exit_started() do
     %ABI.FunctionSelector{
       function: "ExitStarted",
-      input_names: ["owner", "exit_id", "utxo_pos"],
-      inputs_indexed: [true, false, false],
-      method_id: <<224, 255, 194, 231>>,
+      input_names: ["owner", "exit_id", "utxo_pos", "output_tx"],
+      inputs_indexed: [true, false, false, false],
+      method_id: <<190, 31, 206, 232>>,
       returns: [],
       type: :event,
-      types: [:address, {:uint, 168}, {:uint, 256}]
+      types: [:address, {:uint, 168}, {:uint, 256}, :bytes]
     }
   end
 
