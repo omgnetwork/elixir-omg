@@ -317,27 +317,6 @@ jobs:
               exit 1
             fi
 
-
-  lint_version:
-    executor: builder
-    steps:
-      - setup_elixir-omg_workspace
-      - run:
-          command: |
-            if [ -n "$CIRCLE_TAG" ]; then
-              _tagged_version="${CIRCLE_TAG#*v}"
-              _tagged_version_ignoring_pre="${_tagged_version%%-pre.*}"
-              _filed_version="$(head -n 1 ./VERSION | sed 's/^[ \t]*//;s/[ \t]*$//')"
-
-              if [ "$_tagged_version_ignoring_pre" != "$_filed_version" ]; then
-                echo "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_tagged_version_ignoring_pre}\". Got \"${_filed_version}\"."
-                exit 1
-              fi
-            else
-              echo "This build is not version-tagged. Skipping version lint."
-              exit 0
-            fi
-
   sobelow:
     executor: builder_pg
     environment:
@@ -1115,9 +1094,6 @@ workflows:
       - lint:
           requires: [build]
           filters: *all_branches_and_tags
-      - lint_version:
-          requires: [build]
-          filters: *all_branches_and_tags
       - sobelow:
           requires: [build]
           filters: *all_branches_and_tags
@@ -1144,7 +1120,6 @@ workflows:
               property_tests,
               dialyzer,
               lint,
-              lint_version,
               audit_deps
             ]
           filters: &master_and_version_branches_and_all_tags
@@ -1168,7 +1143,6 @@ workflows:
               property_tests,
               dialyzer,
               lint,
-              lint_version,
               audit_deps
             ]
           filters: *master_and_version_branches_and_all_tags
@@ -1221,7 +1195,6 @@ workflows:
             property_tests,
             dialyzer,
             lint,
-            lint_version,
             audit_deps
           ]
           context:
