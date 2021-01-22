@@ -150,7 +150,7 @@ defmodule OMG.WatcherInfo.Fixtures do
     block_application = %{
       transactions: recovered_txs,
       number: blknum,
-      hash: "##{blknum}",
+      hash: <<blknum::256>>,
       timestamp: 1_540_465_606,
       eth_height: 1
     }
