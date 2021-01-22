@@ -543,7 +543,7 @@ defmodule OMG.Eth.RootChain.AbiTest do
 
   test "if exit started can be decoded" do
     exit_started_log = %{
-      :event_signature => "ExitStarted(address,uint168,uint256)",
+      :event_signature => "ExitStarted(address,uint168,uint256,bytes)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0x1bee6f75c74ceeb4817dc160e2fb56dd1337a9fc2980a2b013252cf1e620f246",
       "blockNumber" => "0x" <> Integer.to_string(726, 16),
@@ -561,7 +561,7 @@ defmodule OMG.Eth.RootChain.AbiTest do
 
     assert Abi.decode_log(exit_started_log) == %{
              eth_height: 726,
-             event_signature: "ExitStarted(address,uint168,uint256)",
+             event_signature: "ExitStarted(address,uint168,uint256,bytes)",
              log_index: 1,
              root_chain_txhash:
                <<74, 130, 72, 184, 138, 23, 178, 190, 76, 96, 134, 161, 152, 70, 34, 222, 26, 96, 221, 163, 201, 221,

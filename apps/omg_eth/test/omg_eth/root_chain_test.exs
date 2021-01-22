@@ -90,7 +90,7 @@ defmodule OMG.Eth.RootChainTest do
 
   defp exit_id_from_receipt(%{"logs" => logs}) do
     topic =
-      "ExitStarted(address,uint160)"
+      "ExitStarted(address,uint168,uint256,bytes)"
       |> Crypto.keccak_hash()
       |> Encoding.to_hex()
 

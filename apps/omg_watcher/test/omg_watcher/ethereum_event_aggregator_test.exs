@@ -88,7 +88,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  enrich: false
                ],
                [
-                 signature: "ExitStarted(address,uint168,uint256)",
+                 signature: "ExitStarted(address,uint168,uint256,bytes)",
                  name: :exit_started,
                  enrich: false
                ],
@@ -106,7 +106,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
       assert event_fetcher_name |> :sys.get_state() |> Map.get(:event_signatures) |> Enum.sort() ==
                Enum.sort([
                  "DepositCreated(address,uint256,address,uint256)",
-                 "ExitStarted(address,uint168,uint256)",
+                 "ExitStarted(address,uint168,uint256,bytes)",
                  "InFlightExitDeleted(uint168)",
                  "InFlightExitInputPiggybacked(address,bytes32,uint16)",
                  "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
@@ -473,7 +473,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
 
   def exit_started_log(block_number) do
     %{
-      :event_signature => "ExitStarted(address,uint168,uint256)",
+      :event_signature => "ExitStarted(address,uint168,uint256,bytes)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0x1bee6f75c74ceeb4817dc160e2fb56dd1337a9fc2980a2b013252cf1e620f246",
       "blockNumber" => "0x" <> Integer.to_string(block_number, 16),

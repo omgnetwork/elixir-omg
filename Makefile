@@ -398,7 +398,7 @@ docker-remote-watcher_info:
 ###
 start-services:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
-	docker-compose -f ./docker-compose.yml -f ./docker-compose.feefeed.yml up feefeed geth nginx postgres
+	docker-compose -f ./docker-compose.yml up feefeed geth nginx postgres
 
 start-watcher:
 	. ${OVERRIDING_VARIABLES} && \

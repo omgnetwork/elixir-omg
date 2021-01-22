@@ -1,4 +1,4 @@
 [submodule "priv/cabbage"]
 	path = priv/cabbage
 	url = git@github.com:omgnetwork/specs.git
-	branch = inomurko/configurable_exit_id_sizer
+	branch = master
