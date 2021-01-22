@@ -88,20 +88,21 @@ defmodule OMG.Eth.RootChainTest do
     {utxo_pos, start_exit_tx}
   end
 
-  defp exit_id_from_receipt(%{"logs" => logs}) do
-    topic =
-      "ExitStarted(address,uint168,uint256,bytes)"
-      |> Crypto.keccak_hash()
-      |> Encoding.to_hex()
+  defp exit_id_from_receipt(%{"logs" => logs} = event) do
+    IO.inspect(Abi.decode_log(event))
+    # topic =
+    #   "ExitStarted(address,uint168,uint256,bytes)"
+    #   |> Crypto.keccak_hash()
+    #   |> Encoding.to_hex()
 
-    [%{exit_id: exit_id}] =
-      logs
-      |> Enum.filter(&(topic in &1["topics"]))
-      |> Enum.map(fn log ->
-        Abi.decode_log(log)
-      end)
+    # [%{exit_id: exit_id}] =
+    #   logs
+    #   |> Enum.filter(&(topic in &1["topics"]))
+    #   |> Enum.map(fn log ->
+    #     Abi.decode_log(log)
+    #   end)
 
-    exit_id
+    # exit_id
   end
 
   defp add_queue(authority_address) do
