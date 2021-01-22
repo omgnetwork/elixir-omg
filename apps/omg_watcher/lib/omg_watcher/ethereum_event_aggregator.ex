@@ -96,7 +96,7 @@ defmodule OMG.Watcher.EthereumEventAggregator do
 
   def init(opts) do
     contracts = opts |> Keyword.fetch!(:contracts) |> Map.values() |> Enum.map(&from_hex(&1))
-    # events = [[signature: "ExitStarted(address,uint168)", name: :exit_started, enrich: true],..]
+    # events = [[signature: "ExitStarted(address,uint168,256,bytes)", name: :exit_started],..]
     events =
       opts
       |> Keyword.fetch!(:events)

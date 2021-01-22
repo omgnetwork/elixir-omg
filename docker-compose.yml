@@ -88,7 +88,6 @@ services:
     env_file:
       - ./localchain_contract_addresses.env
     environment:
-      #- COLLECT_FEES=0
       - DATABASE_URL=postgresql://engine_repo:engine_repo@172.27.0.107:5432/engine_repo
       - ETHEREUM_RPC_URL=http://172.27.0.108:80
       - LOGGER_BACKEND=console

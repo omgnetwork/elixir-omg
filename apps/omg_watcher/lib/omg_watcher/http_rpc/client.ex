@@ -53,8 +53,11 @@ defmodule OMG.Watcher.HttpRPC.Client do
      }}
   end
 
-  defp decode_response({:ok, %{txhash: _hash} = response}) do
-    {:ok, Map.update!(response, :txhash, &decode16!/1)}
+  defp decode_response({:ok, %{tx_hash: hash} = response}) do
+    {:ok,
+     response
+     |> Map.delete(:tx_hash)
+     |> Map.put(:txhash, decode16!(hash))}
   end
 
   defp decode_response(error), do: error
