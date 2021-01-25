@@ -172,14 +172,10 @@ commands:
       - run: |
           export LD_LIBRARY_PATH=/usr/local/lib
           export CLOUDSDK_PYTHON=/usr/bin/python
-          wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-323.0.0-linux-x86_64.tar.gz -O gcloud-sdk.tar.gz
-            tar zxf gcloud-sdk.tar.gz google-cloud-sdk
-            mv google-cloud-sdk ~/.google-cloud-sdk
-            ~/.google-cloud-sdk/install.sh --quiet
-            echo $GCP_KEY_FILE | gcloud auth activate-service-account $GCP_SERVICE_EMAIL --key-file=-
-            gcloud --quiet config set project ${GCP_PROJECT}
-            gcloud --quiet config set compute/zone ${GCP_ZONE}
-            gcloud --quiet auth configure-docker
+          echo $GCP_KEY_FILE | gcloud auth activate-service-account $GCP_SERVICE_EMAIL --key-file=-
+          gcloud --quiet config set project ${GCP_PROJECT}
+          gcloud --quiet config set compute/zone ${GCP_ZONE}
+          gcloud --quiet auth configure-docker
 
 jobs:
   barebuild:
