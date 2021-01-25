@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
 
   require Utxo
 
-  @timeout 40_000
+  @timeout 80_000
   @eth OMG.Eth.zero_address()
 
   @moduletag :mix_based_child_chain
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
 
     assert %{
              "blknum" => blknum,
-             "txindex" => 0,
+             "tx_index" => 0,
              "txhash" => <<_::256>>
            } = tx1 |> Transaction.Signed.encode() |> WatcherHelper.submit()
 

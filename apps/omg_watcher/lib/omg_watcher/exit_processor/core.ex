@@ -127,11 +127,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
 
     exit_ids = Enum.into(exits, %{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+    db_in_flight_exits = db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new()
 
     {:ok,
      %__MODULE__{
        exits: exits,
-       in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
+       in_flight_exits: db_in_flight_exits,
        exit_ids: exit_ids,
        competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
        sla_margin: sla_margin,
@@ -271,8 +272,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp append_new_competitors(%__MODULE__{competitors: competitors} = state, challenges_events) do
-    new_competitors = challenges_events |> Enum.map(&CompetitorInfo.new/1)
-    db_updates = new_competitors |> Enum.map(&CompetitorInfo.make_db_update/1)
+    new_competitors = Enum.map(challenges_events, &CompetitorInfo.new/1)
+    db_updates = Enum.map(new_competitors, &CompetitorInfo.make_db_update/1)
 
     {%{state | competitors: Map.merge(competitors, Map.new(new_competitors))}, db_updates}
   end
@@ -477,8 +478,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
 
     late_invalid_exits_events =
-      late_invalid_exits
-      |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
+      Enum.map(late_invalid_exits, fn {position, late_exit} ->
+        ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit)
+      end)
 
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
 

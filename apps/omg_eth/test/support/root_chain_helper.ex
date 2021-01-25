@@ -40,8 +40,8 @@ defmodule Support.RootChainHelper do
   @gas_piggyback 1_000_000
 
   @standard_exit_bond 23_300_000_000_000_000
-  @ife_bond 37_000_000_000_000_000
-  @piggyback_bond 28_000_000_000_000_000
+  @ife_bond 26_900_000_000_000_000
+  @piggyback_bond 30_900_000_000_000_000
 
   @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
 

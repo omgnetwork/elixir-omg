@@ -217,7 +217,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     assert_types(fields, [:timestamp, :eth_height, :relevant_from_blknum], fn value -> true = is_integer(value) end)
     # assert_types(fields, [:input_txs, :input_utxos_pos], fn value -> true = is_list(value) end)
     assert_types(fields, [:is_canonical, :is_active], fn value -> true = is_boolean(value) end)
-
+    IO.inspect(fields, label: "ife_map")
     # mapping is used in case of changes in data structure
     ife_map = %{
       tx: from_db_signed_tx(fields[:tx]),
@@ -285,8 +285,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec challenge(t(), non_neg_integer()) :: t() | {:error, :competitor_too_young}
   def challenge(ife, competitor_position)
 
-  def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position),
-    do: %{ife | is_canonical: false, oldest_competitor: decode_position_possibly_exceeding(competitor_position)}
+  def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position) do
+    %{ife | is_canonical: false, oldest_competitor: decode_position_possibly_exceeding(competitor_position)}
+  end
 
   def challenge(%__MODULE__{oldest_competitor: current_oldest} = ife, competitor_position) do
     with decoded_competitor_pos <- Utxo.Position.decode!(competitor_position),
@@ -417,11 +418,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def is_invalidly_challenged?(%__MODULE__{is_canonical: true}), do: false
   def is_invalidly_challenged?(%__MODULE__{tx_seen_in_blocks_at: nil}), do: false
 
-  def is_invalidly_challenged?(%__MODULE__{
-        tx_seen_in_blocks_at: {Utxo.position(_, _, _) = seen_in_pos, _proof},
-        oldest_competitor: oldest_competitor_pos
-      }),
-      do: is_older?(seen_in_pos, oldest_competitor_pos)
+  def is_invalidly_challenged?(state) do
+    {Utxo.position(_, _, _) = seen_in_pos, _proof} = state.tx_seen_in_blocks_at
+    is_older?(seen_in_pos, state.oldest_competitor)
+  end
 
   @doc """
   Converts integer to contract's in-flight exit id

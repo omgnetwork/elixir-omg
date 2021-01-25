@@ -123,11 +123,8 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
           | {:error, :ife_not_known_for_tx}
           | {:error, :no_viable_competitor_found}
           | {:error, Transaction.decode_error()}
-  def get_competitor_for_ife(
-        %ExitProcessor.Request{blocks_result: blocks},
-        %Core{} = state,
-        ife_txbytes
-      ) do
+  def get_competitor_for_ife(exit_processor_request, %Core{} = state, ife_txbytes) do
+    %ExitProcessor.Request{blocks_result: blocks} = exit_processor_request
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
     # find its competitor and use it to prepare the requested data
     with {:ok, ife_tx} <- Transaction.decode(ife_txbytes),
