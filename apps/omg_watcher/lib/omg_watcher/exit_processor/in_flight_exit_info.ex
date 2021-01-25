@@ -99,20 +99,19 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   Creates a new instance of the key-value pair for the respective `InFlightExitInfo`, from the Ethereum event map
   """
   @spec new_kv(map(), {tuple(), non_neg_integer()}) :: t()
-  def new_kv(
-        %{
-          eth_height: eth_height,
-          in_flight_tx: tx_bytes,
-          in_flight_tx_sigs: signatures,
-          input_txs: input_txs,
-          input_utxos_pos: input_utxos_pos
-        },
-        {contract_status, contract_ife_id}
-      ) do
+  def new_kv(event, {contract_status, contract_ife_id}) do
+    %{
+      eth_height: eth_height,
+      in_flight_tx: tx_bytes,
+      in_flight_tx_sigs: signatures,
+      # input_txs: input_txs,
+      input_utxos_pos: input_utxos_pos
+    } = event
+
     do_new(tx_bytes, signatures, contract_status,
       contract_id: <<contract_ife_id::192>>,
       eth_height: eth_height,
-      input_txs: input_txs,
+      # input_txs: input_txs,
       input_utxos_pos: Enum.map(input_utxos_pos, &Utxo.Position.decode!/1)
     )
   end
@@ -149,25 +148,24 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   end
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
-  def make_db_update(
-        {ife_hash,
-         %__MODULE__{
-           tx: %Transaction.Signed{} = tx,
-           contract_tx_pos: tx_pos,
-           timestamp: timestamp,
-           contract_id: contract_id,
-           oldest_competitor: oldest_competitor,
-           eth_height: eth_height,
-           input_txs: input_txs,
-           input_utxos_pos: input_utxos_pos,
-           relevant_from_blknum: relevant_from_blknum,
-           exit_map: exit_map,
-           is_canonical: is_canonical,
-           is_active: is_active
-         }}
-      )
+  def make_db_update({ife_hash,
+       %__MODULE__{
+         tx: %Transaction.Signed{} = tx,
+         contract_tx_pos: tx_pos,
+         timestamp: timestamp,
+         contract_id: contract_id,
+         oldest_competitor: oldest_competitor,
+         eth_height: eth_height,
+         # input_txs: input_txs,
+         input_utxos_pos: input_utxos_pos,
+         relevant_from_blknum: relevant_from_blknum,
+         exit_map: exit_map,
+         is_canonical: is_canonical,
+         is_active: is_active
+       }})
+      # and is_list(input_txs)
       when is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and is_list(input_txs) and is_list(input_utxos_pos) and
+             is_integer(timestamp) and is_integer(eth_height) and is_list(input_utxos_pos) and
              is_integer(relevant_from_blknum) and
              is_map(exit_map) and is_boolean(is_canonical) and is_boolean(is_active) do
     :ok = assert_utxo_pos_type(tx_pos)
@@ -180,7 +178,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       contract_id: contract_id,
       oldest_competitor: oldest_competitor,
       eth_height: eth_height,
-      input_txs: input_txs,
+      # input_txs: input_txs,
       input_utxos_pos: input_utxos_pos,
       relevant_from_blknum: relevant_from_blknum,
       exit_map: exit_map,
@@ -217,7 +215,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     assert_types(fields, [:tx, :exit_map], fn value -> true = is_map(value) end)
     assert_types(fields, [:contract_id], fn value -> true = is_binary(value) end)
     assert_types(fields, [:timestamp, :eth_height, :relevant_from_blknum], fn value -> true = is_integer(value) end)
-    assert_types(fields, [:input_txs, :input_utxos_pos], fn value -> true = is_list(value) end)
+    # assert_types(fields, [:input_txs, :input_utxos_pos], fn value -> true = is_list(value) end)
     assert_types(fields, [:is_canonical, :is_active], fn value -> true = is_boolean(value) end)
 
     # mapping is used in case of changes in data structure
@@ -228,7 +226,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       contract_id: fields[:contract_id],
       oldest_competitor: fields[:oldest_competitor],
       eth_height: fields[:eth_height],
-      input_txs: fields[:input_txs],
+      # input_txs: fields[:input_txs],
       input_utxos_pos: fields[:input_utxos_pos],
       relevant_from_blknum: fields[:relevant_from_blknum],
       exit_map: fields[:exit_map],

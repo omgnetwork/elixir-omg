@@ -211,7 +211,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.into(%{}, fn {utxo_pos, exit_info} -> {utxo_pos, %ExitInfo{exit_info | is_active: false}} end)
 
     new_state = %{state | exits: Map.merge(exits, new_exits_kv_pairs)}
-    db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
+    db_updates = Enum.map(new_exits_kv_pairs, &ExitInfo.make_db_update/1)
     {new_state, db_updates}
   end
 
