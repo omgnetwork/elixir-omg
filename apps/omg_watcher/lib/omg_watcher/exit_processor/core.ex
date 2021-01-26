@@ -189,7 +189,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         {ExitInfo.new_key(event), ExitInfo.new(contract_status, event)}
       end)
 
-    db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
+    db_updates = Enum.map(new_exits_kv_pairs, &ExitInfo.make_db_update/1)
     new_exits_map = Map.new(new_exits_kv_pairs)
 
     new_exit_ids_map =

@@ -17,92 +17,6 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
 
   We define Solidity Function selectors that help us decode returned values from function calls
   """
-  # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
-  # def start_exit() do
-  #   %ABI.FunctionSelector{
-  #     function: "startExit",
-  #     input_names: [
-  #       "utxoPosToExit",
-  #       "rlpOutputTxToContract",
-  #       "outputTxToContractInclusionProof",
-  #       "rlpInputCreationTx",
-  #       "inputCreationTxInclusionProof",
-  #       "utxoPosInput"
-  #     ],
-  #     inputs_indexed: nil,
-  #     method_id: <<191, 31, 49, 109>>,
-  #     returns: [],
-  #     type: :function,
-  #     types: [{:uint, 256}, :bytes, :bytes, :bytes, :bytes, {:uint, 256}]
-  #   }
-  # end
-
-  # def start_standard_exit() do
-  #   %ABI.FunctionSelector{
-  #     function: "startStandardExit",
-  #     input_names: ["utxoPos", "rlpOutputTx", "outputTxInclusionProof"],
-  #     inputs_indexed: nil,
-  #     method_id: <<112, 224, 20, 98>>,
-  #     returns: [],
-  #     type: :function,
-  #     types: [tuple: [{:uint, 256}, :bytes, :bytes]]
-  #   }
-  # end
-
-  # def challenge_in_flight_exit_not_canonical() do
-  #   %ABI.FunctionSelector{
-  #     function: "challengeInFlightExitNotCanonical",
-  #     input_names: [
-  #       "inputTx",
-  #       "inputUtxoPos",
-  #       "inFlightTx",
-  #       "inFlightTxInputIndex",
-  #       "competingTx",
-  #       "competingTxInputIndex",
-  #       "competingTxPos",
-  #       "competingTxInclusionProof",
-  #       "competingTxWitness"
-  #     ],
-  #     inputs_indexed: [true, true, true, true, true, true, true, true, true],
-  #     method_id: <<232, 54, 34, 152>>,
-  #     returns: [],
-  #     type: :function,
-  #     types: [
-  #       tuple: [
-  #         :bytes,
-  #         {:uint, 256},
-  #         :bytes,
-  #         {:uint, 16},
-  #         :bytes,
-  #         {:uint, 16},
-  #         {:uint, 256},
-  #         :bytes,
-  #         :bytes
-  #       ]
-  #     ]
-  #   }
-  # end
-
-  # def start_in_flight_exit() do
-  #   %ABI.FunctionSelector{
-  #     function: "startInFlightExit",
-  #     input_names: ["inFlightTx", "inputTxs", "inputUtxosPos", "inputTxsInclusionProofs", "inFlightTxWitnesses"],
-  #     inputs_indexed: nil,
-  #     method_id: <<90, 82, 133, 20>>,
-  #     returns: [],
-  #     type: :function,
-  #     types: [
-  #       tuple: [
-  #         :bytes,
-  #         {:array, :bytes},
-  #         {:array, {:uint, 256}},
-  #         {:array, :bytes},
-  #         {:array, :bytes}
-  #       ]
-  #     ]
-  #   }
-  # end
-
   # min_exit_period/0, get_version/0, exit_games/0, vaults/0 are
   # victims of unfortinate bug: https://github.com/poanetwork/ex_abi/issues/25
   # All these selectors were intially pulled in with
@@ -205,17 +119,24 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
   def standard_exits() do
     %ABI.FunctionSelector{
       function: "standardExits",
-      input_names: ["standard_exit_structs"],
+      input_names: ["exit_ids"],
       inputs_indexed: nil,
       method_id: <<121, 75, 85, 147>>,
-      # returns: [
-      #   array: {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}
-      # ],
+      returns: [
+        array:
+          {:tuple,
+           [
+             :bool,
+             {:uint, 256},
+             {:bytes, 32},
+             :address,
+             {:uint, 256},
+             {:uint, 256},
+             {:uint, 256}
+           ]}
+      ],
       type: :function,
-      # types: [array: {:uint, 160}]
-      types: [
-        array: {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}]}
-      ]
+      types: [array: {:tuple, [:bool, {:uint, 256}, {:bytes, 32}, :address, {:uint, 256}, {:uint, 256}, {:uint, 256}]}]
     }
   end
 

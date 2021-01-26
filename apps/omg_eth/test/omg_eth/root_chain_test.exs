@@ -21,8 +21,10 @@ defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth.Encoding
   alias OMG.Eth.RootChain
   alias OMG.Eth.RootChain.Abi
+  alias OMG.Eth.RootChain.AbiEventSelector
   alias Support.DevHelper
   alias Support.RootChainHelper
+
   @eth "0x0000000000000000000000000000000000000000"
   @moduletag :common
 

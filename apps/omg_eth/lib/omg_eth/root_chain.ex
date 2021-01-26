@@ -72,11 +72,9 @@ defmodule OMG.Eth.RootChain do
   """
   def get_standard_exit_structs(exit_ids) do
     contract = Configuration.contracts().payment_exit_game
+    %{"exit_ids" => exit_ids} = get_external_data(contract, "standardExits(uint168[])", [exit_ids])
 
-    %{"standard_exit_structs" => standard_exit_structs} =
-      get_external_data(contract, "standardExits(uint168[])", [exit_ids])
-
-    {:ok, standard_exit_structs}
+    {:ok, exit_ids}
   end
 
   @doc """
