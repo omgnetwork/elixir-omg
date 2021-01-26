@@ -630,6 +630,7 @@ jobs:
       SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
+      EXIT_ID_SIZE: 168
     parallelism: 4
     steps:
       - checkout
@@ -749,6 +750,7 @@ jobs:
       REORG: true
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
+      EXIT_ID_SIZE: 168
     steps:
       - checkout
       - run:
