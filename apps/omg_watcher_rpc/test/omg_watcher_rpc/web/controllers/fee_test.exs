@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
   alias OMG.WireFormatTypes
   alias Support.WatcherHelper
 
-  @eth Eth.zero_address()
+  @eth <<0::160>>
   @tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
   @str_tx_type Integer.to_string(@tx_type)
 

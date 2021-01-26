@@ -16,7 +16,6 @@ defmodule OMG.Eth.RootChainTest do
   use ExUnit.Case, async: false
 
   alias ExPlasma.Builder
-  alias ExPlasma.Crypto
   alias ExPlasma.Transaction.Type.PaymentV1
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding

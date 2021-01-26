@@ -26,7 +26,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
 
   require Utxo
 
-  @eth Eth.zero_address()
+  @eth <<0::160>>
   @alice <<27::160>>
   @bob <<28::160>>
 

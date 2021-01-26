@@ -40,8 +40,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   alias OMG.Watcher.ExitProcessor.DoubleSpend
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.KnownTx
-
-  import OMG.Watcher.ExitProcessor.Tools
+  alias OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
 
@@ -128,11 +127,12 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
     known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
     # find its competitor and use it to prepare the requested data
     with {:ok, ife_tx} <- Transaction.decode(ife_txbytes),
-         {:ok, ife} <- get_ife(ife_tx, state.in_flight_exits),
+         {:ok, ife} <- Tools.get_ife(ife_tx, state.in_flight_exits),
          {:ok, double_spend} <- get_competitor(known_txs_by_input, ife.tx),
          %DoubleSpend{known_tx: %KnownTx{utxo_pos: utxo_pos}} = double_spend,
-         true <- check_viable_competitor(ife, utxo_pos),
-         do: {:ok, prepare_competitor_response(double_spend, ife, blocks)}
+         true <- check_viable_competitor(ife, utxo_pos) do
+      {:ok, prepare_competitor_response(double_spend, ife, blocks)}
+    end
   end
 
   @doc """
@@ -143,7 +143,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
           {:ok, prove_canonical_data_t()} | {:error, :no_viable_canonical_proof_found}
   def prove_canonical_for_ife(%Core{} = state, ife_txbytes) do
     with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
-         {:ok, ife} <- get_ife(raw_ife_tx, state.in_flight_exits),
+         {:ok, ife} <- Tools.get_ife(raw_ife_tx, state.in_flight_exits),
          true <- check_is_invalidly_challenged(ife),
          do: {:ok, prepare_canonical_response(ife)}
   end
@@ -163,11 +163,11 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
     %{
       input_tx: Enum.at(ife.input_txs, in_flight_input_index),
       input_utxo_pos: Enum.at(ife.input_utxos_pos, in_flight_input_index),
-      in_flight_txbytes: signed_ife_tx |> Transaction.raw_txbytes(),
+      in_flight_txbytes: Transaction.raw_txbytes(signed_ife_tx),
       in_flight_input_index: in_flight_input_index,
-      competing_txbytes: known_signed_tx |> Transaction.raw_txbytes(),
+      competing_txbytes: Transaction.raw_txbytes(known_signed_tx),
       competing_input_index: competing_input_index,
-      competing_sig: find_sig!(known_signed_tx, owner),
+      challenge_tx_sig: Tools.find_sig!(known_signed_tx, owner),
       competing_tx_pos: known_tx_utxo_pos || Utxo.position(0, 0, 0),
       competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }

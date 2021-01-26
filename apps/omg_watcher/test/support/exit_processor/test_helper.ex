@@ -126,9 +126,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     %{
       tx_hash: Transaction.raw_txhash(tx),
       competitor_position: competitor_position,
-      competing_tx: txbytes(comp),
-      competing_tx_input_index: Keyword.get(opts, :competing_tx_input_index, 0),
-      competing_tx_sig: Keyword.get(opts, :competing_tx_sig, sig(comp))
+      challenge_tx: txbytes(comp),
+      challenge_tx_input_index: Keyword.get(opts, :challenge_tx_input_index, 0),
+      challenge_tx_sig: Keyword.get(opts, :challenge_tx_sig, sig(comp))
     }
   end
 

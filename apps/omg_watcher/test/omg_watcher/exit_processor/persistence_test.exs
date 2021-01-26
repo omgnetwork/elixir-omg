@@ -145,9 +145,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     challenge = %{
       tx_hash: hash,
       competitor_position: Utxo.Position.encode(@utxo_pos2),
-      competing_tx: Transaction.raw_txbytes(competing_tx),
-      competing_tx_input_index: 0,
-      competing_tx_sig: @zero_sig
+      challenge_tx: Transaction.raw_txbytes(competing_tx),
+      challenge_tx_input_index: 0,
+      challenge_tx_sig: @zero_sig
     }
 
     piggybacks1 = [

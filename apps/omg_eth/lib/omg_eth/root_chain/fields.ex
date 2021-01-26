@@ -181,65 +181,65 @@ defmodule OMG.Eth.RootChain.Fields do
     Map.update(reduce_naming(data, contracts_naming), :omg_data, %{key => value}, &Map.put(&1, key, value))
   end
 
-  def rename(data, %ABI.FunctionSelector{function: "startInFlightExit"}) do
-    contracts_naming = [
-      {"inFlightTx", :in_flight_tx},
-      {"inputTxs", :input_txs},
-      {"inputUtxosPos", :input_utxos_pos},
-      {"inputTxsInclusionProofs", :input_inclusion_proofs},
-      {"inFlightTxWitnesses", :in_flight_tx_sigs}
-    ]
+  # def rename(data, %ABI.FunctionSelector{function: "startInFlightExit"}) do
+  #   contracts_naming = [
+  #     {"inFlightTx", :in_flight_tx},
+  #     {"inputTxs", :input_txs},
+  #     {"inputUtxosPos", :input_utxos_pos},
+  #     {"inputTxsInclusionProofs", :input_inclusion_proofs},
+  #     {"inFlightTxWitnesses", :in_flight_tx_sigs}
+  #   ]
 
-    reduce_naming(data, contracts_naming)
-  end
+  #   reduce_naming(data, contracts_naming)
+  # end
 
-  def rename(data, %ABI.FunctionSelector{function: "startStandardExit"}) do
-    contracts_naming = [
-      {"outputTxInclusionProof", :output_tx_inclusion_proof},
-      {"rlpOutputTx", :output_tx},
-      {"utxoPos", :utxo_pos}
-    ]
+  # def rename(data, %ABI.FunctionSelector{function: "startStandardExit"}) do
+  #   contracts_naming = [
+  #     {"outputTxInclusionProof", :output_tx_inclusion_proof},
+  #     {"rlpOutputTx", :output_tx},
+  #     {"utxoPos", :utxo_pos}
+  #   ]
 
-    # not used and discarded
-    Map.delete(reduce_naming(data, contracts_naming), :output_tx_inclusion_proof)
-  end
+  #   # not used and discarded
+  #   Map.delete(reduce_naming(data, contracts_naming), :output_tx_inclusion_proof)
+  # end
 
-  # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
-  def rename(data, %ABI.FunctionSelector{function: "startExit"}) do
-    contracts_naming = [
-      {"utxoPosToExit", :utxo_pos},
-      {"rlpOutputTxToContract", :output_tx},
-      {"outputTxToContractInclusionProof", :output_tx_inclusion_proof},
-      {"rlpInputCreationTx", :rlp_input_creation_tx},
-      {"inputCreationTxInclusionProof", :input_creation_tx_inclusion_proof},
-      {"utxoPosInput", :utxo_pos_input}
-    ]
+  # # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
+  # def rename(data, %ABI.FunctionSelector{function: "startExit"}) do
+  #   contracts_naming = [
+  #     {"utxoPosToExit", :utxo_pos},
+  #     {"rlpOutputTxToContract", :output_tx},
+  #     {"outputTxToContractInclusionProof", :output_tx_inclusion_proof},
+  #     {"rlpInputCreationTx", :rlp_input_creation_tx},
+  #     {"inputCreationTxInclusionProof", :input_creation_tx_inclusion_proof},
+  #     {"utxoPosInput", :utxo_pos_input}
+  #   ]
 
-    # not used and discarded
-    Map.drop(reduce_naming(data, contracts_naming), [
-      :output_tx_inclusion_proof,
-      :rlp_input_creation_tx,
-      :input_creation_tx_inclusion_proof,
-      :utxo_pos_input
-    ])
-  end
+  #   # not used and discarded
+  #   Map.drop(reduce_naming(data, contracts_naming), [
+  #     :output_tx_inclusion_proof,
+  #     :rlp_input_creation_tx,
+  #     :input_creation_tx_inclusion_proof,
+  #     :utxo_pos_input
+  #   ])
+  # end
 
-  def rename(data, %ABI.FunctionSelector{function: "challengeInFlightExitNotCanonical"}) do
-    contracts_naming = [
-      {"competingTx", :competing_tx},
-      {"competingTxInclusionProof", :competing_tx_inclusion_proof},
-      {"competingTxInputIndex", :competing_tx_input_index},
-      {"competingTxPos", :competing_tx_pos},
-      {"competingTxWitness", :competing_tx_sig},
-      {"inFlightTx", :in_flight_tx},
-      {"inFlightTxInputIndex", :in_flight_input_index},
-      {"inputTx", :input_tx_bytes},
-      {"inputUtxoPos", :input_utxo_pos}
-    ]
+  # def rename(data, %ABI.FunctionSelector{function: "challengeInFlightExitNotCanonical"}) do
+  #   contracts_naming = [
+  #     {"competingTx", :competing_tx},
+  #     {"competingTxInclusionProof", :competing_tx_inclusion_proof},
+  #     {"competingTxInputIndex", :competing_tx_input_index},
+  #     {"competingTxPos", :competing_tx_pos},
+  #     {"competingTxWitness", :competing_tx_sig},
+  #     {"inFlightTx", :in_flight_tx},
+  #     {"inFlightTxInputIndex", :in_flight_input_index},
+  #     {"inputTx", :input_tx_bytes},
+  #     {"inputUtxoPos", :input_utxo_pos}
+  #   ]
 
-    # not used and discarded
-    Map.delete(reduce_naming(data, contracts_naming), :competing_tx_inclusion_proof)
-  end
+  #   # not used and discarded
+  #   Map.delete(reduce_naming(data, contracts_naming), :competing_tx_inclusion_proof)
+  # end
 
   defp reduce_naming(data, contracts_naming) do
     Enum.reduce(contracts_naming, %{}, fn

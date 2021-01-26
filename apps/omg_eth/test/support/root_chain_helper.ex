@@ -185,7 +185,7 @@ defmodule Support.RootChainHelper do
         competing_input_index,
         competing_tx_pos,
         competing_proof,
-        competing_sig,
+        challenge_tx_sig,
         from
       ) do
     opts = Keyword.put(@tx_defaults, :gas, @gas_challenge_in_flight_exit_not_canonical)
@@ -196,7 +196,7 @@ defmodule Support.RootChainHelper do
 
     args = [
       {input_tx_bytes, input_utxo_pos, in_flight_txbytes, in_flight_input_index, competing_txbytes,
-       competing_input_index, competing_tx_pos, competing_proof, competing_sig}
+       competing_input_index, competing_tx_pos, competing_proof, challenge_tx_sig}
     ]
 
     TransactionHelper.contract_transact(from, contract, signature, args, opts)

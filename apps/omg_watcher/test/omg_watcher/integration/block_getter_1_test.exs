@@ -27,7 +27,6 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
 
   require OMG.Utxo
 
-  alias OMG.Eth
   alias OMG.Eth.RootChain
   alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.BlockGetter
