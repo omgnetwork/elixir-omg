@@ -85,8 +85,8 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
   end
 
   defp get_next_blknum_nonce(blknum) do
-    child_block_interval = Application.fetch_env!(:omg_eth, :child_block_interval)
+    child_block_interval = 1000
     next_blknum = blknum + child_block_interval
-    {next_blknum, trunc(next_blknum / child_block_interval)}
+    {next_blknum, trunc(next_blknum / child_block_interval) - 1}
   end
 end

@@ -74,7 +74,10 @@ defmodule OMG.Watcher.Integration.BlockGetter4Test do
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->
-             {:ok, _txhash} = Integration.submit_block(block_overclaiming_fees.hash, 1, 20_000_000_000)
+             gas_price = 20_000_000_000
+             nonce = RootChain.next_child_block() / 1000
+
+             {:ok, _txhash} = Integration.submit_block(block_overclaiming_fees.hash, round(nonce - 1), 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect({:tx_execution, :claimed_and_collected_amounts_mismatch})
   end
