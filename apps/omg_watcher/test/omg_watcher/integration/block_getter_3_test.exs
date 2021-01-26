@@ -30,12 +30,12 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
   import ExUnit.CaptureLog, only: [capture_log: 1]
 
   alias OMG.Eth
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-  alias OMG.Eth.Support.BlockSubmission.Integration
 
   @timeout 40_000
   @eth <<0::160>>

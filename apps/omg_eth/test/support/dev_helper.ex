@@ -23,10 +23,9 @@ defmodule Support.DevHelper do
 
   alias OMG.Eth
   alias OMG.Eth.Client
-
   alias OMG.Eth.RootChain
-  alias Support.WaitFor
   alias OMG.Eth.Support.BlockSubmission.Integration
+  alias Support.WaitFor
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
 

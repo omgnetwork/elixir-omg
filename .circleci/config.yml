@@ -304,7 +304,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 289 ]; then
+            if [ $_counter -gt 282 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi

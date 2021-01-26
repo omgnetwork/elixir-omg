@@ -592,7 +592,8 @@ defmodule OMG.State.Transaction.RecoveredTest do
     alice = TestHelper.generate_entity()
 
     good_tx_rlp_items =
-      TestHelper.create_encoded([{1000, 0, 0, alice}, {1000, 0, 1, alice}], [{alice, @eth, 10}])
+      [{1000, 0, 0, alice}, {1000, 0, 1, alice}]
+      |> TestHelper.create_encoded([{alice, @eth, 10}])
       |> ExRLP.decode()
 
     # sanity check just in case

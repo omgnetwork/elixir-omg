@@ -23,8 +23,8 @@ defmodule OMG.EthTest do
   use ExUnit.Case, async: false
 
   alias OMG.Eth
-  alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Eth.Configuration
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias Support.DevHelper
 
   @moduletag :common

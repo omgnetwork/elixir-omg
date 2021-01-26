@@ -28,6 +28,7 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
   require OMG.Utxo
 
   alias OMG.Eth
+  alias OMG.Eth.RootChain
   alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
@@ -35,7 +36,6 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
-  alias OMG.Eth.RootChain
   alias Support.WatcherHelper
 
   @timeout 40_000
