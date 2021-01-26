@@ -23,6 +23,7 @@ defmodule OMG.EthTest do
   use ExUnit.Case, async: false
 
   alias OMG.Eth
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Eth.Configuration
   alias Support.DevHelper
 
@@ -43,7 +44,7 @@ defmodule OMG.EthTest do
   end
 
   test "submit_block/1 submits a block to the contract" do
-    response = Eth.submit_block(<<234::256>>, 0, 20_000_000_000)
+    response = Integration.submit_block(<<234::256>>, 0, 20_000_000_000)
 
     assert {:ok, _} = DevHelper.transact_sync!(response)
   end

@@ -32,7 +32,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
   @default_min_exit_period_seconds 120
   @default_child_block_interval 1000
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @not_eth <<1::size(160)>>
 
   setup do

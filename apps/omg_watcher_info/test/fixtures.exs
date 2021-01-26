@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.Fixtures do
   alias OMG.WatcherInfo
   alias OMG.WatcherInfo.DB
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized

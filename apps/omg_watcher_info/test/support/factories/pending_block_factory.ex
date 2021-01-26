@@ -24,7 +24,7 @@ defmodule OMG.WatcherInfo.Factory.PendingBlock do
       alias OMG.TestHelper
       alias OMG.WatcherInfo.DB
 
-      @eth OMG.Eth.zero_address()
+      @eth <<0::160>>
 
       def pending_block_factory() do
         blknum = sequence(:block_blknum, fn seq -> (seq + 1) * 1000 end)

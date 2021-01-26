@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
   require Utxo
 
   @timeout 80_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
   # bumping the timeout to three minutes for the tests here, as they do a lot of transactions to Ethereum to test

@@ -35,9 +35,10 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
+  alias OMG.Eth.Support.BlockSubmission.Integration
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
 
@@ -59,7 +60,7 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
 
     {_, nonce} = get_next_blknum_nonce(tx_blknum)
 
-    {:ok, _txhash} = Eth.submit_block(<<0::256>>, nonce, 20_000_000_000)
+    {:ok, _txhash} = Integration.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
     # checking if both machines and humans learn about the byzantine condition
     assert capture_log(fn ->

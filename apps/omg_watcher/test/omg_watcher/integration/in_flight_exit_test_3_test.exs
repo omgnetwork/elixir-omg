@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.InFlightExit3Test do
   require Utxo
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @hex_eth "0x0000000000000000000000000000000000000000"
 
   @moduletag :mix_based_child_chain

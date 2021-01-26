@@ -19,7 +19,7 @@ defmodule OMG.Fixtures do
   alias OMG.Eth.Configuration
   alias OMG.State.Core
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @fee_claimer_address "NO FEE CLAIMER ADDR!"
 
   deffixture(entities, do: entities())

@@ -26,7 +26,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @tag skip: true
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]

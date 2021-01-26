@@ -28,6 +28,7 @@ defmodule OMG.Watcher.Integration.BlockGetter2Test do
   require OMG.Utxo
 
   alias OMG.Eth
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
@@ -37,7 +38,7 @@ defmodule OMG.Watcher.Integration.BlockGetter2Test do
   alias Support.WatcherHelper
 
   @timeout 60_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
 
@@ -93,7 +94,7 @@ defmodule OMG.Watcher.Integration.BlockGetter2Test do
     assert WatcherHelper.capture_log(fn ->
              # Here we're manually submitting invalid block to the root chain
              # THIS IS CHILDCHAIN CODE
-             {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
+             {:ok, _} = Integration.submit_block(bad_block_hash, 2, 1)
 
              IntegrationTest.wait_for_byzantine_events(
                [%Event.InvalidExit{}.name, %Event.UnchallengedExit{}.name],

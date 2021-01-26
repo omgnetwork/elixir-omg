@@ -28,6 +28,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   require OMG.Utxo
 
   alias OMG.Eth
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
@@ -35,7 +36,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias Support.WatcherHelper
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :integration
   @moduletag :watcher
@@ -63,7 +64,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->
-             {:ok, _txhash} = Eth.submit_block(different_hash, 0, 20_000_000_000)
+             {:ok, _txhash} = Integration.submit_block(different_hash, 0, 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect({:error, :incorrect_hash})
   end
@@ -94,7 +95,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->
-             {:ok, _txhash} = Eth.submit_block(invalid_block_hash, 0, 20_000_000_000)
+             {:ok, _txhash} = Integration.submit_block(invalid_block_hash, 0, 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect(:tx_execution)
   end

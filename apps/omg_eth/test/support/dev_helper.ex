@@ -23,10 +23,10 @@ defmodule Support.DevHelper do
 
   alias OMG.Eth
   alias OMG.Eth.Client
-  alias OMG.Eth.Configuration
+
   alias OMG.Eth.RootChain
-  alias OMG.Eth.Transaction
   alias Support.WaitFor
+  alias OMG.Eth.Support.BlockSubmission.Integration
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
 
@@ -136,7 +136,7 @@ defmodule Support.DevHelper do
 
     params = %{from: faucet, to: account_enc, value: to_hex(initial_funds_wei)}
 
-    {:ok, tx_fund} = Transaction.send(Configuration.eth_node(), params)
+    {:ok, tx_fund} = Integration.send(params)
 
     case Keyword.get(opts, :timeout) do
       nil -> WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)

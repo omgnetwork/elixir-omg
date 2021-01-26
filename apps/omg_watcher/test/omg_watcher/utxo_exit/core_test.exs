@@ -23,7 +23,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
   alias OMG.Watcher.UtxoExit.Core
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   setup do
     alice = TestHelper.generate_entity()

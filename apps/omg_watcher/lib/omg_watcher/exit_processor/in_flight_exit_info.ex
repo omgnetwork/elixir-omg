@@ -217,7 +217,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     assert_types(fields, [:timestamp, :eth_height, :relevant_from_blknum], fn value -> true = is_integer(value) end)
     # assert_types(fields, [:input_txs, :input_utxos_pos], fn value -> true = is_list(value) end)
     assert_types(fields, [:is_canonical, :is_active], fn value -> true = is_boolean(value) end)
-    IO.inspect(fields, label: "ife_map")
     # mapping is used in case of changes in data structure
     ife_map = %{
       tx: from_db_signed_tx(fields[:tx]),

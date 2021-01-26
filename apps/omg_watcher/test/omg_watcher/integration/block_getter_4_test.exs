@@ -28,6 +28,7 @@ defmodule OMG.Watcher.Integration.BlockGetter4Test do
   require OMG.Utxo
 
   alias OMG.Eth
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
@@ -35,7 +36,7 @@ defmodule OMG.Watcher.Integration.BlockGetter4Test do
   alias Support.WatcherHelper
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
 
@@ -74,7 +75,7 @@ defmodule OMG.Watcher.Integration.BlockGetter4Test do
 
     # checking if both machines and humans learn about the byzantine condition
     assert WatcherHelper.capture_log(fn ->
-             {:ok, _txhash} = Eth.submit_block(block_overclaiming_fees.hash, 1, 20_000_000_000)
+             {:ok, _txhash} = Integration.submit_block(block_overclaiming_fees.hash, 1, 20_000_000_000)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect({:tx_execution, :claimed_and_collected_amounts_mismatch})
   end

@@ -46,7 +46,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @default_sla_margin 10
 
-  @zero_address OMG.Eth.zero_address()
+  @zero_address <<0::160>>
 
   @max_inputs Transaction.Payment.max_inputs()
   @max_outputs Transaction.Payment.max_outputs()

@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.InvalidExit1Test do
   @moduletag timeout: 180_000
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :token, :stable_alice_deposits]
   test "invalid_exit without a challenge raises unchallenged_exit after sla_margin had passed, can be challenged",

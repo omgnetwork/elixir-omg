@@ -34,7 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   @default_min_exit_period_seconds 120
   @default_child_block_interval 1000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(1_000, 0, 1)

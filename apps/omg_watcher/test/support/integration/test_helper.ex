@@ -41,7 +41,6 @@ defmodule OMG.Watcher.Integration.TestHelper do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     wait_for_block_fetch = fn ->
       stat = elem(State.get_status(), 0)
-      IO.inspect(stat)
 
       case stat do
         blknum when blknum < block_number -> :repeat

@@ -24,7 +24,7 @@ defmodule Support.Integration.DepositHelper do
   alias Support.DevHelper
   alias Support.RootChainHelper
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   def deposit_to_child_chain(to, value, token \\ @eth)
 

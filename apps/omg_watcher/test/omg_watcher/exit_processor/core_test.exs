@@ -31,7 +31,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   import OMG.Watcher.ExitProcessor.TestHelper
   import ExUnit.CaptureLog, only: [capture_log: 1]
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @late_blknum 10_000
 
