@@ -13,6 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ExitProcessor.StandardExitIntegration do
+  @moduledoc """
+  A very lazy validator of the integration point
+  """
   alias OMG.Eth.RootChain.AbiFunctionSelector
 
   def standard_exit_struct(struct) do

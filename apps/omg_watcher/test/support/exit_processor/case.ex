@@ -34,12 +34,19 @@ defmodule OMG.Watcher.ExitProcessor.Case do
   @not_eth <<1::size(160)>>
 
   setup do
-    [alice, bob, carol] = 1..3 |> Enum.map(fn _ -> OMG.TestHelper.generate_entity() end)
+    [alice, bob, carol] = Enum.map(1..3, fn _ -> OMG.TestHelper.generate_entity() end)
 
-    transactions = [
-      OMG.TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, carol}], [{alice, @eth, 1}, {carol, @eth, 2}]),
-      OMG.TestHelper.create_recovered([{2, 1, 0, alice}, {2, 2, 1, carol}], [{alice, @not_eth, 1}, {carol, @not_eth, 2}])
-    ]
+    # breaking down long lines
+    transactions =
+      [{1, 0, 0, alice}, {1, 2, 1, carol}]
+      |> OMG.TestHelper.create_recovered([{alice, @eth, 1}, {carol, @eth, 2}])
+      |> List.wrap()
+      |> Kernel.++([
+        OMG.TestHelper.create_recovered([{2, 1, 0, alice}, {2, 2, 1, carol}], [
+          {alice, @not_eth, 1},
+          {carol, @not_eth, 2}
+        ])
+      ])
 
     competing_tx =
       OMG.TestHelper.create_recovered([{10, 2, 1, alice}, {1, 0, 0, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
