@@ -27,6 +27,7 @@ defmodule OMG.Watcher.Integration.BlockGetter4Test do
 
   require OMG.Utxo
 
+  alias OMG.Eth.RootChain
   alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
@@ -77,7 +78,7 @@ defmodule OMG.Watcher.Integration.BlockGetter4Test do
              gas_price = 20_000_000_000
              nonce = RootChain.next_child_block() / 1000
 
-             {:ok, _txhash} = Integration.submit_block(block_overclaiming_fees.hash, round(nonce - 1), 20_000_000_000)
+             {:ok, _txhash} = Integration.submit_block(block_overclaiming_fees.hash, round(nonce - 1), gas_price)
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
            end) =~ inspect({:tx_execution, :claimed_and_collected_amounts_mismatch})
   end

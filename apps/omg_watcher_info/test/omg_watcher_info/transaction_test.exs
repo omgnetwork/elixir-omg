@@ -17,7 +17,6 @@ defmodule OMG.WatcherInfo.TransactionTest do
   use ExUnit.Case, async: true
   use OMG.Fixtures
 
-  alias OMG.Eth
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.Transaction

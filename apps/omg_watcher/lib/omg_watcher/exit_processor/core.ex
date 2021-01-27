@@ -193,9 +193,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     new_exits_map = Map.new(new_exits_kv_pairs)
 
     new_exit_ids_map =
-      new_exits_map |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+      Enum.into(new_exits_map, %{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
 
-    {%{state | exits: Map.merge(exits, new_exits_map), exit_ids: Map.merge(exit_ids, new_exit_ids_map)}, db_updates}
+    exits = Map.merge(exits, new_exits_map)
+    exit_ids = Map.merge(exit_ids, new_exit_ids_map)
+    {%{state | exits: exits, exit_ids: exit_ids}, db_updates}
   end
 
   defdelegate finalize_exits(state, validities), to: ExitProcessor.Finalizations

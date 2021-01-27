@@ -20,14 +20,12 @@ defmodule OMG.Watcher.ExitProcessor.Case do
 
   alias OMG.Block
   alias OMG.State.Transaction
-  alias OMG.TestHelper
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.TestHelper
 
   require Utxo
-
-  import OMG.Watcher.ExitProcessor.TestHelper
 
   @default_min_exit_period_seconds 120
   @default_child_block_interval 1000
@@ -36,32 +34,34 @@ defmodule OMG.Watcher.ExitProcessor.Case do
   @not_eth <<1::size(160)>>
 
   setup do
-    [alice, bob, carol] = 1..3 |> Enum.map(fn _ -> TestHelper.generate_entity() end)
+    [alice, bob, carol] = 1..3 |> Enum.map(fn _ -> OMG.TestHelper.generate_entity() end)
 
     transactions = [
-      TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, carol}], [{alice, @eth, 1}, {carol, @eth, 2}]),
-      TestHelper.create_recovered([{2, 1, 0, alice}, {2, 2, 1, carol}], [{alice, @not_eth, 1}, {carol, @not_eth, 2}])
+      OMG.TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, carol}], [{alice, @eth, 1}, {carol, @eth, 2}]),
+      OMG.TestHelper.create_recovered([{2, 1, 0, alice}, {2, 2, 1, carol}], [{alice, @not_eth, 1}, {carol, @not_eth, 2}])
     ]
 
     competing_tx =
-      TestHelper.create_recovered([{10, 2, 1, alice}, {1, 0, 0, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
+      OMG.TestHelper.create_recovered([{10, 2, 1, alice}, {1, 0, 0, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
 
     unrelated_tx =
-      TestHelper.create_recovered([{20, 1, 0, alice}, {20, 20, 1, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
+      OMG.TestHelper.create_recovered([{20, 1, 0, alice}, {20, 20, 1, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
 
     {:ok, processor_empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)
 
     in_flight_exit_events =
-      transactions |> Enum.zip([2, 4]) |> Enum.map(fn {tx, eth_height} -> ife_event(tx, eth_height: eth_height) end)
+      transactions
+      |> Enum.zip([2, 4])
+      |> Enum.map(fn {tx, eth_height} -> TestHelper.ife_event(tx, eth_height: eth_height) end)
 
-    ife_tx_hashes = transactions |> Enum.map(&Transaction.raw_txhash/1)
+    ife_tx_hashes = Enum.map(transactions, &Transaction.raw_txhash/1)
 
     processor_filled =
       transactions
       |> Enum.zip([1, 4])
       |> Enum.reduce(processor_empty, fn {tx, idx}, processor ->
         # use the idx as both two distinct ethereum heights and two distinct exit_ids arriving from the root chain
-        start_ife_from(processor, tx, eth_height: idx, exit_id: idx)
+        TestHelper.start_ife_from(processor, tx, eth_height: idx, exit_id: idx)
       end)
 
     {:ok,
@@ -91,18 +91,18 @@ defmodule OMG.Watcher.ExitProcessor.Case do
 
     state =
       state
-      |> start_ife_from(competing_tx)
-      |> piggyback_ife_from(ife_id, 0, :input)
+      |> TestHelper.start_ife_from(competing_tx)
+      |> TestHelper.piggyback_ife_from(ife_id, 0, :input)
       |> Core.find_ifes_in_blocks(request)
 
     %{
       state: state,
       request: request,
       ife_input_index: 0,
-      ife_txbytes: txbytes(tx),
-      spending_txbytes: txbytes(competing_tx),
+      ife_txbytes: TestHelper.txbytes(tx),
+      spending_txbytes: TestHelper.txbytes(competing_tx),
       spending_input_index: 1,
-      spending_sig: sig(competing_tx)
+      spending_sig: TestHelper.sig(competing_tx)
     }
   end
 
@@ -110,7 +110,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
     # the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
     # 1. transaction which is, ife'd, output piggybacked, and included in a block
     # 2. transaction which spends that piggybacked output
-    comp = TestHelper.create_recovered([{3000, 0, 0, alice}], [{alice, @eth, 1}])
+    comp = OMG.TestHelper.create_recovered([{3000, 0, 0, alice}], [{alice, @eth, 1}])
 
     tx_blknum = 3000
     comp_blknum = 4000
@@ -126,20 +126,20 @@ defmodule OMG.Watcher.ExitProcessor.Case do
     # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
     state =
       state
-      |> piggyback_ife_from(ife_id, 0, :output)
-      |> piggyback_ife_from(ife_id, 1, :output)
+      |> TestHelper.piggyback_ife_from(ife_id, 0, :output)
+      |> TestHelper.piggyback_ife_from(ife_id, 1, :output)
       |> Core.find_ifes_in_blocks(request)
 
     %{
       state: state,
       request: request,
       ife_good_pb_index: 5,
-      ife_txbytes: txbytes(tx),
+      ife_txbytes: TestHelper.txbytes(tx),
       ife_output_pos: Utxo.position(tx_blknum, 0, 0),
       ife_proof: Block.inclusion_proof(block, 0),
-      spending_txbytes: txbytes(comp),
+      spending_txbytes: TestHelper.txbytes(comp),
       spending_input_index: 0,
-      spending_sig: sig(comp),
+      spending_sig: TestHelper.sig(comp),
       ife_input_index: 4
     }
   end

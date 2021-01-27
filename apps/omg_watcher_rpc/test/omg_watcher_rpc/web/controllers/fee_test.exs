@@ -18,7 +18,6 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.TestServer
   alias OMG.WireFormatTypes
@@ -53,7 +52,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
 
       prepare_test_server(context, childchain_response)
 
-      assert childchain_response = WatcherHelper.success?("/fees.all")
+      assert ^childchain_response = WatcherHelper.success?("/fees.all")
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

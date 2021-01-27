@@ -17,7 +17,6 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
   use ExUnit.Case, async: true
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.OrderFeeFetcher
   alias OMG.WatcherInfo.TestServer

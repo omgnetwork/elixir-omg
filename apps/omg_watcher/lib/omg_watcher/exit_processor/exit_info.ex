@@ -59,17 +59,16 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
         }
 
   @spec new(map(), map()) :: t()
-  def new(
-        contract_status,
-        %{
-          eth_height: eth_height,
-          output_tx: txbytes,
-          exit_id: exit_id,
-          root_chain_txhash: root_chain_txhash,
-          scheduled_finalization_time: scheduled_finalization_time,
-          block_timestamp: block_timestamp
-        } = exit_event
-      ) do
+  def new(contract_status, exit_event) do
+    %{
+      eth_height: eth_height,
+      output_tx: txbytes,
+      exit_id: exit_id,
+      root_chain_txhash: root_chain_txhash,
+      scheduled_finalization_time: scheduled_finalization_time,
+      block_timestamp: block_timestamp
+    } = exit_event
+
     Utxo.position(_, _, oindex) = utxo_pos_for(exit_event)
     {:ok, raw_tx} = Transaction.decode(txbytes)
     %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
@@ -90,8 +89,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   def new_key(exit_info), do: utxo_pos_for(exit_info)
 
-  defp utxo_pos_for(%{utxo_pos: utxo_pos_enc} = _exit_info),
-    do: Utxo.Position.decode!(utxo_pos_enc)
+  defp utxo_pos_for(%{utxo_pos: utxo_pos_enc} = _exit_info), do: Utxo.Position.decode!(utxo_pos_enc)
 
   @spec do_new(map(), list(keyword())) :: t()
   defp do_new(contract_status, fields) do
@@ -160,7 +158,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   # `exitable` will be `false` if the exit was challenged
   # `exitable` will be `false` ALONG WITH the whole tuple holding zeroees, if the exit was processed successfully
   # **NOTE** one can only rely on the zero-nonzero of this data, since for processed exits this data will be all zeros
-  defp parse_contract_exit_status({exitable, _, _, _, _, _}), do: exitable
+  defp parse_contract_exit_status({exitable, _, _, _, _, _, _}), do: exitable
 
   # Based on the block number determines whether UTXO was created by a deposit.
   defguardp is_deposit(blknum, child_block_interval) when rem(blknum, child_block_interval) != 0
