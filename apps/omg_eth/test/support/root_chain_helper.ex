@@ -36,8 +36,8 @@ defmodule Support.RootChainHelper do
   @gas_start_in_flight_exit 1_500_000
   @gas_respond_to_non_canonical_challenge 1_000_000
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
-  @gas_piggyback 1_000_000
-
+  @gas_piggyback 2_000_000
+  # https://github.com/omgnetwork/plasma-contracts/blob/68e380dc36c2f9732f21da41c50ad0d527b8b11b/plasma_framework/contracts/src/exits/payment/routers/PaymentInFlightExitRouter.sol#L40
   @standard_exit_bond 23_300_000_000_000_000
   @ife_bond 26_900_000_000_000_000
   @piggyback_bond 30_900_000_000_000_000

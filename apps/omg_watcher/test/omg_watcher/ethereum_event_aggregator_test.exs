@@ -73,7 +73,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  enrich: false
                ],
                [
-                 signature: "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])",
+                 signature: "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[],bytes[])",
                  name: :in_flight_exit_started,
                  enrich: false
                ],
@@ -110,7 +110,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  "InFlightExitDeleted(uint168)",
                  "InFlightExitInputPiggybacked(address,bytes32,uint16)",
                  "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
-                 "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])"
+                 "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[],bytes[])"
                ])
     end
   end

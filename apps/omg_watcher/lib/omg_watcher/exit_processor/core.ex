@@ -127,14 +127,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
 
     exit_ids = Enum.into(exits, %{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
-    db_in_flight_exits = db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new()
+    in_flight_exits = db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new()
+    competitors = db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new()
 
     {:ok,
      %__MODULE__{
        exits: exits,
-       in_flight_exits: db_in_flight_exits,
+       in_flight_exits: in_flight_exits,
        exit_ids: exit_ids,
-       competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
+       competitors: competitors,
        sla_margin: sla_margin,
        min_exit_period_seconds: min_exit_period_seconds,
        child_block_interval: child_block_interval
@@ -461,19 +462,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         even if the exits were eventually challenged (e.g. during syncing)
   """
   @spec check_validity(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
-  def check_validity(
-        %ExitProcessor.Request{
-          eth_height_now: eth_height_now,
-          utxos_to_check: utxos_to_check,
-          utxo_exists_result: utxo_exists_result,
-          blocks_result: blocks
-        },
-        %__MODULE__{} = state
-      )
-      when not is_nil(eth_height_now) do
-    utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
+  def check_validity(request, state) do
+    utxo_exists? = Enum.zip(request.utxos_to_check, request.utxo_exists_result) |> Map.new()
 
-    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_height_now)
+    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, request.eth_height_now)
 
     invalid_exit_events =
       invalid_exits
@@ -484,15 +476,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit)
       end)
 
-    known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
+    known_txs_by_input = KnownTx.get_all_from_blocks_appendix(request.blocks_result, state)
 
     {non_canonical_ife_events, late_non_canonical_ife_events} =
-      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now)
+      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, request.eth_height_now)
 
     invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
     {invalid_piggybacks_events, late_invalid_piggybacks_events} =
-      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, eth_height_now)
+      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, request.eth_height_now)
 
     available_piggybacks_events =
       state

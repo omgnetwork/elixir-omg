@@ -83,8 +83,8 @@ defmodule OMG.Eth.RootChain.Fields do
   def rename(data, %ABI.FunctionSelector{function: "InFlightExitChallenged"}) do
     contracts_naming = [
       {"challenger", :challenger},
-      {"challengeTxPosition", :competitor_position},
       {"txHash", :tx_hash},
+      {"challengeTxPosition", :competitor_position},
       {"inFlightTxInputIndex", :in_flight_tx_input_index},
       {"challengeTx", :challenge_tx},
       {"challengeTxInputIndex", :challenge_tx_input_index},
@@ -145,10 +145,11 @@ defmodule OMG.Eth.RootChain.Fields do
   def rename(data, %ABI.FunctionSelector{function: "InFlightExitStarted"}) do
     contracts_naming = [
       {"initiator", :initiator},
-      {"tx_hash", :tx_hash},
-      {"in_flight_tx", :in_flight_tx},
-      {"input_utxos_pos", :input_utxos_pos},
-      {"in_flight_tx_witnesses", :in_flight_tx_sigs}
+      {"txHash", :tx_hash},
+      {"inFlightTx", :in_flight_tx},
+      {"inputUtxosPos", :input_utxos_pos},
+      {"inFlightTxWitnesses", :in_flight_tx_sigs},
+      {"inputTxs", :input_txs}
     ]
 
     reduce_naming(data, contracts_naming)
