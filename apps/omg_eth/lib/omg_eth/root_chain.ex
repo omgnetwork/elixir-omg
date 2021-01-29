@@ -84,10 +84,9 @@ defmodule OMG.Eth.RootChain do
   """
   def get_in_flight_exit_structs(in_flight_exit_ids) do
     contract = Configuration.contracts().payment_exit_game
-
-    %{"in_flight_exit_structs" => in_flight_exit_structs} =
-      get_external_data(contract, "inFlightExits(uint160[])", [in_flight_exit_ids])
-
+    data = get_external_data(contract, "inFlightExits(uint160[])", [in_flight_exit_ids])
+    IO.inspect data, label: "datadatadata", limit: :infinity, printable_limit: :infinity
+    %{"in_flight_exit_structs" => in_flight_exit_structs} = data
     {:ok, in_flight_exit_structs}
   end
 
