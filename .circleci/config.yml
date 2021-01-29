@@ -640,7 +640,7 @@ jobs:
           background: true
       - run:
           name: Log watcher
-          command: docker-compose -f logs watcher
+          command: docker-compose logs --follow watcher
           background: true
       - check_docker_status
       - install_elixir
