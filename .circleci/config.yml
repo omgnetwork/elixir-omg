@@ -638,6 +638,10 @@ jobs:
           name: Log daemon services
           command: make cabbage-logs
           background: true
+      - run:
+          name: Log watcher
+          command: docker-compose -f logs watcher
+          background: true
       - check_docker_status
       - install_elixir
       - run: sh .circleci/status.sh
@@ -650,8 +654,9 @@ jobs:
             mix deps.get
             grep -r "@moduletag" ./apps/itest/ | awk '{print "--include " $3}' | tr -d ':' > tags.txt
             echo $(circleci tests split ./tags.txt)
-            circleci tests split ./tags.txt > /tmp/tests-to-run
-            mix test --exclude test $(cat /tmp/tests-to-run)
+            #circleci tests split ./tags.txt > /tmp/tests-to-run
+            #mix test --exclude test $(cat /tmp/tests-to-run)
+            mix test test/itest/in_flight_exits_test.exs:34
 
   test_docker_compose_performance:
     description: "These are not actually performance tests, we're checking if the scripts work"

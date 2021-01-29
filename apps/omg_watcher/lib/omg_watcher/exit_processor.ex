@@ -422,6 +422,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
     ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
     {new_state, db_updates} = Core.new_in_flight_exits(state, exits, ife_contract_statuses)
+    IO.inspect {new_state, db_updates}, label: "InFlightExitStarted", limit: :infinity, printable_limit: :infinity
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -461,7 +462,7 @@ defmodule OMG.Watcher.ExitProcessor do
           :insert_exits!,
           [events, :in_flight_exit, :InFlightTxOutputPiggybacked]
         )
-
+    IO.inspect {new_state, db_updates}, label: "piggybacks", limit: :infinity, printable_limit: :infinity
     {:reply, {:ok, db_updates}, new_state}
   end
 
