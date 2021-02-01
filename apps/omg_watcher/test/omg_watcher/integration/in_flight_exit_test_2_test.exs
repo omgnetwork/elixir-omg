@@ -101,7 +101,7 @@ defmodule OMG.Watcher.Integration.InFlightExit2Test do
         get_competitor_response["competing_input_index"],
         get_competitor_response["competing_tx_pos"],
         get_competitor_response["competing_proof"],
-        get_competitor_response["competing_sig"],
+        get_competitor_response["challenge_tx_sig"],
         alice.addr
       )
       |> DevHelper.transact_sync!()

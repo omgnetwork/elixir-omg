@@ -1,6 +1,6 @@
 # Simple In-flight Exit
 
-Alice sends tokens to Bob in transaction `tx` which has one input and 2 outputs, one to Bob and one back to herself as change. The block is withheld. 
+Alice sends tokens to Bob in transaction `tx` which has one input and 2 outputs, one to Bob and one back to herself as change. The block is withheld.
 
 Alice calls `watcher/status.get` and gets a response:
 
@@ -31,7 +31,7 @@ TODO - How does Alice know that her transaction hasn't been included? Does she h
 Alice starts an in-flight exit.
 
 #### 1. Get the exit data
-`/in_flight_exit.get_data` 
+`/in_flight_exit.get_data`
 ```json
  {
     "txbytes": "F3170101C0940000..."
@@ -59,15 +59,15 @@ Alice starts an in-flight exit.
 #### 2. Start the IFE
 ```
 RootChain.startInFlightExit(
-    response.data.txbytes, 
-    response.data.input_txs, 
-    response.data.input_proofs, 
-    response.data.sigs, 
+    response.data.txbytes,
+    response.data.input_txs,
+    response.data.input_proofs,
+    response.data.sigs,
     {"value": inFlightExitBond}
 )
 ```
 
-#### 3. Check status again 
+#### 3. Check status again
 ```json
 {
     "version": "1",
@@ -114,7 +114,7 @@ The second argument is `5` because she is piggybacking the second output.
 ```
 RootChain.piggybackInFlightExit(
     response.data.txbytes,
-    5, 
+    5,
     {"value": piggybackBond}
 )
 ```
@@ -170,7 +170,7 @@ The second argument is `4` because Bob is piggybacking the first output.
 ```
 RootChain.piggybackInFlightExit(
     in_flight_exits[0].txbytes,
-    4, 
+    4,
     {"value": piggybackBond}
 )
 ```
@@ -223,7 +223,7 @@ Request `watcher/status.get`:
  ```
 
 #### 1. Get the competing transaction and its inclusion proof (if available).
-`/in_flight_exit.get_competitor` 
+`/in_flight_exit.get_competitor`
 ```json
 {
     "txbytes": "F3170101C0940000..."
@@ -240,7 +240,7 @@ response:
         "in_flight_input_index": 0,
         "competing_txbytes": "F317010180808080940000...",
         "competing_input_index": 1,
-        "competing_sig": "9A23010180808080940000...",
+        "challenge_tx_sig": "9A23010180808080940000...",
         "competing_tx_pos": 26000003920000,
         "competing_proof": "004C010180808080940000..."
     }
@@ -252,12 +252,12 @@ Note that if the competing transaction has _not_ been included in a block then i
 ```
 tx0_data = response.data
 RootChain.challengeInFlightExitNotCanonical(
-    in_flight_txbytes, 
-    in_flight_input_index, 
-    competing_txbytes, 
+    in_flight_txbytes,
+    in_flight_input_index,
+    competing_txbytes,
     competing_input_index,
     competing_tx_pos,
-    competing_proof, 
+    competing_proof,
     competing_sig
 )
 ```
@@ -279,7 +279,7 @@ To respond to a challenge to an IFE, we need to show that the transaction _is_ i
 
 #### 1. Get the in-flight transaction's inclusion proof.
 
-`/in_flight_exit.prove_canonical` 
+`/in_flight_exit.prove_canonical`
 ```json
 {
     "txbytes": "F3170101C0940000..."
@@ -302,9 +302,9 @@ response:
 #### 2. Respond to an IFE challenge
 ```
 RootChain.challengeInFlightExitNotCanonical(
-    in_flight_txbytes, 
+    in_flight_txbytes,
     in_flight_tx_pos,
-    in_flight_proof, 
+    in_flight_proof,
 )
 ```
 If this transaction is the oldest competitor then it is canonical and the IFE succeeds - Bob exits his output.
@@ -327,7 +327,7 @@ To challenge a piggybacked input we must present a different transaction that sp
 
 #### 1. Get the transaction that challenges the input
 
-`/in_flight_exit.get_input_challenge_data` 
+`/in_flight_exit.get_input_challenge_data`
 ```json
 {
     "txbytes": "F3170101C0940000...",
@@ -353,9 +353,9 @@ response:
 #### 2. Challenge the input
 ```
 RootChain.challengeInFlightExitInputSpent(
-    in_flight_tx.txbytes, 
+    in_flight_tx.txbytes,
     in_flight_tx.input_index,
-    spending_tx.txbytes, 
+    spending_tx.txbytes,
     spending_tx.input_index,
     spending_tx.sigs
 )
@@ -378,7 +378,7 @@ To challenge a piggybacked output we must present a transaction that spends that
 ```
 
 #### 1. Get the output's proof of inclusion
-`/in_flight_exit.get_output_challenge_data` 
+`/in_flight_exit.get_output_challenge_data`
 ```json
 {
     "txbytes": "F3170101C0940000...",
@@ -405,10 +405,10 @@ response:
 #### 2. Challenge the output
 ```
 RootChain.challengeInFlightExitOutputSpent(
-    in_flight_tx.txbytes, 
+    in_flight_tx.txbytes,
     in_flight_tx.output_pos,
     in_flight_tx.proof,
-    spending_tx.txbytes, 
+    spending_tx.txbytes,
     spending_tx.input_index,
     spending_tx.sigs
 )
