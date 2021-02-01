@@ -413,8 +413,10 @@ defmodule OMG.Watcher.ExitProcessor do
       |> publish_internal_bus_events("InFlightExitStarted")
 
     {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
+
     ife_contract_statuses = Enum.zip(statuses, contract_ife_ids)
     {new_state, db_updates} = Core.new_in_flight_exits(state, exits, ife_contract_statuses)
+
     {:reply, {:ok, db_updates}, new_state}
   end
 

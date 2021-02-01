@@ -1,4 +1,8 @@
 import Config
+
+config :ex_plasma,
+  exit_id_size: 168
+
 ethereum_events_check_interval_ms = 8_000
 
 config :logger, level: :info

@@ -400,41 +400,6 @@ jobs:
             mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain
       - setup_childchain
       - run:
-          name: invalid_exit_2_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain
-      - setup_childchain
-      - run:
-          name: block_getter_1_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain
-      - setup_childchain
-      - run:
-          name: block_getter_2_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain
-      - setup_childchain
-      - run:
-          name: block_getter_3_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain
-      - setup_childchain
-      - run:
-          name: block_getter_4_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain
-      - setup_childchain
-      - run:
           name: in_flight_exit_test_1_test.exs
           environment:
             DOCKER_GETH: true
@@ -468,6 +433,41 @@ jobs:
             DOCKER_GETH: true
           command: |
             mix test test/omg_watcher/integration/in_flight_exit_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: invalid_exit_2_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: block_getter_1_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: block_getter_2_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: block_getter_3_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain
+      - setup_childchain
+      - run:
+          name: block_getter_4_test.exs
+          environment:
+            DOCKER_GETH: true
+          command: |
+            mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain
 
   watcher_info_coveralls_and_integration_tests:
     executor: builder_pg_geth

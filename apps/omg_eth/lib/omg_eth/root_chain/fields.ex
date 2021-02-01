@@ -53,7 +53,6 @@ defmodule OMG.Eth.RootChain.Fields do
     # in_flight_exit_input_piggybacked -> has "inputIndex" that needs to be converted to :output_index
     # in_flight_exit_output_piggybacked -> has "outputIndex" that needs to be converted to :output_index
     # not a typo, both are output_index.
-
     contracts_naming = [
       {"outputIndex", :output_index},
       {"exitTarget", :owner},
