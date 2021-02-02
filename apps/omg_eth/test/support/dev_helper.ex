@@ -51,7 +51,7 @@ defmodule Support.DevHelper do
   end
 
   @doc """
-  Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
+  Use with contract-transacting functions that return {:ok, txhash}, e.g. `OMG.Eth.Token.mint`, for synchronous waiting
   for mining of a successful result
   """
   @spec transact_sync!({:ok, Eth.hash()}, keyword()) :: {:ok, map}

@@ -36,7 +36,7 @@ defmodule Support.RootChainHelper do
   @gas_start_in_flight_exit 1_500_000
   @gas_respond_to_non_canonical_challenge 1_000_000
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
-  @gas_piggyback 5_000_000
+  @gas_piggyback 2_000_000
   # https://github.com/omgnetwork/plasma-contracts/blob/68e380dc36c2f9732f21da41c50ad0d527b8b11b/plasma_framework/contracts/src/exits/payment/routers/PaymentInFlightExitRouter.sol#L40
   @standard_exit_bond 23_300_000_000_000_000
   @ife_bond 26_900_000_000_000_000
@@ -168,8 +168,9 @@ defmodule Support.RootChainHelper do
     opts = @tx_defaults
     token = from_hex(token, :mixed)
     contract = from_hex(Configuration.contracts().plasma_framework, :mixed)
-    signature = "processExits(uint256,address,uint168,uint256)"
-    args = [vault_id, token, top_exit_id, exits_to_process]
+    signature = "processExits(uint256,address,uint168,uint256,bytes32)"
+    sender_data = ExPlasma.Crypto.keccak_hash(from)
+    args = [vault_id, token, top_exit_id, exits_to_process, sender_data]
 
     TransactionHelper.contract_transact(from, contract, signature, args, opts)
   end

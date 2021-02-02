@@ -158,6 +158,17 @@ commands:
       - restore_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
 
+  run_test_in_docker:
+    description: "Quick test runs"
+    parameters:
+      test_url:
+        type: string
+    steps:
+      - run:
+          name: "Docker run"
+          command: |
+            docker run --rm -it --network=elixir-omg_chain_net -e TEST_ETHEREUM_RPC_URL=http://172.27.0.108:80 -e TEST_CHILDCHAIN_URL=http://172.27.0.108:9656/v1 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(PWD):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && <<parameters.test_url>>"
+
   install_deps:
     description: Install linux dependencies
     steps:
@@ -381,23 +392,25 @@ jobs:
     steps:
       - checkout
       - setup_childchain
-      - install_elixir
-      - install_deps
-      - run:
-          name: Compile
-          environment:
-            MIX_ENV: test
-          command: |
-            set -e
-            make deps-elixir-omg
-            mix compile
-          no_output_timeout: 2400
-      - run:
-          name: invalid_exit_1_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain
+      # - install_elixir
+      # - install_deps
+      #  - run:
+      #     name: Compile
+      #     environment:
+      #       MIX_ENV: test
+      #     command: |
+      #       set -e
+      #       make deps-elixir-omg
+      #       mix compile
+      #     no_output_timeout: 2400
+      # - run:
+      #     name: invalid_exit_1_test.exs
+      #     environment:
+      #       DOCKER_GETH: true
+      #     command: |
+      #       mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_url: "mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain"
       - setup_childchain
       - run:
           name: in_flight_exit_test_3_test.exs

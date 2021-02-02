@@ -20,6 +20,7 @@ defmodule Support.Integration.DepositHelper do
   alias OMG.Eth
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
+  alias OMG.Eth.Token
   alias OMG.State.Transaction
   alias Support.DevHelper
   alias Support.RootChainHelper
@@ -41,7 +42,7 @@ defmodule Support.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, token_addr) when is_binary(token_addr) and byte_size(token_addr) == 20 do
     contract_addr = Encoding.from_hex(Configuration.contracts().erc20_vault, :mixed)
 
-    {:ok, _} = Eth.Token.approve(to, contract_addr, value, token_addr) |> DevHelper.transact_sync!()
+    {:ok, _} = to |> Token.approve(contract_addr, value, token_addr) |> DevHelper.transact_sync!()
 
     {:ok, receipt} =
       Transaction.Payment.new([], [{to, token_addr, value}])
