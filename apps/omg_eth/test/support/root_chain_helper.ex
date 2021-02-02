@@ -36,11 +36,10 @@ defmodule Support.RootChainHelper do
   @gas_start_in_flight_exit 1_500_000
   @gas_respond_to_non_canonical_challenge 1_000_000
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
-  @gas_piggyback 2_000_000
+  @gas_piggyback 5_000_000
   # https://github.com/omgnetwork/plasma-contracts/blob/68e380dc36c2f9732f21da41c50ad0d527b8b11b/plasma_framework/contracts/src/exits/payment/routers/PaymentInFlightExitRouter.sol#L40
   @standard_exit_bond 23_300_000_000_000_000
   @ife_bond 26_900_000_000_000_000
-  @piggyback_bond 30_900_000_000_000_000
 
   @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
 
@@ -65,7 +64,7 @@ defmodule Support.RootChainHelper do
     opts =
       @tx_defaults
       |> Keyword.put(:gas, @gas_piggyback)
-      |> Keyword.put(:value, @piggyback_bond)
+      |> Keyword.put(:value, get_piggyback_bond_size(Configuration.contracts().payment_exit_game))
 
     contract = from_hex(Configuration.contracts().payment_exit_game, :mixed)
     signature = "piggybackInFlightExitOnInput((bytes,uint16))"
@@ -78,7 +77,7 @@ defmodule Support.RootChainHelper do
     opts =
       @tx_defaults
       |> Keyword.put(:gas, @gas_piggyback)
-      |> Keyword.put(:value, @piggyback_bond)
+      |> Keyword.put(:value, get_piggyback_bond_size(Configuration.contracts().payment_exit_game))
 
     contract = from_hex(Configuration.contracts().payment_exit_game, :mixed)
 
@@ -276,5 +275,24 @@ defmodule Support.RootChainHelper do
       |> Enum.map(&Abi.decode_log/1)
 
     deposit_blknum
+  end
+
+  defp get_piggyback_bond_size(exit_game_contract_address) do
+    data = ABI.encode("piggybackBondSize()", [])
+
+    {:ok, result} =
+      Ethereumex.HttpClient.eth_call(%{
+        from: exit_game_contract_address,
+        to: exit_game_contract_address,
+        data: to_hex(data)
+      })
+
+    piggyback_bond_size =
+      result
+      |> from_hex(:mixed)
+      |> ABI.TypeDecoder.decode([{:uint, 128}])
+      |> hd()
+
+    piggyback_bond_size
   end
 end
