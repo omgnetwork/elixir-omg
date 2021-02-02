@@ -164,7 +164,14 @@ commands:
       test_url:
         type: string
     steps:
-      - run: mkdir deps_docker/
+      - run:
+          name: Setup dirs
+          command: |
+            [ -d _build_docker ] || mkdir _build_docker && chmod 777 _build_docker
+      - run:
+          name: Setup dirs deps_docker
+          command: |
+            [ -d deps_docker ] || mkdir deps_docker && chmod 777 deps_docker
       - run:
           name: "Docker run"
           command: |
