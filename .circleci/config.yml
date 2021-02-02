@@ -167,7 +167,7 @@ commands:
       - run:
           name: "Docker run"
           command: |
-            docker run --rm -it --network=project_chain_net -e DOCKER=true -e TEST_ETHEREUM_RPC_URL=http://172.27.0.108:80 -e TEST_CHILDCHAIN_URL=http://172.27.0.108:9656/v1 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(pwd):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && mix deps.get && <<parameters.test_url>>"
+            docker run --rm -it --network=project_chain_net -e TEST_ETHEREUM_RPC_URL=http://172.27.0.108:80 -e TEST_CHILDCHAIN_URL=http://172.27.0.108:9656/v1 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(pwd):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && mix deps.get && <<parameters.test_url>>"
 
   install_deps:
     description: Install linux dependencies
