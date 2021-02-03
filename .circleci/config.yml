@@ -169,11 +169,11 @@ commands:
       - run:
           name: Setup dirs
           command: |
-            [ -d _build_docker ] || mkdir _build_docker && chmod 777 _build_docker
+            [ -d _build_docker ] || mkdir _build_docker && chmod -R 777 _build_docker
       - run:
           name: Setup dirs deps_docker
           command: |
-            [ -d deps_docker ] || mkdir deps_docker && chmod 777 deps_docker
+            [ -d deps_docker ] || mkdir deps_docker && chmod -R 777 deps_docker
       - run:
           name: "Docker run <<parameters.test_name>>"
           command: |
@@ -402,6 +402,10 @@ jobs:
     steps:
       - checkout
       - setup_childchain
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+      - run: rm -rf _build_docker/test/lib/omg*
       - run_test_in_docker:
             test_url: "mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain"
             test_name: "invalid_exit_1_test.exs"
@@ -445,6 +449,11 @@ jobs:
       - run_test_in_docker:
             test_url: "mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain"
             test_name: "block_getter_4_test.exs"
+      - save_cache:
+          key: v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - deps_docker
+            - _build_docker
 
   watcher_info_coveralls_and_integration_tests:
     executor: builder_pg_geth
@@ -634,6 +643,8 @@ jobs:
           name: Run specs
           environment:
             EXIT_ID_SIZE: "168"
+            LOCALCHAIN_CONTRACT_ADDRESSES: "/home/circleci/project/localchain_contract_addresses.env"
+            PLASMA_CONTRACTS_DIR: "/home/circleci/project/data/plasma-contracts/contracts/"
           command: |
             cd priv/cabbage
             make install
