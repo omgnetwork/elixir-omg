@@ -167,14 +167,6 @@ commands:
         type: string
     steps:
       - run:
-          name: Setup dirs
-          command: |
-            [ -d _build_docker ] || mkdir _build_docker && chmod -R 777 _build_docker
-      - run:
-          name: Setup dirs deps_docker
-          command: |
-            [ -d deps_docker ] || mkdir deps_docker && chmod -R 777 deps_docker
-      - run:
           name: "Docker run <<parameters.test_name>>"
           command: |
             docker run --rm -it --network=project_chain_net -e DOCKER=true -e TEST_ETHEREUM_RPC_URL=http://172.27.0.108:80 -e TEST_CHILDCHAIN_URL=http://172.27.0.108:9656/v1 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(pwd):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && mix deps.get && <<parameters.test_url>>"
@@ -401,6 +393,14 @@ jobs:
       MIX_ENV: test
     steps:
       - checkout
+      - run:
+          name: Setup dirs
+          command: |
+            [ -d _build_docker ] || mkdir _build_docker && chmod -R 777 _build_docker
+      - run:
+          name: Setup dirs deps_docker
+          command: |
+            [ -d deps_docker ] || mkdir deps_docker && chmod -R 777 deps_docker
       - setup_childchain
       - restore_cache:
           keys:
