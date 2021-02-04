@@ -404,11 +404,16 @@ jobs:
       - setup_childchain
       - restore_cache:
           keys:
-            - v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
+            - v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}
       - run: rm -rf _build_docker/test/lib/omg*
       - run_test_in_docker:
             test_url: "mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain"
             test_name: "invalid_exit_1_test.exs"
+      - save_cache:
+          key: v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}
+          paths:
+            - deps_docker
+            - _build_docker
       - setup_childchain
       - run_test_in_docker:
             test_url: "mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain"
@@ -449,11 +454,6 @@ jobs:
       - run_test_in_docker:
             test_url: "mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain"
             test_name: "block_getter_4_test.exs"
-      - save_cache:
-          key: v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - deps_docker
-            - _build_docker
 
   watcher_info_coveralls_and_integration_tests:
     executor: builder_pg_geth
