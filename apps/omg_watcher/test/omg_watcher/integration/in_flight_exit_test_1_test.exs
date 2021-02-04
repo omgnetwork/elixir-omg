@@ -56,7 +56,7 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
     assert %{
              "blknum" => blknum,
              "tx_index" => 0,
-             "txhash" => <<_::256>>
+             "tx_hash" => <<_::256>>
            } = tx1 |> Transaction.Signed.encode() |> WatcherHelper.submit()
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
