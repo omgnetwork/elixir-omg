@@ -538,8 +538,8 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
       "logIndex" => "0x2",
       "removed" => false,
       "topics" => [
-        "0x1991c4c350498b0cc937c6a08bc5bdecf2e4fdd9d918052a880f102e43dbe45c",
-        "0x000000000000000000000000003fd275046f2823936fd97c1e3c8b225464d7f1"
+        "0x08c8ce0b90361de12348d9d765286dd661d722dc06e5e13672f80afd3af002c4",
+        "0x0000000000000000000000cb3e4386e8b76c6c2a4da050bfe5a3eda63d9d5406"
       ],
       "transactionHash" => "0xbe310ade41278c5607620311b79363aa520ac46c7ba754bf3027d501c5a95f40",
       "transactionIndex" => "0x0"
