@@ -19,6 +19,19 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
   Function names describe the type of the event Event Fetcher will retrieve.
   """
 
+  @spec in_flight_exit_deleted() :: ABI.FunctionSelector.t()
+  def in_flight_exit_deleted() do
+    %ABI.FunctionSelector{
+      function: "InFlightExitDeleted",
+      input_names: ["exitId"],
+      inputs_indexed: [true],
+      method_id: <<8, 200, 206, 11>>,
+      returns: [],
+      type: :event,
+      types: [uint: 168]
+    }
+  end
+
   @spec exit_started() :: ABI.FunctionSelector.t()
   def exit_started() do
     %ABI.FunctionSelector{
@@ -49,19 +62,6 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
         {:array, :bytes},
         {:array, :bytes}
       ]
-    }
-  end
-
-  @spec in_flight_exit_deleted() :: ABI.FunctionSelector.t()
-  def in_flight_exit_deleted() do
-    %ABI.FunctionSelector{
-      function: "InFlightExitDeleted",
-      input_names: ["exitId"],
-      inputs_indexed: [true],
-      method_id: <<25, 145, 196, 195>>,
-      returns: [],
-      type: :event,
-      types: [uint: 168]
     }
   end
 

@@ -216,7 +216,15 @@ defmodule OMG.Watcher.EthereumEventAggregator do
 
   defp get_logs(from_height, to_height, state) do
     {:ok, logs} = state.rpc.get_ethereum_events(from_height, to_height, state.event_signatures, state.contracts)
-    Enum.map(logs, &Abi.decode_log(&1))
+
+    Enum.map(logs, fn log ->
+      try do
+        Abi.decode_log(log)
+      catch
+        _, _ ->
+          raise ArgumentError, "Can't decode Ethereum log, got: #{inspect(log)}"
+      end
+    end)
   end
 
   defp store_logs(decoded_logs, from_block, to_block, state) do
