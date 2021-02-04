@@ -32,12 +32,16 @@ defmodule OMG.Conformance.MerkleProofTest do
   @max_block_size trunc(:math.pow(2, @proof_length))
 
   setup_all do
+    :ok = Application.put_env(:ex_plasma, :exit_id_size, 160)
     {:ok, exit_fn} = Support.DevNode.start()
 
     contracts = SnapshotContracts.parse_contracts()
     merkle_wrapper_address_hex = contracts["CONTRACT_ADDRESS_MERKLE_WRAPPER"]
 
-    on_exit(exit_fn)
+    on_exit(fn ->
+      exit_fn.()
+      :ok = Application.put_env(:ex_plasma, :exit_id_size, 168)
+    end)
 
     [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex, :mixed)]
   end
