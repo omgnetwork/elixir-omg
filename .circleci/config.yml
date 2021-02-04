@@ -645,6 +645,7 @@ jobs:
             EXIT_ID_SIZE: "168"
             LOCALCHAIN_CONTRACT_ADDRESSES: "/home/circleci/project/localchain_contract_addresses.env"
             PLASMA_CONTRACTS_DIR: "/home/circleci/project/data/plasma-contracts/contracts/"
+            FEE_CLAIMER_ADDRESS: "0x24F3402Cd22F03ff81B56941fE048AD0F4EED5A1"
           command: |
             cd priv/cabbage
             make install
