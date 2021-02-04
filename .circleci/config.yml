@@ -393,19 +393,19 @@ jobs:
       MIX_ENV: test
     steps:
       - checkout
-      - run:
-          name: Setup dirs
-          command: |
-            [ -d _build_docker ] || mkdir _build_docker && chmod -R 777 _build_docker
-      - run:
-          name: Setup dirs deps_docker
-          command: |
-            [ -d deps_docker ] || mkdir deps_docker && chmod -R 777 deps_docker
-      - setup_childchain
       - restore_cache:
           keys:
             - v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}
       - run: rm -rf _build_docker/test/lib/omg*
+      - run:
+          name: Setup dirs
+          command: |
+            [ -d _build_docker ] || mkdir _build_docker && sudo chmod -R 777 _build_docker
+      - run:
+          name: Setup dirs deps_docker
+          command: |
+            [ -d deps_docker ] || mkdir deps_docker &&  sudo  chmod -R 777 deps_docker
+      - setup_childchain
       - run_test_in_docker:
             test_url: "mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain"
             test_name: "invalid_exit_1_test.exs"
