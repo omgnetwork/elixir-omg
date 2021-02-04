@@ -194,7 +194,7 @@ defmodule Support.WatcherHelper do
   def submit(transaction) do
     submission_info = success?("transaction.submit", %{transaction: Encoding.to_hex(transaction)})
 
-    decode16(submission_info, ["txhash"])
+    decode16(submission_info, ["tx_hash"])
   end
 
   def get_input_challenge_data(transaction, input_index) do
