@@ -1,4 +1,4 @@
 [submodule "priv/cabbage"]
 	path = priv/cabbage
 	url = git@github.com:omgnetwork/specs.git
-	branch = master-v2
+	branch = inomurko/bump_ex_plasma_03
