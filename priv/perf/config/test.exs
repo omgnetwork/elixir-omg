@@ -4,7 +4,7 @@ config :ethereumex,
   url: "http://localhost:8545"
 
 config :load_test,
-  child_chain_url: "http://localhost:9656",
+  child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656"),
   watcher_security_url: "http://localhost:7434",
   watcher_info_url: "http://localhost:7534",
   faucet_deposit_amount: trunc(:math.pow(10, 18) * 10),

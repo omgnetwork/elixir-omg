@@ -167,7 +167,7 @@ defmodule LoadTest.ChildChain.Exit do
     sender_data = Crypto.hash(from)
 
     contract = contract_address_payment_exit_game()
-    signature = "challengeStandardExit((uint160,bytes,bytes,uint16,bytes,bytes32))"
+    signature = "challengeStandardExit((uint168,bytes,bytes,uint16,bytes,bytes32))"
     args = [{exit_id, exiting_tx, challenge_tx, input_index, challenge_tx_sig, sender_data}]
 
     {:ok, transaction_hash} = Ethereum.contract_transact(from, contract, signature, args, opts)
