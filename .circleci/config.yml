@@ -404,7 +404,7 @@ jobs:
       - run:
           name: Setup dirs deps_docker
           command: |
-            [ -d deps_docker ] || mkdir deps_docker &&  sudo  chmod -R 777 deps_docker
+            [ -d deps_docker ] || mkdir deps_docker &&  sudo chmod -R 777 deps_docker
       - setup_childchain
       - run_test_in_docker:
             test_url: "mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain"
@@ -642,6 +642,7 @@ jobs:
       - run:
           name: Run specs
           environment:
+            CHILD_CHAIN_URL: http://127.0.0.1:9656/v1
             EXIT_ID_SIZE: "168"
             LOCALCHAIN_CONTRACT_ADDRESSES: "/home/circleci/project/localchain_contract_addresses.env"
             PLASMA_CONTRACTS_DIR: "/home/circleci/project/data/plasma-contracts/contracts/"
