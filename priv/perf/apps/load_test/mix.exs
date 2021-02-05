@@ -48,7 +48,7 @@ defmodule LoadTest.MixProject do
       {:fake_server, "~> 2.1", only: :test},
       {:watcher_info_api, in_umbrella: true},
       {:watcher_security_critical_api, in_umbrella: true},
-      {:child_chain_api, in_umbrella: true}
+      {:childchain_api, in_umbrella: true}
     ]
   end
 end

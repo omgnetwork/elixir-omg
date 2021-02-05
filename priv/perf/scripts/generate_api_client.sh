@@ -13,7 +13,7 @@ echo "Generate api client script starts..."
 echo "------------------------------------------------------"
 echo "Cleaning up .api_specs/ and generated client codes..."
 echo "------------------------------------------------------"
-rm -rf apps/child_chain_api
+rm -rf apps/childchain_api
 rm -rf apps/watcher_security_critical_api
 rm -rf apps/watcher_info_api
 
@@ -25,9 +25,9 @@ docker run --rm \
     -v ${PWD}/apps:/apps \
     --user $(id -u):$(id -g) \
     openapitools/openapi-generator-cli generate \
-    -i https://raw.githubusercontent.com/omgnetwork/omg-childchain-v1/master/apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml \
+    -i https://raw.githubusercontent.com/omgnetwork/omg-childchain-v2/master/apps/api/priv/swagger/v1/swagger_specs.yaml \
     -g elixir \
-    -o /apps/child_chain_api/
+    -o /apps/childchain_api/
 
 echo "------------------------------------------------------"
 echo "Generating watcher security clients..."

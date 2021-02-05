@@ -27,7 +27,7 @@ RUN mkdir -p priv/openapitools \
 RUN priv/openapitools/openapi-generator-cli generate \
         -i https://raw.githubusercontent.com/omgnetwork/omg-childchain-v1/master/apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml \
         -g elixir \
-        -o priv/perf/apps/child_chain_api/
+        -o priv/perf/apps/childchain_api/
 
 RUN priv/openapitools/openapi-generator-cli generate \
         -i apps/omg_watcher_rpc/priv/swagger/security_critical_api_specs.yaml \

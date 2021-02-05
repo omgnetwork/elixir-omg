@@ -17,8 +17,8 @@ defmodule LoadTest.ChildChain.Transaction do
   """
   require Logger
 
-  alias ChildChainAPI.Api
-  alias ChildChainAPI.Model
+  alias ChildchainAPI.Api
+  alias ChildchainAPI.Model
   alias ExPlasma.Encoding
   alias ExPlasma.Transaction
   alias ExPlasma.Utxo
