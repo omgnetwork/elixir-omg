@@ -11,9 +11,9 @@ config :load_test,
   # fee testing setup: static fee in <root>/docker/static_feefed/file.json
   fee_amount: 1,
   utxo_load_test_config: %{
-    concurrent_sessions: 10,
-    utxos_to_create_per_session: 5,
-    transactions_per_session: 5
+    concurrent_sessions: 20,
+    utxos_to_create_per_session: 15,
+    transactions_per_session: 15
   },
   childchain_transactions_test_config: %{
     concurrent_sessions: 10,

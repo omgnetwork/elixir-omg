@@ -169,7 +169,7 @@ commands:
       - run:
           name: "Docker run <<parameters.test_name>>"
           command: |
-            docker run --rm -it --network=project_chain_net -e DOCKER=true -e TEST_ETHEREUM_RPC_URL=http://172.27.0.108:80 -e TEST_CHILDCHAIN_URL=http://172.27.0.108:9656/v1 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(pwd):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && mix deps.get && <<parameters.test_url>>"
+            docker run --rm -it --network=project_chain_net -e DOCKER=true -e CHILD_CHAIN_URL=http://172.27.0.108:9656/v1 -e ETHEREUM_RPC_URL=http://172.27.0.108:80 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(pwd):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && mix deps.get && <<parameters.test_url>>"
 
   install_deps:
     description: Install linux dependencies
@@ -257,11 +257,9 @@ jobs:
           paths:
             - "deps_docker/"
             - "deps_docker/rocksdb"
-            - "_build_docker/test/lib/rocksdb/"
-            - "_build_docker/test/dev/rocksdb/"
+            - "_build_docker/"
             - "deps/"
-            - "_build/test/lib/rocksdb/"
-            - "_build/test/dev/rocksdb/"
+            - "_build/"
       - persist_to_workspace:
           name: Persist workspace
           root: ~/src
@@ -703,11 +701,11 @@ jobs:
       - run:
           name: Run perf smoke test (deposits)
           command: |
-            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
+            docker run -it --env-file ./localchain_contract_addresses.env -e CHILD_CHAIN_URL=http://localhost:9656/v1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
       - run:
           name: Run perf smoke test (transactions)
           command: |
-            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
+            docker run -it --env-file ./localchain_contract_addresses.env -e CHILD_CHAIN_URL=http://localhost:9656/v1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |

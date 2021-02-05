@@ -25,7 +25,7 @@ RUN mkdir -p priv/openapitools \
         && chmod u+x priv/openapitools/openapi-generator-cli
 
 RUN priv/openapitools/openapi-generator-cli generate \
-        -i https://raw.githubusercontent.com/omgnetwork/omg-childchain-v1/master/apps/omg_child_chain_rpc/priv/swagger/operator_api_specs.yaml \
+        -i https://raw.githubusercontent.com/omgnetwork/omg-childchain-v2/master/apps/api/priv/swagger/v1/swagger_specs.yaml \
         -g elixir \
         -o priv/perf/apps/childchain_api/
 

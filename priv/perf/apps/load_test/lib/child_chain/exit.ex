@@ -30,7 +30,6 @@ defmodule LoadTest.ChildChain.Exit do
   @gas_start_exit 500_000
   @gas_challenge_exit 300_000
   @gas_add_exit_queue 800_000
-  @standard_exit_bond 14_000_000_000_000_000
 
   @doc """
   Returns the exit data of a utxo.
@@ -96,7 +95,7 @@ defmodule LoadTest.ChildChain.Exit do
 
     tx = %Ethereum.Transaction{
       to: contract_address_payment_exit_game(),
-      value: @standard_exit_bond,
+      value: get_start_standard_exit_size(),
       gas_price: gas_price,
       gas_limit: @gas_start_exit,
       data: data
@@ -143,11 +142,7 @@ defmodule LoadTest.ChildChain.Exit do
   end
 
   defp has_exit_queue?(vault_id, token) do
-    data =
-      ABI.encode(
-        "hasExitQueue(uint256,address)",
-        [vault_id, token]
-      )
+    data = ABI.encode("hasExitQueue(uint256,address)", [vault_id, token])
 
     {:ok, receipt_enc} =
       Ethereumex.HttpClient.eth_call(%{
@@ -183,5 +178,24 @@ defmodule LoadTest.ChildChain.Exit do
     :load_test
     |> Application.fetch_env!(:contract_address_payment_exit_game)
     |> Encoding.to_binary()
+  end
+
+  defp get_start_standard_exit_size() do
+    data = ABI.encode("startStandardExitBondSize()", [])
+
+    {:ok, result} =
+      Ethereumex.HttpClient.eth_call(%{
+        from: Application.fetch_env!(:load_test, :contract_address_payment_exit_game),
+        to: Application.fetch_env!(:load_test, :contract_address_payment_exit_game),
+        data: Encoding.to_hex(data)
+      })
+
+    start_standard_exit_size =
+      result
+      |> Encoding.to_binary()
+      |> ABI.TypeDecoder.decode([{:uint, 128}])
+      |> hd()
+
+    start_standard_exit_size
   end
 end

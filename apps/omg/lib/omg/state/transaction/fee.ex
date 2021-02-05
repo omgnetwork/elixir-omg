@@ -153,8 +153,9 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Fee do
          do: {:ok, %{}}
   end
 
-  defp find_output_by_currency(outputs, currency),
-    do: Enum.find(outputs, {:error, :surplus_in_token_not_collected}, fn o -> o.currency == currency end)
+  defp find_output_by_currency(outputs, currency) do
+    Enum.find(outputs, {:error, :surplus_in_token_not_collected}, fn o -> o.currency == currency end)
+  end
 
   defp amounts_equal?(collected, claimed) when collected == claimed, do: true
   defp amounts_equal?(_, _), do: {:error, :claimed_and_collected_amounts_mismatch}
