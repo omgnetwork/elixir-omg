@@ -665,6 +665,7 @@ jobs:
       PERF_IMAGE_NAME: "omisego/perf:latest"
       STATIX_TAG: "env:perf_circleci"
       CHILD_CHAIN_URL: http://127.0.0.1:9656/v1
+      FEE_AMOUNT: 1
     steps:
       - checkout
       - run:
