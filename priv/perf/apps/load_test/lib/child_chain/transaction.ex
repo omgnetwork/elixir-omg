@@ -232,9 +232,9 @@ defmodule LoadTest.ChildChain.Transaction do
     |> Jason.decode!()
     |> Map.fetch!("data")
     |> case do
-      %{"blknum" => blknum, "txindex" => txindex} ->
-        _ = Logger.debug("[Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}")
-        {:ok, {blknum, txindex}}
+      %{"blknum" => blknum, "tx_index" => tx_index} ->
+        _ = Logger.debug("[Transaction submitted successfully {#{inspect(blknum)}, #{inspect(tx_index)}}")
+        {:ok, {blknum, tx_index}}
 
       %{"code" => reason} ->
         _ =
