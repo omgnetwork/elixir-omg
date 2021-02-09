@@ -147,7 +147,7 @@ defmodule LoadTest.TestRunner.Config do
     |> Map.new()
   end
 
-  defp update_fees(%{fee: fee} = config) do
+  defp update_fees(%{fee: _fee} = config) do
     case System.get_env("FEE_AMOUNT") do
       nil ->
         config

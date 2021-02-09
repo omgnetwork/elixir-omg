@@ -108,41 +108,6 @@ services:
     networks:
       chain_net:
         ipv4_address: 172.27.0.103
-  # childchain:
-  #   image: omisego/child_chain:latest
-  #   command: "full_local"
-  #   container_name: childchain
-  #   env_file:
-  #     - ./localchain_contract_addresses.env
-  #     - ./fees_setup.env
-  #   environment:
-  #     - ETHEREUM_NETWORK=LOCALCHAIN
-  #     - ETHEREUM_RPC_URL=http://172.27.0.108:80
-  #     - APP_ENV=local_docker_development
-  #     - DD_HOSTNAME=datadog
-  #     - DD_DISABLED=true
-  #     - DB_PATH=/data
-  #     - ETHEREUM_EVENTS_CHECK_INTERVAL_MS=800
-  #     - ETHEREUM_STALLED_SYNC_THRESHOLD_MS=20000
-  #     - LOGGER_BACKEND=console
-  #     - RELEASE_COOKIE=development
-  #     - NODE_HOST=127.0.0.1
-  #   restart: always
-  #   volumes:
-  #     - ./data:/data
-  #     - ./priv/dev-artifacts:/dev-artifacts
-  #   healthcheck:
-  #     test: curl localhost:9656
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-  #     start_period: 60s
-  #   depends_on:
-  #     - nginx
-  #     - geth
-  #   networks:
-  #     chain_net:
-  #       ipv4_address: 172.27.0.103
 
   geth:
     image: ethereum/client-go:v1.9.12
@@ -204,9 +169,6 @@ services:
       timeout: 1s
       retries: 5
       start_period: 30s
-    # depends_on:
-    #   childchain:
-    #     condition: service_healthy
     networks:
       chain_net:
         ipv4_address: 172.27.0.104
@@ -248,8 +210,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      # childchain:
-      #   condition: service_healthy
       postgres:
         condition: service_healthy
     networks:
