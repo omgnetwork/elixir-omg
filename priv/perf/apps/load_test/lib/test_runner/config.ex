@@ -105,6 +105,7 @@ defmodule LoadTest.TestRunner.Config do
       nil ->
         @configs
         |> Map.fetch!(test)
+        |> update_fees()
         |> parse_config_values()
 
       _ ->
@@ -144,5 +145,19 @@ defmodule LoadTest.TestRunner.Config do
       {key, parsed_value}
     end)
     |> Map.new()
+  end
+
+  defp update_fees(%{fee: fee} = config) do
+    case System.get_env("FEE_AMOUNT") do
+      nil ->
+        config
+
+      amount ->
+        Map.merge(config, %{fee: String.to_integer(amount)})
+    end
+  end
+
+  defp update_fees(config) do
+    config
   end
 end
