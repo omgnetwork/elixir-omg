@@ -140,6 +140,22 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
     }
   end
 
+  # bool isCanonical;
+  # uint64 exitStartTimestamp;
+
+  # /**
+  #  * exit map Stores piggybacks and finalized exits
+  #  * right most 0 ~ MAX_INPUT bits is flagged when input is piggybacked
+  #  * right most MAX_INPUT ~ MAX_INPUT + MAX_OUTPUT bits is flagged when output is piggybacked
+  #  */
+  # uint256 exitMap;
+  # uint256 position;
+  # WithdrawData[MAX_INPUT_NUM] inputs;
+  # WithdrawData[MAX_OUTPUT_NUM] outputs;
+  # address payable bondOwner;
+  # uint256 bondSize;
+  # uint256 oldestCompetitorPosition;
+
   def in_flight_exits() do
     %ABI.FunctionSelector{
       function: "inFlightExits",
@@ -184,46 +200,5 @@ defmodule OMG.Eth.RootChain.AbiFunctionSelector do
         {:array, {:tuple, [:bool, {:uint, 64}, {:uint, 256}, {:uint, 256}, :address, {:uint, 256}, {:uint, 256}]}}
       ]
     }
-
-    # bool isCanonical;
-    # uint64 exitStartTimestamp;
-
-    # /**
-    #  * exit map Stores piggybacks and finalized exits
-    #  * right most 0 ~ MAX_INPUT bits is flagged when input is piggybacked
-    #  * right most MAX_INPUT ~ MAX_INPUT + MAX_OUTPUT bits is flagged when output is piggybacked
-    #  */
-    # uint256 exitMap;
-    # uint256 position;
-    # WithdrawData[MAX_INPUT_NUM] inputs;
-    # WithdrawData[MAX_OUTPUT_NUM] outputs;
-    # address payable bondOwner;
-    # uint256 bondSize;
-    # uint256 oldestCompetitorPosition;
-    # %ABI.FunctionSelector{
-    #   function: "inFlightExits",
-    #   input_names: ["in_flight_exit_structs"],
-    #   inputs_indexed: nil,
-    #   method_id: <<85, 220, 82, 55>>,
-    #   # returns: [
-    #   #   array: {:tuple,
-    #   #           [
-    #   #             :bool,
-    #   #             {:uint, 64},
-    #   #             {:uint, 256},
-    #   #             {:uint, 256},
-    #   #             {:array, :tuple, 4},
-    #   #             {:array, :tuple, 4},
-    #   #             :address,
-    #   #             {:uint, 256},
-    #   #             {:uint, 256}
-    #   #           ]}
-    #   # ],
-    #   type: :function,
-    #   # types: [array: {:uint, 160}]
-    #   types: [
-    #     {:array, {:tuple, [:bool, {:uint, 64}, {:uint, 256}, {:uint, 256}, :address, {:uint, 256}, {:uint, 256}]}}
-    #   ]
-    # }
   end
 end

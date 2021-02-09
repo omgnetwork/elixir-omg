@@ -699,13 +699,13 @@ jobs:
           name: Show help information
           command: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
       - run:
-          name: Run perf smoke test (deposits)
-          command: |
-            docker run -it --env-file ./localchain_contract_addresses.env -e CHILD_CHAIN_URL=http://localhost:9656/v1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
-      - run:
           name: Run perf smoke test (transactions)
           command: |
-            docker run -it --env-file ./localchain_contract_addresses.env -e CHILD_CHAIN_URL=http://localhost:9656/v1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
+            docker run -it --env-file ./localchain_contract_addresses.env -e CHILD_CHAIN_URL=http://localhost:9656/v1 -e FEE_AMOUNT=1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
+      - run:
+          name: Run perf smoke test (deposits)
+          command: |
+            docker run -it --env-file ./localchain_contract_addresses.env -e CHILD_CHAIN_URL=http://localhost:9656/v1 -e FEE_AMOUNT=1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |

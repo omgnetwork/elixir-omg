@@ -9,7 +9,7 @@ config :load_test,
   watcher_info_url: "http://localhost:7534",
   faucet_deposit_amount: trunc(:math.pow(10, 18) * 10),
   # fee testing setup: static fee in <root>/docker/static_feefed/file.json
-  fee_amount: 1,
+  fee_amount: "FEE_AMOUNT" |> System.get_env("75") |> String.to_integer(),
   utxo_load_test_config: %{
     concurrent_sessions: 20,
     utxos_to_create_per_session: 15,
