@@ -24,6 +24,7 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
 
   alias OMG.State.Transaction
   alias OMG.Utxo
+  alias OMG.Watcher.Configuration
   alias OMG.Watcher.EthereumEventAggregator
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
@@ -32,8 +33,8 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
 
   require Utxo
 
-  @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @timeout 80_000
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
   # bumping the timeout to three minutes for the tests here, as they do a lot of transactions to Ethereum to test
@@ -54,8 +55,8 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
 
     assert %{
              "blknum" => blknum,
-             "txindex" => 0,
-             "txhash" => <<_::256>>
+             "tx_index" => 0,
+             "tx_hash" => <<_::256>>
            } = tx1 |> Transaction.Signed.encode() |> WatcherHelper.submit()
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
@@ -67,9 +68,8 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
     {:ok, %{"status" => "0x1", "blockNumber" => ife_eth_height}} = exit_in_flight(ife2, alice)
     # sanity check in-flight exit has started on root chain, wait for finality
     assert {:ok, [_, _]} = EthereumEventAggregator.in_flight_exit_started(0, ife_eth_height)
-    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    exit_finality_margin = Configuration.exit_finality_margin()
     DevHelper.wait_for_root_chain_block(ife_eth_height + exit_finality_margin)
-
     ###
     # CANONICITY GAME
     ###
@@ -154,7 +154,7 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
           {:halt, :ok}
 
         _ ->
-          Process.sleep(10)
+          Process.sleep(100)
 
           {:cont, acc + x}
       end

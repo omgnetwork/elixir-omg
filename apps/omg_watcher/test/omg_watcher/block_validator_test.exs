@@ -24,7 +24,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
   @alice TestHelper.generate_entity()
   @bob TestHelper.generate_entity()
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
 

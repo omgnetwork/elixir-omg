@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.InvalidExit2Test do
   @moduletag timeout: 240_000
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :token, :stable_alice_deposits]
   test "exit which is using already spent utxo from transaction and deposit causes to emit invalid_exit event", %{

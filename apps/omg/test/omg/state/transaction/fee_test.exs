@@ -20,7 +20,7 @@ defmodule OMG.State.Transaction.FeeTest do
 
   alias OMG.State.Transaction
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @other_token <<127::160>>
 
   setup do

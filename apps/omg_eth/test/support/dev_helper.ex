@@ -23,9 +23,8 @@ defmodule Support.DevHelper do
 
   alias OMG.Eth
   alias OMG.Eth.Client
-  alias OMG.Eth.Configuration
   alias OMG.Eth.RootChain
-  alias OMG.Eth.Transaction
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias Support.WaitFor
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
@@ -52,7 +51,7 @@ defmodule Support.DevHelper do
   end
 
   @doc """
-  Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
+  Use with contract-transacting functions that return {:ok, txhash}, e.g. `OMG.Eth.Token.mint`, for synchronous waiting
   for mining of a successful result
   """
   @spec transact_sync!({:ok, Eth.hash()}, keyword()) :: {:ok, map}
@@ -136,7 +135,7 @@ defmodule Support.DevHelper do
 
     params = %{from: faucet, to: account_enc, value: to_hex(initial_funds_wei)}
 
-    {:ok, tx_fund} = Transaction.send(Configuration.eth_node(), params)
+    {:ok, tx_fund} = Integration.send(params)
 
     case Keyword.get(opts, :timeout) do
       nil -> WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)

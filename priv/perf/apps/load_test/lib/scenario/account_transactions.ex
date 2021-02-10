@@ -132,7 +132,7 @@ defmodule LoadTest.Scenario.AccountTransactions do
       )
 
     %{
-      "txhash" => tx_id
+      "tx_hash" => tx_id
     } = Jason.decode!(response.body)["data"]
 
     wait_until_tx_sync_to_watcher(session, tx_id)

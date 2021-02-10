@@ -28,7 +28,7 @@ defmodule OMG.WatcherInfo.DB.PendingBlockTest do
       data = :erlang.term_to_binary(%{something: :nice})
       assert {:ok, block} = PendingBlock.insert(%{data: data, blknum: 1000, bad_key: :value})
 
-      assert %PendingBlock{blknum: 1000, data: data} = block
+      assert %PendingBlock{blknum: 1000, data: _data} = block
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

@@ -29,7 +29,7 @@ defmodule LoadTest.Scenario.Smoke do
   end
 
   defp check_child_chain_up() do
-    {:ok, response} = ChildChainAPI.Api.Configuration.configuration_get(LoadTest.Connection.ChildChain.client())
+    {:ok, response} = ChildchainAPI.Api.Configuration.configuration_get(LoadTest.Connection.ChildChain.client())
 
     # some sanity check
     %{

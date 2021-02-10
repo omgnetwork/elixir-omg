@@ -91,14 +91,6 @@ defmodule OMG.Eth.RootChain.Abi do
     |> Fields.rename(function_spec)
   end
 
-  # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
-  defp decode_function_call_result(%{function: "startExit"} = function_spec, values) do
-    function_spec.input_names
-    |> Enum.zip(values)
-    |> Enum.into(%{})
-    |> Fields.rename(function_spec)
-  end
-
   defp decode_function_call_result(function_spec, values) do
     function_spec.input_names
     |> Enum.zip(values)

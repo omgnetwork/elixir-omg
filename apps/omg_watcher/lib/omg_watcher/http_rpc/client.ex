@@ -40,8 +40,9 @@ defmodule OMG.Watcher.HttpRPC.Client do
   @spec submit(binary(), binary()) :: response_t()
   def submit(tx, url), do: call(%{transaction: Encoding.to_hex(tx)}, "transaction.submit", url)
 
-  defp call(params, path, url),
-    do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body() |> decode_response()
+  defp call(params, path, url) do
+    Adapter.rpc_post(params, path, url) |> Adapter.get_response_body() |> decode_response()
+  end
 
   # Translates response's body to known elixir structure, either block or tx submission response or error.
   defp decode_response({:ok, %{transactions: transactions, blknum: number, hash: hash}}) do
@@ -53,8 +54,8 @@ defmodule OMG.Watcher.HttpRPC.Client do
      }}
   end
 
-  defp decode_response({:ok, %{txhash: _hash} = response}) do
-    {:ok, Map.update!(response, :txhash, &decode16!/1)}
+  defp decode_response({:ok, %{tx_hash: _hash} = response}) do
+    {:ok, Map.update!(response, :tx_hash, &decode16!/1)}
   end
 
   defp decode_response(error), do: error

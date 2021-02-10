@@ -23,7 +23,7 @@ defmodule OMG.MergeTransactionValidatorTest do
   alias OMG.MergeTransactionValidator
   alias OMG.State.Transaction
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @not_eth <<1::size(160)>>
 
   describe "is_merge_transaction?/1" do

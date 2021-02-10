@@ -27,7 +27,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @default_paginator %Paginator{
     data: [],
     data_paging: %{
@@ -193,21 +193,21 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
              root_chain_txhash: ^expected_root_chain_txhash_1,
              event_type: ^expected_event_type,
              root_chain_txhash_event: ^expected_root_chain_txhash_event_1,
-             eth_height: expected_eth_height
+             eth_height: ^expected_eth_height
            } = DB.EthEvent.get(expected_root_chain_txhash_event_1)
 
     assert %DB.EthEvent{
              root_chain_txhash: ^expected_root_chain_txhash_2,
              event_type: ^expected_event_type,
              root_chain_txhash_event: ^expected_root_chain_txhash_event_2,
-             eth_height: expected_eth_height
+             eth_height: ^expected_eth_height
            } = DB.EthEvent.get(expected_root_chain_txhash_event_2)
 
     assert %DB.EthEvent{
              root_chain_txhash: ^expected_root_chain_txhash_3,
              event_type: ^expected_event_type,
              root_chain_txhash_event: ^expected_root_chain_txhash_event_3,
-             eth_height: expected_eth_height
+             eth_height: ^expected_eth_height
            } = DB.EthEvent.get(expected_root_chain_txhash_event_3)
 
     %{data: alice_utxos} = DB.TxOutput.get_utxos(address: alice.addr)

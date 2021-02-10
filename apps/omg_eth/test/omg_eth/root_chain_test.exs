@@ -16,7 +16,6 @@ defmodule OMG.Eth.RootChainTest do
   use ExUnit.Case, async: false
 
   alias ExPlasma.Builder
-  alias ExPlasma.Crypto
   alias ExPlasma.Transaction.Type.PaymentV1
   alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
@@ -24,6 +23,7 @@ defmodule OMG.Eth.RootChainTest do
   alias OMG.Eth.RootChain.Abi
   alias Support.DevHelper
   alias Support.RootChainHelper
+
   @eth "0x0000000000000000000000000000000000000000"
   @moduletag :common
 
@@ -88,20 +88,8 @@ defmodule OMG.Eth.RootChainTest do
     {utxo_pos, start_exit_tx}
   end
 
-  defp exit_id_from_receipt(%{"logs" => logs}) do
-    topic =
-      "ExitStarted(address,uint160)"
-      |> Crypto.keccak_hash()
-      |> Encoding.to_hex()
-
-    [%{exit_id: exit_id}] =
-      logs
-      |> Enum.filter(&(topic in &1["topics"]))
-      |> Enum.map(fn log ->
-        Abi.decode_log(log)
-      end)
-
-    exit_id
+  defp exit_id_from_receipt(event) do
+    Map.get(event, "logs") |> tl() |> hd() |> Abi.decode_log() |> Map.get(:exit_id)
   end
 
   defp add_queue(authority_address) do

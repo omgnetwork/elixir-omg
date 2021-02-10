@@ -35,7 +35,7 @@ defmodule OMG.Status.Metric.DatadogTest do
       {:data, port, datadog_pid} ->
         :erlang.trace(datadog_pid, true, [:receive])
         true = Process.exit(port, :portkill)
-        assert_receive {:trace, ^datadog_pid, :receive, {:EXIT, port, :portkill}}
+        assert_receive {:trace, ^datadog_pid, :receive, {:EXIT, _port, :portkill}}
     end
   end
 end

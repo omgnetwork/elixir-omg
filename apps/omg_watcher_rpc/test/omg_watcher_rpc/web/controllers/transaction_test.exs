@@ -37,7 +37,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   require OMG.State.Transaction.Payment
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @other_token <<127::160>>
   @eth_hex Encoding.to_hex(@eth)
   @other_token_hex Encoding.to_hex(@other_token)

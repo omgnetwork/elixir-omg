@@ -93,7 +93,9 @@ defmodule LoadTest.ChildChain.Deposit do
     {:ok, %{"logs" => logs}} = Ethereumex.HttpClient.eth_get_transaction_receipt(tx_hash)
 
     %{"topics" => [_topic, _addr, blknum | _]} =
-      Enum.find(logs, fn %{"address" => address} -> address == vault_address end)
+      Enum.find(logs, fn %{"address" => address} ->
+        LoadTest.EIP55.encode!(address) == LoadTest.EIP55.encode!(vault_address)
+      end)
 
     {:ok, {Encoding.to_int(blknum), eth_blknum, tx_hash}}
   end

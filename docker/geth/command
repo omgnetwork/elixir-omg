@@ -7,6 +7,7 @@
 # Starts geth
 # Websocket is not used by the applications but enabled for debugging/testing convenience
 geth \
+--verbosity 2 \
 --miner.gastarget 7500000 \
 --nousb \
 --miner.gasprice "10" \

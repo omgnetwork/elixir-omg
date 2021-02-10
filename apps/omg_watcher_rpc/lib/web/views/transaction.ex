@@ -71,8 +71,7 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
   end
 
   defp render_txoutputs(inputs) do
-    inputs
-    |> Enum.map(&to_utxo/1)
+    Enum.map(inputs, &to_utxo/1)
   end
 
   defp skip_hex_encoding(%{typed_data: typed_data} = tx) do

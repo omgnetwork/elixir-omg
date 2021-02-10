@@ -25,7 +25,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   describe "getting in-flight exits" do
     @tag fixtures: [:web_endpoint, :db_initialized, :bob, :alice]

@@ -100,7 +100,7 @@ defmodule LoadTest.WatcherInfo.Transaction do
       %{"messages" => %{"code" => "operation:service_unavailable"}} = error ->
         {:error, error}
 
-      %{"txhash" => _} ->
+      %{"tx_hash" => _} ->
         {:ok, decoded_response}
     end
   end

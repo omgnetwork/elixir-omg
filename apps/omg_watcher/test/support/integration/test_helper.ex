@@ -39,13 +39,16 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
   def wait_for_block_fetch(block_number, timeout) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
-    fn ->
-      case elem(State.get_status(), 0) do
+    wait_for_block_fetch = fn ->
+      stat = elem(State.get_status(), 0)
+
+      case stat do
         blknum when blknum < block_number -> :repeat
         _ -> {:ok, block_number}
       end
     end
-    |> WaitFor.ok(timeout)
+
+    WaitFor.ok(wait_for_block_fetch, timeout)
 
     # write to db seems to be async and wait_for_block_fetch would return too early, so sleep
     # leverage `block` events if they get implemented

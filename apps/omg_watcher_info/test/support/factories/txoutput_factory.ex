@@ -32,7 +32,7 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
 
       require Utxo
 
-      @eth OMG.Eth.zero_address()
+      @eth <<0::160>>
 
       def txoutput_factory(attrs \\ %{}) do
         attrs = Map.put_new_lazy(attrs, :blknum, fn -> build(:block).blknum end)

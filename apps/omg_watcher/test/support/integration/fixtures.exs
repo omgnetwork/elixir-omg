@@ -16,8 +16,8 @@ defmodule OMG.Watcher.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
   use OMG.Fixtures
 
-  alias OMG.Eth
   alias OMG.Eth.Encoding
+  alias OMG.Eth.Token
   alias Support.DevHelper
   alias Support.Integration.DepositHelper
 
@@ -36,7 +36,7 @@ defmodule OMG.Watcher.Integration.Fixtures do
 
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value)
     token_addr = Encoding.from_hex(token_addr, :mixed)
-    {:ok, _} = Eth.Token.mint(alice.addr, some_value, token_addr) |> DevHelper.transact_sync!()
+    {:ok, _} = Token.mint(alice.addr, some_value, token_addr) |> DevHelper.transact_sync!()
     token_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, some_value, token_addr)
 
     {deposit_blknum, token_deposit_blknum}
