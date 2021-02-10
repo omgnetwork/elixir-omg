@@ -27,6 +27,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.StandardExitIntegration
 
   require Utxo
 
@@ -34,7 +35,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   @default_min_exit_period_seconds 120
   @default_child_block_interval 1000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(1_000, 0, 1)
@@ -81,8 +82,12 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
          }
        ],
        [
-         {true, Utxo.Position.encode(@utxo_pos1), Utxo.Position.encode(@utxo_pos1), alice.addr, 10, 0},
-         {false, Utxo.Position.encode(@utxo_pos2), Utxo.Position.encode(@utxo_pos2), alice.addr, 10, 0}
+         StandardExitIntegration.standard_exit_struct(
+           {true, Utxo.Position.encode(@utxo_pos1), Utxo.Position.encode(@utxo_pos1), alice.addr, 10, 0, 0}
+         ),
+         StandardExitIntegration.standard_exit_struct(
+           {false, Utxo.Position.encode(@utxo_pos2), Utxo.Position.encode(@utxo_pos2), alice.addr, 10, 0, 0}
+         )
        ]}
 
     {:ok, %{alice: alice, carol: carol, processor_empty: processor_empty, transactions: transactions, exits: exits}}
@@ -145,9 +150,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     challenge = %{
       tx_hash: hash,
       competitor_position: Utxo.Position.encode(@utxo_pos2),
-      competing_tx: Transaction.raw_txbytes(competing_tx),
-      competing_tx_input_index: 0,
-      competing_tx_sig: @zero_sig
+      challenge_tx: Transaction.raw_txbytes(competing_tx),
+      challenge_tx_input_index: 0,
+      challenge_tx_sig: @zero_sig
     }
 
     piggybacks1 = [

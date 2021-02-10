@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.InFlightExit3Test do
   require Utxo
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @hex_eth "0x0000000000000000000000000000000000000000"
 
   @moduletag :mix_based_child_chain
@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Integration.InFlightExit3Test do
   @tag fixtures: [:in_beam_watcher, :alice, :bob, :token, :alice_deposits]
   test "honest and cooperating users exit in-flight transaction",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
-    # we need to recognized the deposit on the childchain first
+    # we need to recognize the deposit on the childchain first
     Process.sleep(12_000)
     DevHelper.import_unlock_fund(bob)
 

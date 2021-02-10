@@ -26,7 +26,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   require Utxo
 
   @alice <<27::160>>
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @other_token <<127::160>>
 
   describe "calculate_net_amount/2" do
@@ -111,8 +111,8 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       assert {:ok,
               %{
-                @eth => [eth_utxo],
-                @other_token => [other_token_utxo]
+                @eth => [^eth_utxo],
+                @other_token => [^other_token_utxo]
               }} = UtxoSelection.review_selected_utxos(constructed_argument)
     end
   end
@@ -129,7 +129,9 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
-      assert [{@eth, {-200, utxos}}] = UtxoSelection.select_utxos(net_amount, utxos)
+      [{@eth, {-200, utxos2}}] = UtxoSelection.select_utxos(net_amount, utxos)
+
+      assert [] = Map.get(utxos, @eth) -- utxos2
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -142,7 +144,9 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
       utxos = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
-      assert [{@eth, {0, utxos}}] = UtxoSelection.select_utxos(net_amount, utxos)
+      assert [{@eth, {0, utxos2}}] = UtxoSelection.select_utxos(net_amount, utxos)
+
+      assert [] = Map.get(utxos, @eth) -- utxos2
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

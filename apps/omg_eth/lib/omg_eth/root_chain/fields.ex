@@ -53,7 +53,6 @@ defmodule OMG.Eth.RootChain.Fields do
     # in_flight_exit_input_piggybacked -> has "inputIndex" that needs to be converted to :output_index
     # in_flight_exit_output_piggybacked -> has "outputIndex" that needs to be converted to :output_index
     # not a typo, both are output_index.
-
     contracts_naming = [
       {"outputIndex", :output_index},
       {"exitTarget", :owner},
@@ -83,8 +82,8 @@ defmodule OMG.Eth.RootChain.Fields do
   def rename(data, %ABI.FunctionSelector{function: "InFlightExitChallenged"}) do
     contracts_naming = [
       {"challenger", :challenger},
-      {"challengeTxPosition", :competitor_position},
       {"txHash", :tx_hash},
+      {"challengeTxPosition", :competitor_position},
       {"inFlightTxInputIndex", :in_flight_tx_input_index},
       {"challengeTx", :challenge_tx},
       {"challengeTxInputIndex", :challenge_tx_input_index},
@@ -145,10 +144,11 @@ defmodule OMG.Eth.RootChain.Fields do
   def rename(data, %ABI.FunctionSelector{function: "InFlightExitStarted"}) do
     contracts_naming = [
       {"initiator", :initiator},
-      {"tx_hash", :tx_hash},
-      {"in_flight_tx", :in_flight_tx},
-      {"input_utxos_pos", :input_utxos_pos},
-      {"in_flight_tx_witnesses", :in_flight_tx_sigs}
+      {"txHash", :tx_hash},
+      {"inFlightTx", :in_flight_tx},
+      {"inputUtxosPos", :input_utxos_pos},
+      {"inFlightTxWitnesses", :in_flight_tx_sigs},
+      {"inputTxs", :input_txs}
     ]
 
     reduce_naming(data, contracts_naming)
@@ -158,7 +158,8 @@ defmodule OMG.Eth.RootChain.Fields do
     contracts_naming = [
       {"owner", :owner},
       {"exit_id", :exit_id},
-      {"utxo_pos", :utxo_pos}
+      {"utxo_pos", :utxo_pos},
+      {"output_tx", :output_tx}
     ]
 
     reduce_naming(data, contracts_naming)
@@ -178,66 +179,6 @@ defmodule OMG.Eth.RootChain.Fields do
     key = :piggyback_type
     value = :output
     Map.update(reduce_naming(data, contracts_naming), :omg_data, %{key => value}, &Map.put(&1, key, value))
-  end
-
-  def rename(data, %ABI.FunctionSelector{function: "startInFlightExit"}) do
-    contracts_naming = [
-      {"inFlightTx", :in_flight_tx},
-      {"inputTxs", :input_txs},
-      {"inputUtxosPos", :input_utxos_pos},
-      {"inputTxsInclusionProofs", :input_inclusion_proofs},
-      {"inFlightTxWitnesses", :in_flight_tx_sigs}
-    ]
-
-    reduce_naming(data, contracts_naming)
-  end
-
-  def rename(data, %ABI.FunctionSelector{function: "startStandardExit"}) do
-    contracts_naming = [
-      {"outputTxInclusionProof", :output_tx_inclusion_proof},
-      {"rlpOutputTx", :output_tx},
-      {"utxoPos", :utxo_pos}
-    ]
-
-    # not used and discarded
-    Map.delete(reduce_naming(data, contracts_naming), :output_tx_inclusion_proof)
-  end
-
-  # workaround for https://github.com/omgnetwork/elixir-omg/issues/1632
-  def rename(data, %ABI.FunctionSelector{function: "startExit"}) do
-    contracts_naming = [
-      {"utxoPosToExit", :utxo_pos},
-      {"rlpOutputTxToContract", :output_tx},
-      {"outputTxToContractInclusionProof", :output_tx_inclusion_proof},
-      {"rlpInputCreationTx", :rlp_input_creation_tx},
-      {"inputCreationTxInclusionProof", :input_creation_tx_inclusion_proof},
-      {"utxoPosInput", :utxo_pos_input}
-    ]
-
-    # not used and discarded
-    Map.drop(reduce_naming(data, contracts_naming), [
-      :output_tx_inclusion_proof,
-      :rlp_input_creation_tx,
-      :input_creation_tx_inclusion_proof,
-      :utxo_pos_input
-    ])
-  end
-
-  def rename(data, %ABI.FunctionSelector{function: "challengeInFlightExitNotCanonical"}) do
-    contracts_naming = [
-      {"competingTx", :competing_tx},
-      {"competingTxInclusionProof", :competing_tx_inclusion_proof},
-      {"competingTxInputIndex", :competing_tx_input_index},
-      {"competingTxPos", :competing_tx_pos},
-      {"competingTxWitness", :competing_tx_sig},
-      {"inFlightTx", :in_flight_tx},
-      {"inFlightTxInputIndex", :in_flight_input_index},
-      {"inputTx", :input_tx_bytes},
-      {"inputUtxoPos", :input_utxo_pos}
-    ]
-
-    # not used and discarded
-    Map.delete(reduce_naming(data, contracts_naming), :competing_tx_inclusion_proof)
   end
 
   defp reduce_naming(data, contracts_naming) do

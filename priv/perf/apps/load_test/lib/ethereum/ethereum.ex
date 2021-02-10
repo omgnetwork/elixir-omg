@@ -188,8 +188,11 @@ defmodule LoadTest.Ethereum do
       txhash
       |> Ethereumex.HttpClient.eth_get_transaction_receipt()
       |> case do
-        {:ok, receipt} when receipt != nil -> {:ok, receipt}
-        _ -> :repeat
+        {:ok, receipt} when receipt != nil ->
+          {:ok, receipt}
+
+        _other ->
+          :repeat
       end
     end
 

@@ -34,8 +34,8 @@ defmodule OMG.State.Transaction.RecoveredTest do
   @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
   @payment_output_type WireFormatTypes.output_type_for(:output_payment_v1)
 
-  @zero_address OMG.Eth.zero_address()
-  @eth OMG.Eth.zero_address()
+  @zero_address <<0::160>>
+  @eth <<0::160>>
   @empty_signature <<0::size(520)>>
 
   describe "APIs used by the `OMG.State.exec/1`" do
@@ -592,7 +592,8 @@ defmodule OMG.State.Transaction.RecoveredTest do
     alice = TestHelper.generate_entity()
 
     good_tx_rlp_items =
-      TestHelper.create_encoded([{1000, 0, 0, alice}, {1000, 0, 1, alice}], [{alice, @eth, 10}])
+      [{1000, 0, 0, alice}, {1000, 0, 1, alice}]
+      |> TestHelper.create_encoded([{alice, @eth, 10}])
       |> ExRLP.decode()
 
     # sanity check just in case

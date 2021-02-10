@@ -73,7 +73,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  enrich: false
                ],
                [
-                 signature: "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])",
+                 signature: "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[],bytes[])",
                  name: :in_flight_exit_started,
                  enrich: false
                ],
@@ -88,7 +88,7 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
                  enrich: false
                ],
                [
-                 signature: "ExitStarted(address,uint168,uint256)",
+                 signature: "ExitStarted(address,uint168,uint256,bytes)",
                  name: :exit_started,
                  enrich: false
                ],
@@ -106,11 +106,11 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
       assert event_fetcher_name |> :sys.get_state() |> Map.get(:event_signatures) |> Enum.sort() ==
                Enum.sort([
                  "DepositCreated(address,uint256,address,uint256)",
-                 "ExitStarted(address,uint168,uint256)",
+                 "ExitStarted(address,uint168,uint256,bytes)",
                  "InFlightExitDeleted(uint168)",
                  "InFlightExitInputPiggybacked(address,bytes32,uint16)",
                  "InFlightExitOutputPiggybacked(address,bytes32,uint16)",
-                 "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])"
+                 "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[],bytes[])"
                ])
     end
   end
@@ -473,17 +473,17 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
 
   def exit_started_log(block_number) do
     %{
-      :event_signature => "ExitStarted(address,uint168,uint256)",
+      :event_signature => "ExitStarted(address,uint168,uint256,bytes)",
       "address" => "0x92ce4d7773c57d96210c46a07b89acf725057f21",
       "blockHash" => "0x1bee6f75c74ceeb4817dc160e2fb56dd1337a9fc2980a2b013252cf1e620f246",
       "blockNumber" => "0x" <> Integer.to_string(block_number, 16),
       "data" =>
-        "0x000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000b",
+        "0x0000000000000000000000047b7c1bf35c82a6b6a91465ce5469fe235c6f5479000000000000000000000000000000000000000000000000000000e8d4a5100000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000076f87401e1a0000000000000000000000000000000000000000000000000000000003b9aca00eeed01eb943b9f4c1dd26e0be593373b1d36cee2008cbeb8379400000000000000000000000000000000000000000980a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
       "logIndex" => "0x1",
       "removed" => false,
       "topics" => [
-        "0xe0ffc2e7d623cb04e12318e11dd2c9df46dbfba8ac0c429dd49885f35785cf63",
-        "0x00000000000000000000000008858124b3b880c68b360fd319cc61da27545e9a"
+        "0xbe1fcee8d584647b0ce80e56f62c950e0cb2126418f52cc052a665e5f85a5d93",
+        "0x0000000000000000000000003b9f4c1dd26e0be593373b1d36cee2008cbeb837"
       ],
       "transactionHash" => "0x4a8248b88a17b2be4c6086a1984622de1a60dda3c9dd9ece1ef97ed18efa028c",
       "transactionIndex" => "0x0"
@@ -538,8 +538,8 @@ defmodule OMG.Watcher.EthereumEventAggregatorTest do
       "logIndex" => "0x2",
       "removed" => false,
       "topics" => [
-        "0x1991c4c350498b0cc937c6a08bc5bdecf2e4fdd9d918052a880f102e43dbe45c",
-        "0x000000000000000000000000003fd275046f2823936fd97c1e3c8b225464d7f1"
+        "0x08c8ce0b90361de12348d9d765286dd661d722dc06e5e13672f80afd3af002c4",
+        "0x0000000000000000000000cb3e4386e8b76c6c2a4da050bfe5a3eda63d9d5406"
       ],
       "transactionHash" => "0xbe310ade41278c5607620311b79363aa520ac46c7ba754bf3027d501c5a95f40",
       "transactionIndex" => "0x0"

@@ -63,7 +63,7 @@ if [ -n "$CIRCLE_TAG" ]; then
     fi
 else
     case "$CIRCLE_BRANCH" in
-        master ) _image_tag="$_image_tag latest";;
+        master-v2 ) _image_tag="$_image_tag latest";;
         v*     ) _image_tag="$_image_tag ${CIRCLE_BRANCH#*v}-dev";;
         *      ) ;;
     esac

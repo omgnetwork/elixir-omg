@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.ExitConsumerTest do
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @root_chain_txhash1 <<11::256>>
   @root_chain_txhash2 <<12::256>>
 

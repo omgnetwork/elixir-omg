@@ -29,7 +29,7 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
 
   import ExUnit.CaptureLog, only: [capture_log: 1]
 
-  alias OMG.Eth
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
   alias Support.WatcherHelper
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
 
@@ -53,13 +53,13 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
     %{"blknum" => deposit_blknum} = WatcherHelper.submit(tx)
 
     tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 8}])
-    %{"blknum" => tx_blknum, "txhash" => _tx_hash} = WatcherHelper.submit(tx)
+    %{"blknum" => tx_blknum} = WatcherHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
     {_, nonce} = get_next_blknum_nonce(tx_blknum)
 
-    {:ok, _txhash} = Eth.submit_block(<<0::256>>, nonce, 20_000_000_000)
+    {:ok, _txhash} = Integration.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
     # checking if both machines and humans learn about the byzantine condition
     assert capture_log(fn ->
@@ -85,8 +85,8 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
   end
 
   defp get_next_blknum_nonce(blknum) do
-    child_block_interval = Application.fetch_env!(:omg_eth, :child_block_interval)
+    child_block_interval = 1000
     next_blknum = blknum + child_block_interval
-    {next_blknum, trunc(next_blknum / child_block_interval)}
+    {next_blknum, trunc(next_blknum / child_block_interval) - 1}
   end
 end

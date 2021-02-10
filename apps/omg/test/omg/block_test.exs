@@ -23,7 +23,7 @@ defmodule OMG.BlockTest do
   alias OMG.Block
   alias OMG.TestHelper
 
-  defp eth(), do: OMG.Eth.zero_address()
+  defp eth(), do: <<0::160>>
 
   describe "hashed_txs_at/2" do
     @tag fixtures: [:stable_alice, :stable_bob]

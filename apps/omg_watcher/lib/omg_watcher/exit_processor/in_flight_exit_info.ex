@@ -99,16 +99,15 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   Creates a new instance of the key-value pair for the respective `InFlightExitInfo`, from the Ethereum event map
   """
   @spec new_kv(map(), {tuple(), non_neg_integer()}) :: t()
-  def new_kv(
-        %{
-          eth_height: eth_height,
-          in_flight_tx: tx_bytes,
-          in_flight_tx_sigs: signatures,
-          input_txs: input_txs,
-          input_utxos_pos: input_utxos_pos
-        },
-        {contract_status, contract_ife_id}
-      ) do
+  def new_kv(event, {contract_status, contract_ife_id}) do
+    %{
+      eth_height: eth_height,
+      in_flight_tx: tx_bytes,
+      in_flight_tx_sigs: signatures,
+      input_txs: input_txs,
+      input_utxos_pos: input_utxos_pos
+    } = event
+
     do_new(tx_bytes, signatures, contract_status,
       contract_id: <<contract_ife_id::192>>,
       eth_height: eth_height,
@@ -166,8 +165,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
            is_active: is_active
          }}
       )
-      when is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and is_list(input_txs) and is_list(input_utxos_pos) and
+      when is_binary(contract_id) and is_list(input_txs) and
+             is_integer(timestamp) and is_integer(eth_height) and is_list(input_utxos_pos) and
              is_integer(relevant_from_blknum) and
              is_map(exit_map) and is_boolean(is_canonical) and is_boolean(is_active) do
     :ok = assert_utxo_pos_type(tx_pos)
@@ -219,7 +218,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     assert_types(fields, [:timestamp, :eth_height, :relevant_from_blknum], fn value -> true = is_integer(value) end)
     assert_types(fields, [:input_txs, :input_utxos_pos], fn value -> true = is_list(value) end)
     assert_types(fields, [:is_canonical, :is_active], fn value -> true = is_boolean(value) end)
-
     # mapping is used in case of changes in data structure
     ife_map = %{
       tx: from_db_signed_tx(fields[:tx]),
@@ -287,8 +285,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec challenge(t(), non_neg_integer()) :: t() | {:error, :competitor_too_young}
   def challenge(ife, competitor_position)
 
-  def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position),
-    do: %{ife | is_canonical: false, oldest_competitor: decode_position_possibly_exceeding(competitor_position)}
+  def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position) do
+    %{ife | is_canonical: false, oldest_competitor: decode_position_possibly_exceeding(competitor_position)}
+  end
 
   def challenge(%__MODULE__{oldest_competitor: current_oldest} = ife, competitor_position) do
     with decoded_competitor_pos <- Utxo.Position.decode!(competitor_position),
@@ -419,11 +418,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def is_invalidly_challenged?(%__MODULE__{is_canonical: true}), do: false
   def is_invalidly_challenged?(%__MODULE__{tx_seen_in_blocks_at: nil}), do: false
 
-  def is_invalidly_challenged?(%__MODULE__{
-        tx_seen_in_blocks_at: {Utxo.position(_, _, _) = seen_in_pos, _proof},
-        oldest_competitor: oldest_competitor_pos
-      }),
-      do: is_older?(seen_in_pos, oldest_competitor_pos)
+  def is_invalidly_challenged?(state) do
+    {Utxo.position(_, _, _) = seen_in_pos, _proof} = state.tx_seen_in_blocks_at
+
+    is_older?(seen_in_pos, state.oldest_competitor)
+  end
 
   @doc """
   Converts integer to contract's in-flight exit id
@@ -487,16 +486,18 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   # this IFE tx has been already seen at some position, if the competitor is older then good to challenge with
   defp do_is_viable_competitor?(seen_at_pos, nil, competitor_pos), do: is_older?(competitor_pos, seen_at_pos)
   # the competitor must be older than anything else to be good to challenge with
-  defp do_is_viable_competitor?(seen_at_pos, oldest_pos, competitor_pos),
-    do: is_older?(competitor_pos, seen_at_pos) and is_older?(competitor_pos, oldest_pos)
+  defp do_is_viable_competitor?(seen_at_pos, oldest_pos, competitor_pos) do
+    is_older?(competitor_pos, seen_at_pos) and is_older?(competitor_pos, oldest_pos)
+  end
 
   # no position is older than any real position
   defp is_older?(Utxo.position(_, _, _), :no_position), do: true
   # no position is younger than any real position
   defp is_older?(:no_position, Utxo.position(_, _, _)), do: false
   # for real positions, the smaller it is the older it is
-  defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
-    do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
+  defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)) do
+    tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
+  end
 
   # to cater for utxo positions coming from the contract, that represent non-included transactions
   defp decode_position_possibly_exceeding(encoded_position) do
@@ -514,6 +515,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           is_challenged: boolean()
         }
   defp exit_map_get(exit_map, {type, index} = combined_index)
-       when (type == :input and index < @max_inputs) or (type == :output and index < @max_outputs),
-       do: Map.get(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false, is_challenged: false})
+       when (type == :input and index < @max_inputs) or (type == :output and index < @max_outputs) do
+    Map.get(exit_map, combined_index, %{is_piggybacked: false, is_finalized: false, is_challenged: false})
+  end
 end

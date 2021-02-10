@@ -34,7 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @default_min_exit_period_seconds 120
   @default_child_block_interval 1000
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @fee_claimer_address "NO FEE CLAIMER ADDR!"
 
   @early_blknum 1_000

@@ -21,7 +21,7 @@ defmodule OMG.Fees.FeeFilterTest do
 
   doctest OMG.Fees.FeeFilter
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @not_eth_1 <<1::size(160)>>
   @not_eth_2 <<2::size(160)>>
   @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)

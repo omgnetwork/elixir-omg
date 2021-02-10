@@ -4,16 +4,16 @@ config :ethereumex,
   url: "http://localhost:8545"
 
 config :load_test,
-  child_chain_url: "http://localhost:9656",
+  child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656"),
   watcher_security_url: "http://localhost:7434",
   watcher_info_url: "http://localhost:7534",
   faucet_deposit_amount: trunc(:math.pow(10, 18) * 10),
-  # fee testing setup: https://github.com/omgnetwork/fee-rules-public/blob/master/fee_rules.json
-  fee_amount: 75,
+  # fee testing setup: static fee in <root>/docker/static_feefed/file.json
+  fee_amount: "FEE_AMOUNT" |> System.get_env("75") |> String.to_integer(),
   utxo_load_test_config: %{
-    concurrent_sessions: 10,
-    utxos_to_create_per_session: 5,
-    transactions_per_session: 5
+    concurrent_sessions: 20,
+    utxos_to_create_per_session: 15,
+    transactions_per_session: 15
   },
   childchain_transactions_test_config: %{
     concurrent_sessions: 10,

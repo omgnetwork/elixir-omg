@@ -19,16 +19,29 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
   Function names describe the type of the event Event Fetcher will retrieve.
   """
 
+  @spec in_flight_exit_deleted() :: ABI.FunctionSelector.t()
+  def in_flight_exit_deleted() do
+    %ABI.FunctionSelector{
+      function: "InFlightExitDeleted",
+      input_names: ["exitId"],
+      inputs_indexed: [true],
+      method_id: <<8, 200, 206, 11>>,
+      returns: [],
+      type: :event,
+      types: [uint: 168]
+    }
+  end
+
   @spec exit_started() :: ABI.FunctionSelector.t()
   def exit_started() do
     %ABI.FunctionSelector{
       function: "ExitStarted",
-      input_names: ["owner", "exit_id", "utxo_pos"],
-      inputs_indexed: [true, false, false],
-      method_id: <<224, 255, 194, 231>>,
+      input_names: ["owner", "exit_id", "utxo_pos", "output_tx"],
+      inputs_indexed: [true, false, false, false],
+      method_id: <<190, 31, 206, 232>>,
       returns: [],
       type: :event,
-      types: [:address, {:uint, 168}, {:uint, 256}]
+      types: [:address, {:uint, 168}, {:uint, 256}, :bytes]
     }
   end
 
@@ -36,9 +49,9 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
   def in_flight_exit_started() do
     %ABI.FunctionSelector{
       function: "InFlightExitStarted",
-      input_names: ["initiator", "tx_hash", "in_flight_tx", "input_utxos_pos", "in_flight_tx_witnesses"],
-      inputs_indexed: [true, true, false, false, false],
-      method_id: <<37, 74, 99, 78>>,
+      input_names: ["initiator", "txHash", "inFlightTx", "inputUtxosPos", "inFlightTxWitnesses", "inputTxs"],
+      inputs_indexed: [true, true, false, false, false, false],
+      method_id: <<150, 80, 84, 111>>,
       returns: [],
       type: :event,
       types: [
@@ -46,21 +59,9 @@ defmodule OMG.Eth.RootChain.AbiEventSelector do
         {:bytes, 32},
         :bytes,
         {:array, {:uint, 256}},
+        {:array, :bytes},
         {:array, :bytes}
       ]
-    }
-  end
-
-  @spec in_flight_exit_deleted() :: ABI.FunctionSelector.t()
-  def in_flight_exit_deleted() do
-    %ABI.FunctionSelector{
-      function: "InFlightExitDeleted",
-      input_names: ["exitId"],
-      inputs_indexed: [true],
-      method_id: <<25, 145, 196, 195>>,
-      returns: [],
-      type: :event,
-      types: [uint: 168]
     }
   end
 

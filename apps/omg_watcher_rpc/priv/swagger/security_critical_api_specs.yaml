@@ -1637,7 +1637,7 @@ paths:
                           competing_input_index:
                             type: integer
                             format: int8
-                          competing_sig:
+                          challenge_tx_sig:
                             type: string
                           competing_tx_pos:
                             type: integer
@@ -1655,7 +1655,7 @@ paths:
                         in_flight_input_index: 1
                         competing_txbytes: 0x5df13a6bee20000...
                         competing_input_index: 1
-                        competing_sig: 0xa3470101c0940000...
+                        challenge_tx_sig: 0xa3470101c0940000...
                         competing_tx_pos: 26000003920000
                         competing_proof: 0xcedb8b31d1e4...
                         input_tx: 0xaaa70101c0940000...

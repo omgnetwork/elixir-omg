@@ -257,7 +257,7 @@ defmodule OMG.WatcherInfo.Transaction do
   end
 
   defp create_outputs(outputs) do
-    zero_addr = OMG.Eth.zero_address()
+    zero_addr = <<0::160>>
     empty_gen = fn -> %{owner: zero_addr, currency: zero_addr, amount: 0} end
 
     outputs

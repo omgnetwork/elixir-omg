@@ -72,20 +72,29 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
     {tx_hash, struct!(__MODULE__, competitor_map)}
   end
 
-  def new(%{competing_tx: tx_bytes, competing_tx_input_index: index, competing_tx_sig: sig}),
-    do: do_new(tx_bytes, index, sig)
+  def new(challenges_events) do
+    %{challenge_tx: challenge_tx, challenge_tx_input_index: index, challenge_tx_sig: sig} = challenges_events
+    do_new(challenge_tx, index, sig)
+  end
 
-  defp do_new(tx_bytes, competing_input_index, competing_input_signature) do
-    with {:ok, %Transaction.Payment{} = raw_tx} <- Transaction.decode(tx_bytes) do
-      {Transaction.raw_txhash(raw_tx),
-       %__MODULE__{
-         tx: %Transaction.Signed{
-           raw_tx: raw_tx,
-           sigs: [competing_input_signature]
-         },
-         competing_input_index: competing_input_index,
-         competing_input_signature: competing_input_signature
-       }}
+  defp do_new(challenge_tx, competing_input_index, competing_input_signature) do
+    case Transaction.decode(challenge_tx) do
+      {:ok, %Transaction.Payment{} = raw_tx} ->
+        raw_transaction = Transaction.raw_txhash(raw_tx)
+
+        tx = %__MODULE__{
+          tx: %Transaction.Signed{
+            raw_tx: raw_tx,
+            sigs: [competing_input_signature]
+          },
+          competing_input_index: competing_input_index,
+          competing_input_signature: competing_input_signature
+        }
+
+        {raw_transaction, tx}
+
+      other ->
+        other
     end
   end
 end

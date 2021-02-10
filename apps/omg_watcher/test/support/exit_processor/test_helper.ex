@@ -22,6 +22,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
   alias OMG.State.Transaction
   alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.StandardExitIntegration
 
   require Utxo
 
@@ -61,8 +62,13 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     fake_output_id = enc_pos
     amount = nil
     bond_size = nil
+    bounty_size = nil
 
-    status = Keyword.get(opts, :status) || {exitable, enc_pos, fake_output_id, owner, amount, bond_size}
+    status =
+      Keyword.get(opts, :status) ||
+        StandardExitIntegration.standard_exit_struct(
+          {exitable, enc_pos, fake_output_id, owner, amount, bond_size, bounty_size}
+        )
 
     {event, status}
   end
@@ -97,7 +103,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   def ife_event(tx, opts \\ []) do
     sigs = Keyword.get(opts, :sigs) || sigs(tx)
-    input_utxos_pos = Transaction.get_inputs(tx) |> Enum.map(&Utxo.Position.encode/1)
+    input_utxos_pos = tx |> Transaction.get_inputs() |> Enum.map(&Utxo.Position.encode/1)
 
     input_txs = Keyword.get(opts, :input_txs) || List.duplicate("input_tx", length(input_utxos_pos))
 
@@ -112,8 +118,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     }
   end
 
-  def ife_response(tx, position),
-    do: %{tx_hash: Transaction.raw_txhash(tx), challenge_position: Utxo.Position.encode(position)}
+  def ife_response(tx, position) do
+    %{tx_hash: Transaction.raw_txhash(tx), challenge_position: Utxo.Position.encode(position)}
+  end
 
   def ife_challenge(tx, comp, opts \\ []) do
     competitor_position = Keyword.get(opts, :competitor_position)
@@ -126,9 +133,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     %{
       tx_hash: Transaction.raw_txhash(tx),
       competitor_position: competitor_position,
-      competing_tx: txbytes(comp),
-      competing_tx_input_index: Keyword.get(opts, :competing_tx_input_index, 0),
-      competing_tx_sig: Keyword.get(opts, :competing_tx_sig, sig(comp))
+      challenge_tx: txbytes(comp),
+      challenge_tx_input_index: Keyword.get(opts, :challenge_tx_input_index, 0),
+      challenge_tx_sig: Keyword.get(opts, :challenge_tx_sig, sig(comp))
     }
   end
 
@@ -171,7 +178,8 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   defp not_included_competitor_pos() do
     <<long::256>> =
-      List.duplicate(<<255::8>>, 32)
+      <<255::8>>
+      |> List.duplicate(32)
       |> Enum.reduce(fn val, acc -> val <> acc end)
 
     long

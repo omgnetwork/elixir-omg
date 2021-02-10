@@ -18,10 +18,10 @@ defmodule OMG.Eth.TransactionHelper do
   """
 
   alias OMG.Eth.Encoding
-  alias OMG.Eth.Transaction
+  alias OMG.Eth.Support.BlockSubmission.Integration
 
-  @spec contract_transact(atom(), <<_::160>>, <<_::160>>, binary, [any]) :: {:ok, <<_::256>>} | {:error, any}
-  def contract_transact(backend, from, to, signature, args, opts \\ []) do
+  @spec contract_transact(<<_::160>>, <<_::160>>, binary, [any]) :: {:ok, <<_::256>>} | {:error, any}
+  def contract_transact(from, to, signature, args, opts \\ []) do
     data = encode_tx_data(signature, args)
 
     txmap =
@@ -29,7 +29,7 @@ defmodule OMG.Eth.TransactionHelper do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    Transaction.send(backend, txmap)
+    Integration.send(txmap)
   end
 
   defp encode_tx_data(signature, args) do

@@ -33,7 +33,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
     number: 1000,
     transactions: ["0x00"]
   }
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @alice OMG.TestHelper.generate_entity()
   @bob OMG.TestHelper.generate_entity()
   @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)

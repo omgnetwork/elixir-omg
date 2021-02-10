@@ -27,7 +27,7 @@ defmodule OMG.StateTest do
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
 
   deffixture standalone_state_server(db_initialized) do

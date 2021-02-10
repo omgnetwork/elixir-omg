@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Integration.InFlightExit2Test do
   require Utxo
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
   # bumping the timeout to three minutes for the tests here, as they do a lot of transactions to Ethereum to test
@@ -101,7 +101,7 @@ defmodule OMG.Watcher.Integration.InFlightExit2Test do
         get_competitor_response["competing_input_index"],
         get_competitor_response["competing_tx_pos"],
         get_competitor_response["competing_proof"],
-        get_competitor_response["competing_sig"],
+        get_competitor_response["challenge_tx_sig"],
         alice.addr
       )
       |> DevHelper.transact_sync!()

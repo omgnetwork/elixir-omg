@@ -12,7 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Blockchain.TransactionTest do
-  use ExUnit.Case, async: true
-  doctest OMG.Eth.Blockchain.Transaction
+defmodule OMG.Watcher.ExitProcessor.StandardExitIntegration do
+  @moduledoc """
+  A very lazy validator of the integration point
+  """
+  alias OMG.Eth.RootChain.AbiFunctionSelector
+
+  def standard_exit_struct(struct) do
+    true =
+      AbiFunctionSelector.standard_exits().returns |> Keyword.get(:array) |> elem(1) |> length() == tuple_size(struct)
+
+    struct
+  end
 end
