@@ -660,7 +660,7 @@ jobs:
     machine:
       image: ubuntu-2004:202010-01
     environment:
-      PERF_IMAGE_NAME: "omisego/perf:latest"
+      PERF_IMAGE_NAME: "omisego/perf-v2:latest"
       STATIX_TAG: "env:perf_circleci"
       CHILD_CHAIN_URL: http://127.0.0.1:9656/v1
       FEE_AMOUNT: 1
