@@ -630,10 +630,7 @@ jobs:
       - install_and_setup_gcloud
       - run:
           name: Start daemon services
-          command: |
-            make init_test
-            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
-            docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+          command: make cabbage-start-services
       - run:
           name: Log daemon services
           command: make cabbage-logs
@@ -648,10 +645,22 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            grep -r "@moduletag" ./apps/itest/ | awk '{print "--include " $3}' | tr -d ':' > tags.txt
-            echo $(circleci tests split ./tags.txt)
-            circleci tests split ./tags.txt > /tmp/tests-to-run
-            mix test --exclude test $(cat /tmp/tests-to-run)
+      - run:
+          name: Run specs
+          working_directory: ~/project/priv/cabbage
+          environment:
+            MIX_ENV: test
+          command: |
+            mix compile
+      - run:
+          name: Run specs
+          working_directory: ~/project/priv/cabbage
+          command: |
+            TESTFILES=$(circleci tests glob "apps/itest/test/itest/*_test.exs" | circleci tests split --split-by=timings --show-counts)
+            echo ${TESTFILES}
+            mix test ${TESTFILES} --trace
+      - store_test_results:
+          path: ~/project/priv/cabbage/_build/test/lib/itest/
 
   test_docker_compose_performance:
     description: "These are not actually performance tests, we're checking if the scripts work"

@@ -51,7 +51,7 @@ defmodule OMG.WatcherRPC.Web.Controller.DepositTest do
                        "creating_txhash" => _,
                        "oindex" => _,
                        "otype" => _,
-                       "owner" => address,
+                       "owner" => ^address,
                        "spending_txhash" => _,
                        "txindex" => _
                      }

@@ -342,6 +342,20 @@ cabbage-reorg-geth-logs:
 cabbage-reorgs-logs:
 	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml logs --follow | grep "reorg"
 
+### Cabbage service commands
+
+cabbage-start-services:
+	make init_test && \
+        cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env && \
+	docker-compose -f docker-compose.yml -f docker-compose.specs.yml up -d || \
+	(START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+
+cabbage-start-services-reorg:
+	make init_test_reorg && \
+	cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env && \
+	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml up -d || \
+	(START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+
 ###OTHER
 docker-start-cluster:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
