@@ -43,7 +43,7 @@ defmodule OMG.Watcher.HttpRPC.Client do
   @doc """
   Submits a batch of transactions
   """
-  @spec batch_submit(binary(), binary()) :: response_t()
+  @spec batch_submit(list(binary()), binary()) :: response_t()
   def batch_submit(txs, url) do
     call(%{transactions: Enum.map(txs, &Encoding.to_hex(&1))}, "transaction.batch_submit", url)
   end
@@ -68,8 +68,6 @@ defmodule OMG.Watcher.HttpRPC.Client do
 
   defp decode_response({:ok, response}) when is_list(response) do
     decode_response(response, [])
-    # defp decode_response({:ok, [%{txhash: _hash} = transaction_response |response]}) do
-    # Map.update!(transaction_response, :txhash, &decode16!/1)
   end
 
   defp decode_response(error), do: error
