@@ -56,7 +56,7 @@ defmodule OMG.Utils.HttpRPC.Response do
   end
 
   def sanitize(list) when is_list(list) do
-    list |> Enum.map(&sanitize/1)
+    Enum.map(list, &sanitize/1)
   end
 
   def sanitize(map_or_struct) when is_map(map_or_struct) do

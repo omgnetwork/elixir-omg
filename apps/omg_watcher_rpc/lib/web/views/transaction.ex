@@ -43,6 +43,12 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     |> WatcherRPCResponse.add_app_infos()
   end
 
+  def render("batch_submission.json", %{response: transactions}) do
+    transactions
+    |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
+  end
+
   def render("merge.json", %{response: advice}) do
     render_transactions(advice)
   end

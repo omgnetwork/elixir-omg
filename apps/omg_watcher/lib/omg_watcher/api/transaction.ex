@@ -33,6 +33,15 @@ defmodule OMG.Watcher.API.Transaction do
   * transaction doesn't spend funds not yet mined
   * etc...
   """
+  @spec submit(list(Transaction.Signed.t())) :: Client.response_t() | {:error, atom()}
+  def batch_submit(signed_txs) do
+    url = Application.get_env(:omg_watcher, :child_chain_url)
+
+    signed_txs
+    |> Enum.map(&Transaction.Signed.encode(&1))
+    |> Client.batch_submit(url)
+  end
+
   @spec submit(Transaction.Signed.t()) :: Client.response_t() | {:error, atom()}
   def submit(%Transaction.Signed{} = signed_tx) do
     url = Application.get_env(:omg_watcher, :child_chain_url)

@@ -58,6 +58,15 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   end
 
   @doc """
+  Submits transaction to child chain
+  """
+  def batch_submit(conn, params) do
+    with {:ok, txbytes} <- expect(params, "transactions", list: &to_transaction/1, optional: false) do
+      submit_tx_sec(txbytes, conn)
+    end
+  end
+
+  @doc """
   Thin-client version of `/transaction.submit` that accepts json encoded transaction
   """
   def submit_typed(conn, params) do
@@ -109,6 +118,18 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   end
 
   # Provides extra validation (recover_from) and passes transaction to API layer
+  defp submit_tx_sec(txbytes, conn) when is_list(txbytes) do
+    case recover(txbytes) do
+      recovered when is_list(recovered) ->
+        recovered
+        |> SecurityApiTransaction.batch_submit()
+        |> api_response(conn, :batch_submission)
+
+      other ->
+        other
+    end
+  end
+
   defp submit_tx_sec(txbytes, conn) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(txbytes),
          :ok <- is_supported(recovered_tx) do
@@ -125,4 +146,23 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
        do: {:error, :transaction_not_supported}
 
   defp is_supported(%Transaction.Recovered{}), do: :ok
+
+  defp to_transaction(transaction) do
+    expect(%{"transaction" => transaction}, "transaction", :hex)
+  end
+
+  defp recover(transactions) do
+    recover(transactions, [])
+  end
+
+  defp recover([], acc) do
+    acc
+  end
+
+  defp recover([txbytes | transactions], acc) do
+    with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(txbytes),
+         :ok <- is_supported(recovered_tx) do
+      recover(transactions, [Map.get(recovered_tx, :signed_tx) | acc])
+    end
+  end
 end

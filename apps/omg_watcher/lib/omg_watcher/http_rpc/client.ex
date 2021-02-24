@@ -40,8 +40,17 @@ defmodule OMG.Watcher.HttpRPC.Client do
   @spec submit(binary(), binary()) :: response_t()
   def submit(tx, url), do: call(%{transaction: Encoding.to_hex(tx)}, "transaction.submit", url)
 
-  defp call(params, path, url),
-    do: Adapter.rpc_post(params, path, url) |> Adapter.get_response_body() |> decode_response()
+  @doc """
+  Submits a batch of transactions
+  """
+  @spec batch_submit(binary(), binary()) :: response_t()
+  def batch_submit(txs, url) do
+    call(%{transactions: Enum.map(txs, &Encoding.to_hex(&1))}, "transaction.batch_submit", url)
+  end
+
+  defp call(params, path, url) do
+    params |> Adapter.rpc_post(path, url) |> Adapter.get_response_body() |> decode_response()
+  end
 
   # Translates response's body to known elixir structure, either block or tx submission response or error.
   defp decode_response({:ok, %{transactions: transactions, blknum: number, hash: hash}}) do
@@ -57,7 +66,26 @@ defmodule OMG.Watcher.HttpRPC.Client do
     {:ok, Map.update!(response, :txhash, &decode16!/1)}
   end
 
+  defp decode_response({:ok, response}) when is_list(response) do
+    decode_response(response, [])
+    # defp decode_response({:ok, [%{txhash: _hash} = transaction_response |response]}) do
+    # Map.update!(transaction_response, :txhash, &decode16!/1)
+  end
+
   defp decode_response(error), do: error
+
+  defp decode_response([], acc) do
+    Enum.reverse(acc)
+  end
+
+  defp decode_response([%{txhash: _hash} = transaction_response | response], acc) do
+    decode_response(response, [Map.update!(transaction_response, :txhash, &decode16!/1) | acc])
+  end
+
+  # all error tuples
+  defp decode_response([transaction_response | response], acc) do
+    decode_response(response, [transaction_response | acc])
+  end
 
   defp decode16!(hexstr) do
     {:ok, bin} = Encoding.from_hex(hexstr)
