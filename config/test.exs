@@ -57,7 +57,7 @@ config :omg,
 
 # bumping these timeouts into infinity - let's rely on test timeouts rather than these
 config :ethereumex,
-  url: "http://localhost:8545",
+  url: System.get_env("ETHEREUM_RPC_URL", "http://localhost:8545"),
   http_options: [recv_timeout: :infinity],
   id_reset: true
 
