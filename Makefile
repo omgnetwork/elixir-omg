@@ -342,6 +342,20 @@ cabbage-reorg-geth-logs:
 cabbage-reorgs-logs:
 	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml logs --follow | grep "reorg"
 
+### Cabbage service commands
+
+cabbage-start-services:
+	make init_test && \
+        cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env && \
+	docker-compose -f docker-compose.yml -f docker-compose.specs.yml up -d || \
+	(START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+
+cabbage-start-services-reorg:
+	make init_test_reorg && \
+	cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env && \
+	docker-compose -f docker-compose.yml -f docker-compose.reorg.yml -f docker-compose.specs.yml up -d || \
+	(START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+
 ###OTHER
 docker-start-cluster:
 	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
@@ -407,7 +421,7 @@ start-watcher:
 	rm -f ./_build/${BAREBUILD_ENV}/rel/watcher/var/sys.config || true && \
 	echo "Init Watcher DBs" && \
 	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeyValueDB.run()" && \
-	_build/${BAREBUILD_ENV}/rel/watcher_info/bin/watcher_info eval "OMG.DB.ReleaseTasks.InitKeysWithValues.run()" && \
+	_build/${BAREBUILD_ENV}/rel/watcher/bin/watcher eval "OMG.DB.ReleaseTasks.InitKeysWithValues.run()" && \
 	echo "Run Watcher" && \
 	. ${OVERRIDING_VARIABLES} && \
 	PORT=${WATCHER_PORT} _build/${BAREBUILD_ENV}/rel/watcher/bin/watcher $(OVERRIDING_START)

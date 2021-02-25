@@ -78,6 +78,7 @@ defmodule OMG.Watcher.MonitorTest do
     assert_receive {:trace, ^monitor_pid, :receive, {:"$gen_cast", :start_child}}
     :erlang.trace(monitor_pid, false, [:receive])
     # we now assert that our child was re-attached to the monitor
+    Process.sleep(200)
     {:links, children} = Process.info(monitor_pid, :links)
     assert Enum.count(children) == 1
   end

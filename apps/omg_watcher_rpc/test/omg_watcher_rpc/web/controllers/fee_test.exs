@@ -53,7 +53,7 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
 
       prepare_test_server(context, childchain_response)
 
-      assert childchain_response = WatcherHelper.success?("/fees.all")
+      ^childchain_response = WatcherHelper.success?("/fees.all")
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

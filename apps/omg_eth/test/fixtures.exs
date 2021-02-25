@@ -72,7 +72,7 @@ defmodule OMG.Eth.Fixtures do
 
   defp has_exit_queue(vault_id, token) do
     plasma_framework = Configuration.contracts().plasma_framework
-    token = Encoding.from_hex(token)
+    token = Encoding.from_hex(token, :mixed)
     call_contract(plasma_framework, "hasExitQueue(uint256,address)", [vault_id, token], [:bool])
   end
 

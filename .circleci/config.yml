@@ -126,6 +126,19 @@ commands:
               sleep 5
             done
 
+  run_test_in_docker:
+    description: "Quick test runs"
+    parameters:
+      test_command:
+        type: string
+      test_name:
+        type: string
+    steps:
+      - run:
+          name: "Docker run <<parameters.test_name>>"
+          command: |
+            docker run --rm -it --network=project_chain_net -e DOCKER=true -e CHILD_CHAIN_URL=http://172.27.0.108:9656/ -e ETHEREUM_RPC_URL=http://172.27.0.108:80 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(pwd):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && mix deps.get && <<parameters.test_command>>"
+
   install_elixir:
     description: Installs elixir and checks if docker is healthy
     steps:
@@ -312,7 +325,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 289 ]; then
+            if [ $_counter -gt 283 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -367,94 +380,67 @@ jobs:
       MIX_ENV: test
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}
+      - run: rm -rf _build_docker/test/lib/omg*
+      - run:
+          name: Setup dirs
+          command: |
+            [ -d _build_docker ] || mkdir _build_docker && sudo chmod -R 777 _build_docker
+      - run:
+          name: Setup dirs deps_docker
+          command: |
+            [ -d deps_docker ] || mkdir deps_docker &&  sudo chmod -R 777 deps_docker
       - setup_childchain
-      - install_elixir
-      - install_deps
-      - run:
-          name: Compile
-          environment:
-            MIX_ENV: test
-          command: |
-            set -e
-            make deps-elixir-omg
-            mix compile
-          no_output_timeout: 2400
-      - run:
-          name: invalid_exit_1_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain"
+            test_name: "invalid_exit_1_test.exs"
+      - save_cache:
+          key: v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}
+          paths:
+            - deps_docker
+            - _build_docker
       - setup_childchain
-      - run:
-          name: invalid_exit_2_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test_3_test.exs"
       - setup_childchain
-      - run:
-          name: block_getter_1_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test_2_test.exs"
       - setup_childchain
-      - run:
-          name: block_getter_2_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test_1_test.exs"
       - setup_childchain
-      - run:
-          name: block_getter_3_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test_4_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test_4_test.exs"
       - setup_childchain
-      - run:
-          name: block_getter_4_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test_1_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain"
+            test_name: "invalid_exit_2_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test_2_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain"
+            test_name: "block_getter_1_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test_3_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain"
+            test_name: "block_getter_2_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test_4_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test_4_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain"
+            test_name: "block_getter_3_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain"
+            test_name: "block_getter_4_test.exs"
 
   watcher_info_coveralls_and_integration_tests:
     executor: builder_pg_geth
@@ -630,10 +616,7 @@ jobs:
       - install_and_setup_gcloud
       - run:
           name: Start daemon services
-          command: |
-            make init_test
-            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
-            docker-compose -f docker-compose.yml -f docker-compose.feefeed.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+          command: make cabbage-start-services
       - run:
           name: Log daemon services
           command: make cabbage-logs
@@ -648,10 +631,22 @@ jobs:
             make install
             make generate_api_code
             mix deps.get
-            grep -r "@moduletag" ./apps/itest/ | awk '{print "--include " $3}' | tr -d ':' > tags.txt
-            echo $(circleci tests split ./tags.txt)
-            circleci tests split ./tags.txt > /tmp/tests-to-run
-            mix test --exclude test $(cat /tmp/tests-to-run)
+      - run:
+          name: Run specs
+          working_directory: ~/project/priv/cabbage
+          environment:
+            MIX_ENV: test
+          command: |
+            mix compile
+      - run:
+          name: Run specs
+          working_directory: ~/project/priv/cabbage
+          command: |
+            TESTFILES=$(circleci tests glob "apps/itest/test/itest/*_test.exs" | circleci tests split --split-by=timings --show-counts)
+            echo ${TESTFILES}
+            mix test ${TESTFILES} --trace
+      - store_test_results:
+          path: ~/project/priv/cabbage/_build/test/lib/itest/
 
   test_docker_compose_performance:
     description: "These are not actually performance tests, we're checking if the scripts work"
@@ -700,11 +695,11 @@ jobs:
       - run:
           name: Run perf smoke test (deposits)
           command: |
-            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
+            docker run -it --env-file ./localchain_contract_addresses.env -e FEE_AMOUNT=1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
       - run:
           name: Run perf smoke test (transactions)
           command: |
-            docker run -it --env-file ./localchain_contract_addresses.env --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
+            docker run -it --env-file ./localchain_contract_addresses.env -e FEE_AMOUNT=1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
       - run:
           name: (Perf) Format generated code and check for warnings
           command: |
@@ -1044,7 +1039,7 @@ workflows:
       - integration_tests:
           requires: [build]
       - barebuild_macos
-      - test_barebone_release
+      #- test_barebone_release
   build-test-deploy:
     jobs:
       - build:
@@ -1053,8 +1048,8 @@ workflows:
               only: /.+/
             tags:
               only: /.+/
-      - test_barebone_release:
-          filters: *all_branches_and_tags
+      # - test_barebone_release:
+      #     filters: *all_branches_and_tags
       - notify_services:
           requires:
             - increase_chart_version_watcher_master
@@ -1080,8 +1075,8 @@ workflows:
           filters: *all_branches_and_tags
       - test_docker_compose_release:
           filters: *all_branches_and_tags
-      - test_docker_compose_performance:
-          filters: *all_branches_and_tags
+      # - test_docker_compose_performance:
+      #     filters: *all_branches_and_tags
       - test_docker_compose_reorg:
           filters:
             branches:
@@ -1111,7 +1106,7 @@ workflows:
       - publish_watcher:
           requires:
             [
-              test_barebone_release,
+             # test_barebone_release,
               test_docker_compose_release,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
@@ -1134,7 +1129,7 @@ workflows:
       - publish_watcher_info:
           requires:
             [
-              test_barebone_release,
+             # test_barebone_release,
               test_docker_compose_release,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
@@ -1147,17 +1142,17 @@ workflows:
             ]
           filters: *master_and_version_branches_and_all_tags
 
-      - publish_perf:
-          requires: [test_docker_compose_performance]
-          filters:
-            branches:
-              only:
-                - master
-                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-                - /^v[0-9]+\.[0-9]+/
-            tags:
-              only:
-                - /.+/
+      # - publish_perf:
+      #     requires: [test_docker_compose_performance]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      #           # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+      #           - /^v[0-9]+\.[0-9]+/
+      #       tags:
+      #         only:
+      #           - /.+/
       # Increase chart version for master, this will end up trigger deployment on dev
       - increase_chart_version_watcher_master:
           requires: [publish_watcher, publish_watcher_info]
@@ -1186,7 +1181,7 @@ workflows:
           filters: *only_release_tag
       - release:
           requires: [
-            test_barebone_release,
+           # test_barebone_release,
             test_docker_compose_release,
             watcher_coveralls_and_integration_tests,
             watcher_info_coveralls_and_integration_tests,
