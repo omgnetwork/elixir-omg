@@ -107,7 +107,7 @@ config :os_mon,
   disk_almost_full_threshold: 0.99,
   disk_space_check_interval: 120
 
-cconfig :omg_watcher, child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656/")
+config :omg_watcher, child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656/")
 
 config :omg_watcher,
   # NOTE `exit_processor_sla_margin` can't be made shorter. At 8 it sometimes
@@ -125,7 +125,7 @@ config :omg_watcher, OMG.Watcher.Tracer,
   disabled?: true,
   env: "test"
 
-  config :omg_watcher_info, child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656/")
+config :omg_watcher_info, child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656/")
 
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   ownership_timeout: 500_000,
