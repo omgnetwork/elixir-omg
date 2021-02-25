@@ -123,10 +123,6 @@ services:
       - RELEASE_COOKIE=development
       - NODE_HOST=127.0.0.1
     restart: always
-    ports:
-      - "9656:9656"
-    expose:
-      - "9656"
     volumes:
       - ./data:/data
       - ./priv/dev-artifacts:/dev-artifacts
@@ -138,6 +134,7 @@ services:
       start_period: 60s
     depends_on:
       - nginx
+      - geth
     networks:
       chain_net:
         ipv4_address: 172.27.0.103
