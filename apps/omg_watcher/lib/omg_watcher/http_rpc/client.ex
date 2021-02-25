@@ -23,7 +23,8 @@ defmodule OMG.Watcher.HttpRPC.Client do
   require Logger
 
   @type response_t() ::
-          {:ok, %{required(atom()) => any()}}
+          list()
+          | {:ok, %{required(atom()) => any()}}
           | {:error,
              {:client_error | :server_error, any()}
              | {:malformed_response, any() | {:error, :invalid}}}

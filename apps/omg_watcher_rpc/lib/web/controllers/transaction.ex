@@ -143,19 +143,4 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
   defp to_transaction(transaction) do
     expect(%{"transaction" => transaction}, "transaction", :hex)
   end
-
-  defp recover(transactions) do
-    recover(transactions, [])
-  end
-
-  defp recover([], acc) do
-    acc
-  end
-
-  defp recover([txbytes | transactions], acc) do
-    with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(txbytes),
-         :ok <- is_supported(recovered_tx) do
-      recover(transactions, [Map.get(recovered_tx, :signed_tx) | acc])
-    end
-  end
 end
