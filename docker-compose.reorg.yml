@@ -64,4 +64,4 @@ services:
       geth-2:
         condition: service_healthy
     volumes:
-      - ./nginx.reorg.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/nginx.reorg.conf:/etc/nginx/nginx.conf
