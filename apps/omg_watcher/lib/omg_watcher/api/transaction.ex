@@ -36,10 +36,7 @@ defmodule OMG.Watcher.API.Transaction do
   @spec submit(list(Transaction.Signed.t())) :: Client.response_t() | {:error, atom()}
   def batch_submit(signed_txs) do
     url = Application.get_env(:omg_watcher, :child_chain_url)
-
-    signed_txs
-    |> Enum.map(&Transaction.Signed.encode(&1))
-    |> Client.batch_submit(url)
+    Client.batch_submit(signed_txs, url)
   end
 
   @spec submit(Transaction.Signed.t()) :: Client.response_t() | {:error, atom()}

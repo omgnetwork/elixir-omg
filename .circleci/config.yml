@@ -312,7 +312,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 289 ]; then
+            if [ $_counter -gt 283 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -1053,7 +1053,7 @@ workflows:
       - integration_tests:
           requires: [build]
       - barebuild_macos
-      - test_barebone_release
+      #- test_barebone_release
   build-test-deploy:
     jobs:
       - build:
@@ -1062,8 +1062,8 @@ workflows:
               only: /.+/
             tags:
               only: /.+/
-      - test_barebone_release:
-          filters: *all_branches_and_tags
+      # - test_barebone_release:
+      #     filters: *all_branches_and_tags
       - notify_services:
           requires:
             - increase_chart_version_watcher_master
@@ -1120,7 +1120,7 @@ workflows:
       - publish_watcher:
           requires:
             [
-              test_barebone_release,
+             # test_barebone_release,
               test_docker_compose_release,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
@@ -1143,7 +1143,7 @@ workflows:
       - publish_watcher_info:
           requires:
             [
-              test_barebone_release,
+             # test_barebone_release,
               test_docker_compose_release,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
@@ -1195,7 +1195,7 @@ workflows:
           filters: *only_release_tag
       - release:
           requires: [
-            test_barebone_release,
+           # test_barebone_release,
             test_docker_compose_release,
             watcher_coveralls_and_integration_tests,
             watcher_info_coveralls_and_integration_tests,

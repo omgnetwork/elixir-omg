@@ -554,18 +554,18 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
                Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
       # pinning because challenge shouldn't change the already challenged exit in the processor
-      {^processor, _} = processor |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit2)}])
+      {^processor, _} = Core.challenge_exits(processor, [%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit2)}])
     end
   end
 
   defp start_se_from_deposit(processor, exiting_pos, alice) do
     tx = TestHelper.create_recovered([], [{alice, @eth, 10}])
-    processor |> start_se_from(tx, exiting_pos)
+    start_se_from(processor, tx, exiting_pos)
   end
 
   defp start_se_from_block_tx(processor, exiting_pos, alice) do
     tx = TestHelper.create_recovered([Tuple.append(@deposit_input2, alice)], [{alice, @eth, 10}])
-    processor |> start_se_from(tx, exiting_pos)
+    start_se_from(processor, tx, exiting_pos)
   end
 
   defp get_bytes_sig(tx, sig_idx \\ 0), do: {Transaction.raw_txbytes(tx), Enum.at(tx.signed_tx.sigs, sig_idx)}

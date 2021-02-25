@@ -81,8 +81,8 @@ defmodule OMG.Watcher.HttpRPC.Client do
   end
 
   # all error tuples
-  defp decode_response([transaction_response | response], acc) do
-    decode_response(response, [transaction_response | acc])
+  defp decode_response([%{error: error} | response], acc) do
+    decode_response(response, [%{error: {:skip_hex_encode, error}} | acc])
   end
 
   defp decode16!(hexstr) do
