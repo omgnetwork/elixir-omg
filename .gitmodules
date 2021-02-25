@@ -1,4 +1,5 @@
 [submodule "priv/cabbage"]
   path = priv/cabbage
   url = https://github.com/omgnetwork/specs.git
-  branch = inomurko/batch_through_watcher
+  branch = master
+
