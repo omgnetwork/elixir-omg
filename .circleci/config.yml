@@ -126,6 +126,19 @@ commands:
               sleep 5
             done
 
+  run_test_in_docker:
+    description: "Quick test runs"
+    parameters:
+      test_command:
+        type: string
+      test_name:
+        type: string
+    steps:
+      - run:
+          name: "Docker run <<parameters.test_name>>"
+          command: |
+            docker run --rm -it --network=project_chain_net -e DOCKER=true -e CHILD_CHAIN_URL=http://172.27.0.108:9656/v1 -e ETHEREUM_RPC_URL=http://172.27.0.108
+
   install_elixir:
     description: Installs elixir and checks if docker is healthy
     steps:
@@ -367,94 +380,67 @@ jobs:
       MIX_ENV: test
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}
+      - run: rm -rf _build_docker/test/lib/omg*
+      - run:
+          name: Setup dirs
+          command: |
+            [ -d _build_docker ] || mkdir _build_docker && sudo chmod -R 777 _build_docker
+      - run:
+          name: Setup dirs deps_docker
+          command: |
+            [ -d deps_docker ] || mkdir deps_docker &&  sudo chmod -R 777 deps_docker
       - setup_childchain
-      - install_elixir
-      - install_deps
-      - run:
-          name: Compile
-          environment:
-            MIX_ENV: test
-          command: |
-            set -e
-            make deps-elixir-omg
-            mix compile
-          no_output_timeout: 2400
-      - run:
-          name: invalid_exit_1_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/invalid_exit_1_test.exs --include mix_based_child_chain"
+            test_name: "invalid_exit_1_test.exs"
+      - save_cache:
+          key: v2-mix-cache-test-compile-watcher_mix_based_childchain-{{ checksum "mix.lock" }}-{{ .Branch }}
+          paths:
+            - deps_docker
+            - _build_docker
       - setup_childchain
-      - run:
-          name: invalid_exit_2_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test_3_test.exs"
       - setup_childchain
-      - run:
-          name: block_getter_1_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test_2_test.exs"
       - setup_childchain
-      - run:
-          name: block_getter_2_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test_1_test.exs"
       - setup_childchain
-      - run:
-          name: block_getter_3_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test_4_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test_4_test.exs"
       - setup_childchain
-      - run:
-          name: block_getter_4_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/in_flight_exit_test.exs --include mix_based_child_chain"
+            test_name: "in_flight_exit_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test_1_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test_1_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/invalid_exit_2_test.exs --include mix_based_child_chain"
+            test_name: "invalid_exit_2_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test_2_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test_2_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/block_getter_1_test.exs --include mix_based_child_chain"
+            test_name: "block_getter_1_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test_3_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test_3_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/block_getter_2_test.exs --include mix_based_child_chain"
+            test_name: "block_getter_2_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test_4_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test_4_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/block_getter_3_test.exs --include mix_based_child_chain"
+            test_name: "block_getter_3_test.exs"
       - setup_childchain
-      - run:
-          name: in_flight_exit_test.exs
-          environment:
-            DOCKER_GETH: true
-          command: |
-            mix test test/omg_watcher/integration/in_flight_exit_test.exs --include mix_based_child_chain
+      - run_test_in_docker:
+            test_command: "mix test test/omg_watcher/integration/block_getter_4_test.exs --include mix_based_child_chain"
+            test_name: "block_getter_4_test.exs"
 
   watcher_info_coveralls_and_integration_tests:
     executor: builder_pg_geth
