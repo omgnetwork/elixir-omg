@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Controller.Transaction do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.State.Transaction
+  alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.API.Transaction, as: SecurityApiTransaction
   alias OMG.WatcherInfo.API.Transaction, as: InfoApiTransaction
   alias OMG.WatcherInfo.OrderFeeFetcher

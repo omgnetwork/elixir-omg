@@ -30,10 +30,10 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   For the imperative shell, see `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.Block
-  alias OMG.Crypto
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -45,7 +45,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
 
   require Utxo
 
-  use OMG.Utils.LoggerExt
+  require Logger
 
   @type competitor_data_t :: %{
           input_txbytes: binary(),

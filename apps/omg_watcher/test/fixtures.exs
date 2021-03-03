@@ -17,9 +17,39 @@ defmodule OMG.Watcher.Fixtures do
 
   use OMG.DB.Fixtures
   use OMG.Eth.Fixtures
-  use OMG.Utils.LoggerExt
 
   alias OMG.Status.Alert.Alarm
+  alias OMG.Eth.Configuration
+  alias OMG.Watcher.State.Core
+
+  import OMG.Watcher.TestHelper
+
+  @eth <<0::160>>
+  @fee_claimer_address "NO FEE CLAIMER ADDR!"
+
+  deffixture(entities, do: entities())
+
+  deffixture(alice(entities), do: entities.alice)
+  deffixture(bob(entities), do: entities.bob)
+  deffixture(carol(entities), do: entities.carol)
+
+  deffixture(stable_alice(entities), do: entities.stable_alice)
+  deffixture(stable_bob(entities), do: entities.stable_bob)
+  deffixture(stable_mallory(entities), do: entities.stable_mallory)
+
+  deffixture state_empty() do
+    child_block_interval = Configuration.child_block_interval()
+    {:ok, state} = Core.extract_initial_state(0, child_block_interval, @fee_claimer_address)
+    state
+  end
+
+  deffixture state_alice_deposit(state_empty, alice) do
+    do_deposit(state_empty, alice, %{amount: 10, currency: @eth, blknum: 1})
+  end
+
+  deffixture state_stable_alice_deposit(state_empty, stable_alice) do
+    do_deposit(state_empty, stable_alice, %{amount: 10, currency: @eth, blknum: 1})
+  end
 
   deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized

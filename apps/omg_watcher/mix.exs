@@ -41,6 +41,9 @@ defmodule OMG.Watcher.MixProject do
 
   defp deps() do
     [
+      {:ex_plasma, "~> 0.2.0"},
+      {:ex_rlp, "~> 0.5.3"},
+      {:merkle_tree, "~> 2.0.0"},
       {:telemetry, "~> 0.4.1"},
       # there's no apparent reason why libsecp256k1, spandex need to be included as dependencies
       # to this umbrella application apart from mix ecto.gen.migration not working, so here they are, copied from
@@ -49,7 +52,6 @@ defmodule OMG.Watcher.MixProject do
 
       # UMBRELLA
       {:omg_bus, in_umbrella: true},
-      {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},

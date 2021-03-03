@@ -49,12 +49,6 @@ defmodule OMG.Eth do
     end
   end
 
-  @doc """
-  Returns placeholder for non-existent Ethereum address
-  """
-  @spec zero_address() :: address()
-  def zero_address(), do: <<0::160>>
-
   @spec submit_block(binary(), pos_integer(), pos_integer()) ::
           {:error, binary() | atom() | map()} | {:ok, <<_::256>>}
   def submit_block(hash, nonce, gas_price) do

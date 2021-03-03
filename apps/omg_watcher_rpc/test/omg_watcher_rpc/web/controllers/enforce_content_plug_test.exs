@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.Controller.EnforceContentPlugTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
   use Plug.Test
   alias OMG.Utils.HttpRPC.Encoding

@@ -18,7 +18,7 @@ defmodule OMG.Conformance.SignatureTest do
   by both Elixir signature code and contract signature code.
   """
 
-  alias OMG.State.Transaction
+  alias OMG.Watcher.State.Transaction
 
   import Support.Conformance.SignaturesHashes, only: [verify: 2, verify_distinct: 3]
 

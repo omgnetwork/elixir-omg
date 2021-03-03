@@ -15,7 +15,7 @@
 defmodule OMG.WatcherRPC.Application do
   @moduledoc false
   use Application
-  use OMG.Utils.LoggerExt
+  require Logger
 
   def start(_type, _args) do
     _ = Logger.info("Starting #{inspect(__MODULE__)}")

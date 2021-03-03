@@ -15,29 +15,29 @@
 defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
   use OMG.Watcher.Fixtures
 
   import OMG.WatcherInfo.Factory,
     only: [build: 1, with_deposit: 1, insert: 1, insert: 2, with_inputs: 2, with_outputs: 2]
 
-  alias OMG.DevCrypto
-  alias OMG.State.Transaction
-  alias OMG.TestHelper, as: Test
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utils.HttpRPC.Response
-  alias OMG.Utxo
-  alias OMG.Utxo.Position
+  alias OMG.Watcher.DevCrypto
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper, as: Test
+  alias OMG.Watcher.Utxo
+  alias OMG.Watcher.Utxo.Position
+  alias OMG.Watcher.WireFormatTypes
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.TestServer
-  alias OMG.WireFormatTypes
   alias Support.WatcherHelper
 
   require OMG.State.Transaction.Payment
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @other_token <<127::160>>
   @eth_hex Encoding.to_hex(@eth)
   @other_token_hex Encoding.to_hex(@other_token)
@@ -627,7 +627,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       bob_addr = Encoding.to_hex(bob.addr)
 
       %{
-        # these values should match configuration :omg, :eip_712_domain
+        # these values should match configuration :omg_watcher, :eip_712_domain
         "domain" => %{
           "name" => "OMG Network",
           "version" => "1",
@@ -755,11 +755,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns appropriate schema", %{alice: alice, bob: bob, more_utxos: inserted_txs, test_server: context} do
-      alias OMG.Utxo
+      alias OMG.Watcher.Utxo
       require Utxo
       prepare_test_server(context, @fee_response)
       alice_to_bob = 100
-      metadata = (alice.addr <> bob.addr) |> OMG.Crypto.hash() |> Encoding.to_hex()
+      metadata = (alice.addr <> bob.addr) |> OMG.Watcher.Crypto.hash() |> Encoding.to_hex()
 
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
@@ -815,7 +815,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
       bob: bob,
       test_server: context
     } do
-      alias OMG.State.Transaction
+      alias OMG.Watcher.State.Transaction
 
       prepare_test_server(context, @fee_response)
 
@@ -854,7 +854,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns typed data in the form of request of typedDataSign", %{alice: alice, bob: bob, test_server: context} do
-      alias OMG.State.Transaction
+      alias OMG.Watcher.State.Transaction
 
       metadata_hex = Encoding.to_hex(<<123::256>>)
       prepare_test_server(context, @fee_response)
@@ -1234,8 +1234,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     test "does not stealth add inputs where the number of inputs reached maximum", %{
       test_server: context
     } do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      alice = OMG.Watcher.TestHelper.generate_entity()
+      bob = OMG.Watcher.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
       _payment_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
@@ -1277,8 +1277,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "stealth add 1 more input when 3 inputs with single currency covers payment and fee", %{test_server: context} do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      alice = OMG.Watcher.TestHelper.generate_entity()
+      bob = OMG.Watcher.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
       _payment_1 = insert(:txoutput, amount: 10, currency: @eth, owner: alice.addr)
@@ -1354,8 +1354,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     test "stealth add 1 more input when 3 inputs with multiple currency covers payment and fee", %{
       test_server: context
     } do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      alice = OMG.Watcher.TestHelper.generate_entity()
+      bob = OMG.Watcher.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
       _payment_1 = insert(:txoutput, amount: 5, currency: @other_token, owner: alice.addr)
@@ -1430,8 +1430,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "stealth add 2 more inputs when 2 inputs with single currency covers payments and fee", %{test_server: context} do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      alice = OMG.Watcher.TestHelper.generate_entity()
+      bob = OMG.Watcher.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
       _payment_1 = insert(:txoutput, amount: 30, currency: @eth, owner: alice.addr)
@@ -1507,8 +1507,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
     test "stealth add 2 more inputs when 2 inputs with multiple currency covers payments and fee", %{
       test_server: context
     } do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      alice = OMG.Watcher.TestHelper.generate_entity()
+      bob = OMG.Watcher.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
       _payment_1 = insert(:txoutput, amount: 30, currency: @other_token, owner: alice.addr)
@@ -1583,8 +1583,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "stealth add 1 more input when there're currently 2 inputs and have only 1 utxo left", %{test_server: context} do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      alice = OMG.Watcher.TestHelper.generate_entity()
+      bob = OMG.Watcher.TestHelper.generate_entity()
       prepare_test_server(context, @fee_response)
 
       _fee = insert(:txoutput, amount: @default_fee_amount, currency: @eth, owner: alice.addr)
@@ -1787,8 +1787,8 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
 
   describe "/transaction.merge" do
     setup do
-      alice = OMG.TestHelper.generate_entity()
-      bob = OMG.TestHelper.generate_entity()
+      alice = OMG.Watcher.TestHelper.generate_entity()
+      bob = OMG.Watcher.TestHelper.generate_entity()
 
       state = %{
         alice: Map.get(alice, :addr),

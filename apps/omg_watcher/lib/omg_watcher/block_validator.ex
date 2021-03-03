@@ -18,9 +18,9 @@ defmodule OMG.Watcher.BlockValidator do
   """
 
   alias OMG.Block
-  alias OMG.Merkle
-  alias OMG.State.Transaction
-  alias OMG.Utxo.Position
+  alias OMG.Watcher.Merkle
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo.Position
 
   @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()
 

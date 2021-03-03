@@ -30,8 +30,8 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   For the imperative shell, see `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -43,7 +43,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
 
   require Transaction.Payment
 
-  use OMG.Utils.LoggerExt
+  require Logger
 
   @type piggyback_type_t() :: :input | :output
   @type piggyback_t() :: {piggyback_type_t(), non_neg_integer()}

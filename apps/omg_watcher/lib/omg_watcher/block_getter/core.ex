@@ -24,13 +24,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
     - matching up `BlockSubmitted` root chain events with the downloaded blocks, to discover submission `eth_height`.
   """
 
-  alias OMG.Block
-  alias OMG.State.Transaction
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
-  use OMG.Utils.LoggerExt
+  require Logger
 
   defmodule Config do
     @moduledoc false

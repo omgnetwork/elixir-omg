@@ -17,9 +17,10 @@ defmodule OMG.Watcher.UtxoExit.Core do
   Module provides API for compose exit
   """
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
+  alias OMG.Watcher.Utxo.Position
 
   require Utxo
 
@@ -33,7 +34,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
          :ok <- get_output_by_index(signed_tx, utxo_pos) do
       {:ok,
        %{
-         utxo_pos: Utxo.Position.encode(utxo_pos),
+         utxo_pos: Position.encode(utxo_pos),
          txbytes: Transaction.raw_txbytes(signed_tx),
          proof: Block.inclusion_proof(block, txindex)
        }}
@@ -44,16 +45,17 @@ defmodule OMG.Watcher.UtxoExit.Core do
           {:error, :no_deposit_for_given_blknum}
           | {:ok, %{utxo_pos: non_neg_integer, txbytes: binary, proof: binary}}
   def compose_deposit_standard_exit({:ok, {db_utxo_pos, db_utxo_value}}) do
-    utxo_pos = OMG.Utxo.Position.from_db_key(db_utxo_pos)
+    utxo_pos = Position.from_db_key(db_utxo_pos)
 
-    %Utxo{output: %OMG.Output{amount: amount, currency: currency, owner: owner}} = Utxo.from_db_value(db_utxo_value)
+    %Utxo{output: %OMG.Watcher.Output{amount: amount, currency: currency, owner: owner}} =
+      Utxo.from_db_value(db_utxo_value)
 
     tx = Transaction.Payment.new([], [{owner, currency, amount}])
     txs = [Transaction.Signed.encode(%Transaction.Signed{raw_tx: tx, sigs: []})]
 
     {:ok,
      %{
-       utxo_pos: Utxo.Position.encode(utxo_pos),
+       utxo_pos: Position.encode(utxo_pos),
        txbytes: Transaction.raw_txbytes(tx),
        proof: Block.inclusion_proof(txs, 0)
      }}

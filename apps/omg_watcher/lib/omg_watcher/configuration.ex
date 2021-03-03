@@ -48,4 +48,24 @@ defmodule OMG.Watcher.Configuration do
   def exit_finality_margin() do
     Application.get_env(@app, :exit_finality_margin)
   end
+
+  @spec deposit_finality_margin() :: pos_integer() | no_return
+  def deposit_finality_margin() do
+    Application.get_env(@app, :deposit_finality_margin)
+  end
+
+  @spec fee_claimer_address() :: binary() | no_return
+  def fee_claimer_address() do
+    Application.fetch_env!(@app, :fee_claimer_address)
+  end
+
+  @spec ethereum_events_check_interval_ms() :: pos_integer() | no_return
+  def ethereum_events_check_interval_ms() do
+    Application.fetch_env!(@app, :ethereum_events_check_interval_ms)
+  end
+
+  @spec coordinator_eth_height_check_interval_ms() :: pos_integer() | no_return
+  def coordinator_eth_height_check_interval_ms() do
+    Application.fetch_env!(@app, :coordinator_eth_height_check_interval_ms)
+  end
 end

@@ -38,7 +38,7 @@ defmodule OMG.Conformance.MixProject do
   defp deps() do
     [
       {:propcheck, "~> 1.1", only: [:test]},
-      {:omg, in_umbrella: true}
+      {:omg_watcher, in_umbrella: true}
     ]
   end
 end

@@ -21,8 +21,8 @@ defmodule OMG.Watcher.API.StatusCache.External do
   alias OMG.Eth.Configuration
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
-  alias OMG.RootChainCoordinator
-  alias OMG.State
+  alias OMG.Watcher.RootChainCoordinator
+  alias OMG.Watcher.State
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event

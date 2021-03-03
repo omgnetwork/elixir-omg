@@ -25,7 +25,7 @@ defmodule OMG.WatcherInfo.Factory.Transaction do
     quote do
       alias OMG.WatcherInfo.DB
 
-      alias OMG.Utxo
+      alias OMG.Watcher.Utxo
       require Utxo
 
       def transaction_factory(attrs \\ %{}) do

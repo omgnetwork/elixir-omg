@@ -18,7 +18,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
   In case one process fails, this supervisor's role is to restore consistent state
   """
   use Supervisor
-  use OMG.Utils.LoggerExt
+  require Logger
 
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Configuration
@@ -36,7 +36,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     child_chain_url = Configuration.child_chain_url()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
-    block_getter_loops_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
+    block_getter_loops_interval_ms = Configuration.ethereum_events_check_interval_ms()
 
     fee_claimer_address = Base.decode16!("DEAD000000000000000000000000000000000000")
 

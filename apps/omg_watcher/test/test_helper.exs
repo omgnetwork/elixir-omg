@@ -16,6 +16,7 @@ ExUnit.configure(
   exclude: [mix_based_child_chain: true, watcher: true, common: true, integration: true, property: true, wrappers: true]
 )
 
+ExUnitFixtures.load_fixture_files(Path.join([Mix.Project.build_path(), "../../", "apps/*/test/**/fixtures.exs"]))
 ExUnitFixtures.start()
 ExUnit.start()
 

@@ -15,16 +15,16 @@
 defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @tag skip: true
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -32,7 +32,7 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
     DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1, eth_height: 1}])
 
     block_application = %{
-      transactions: [OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])],
+      transactions: [OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])],
       number: 1000,
       hash: <<?#::256>>,
       timestamp: :os.system_time(:second),

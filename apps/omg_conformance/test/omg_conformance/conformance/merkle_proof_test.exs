@@ -44,7 +44,7 @@ defmodule OMG.Conformance.MerkleProofTest do
 
   test "a simple, 3-leaf merkle proof validates fine", %{contract: contract} do
     leaves = [<<1>>, <<0>>, <<>>]
-    root_hash = Merkle.hash(leaves)
+    root_hash = OMG.Watcher.Merkle.hash(leaves)
 
     leaves
     |> Enum.with_index()
@@ -62,11 +62,11 @@ defmodule OMG.Conformance.MerkleProofTest do
     # 3. so we're pre-building the merkle tree by using raw `MerkleTree` calls instead of `OMG.Merkle`
     #    This is slightly inconsistent, but otherwise the test takes forever
     full_leaves = Enum.map(1..@max_block_size, &:binary.encode_unsigned/1)
-    full_root_hash = Merkle.hash(full_leaves)
+    full_root_hash = OMG.Watcher.Merkle.hash(full_leaves)
 
     full_tree =
       MerkleTree.build(full_leaves,
-        hash_function: &OMG.Crypto.hash/1,
+        hash_function: &OMG.Watcher.Crypto.hash/1,
         height: 16,
         default_data_block: <<0::256>>
       )

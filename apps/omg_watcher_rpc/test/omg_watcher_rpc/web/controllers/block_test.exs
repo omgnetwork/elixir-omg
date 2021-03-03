@@ -22,9 +22,9 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
 
   alias OMG.Eth.Encoding
   alias OMG.Merkle
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.WireFormatTypes
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.WireFormatTypes
 
   alias Support.WatcherHelper
 
@@ -33,9 +33,9 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
     number: 1000,
     transactions: ["0x00"]
   }
-  @eth OMG.Eth.zero_address()
-  @alice OMG.TestHelper.generate_entity()
-  @bob OMG.TestHelper.generate_entity()
+  @eth <<0::160>>
+  @alice OMG.Watcher.TestHelper.generate_entity()
+  @bob OMG.Watcher.TestHelper.generate_entity()
   @payment_tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   describe "get_block/2" do

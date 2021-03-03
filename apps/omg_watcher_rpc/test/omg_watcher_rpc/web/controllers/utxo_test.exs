@@ -15,14 +15,14 @@
 defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias Support.WatcherHelper
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
   test "get_exit_data should return error when there is no txs in specfic block" do
@@ -50,7 +50,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized, :bob]
   test "getting exit data returns properly formatted response", %{bob: bob} do
-    tx = OMG.TestHelper.create_signed([{1, 0, 0, bob}], @eth, [{bob, 100}])
+    tx = OMG.Watcher.TestHelper.create_signed([{1, 0, 0, bob}], @eth, [{bob, 100}])
     tx_encode = tx |> OMG.State.Transaction.Signed.encode()
 
     OMG.DB.multi_update([

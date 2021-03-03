@@ -17,8 +17,9 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   Validates `/transaction.submit_typed` request body.
   """
 
-  alias OMG.State.Transaction
-  alias OMG.TypedDataHash.Tools
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TypedDataHash.Tools
+  alias OMG.Watcher.TypedDataHash.Config
   alias OMG.Utils.HttpRPC.Validator.Base
   import OMG.Utils.HttpRPC.Validator.Base
 
@@ -59,7 +60,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   def ensure_network_match(domain_from_params, network_domain \\ nil) do
     network_domain =
       case network_domain do
-        nil -> OMG.TypedDataHash.Config.domain_separator_from_config()
+        nil -> Config.domain_separator_from_config()
         params when is_map(params) -> Tools.domain_separator(params)
       end
 

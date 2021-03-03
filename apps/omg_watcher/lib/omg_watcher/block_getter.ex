@@ -42,13 +42,13 @@ defmodule OMG.Watcher.BlockGetter do
   See `OMG.Watcher.BlockGetter.Core` for the implementation of the business logic for the getter.
   """
   use GenServer
-  use OMG.Utils.LoggerExt
+  require Logger
   use Spandex.Decorators
 
   alias OMG.Eth.RootChain
-  alias OMG.RootChainCoordinator
-  alias OMG.RootChainCoordinator.SyncGuide
-  alias OMG.State
+  alias OMG.Watcher.RootChainCoordinator
+  alias OMG.Watcher.RootChainCoordinator.SyncGuide
+  alias OMG.Watcher.State
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.BlockGetter.Status
@@ -137,7 +137,7 @@ defmodule OMG.Watcher.BlockGetter do
   - (check_validity) Updates its view of validity of the chain.
   """
   def handle_continue({:apply_block_step, :execute_transactions, block_application}, state) do
-    tx_exec_results = for(tx <- block_application.transactions, do: OMG.State.exec(tx, :ignore_fees))
+    tx_exec_results = for(tx <- block_application.transactions, do: OMG.Watcher.State.exec(tx, :ignore_fees))
 
     case Core.validate_executions(tx_exec_results, block_application, state) do
       {:ok, state} ->
@@ -159,7 +159,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   def handle_continue({:apply_block_step, :close_and_apply_block, block_application}, state) do
-    {:ok, db_updates_from_state} = OMG.State.close_block()
+    {:ok, db_updates_from_state} = OMG.Watcher.State.close_block()
 
     {state, synced_height, db_updates} = Core.apply_block(state, block_application)
 

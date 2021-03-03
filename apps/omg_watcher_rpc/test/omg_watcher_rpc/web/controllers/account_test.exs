@@ -15,19 +15,19 @@
 defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
 
   alias OMG.Crypto
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
-  @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
+  @eth <<0::160>>
+  @payment_output_type OMG.Watcher.WireFormatTypes.output_type_for(:output_payment_v1)
   @eth_hex @eth |> Encoding.to_hex()
   @other_token <<127::160>>
   @other_token_hex @other_token |> Encoding.to_hex()
@@ -42,7 +42,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
     # adds other token funds for alice to make more interesting
     blocks_inserter.([
-      {11_000, [OMG.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])]}
+      {11_000, [OMG.Watcher.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])]}
     ])
 
     data = WatcherHelper.success?("account.get_balance", body_for(alice))
@@ -231,7 +231,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
 
     # bob spends his utxo to carol
     block_application = %{
-      transactions: [OMG.TestHelper.create_recovered([{2000, 0, 0, bob}], @eth, [{bob, 49}, {carol, 50}])],
+      transactions: [OMG.Watcher.TestHelper.create_recovered([{2000, 0, 0, bob}], @eth, [{bob, 49}, {carol, 50}])],
       number: 11_000,
       hash: <<?#::256>>,
       timestamp: :os.system_time(:second),
@@ -289,7 +289,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
            } = utxos |> Enum.find(&(&1["blknum"] < 1000))
 
     block_application = %{
-      transactions: [OMG.TestHelper.create_recovered([{blknum, 0, 0, bob}], @eth, [{carol, 100}])],
+      transactions: [OMG.Watcher.TestHelper.create_recovered([{blknum, 0, 0, bob}], @eth, [{carol, 100}])],
       number: 11_000,
       hash: <<?#::256>>,
       timestamp: :os.system_time(:second),

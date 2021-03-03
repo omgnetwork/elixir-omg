@@ -24,7 +24,7 @@ defmodule OMG.WatcherInfo.BlockApplicator do
           hash: binary(),
           number: pos_integer(),
           timestamp: pos_integer(),
-          transactions: [OMG.State.Transaction.Recovered.t()]
+          transactions: [OMG.Watcher.State.Transaction.Recovered.t()]
         }
 
   @doc """

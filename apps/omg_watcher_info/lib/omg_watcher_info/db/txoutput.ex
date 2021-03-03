@@ -19,9 +19,9 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   use Ecto.Schema
   use Spandex.Decorators
 
-  alias OMG.State.Transaction
+  alias OMG.Watcher.State.Transaction
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Repo
 
@@ -83,7 +83,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     )
   end
 
-  @spec get_by_output_id(txhash :: OMG.Crypto.hash_t(), oindex :: non_neg_integer()) :: map() | nil
+  @spec get_by_output_id(txhash :: OMG.Watcher.Crypto.hash_t(), oindex :: non_neg_integer()) :: map() | nil
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_by_output_id(txhash, oindex) do
     Repo.one(

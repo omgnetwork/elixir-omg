@@ -20,7 +20,7 @@ defmodule OMG.WatcherRPC.Web.View.Account do
   use OMG.WatcherRPC.Web, :view
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse
 
   require Utxo

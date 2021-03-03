@@ -23,9 +23,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   use OMG.DB.RocksDBCase, async: true
 
   alias OMG.DB.Models.PaymentExitInfo
-  alias OMG.DevCrypto
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.DevCrypto
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
@@ -34,7 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   @default_min_exit_period_seconds 120
   @default_child_block_interval 1000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(1_000, 0, 1)
@@ -46,8 +46,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   setup %{db_pid: db_pid} do
     :ok = OMG.DB.initiation_multiupdate(db_pid)
 
-    alice = OMG.TestHelper.generate_entity()
-    carol = OMG.TestHelper.generate_entity()
+    alice = OMG.Watcher.TestHelper.generate_entity()
+    carol = OMG.Watcher.TestHelper.generate_entity()
     {:ok, processor_empty} = Core.init([], [], [], @default_min_exit_period_seconds, @default_child_block_interval)
 
     transactions = [

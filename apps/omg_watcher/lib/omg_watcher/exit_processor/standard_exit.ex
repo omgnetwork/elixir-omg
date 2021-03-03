@@ -26,8 +26,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     @enforce_keys [:exit_id, :exiting_tx, :txbytes, :input_index, :sig]
     defstruct @enforce_keys
 
-    alias OMG.Crypto
-    alias OMG.State.Transaction
+    alias OMG.Watcher.Crypto
+    alias OMG.Watcher.State.Transaction
 
     @type t() :: %__MODULE__{
             exit_id: pos_integer(),
@@ -38,9 +38,9 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
           }
   end
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.DoubleSpend

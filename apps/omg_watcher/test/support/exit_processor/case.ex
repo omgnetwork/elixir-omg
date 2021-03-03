@@ -18,10 +18,10 @@ defmodule OMG.Watcher.ExitProcessor.Case do
   """
   use ExUnit.CaseTemplate
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
 
@@ -32,7 +32,7 @@ defmodule OMG.Watcher.ExitProcessor.Case do
   @default_min_exit_period_seconds 120
   @default_child_block_interval 1000
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @not_eth <<1::size(160)>>
 
   setup do

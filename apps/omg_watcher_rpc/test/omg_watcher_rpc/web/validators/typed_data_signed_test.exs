@@ -16,15 +16,15 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherRPC.Web.Validator.TypedDataSigned
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @other_token <<127::160>>
   @eth_hex Encoding.to_hex(@eth)
   @token_hex Encoding.to_hex(@other_token)
@@ -83,7 +83,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
   end
 
   test "parses transaction with metadata from message data" do
-    metadata = (@alice.addr <> @bob.addr) |> OMG.Crypto.hash()
+    metadata = (@alice.addr <> @bob.addr) |> OMG.Watcher.Crypto.hash()
     params = %{"message" => %{get_message() | "metadata" => Encoding.to_hex(metadata)}}
 
     assert {:ok, tx} = TypedDataSigned.parse_transaction(params)

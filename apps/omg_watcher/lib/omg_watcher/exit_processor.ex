@@ -26,22 +26,22 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
-  alias OMG.Block
+  alias OMG.Watcher.Block
   alias OMG.DB
   alias OMG.DB.Models.PaymentExitInfo
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
-  alias OMG.State
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.State
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.ExitProcessor.Tools
 
-  use OMG.Utils.LoggerExt
+  require Logger
   require Utxo
 
   @timeout 60_000

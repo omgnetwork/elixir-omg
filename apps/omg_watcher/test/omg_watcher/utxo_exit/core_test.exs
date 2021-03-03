@@ -16,14 +16,15 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.UtxoExit.Core
-  require Utxo
+  alias OMG.Watcher.Utxo.Position
+  require OMG.Watcher.Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   setup do
     alice = TestHelper.generate_entity()
@@ -36,7 +37,7 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
       encode_utxo = position |> Utxo.Position.encode()
 
       [output] = Transaction.get_outputs(Transaction.Payment.new([], [{alice.addr, @eth, 10}]))
-      fake_utxo_db_kv = {OMG.Utxo.Position.to_input_db_key(position), Utxo.to_db_value(%Utxo{output: output})}
+      fake_utxo_db_kv = {Position.to_input_db_key(position), Utxo.to_db_value(%Utxo{output: output})}
 
       assert {:ok,
               %{

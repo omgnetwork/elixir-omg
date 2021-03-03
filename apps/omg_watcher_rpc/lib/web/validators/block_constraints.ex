@@ -19,7 +19,7 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockConstraints do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.Block
+  alias OMG.Watcher.Block
   alias OMG.WatcherRPC.Web.Validator.Helpers
 
   @doc """

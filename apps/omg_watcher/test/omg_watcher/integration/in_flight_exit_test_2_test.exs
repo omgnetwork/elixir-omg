@@ -18,22 +18,23 @@ defmodule OMG.Watcher.Integration.InFlightExit2Test do
   """
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use Plug.Test
   use OMG.Watcher.Integration.Fixtures
 
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.EthereumEventAggregator
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
+  alias OMG.Watcher.TestHelper
 
   require Utxo
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
   # bumping the timeout to three minutes for the tests here, as they do a lot of transactions to Ethereum to test
@@ -46,8 +47,8 @@ defmodule OMG.Watcher.Integration.InFlightExit2Test do
     Process.sleep(12_000)
     # tx1 is submitted then in-flight-exited
     # tx2 is in-flight-exited
-    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 4}])
-    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 9}])
+    tx1 = TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 4}])
+    tx2 = TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 9}])
 
     ife1 = tx1 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
     ife2 = tx2 |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()

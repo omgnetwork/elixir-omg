@@ -15,14 +15,14 @@
 defmodule OMG.Watcher.API.AccountTest do
   use ExUnit.Case, async: false
 
-  alias OMG.TestHelper
-  alias OMG.Utxo
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.API.Account
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
-  @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
+  @eth <<0::160>>
+  @payment_output_type OMG.Watcher.WireFormatTypes.output_type_for(:output_payment_v1)
 
   setup do
     db_path = Briefly.create!(directory: true)

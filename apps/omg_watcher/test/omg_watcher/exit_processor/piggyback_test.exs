@@ -19,10 +19,10 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   # this is where the setup comes from!!!
   use OMG.Watcher.ExitProcessor.Case, async: true
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -34,7 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   # needs to match up with the default from `ExitProcessor.Case` :(
   @exit_id 9876
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   describe "sanity checks" do
     test "throwing when unknown piggyback events arrive", %{processor_filled: processor, ife_tx_hashes: [ife_id | _]} do
@@ -144,7 +144,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
       tx = Transaction.Payment.new([{1, 0, 0}], [{alice.addr, @eth, 1}])
       txbytes = txbytes(tx)
       # superfluous signatures
-      %{sigs: sigs} = signed_tx = OMG.DevCrypto.sign(tx, [alice.priv])
+      %{sigs: sigs} = signed_tx = OMG.Watcher.DevCrypto.sign(tx, [alice.priv])
       processor = processor |> start_ife_from(signed_tx, sigs: sigs)
 
       assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =

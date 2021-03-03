@@ -15,24 +15,24 @@
 defmodule OMG.Watcher.Integration.InvalidExit1Test do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use Plug.Test
   use OMG.Watcher.Integration.Fixtures
 
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-
+  alias OMG.Watcher.TestHelper
   require Utxo
 
   @moduletag :mix_based_child_chain
   @moduletag timeout: 180_000
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @tag fixtures: [:in_beam_watcher, :stable_alice, :token, :stable_alice_deposits]
   test "invalid_exit without a challenge raises unchallenged_exit after sla_margin had passed, can be challenged",
@@ -40,10 +40,10 @@ defmodule OMG.Watcher.Integration.InvalidExit1Test do
     Process.sleep(11_000)
 
     %{"blknum" => first_tx_blknum} =
-      [{deposit_blknum, 0, 0, alice}] |> OMG.TestHelper.create_encoded(@eth, [{alice, 9}]) |> WatcherHelper.submit()
+      [{deposit_blknum, 0, 0, alice}] |> TestHelper.create_encoded(@eth, [{alice, 9}]) |> WatcherHelper.submit()
 
     %{"blknum" => second_tx_blknum} =
-      [{first_tx_blknum, 0, 0, alice}] |> OMG.TestHelper.create_encoded(@eth, [{alice, 8}]) |> WatcherHelper.submit()
+      [{first_tx_blknum, 0, 0, alice}] |> TestHelper.create_encoded(@eth, [{alice, 8}]) |> WatcherHelper.submit()
 
     Process.sleep(11_000)
     IntegrationTest.wait_for_block_fetch(second_tx_blknum, @timeout)

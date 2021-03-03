@@ -21,7 +21,7 @@ defmodule OMG.WatcherRPC.Mixfile do
   def application() do
     [
       mod: {OMG.WatcherRPC.Application, []},
-      extra_applications: [:logger, :runtime_tools, :telemetry]
+      extra_applications: [:logger, :runtime_tools, :telemetry, :omg_watcher]
     ]
   end
 

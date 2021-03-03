@@ -14,10 +14,10 @@
 defmodule OMG.WatcherInfo.UtxoSelectionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
   alias OMG.Eth.Encoding
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.UtxoSelection
 
@@ -26,7 +26,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   require Utxo
 
   @alice <<27::160>>
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @other_token <<127::160>>
 
   describe "calculate_net_amount/2" do

@@ -18,7 +18,7 @@ defmodule OMG.Watcher.API.Utxo do
   """
 
   alias OMG.Eth.Configuration
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.UtxoExit.Core
 

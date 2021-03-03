@@ -18,7 +18,7 @@ defmodule OMG.WatcherInfo.Supervisor do
   block consumer, deposit consumer, exit consumer, etc.
   """
   use Supervisor
-  use OMG.Utils.LoggerExt
+  require Logger
 
   alias OMG.WatcherInfo
 

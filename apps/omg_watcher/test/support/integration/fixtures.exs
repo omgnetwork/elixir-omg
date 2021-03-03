@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
   alias OMG.Eth
   alias OMG.Eth.Encoding

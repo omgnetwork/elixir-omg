@@ -18,9 +18,9 @@ defmodule OMG.Watcher.ExitProcessor.FinalizationsTest do
   """
   use OMG.Watcher.ExitProcessor.Case, async: true
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
 

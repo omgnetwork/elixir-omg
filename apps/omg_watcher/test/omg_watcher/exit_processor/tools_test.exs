@@ -18,7 +18,7 @@ defmodule OMG.Watcher.ExitProcessor.ToolsTest do
   """
   use OMG.Watcher.ExitProcessor.Case, async: true
 
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor.Tools
 
   require Utxo

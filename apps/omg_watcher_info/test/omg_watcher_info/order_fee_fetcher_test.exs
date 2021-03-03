@@ -21,9 +21,9 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.WatcherInfo.OrderFeeFetcher
   alias OMG.WatcherInfo.TestServer
-  alias OMG.WireFormatTypes
+  alias OMG.Watcher.WireFormatTypes
 
-  @eth Eth.zero_address()
+  @eth <<0::160>>
   @not_eth <<1::160>>
   @tx_type WireFormatTypes.tx_type_for(:tx_payment_v1)
   @str_tx_type Integer.to_string(@tx_type)

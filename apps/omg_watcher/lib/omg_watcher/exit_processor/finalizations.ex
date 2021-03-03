@@ -30,13 +30,13 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
   For the imperative shell, see `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
-  use OMG.Utils.LoggerExt
+  require Logger
 
   require Utxo
 
@@ -82,7 +82,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
 
   @doc """
   Returns a tuple of `{:ok, %{ife_exit_id => {finalized_input_exits | finalized_output_exits}}, list(events_exits)}`.
-  Finalized input exits and finalized output exits structures both fit into `OMG.State.exit_utxos/1`.
+  Finalized input exits and finalized output exits structures both fit into `OMG.Watcher.State.exit_utxos/1`.
   Events exits list contains Ethereum's finalization events paired with utxos they exits. This data is needed to
   broadcast information to the consumers about utxos that needs to marked as spend as the result of finalization.
 

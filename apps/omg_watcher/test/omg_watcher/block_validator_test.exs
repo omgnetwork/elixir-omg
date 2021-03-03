@@ -16,17 +16,17 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
   use ExUnit.Case, async: true
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.Merkle
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
+  alias OMG.Watcher.Merkle
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
   alias OMG.Watcher.BlockValidator
 
   @alice TestHelper.generate_entity()
   @bob TestHelper.generate_entity()
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
-  @payment_tx_type OMG.WireFormatTypes.tx_type_for(:tx_payment_v1)
+  @payment_tx_type OMG.Watcher.WireFormatTypes.tx_type_for(:tx_payment_v1)
 
   @fee_claimer <<27::160>>
   @transaction_upper_limit 2 |> :math.pow(16) |> Kernel.trunc()

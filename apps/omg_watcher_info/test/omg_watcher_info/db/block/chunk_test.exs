@@ -15,11 +15,11 @@
 defmodule OMG.WatcherInfo.DB.Block.ChunkTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
   import OMG.WatcherInfo.Factory
 
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Block.Chunk
 

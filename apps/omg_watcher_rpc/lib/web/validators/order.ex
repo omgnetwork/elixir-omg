@@ -17,11 +17,11 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
   Validates `/transaction.create` request body.
   """
 
-  require OMG.State.Transaction.Payment
+  require OMG.Watcher.State.Transaction.Payment
 
   import OMG.Utils.HttpRPC.Validator.Base
 
-  alias OMG.State.Transaction
+  alias OMG.Watcher.State.Transaction
   alias OMG.Utils.HttpRPC.Validator.Base
   alias OMG.WatcherInfo.Transaction, as: TransactionCreator
 

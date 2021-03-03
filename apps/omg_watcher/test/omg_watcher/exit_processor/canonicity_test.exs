@@ -20,10 +20,10 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
   """
   use OMG.Watcher.ExitProcessor.Case, async: true
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -32,7 +32,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
   import OMG.Watcher.ExitProcessor.TestHelper
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @late_blknum 10_000
 
   describe "sanity checks" do
@@ -416,7 +416,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
           |> Enum.count()
           |> (&List.duplicate(alice.priv, &1)).()
 
-        other_recovered = OMG.TestHelper.sign_recover!(comp, required_priv_key_list)
+        other_recovered = TestHelper.sign_recover!(comp, required_priv_key_list)
 
         exit_processor_request = %ExitProcessor.Request{
           blknum_now: 5000,

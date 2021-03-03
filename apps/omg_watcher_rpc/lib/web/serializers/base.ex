@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Web.Serializer.Base do
   """
 
   def to_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex} = db_entry) do
-    alias OMG.Utxo
+    alias OMG.Watcher.Utxo
     require Utxo
 
     db_entry

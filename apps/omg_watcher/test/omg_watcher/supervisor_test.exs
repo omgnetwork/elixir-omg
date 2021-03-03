@@ -18,7 +18,7 @@ defmodule OMG.Watcher.SupervisorTest do
   """
   use ExUnit.Case, async: true
 
-  alias OMG.RootChainCoordinator.Core
+  alias OMG.Watcher.RootChainCoordinator.Core
 
   setup do
     {_args, config_services} = OMG.Watcher.CoordinatorSetup.coordinator_setup(1, 1, 1, 1)

@@ -26,9 +26,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   This is the functional logic driving the `GenServer` in `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
@@ -42,11 +42,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   require Utxo
   require Transaction.Payment
 
-  use OMG.Utils.LoggerExt
+  require Logger
 
   @default_sla_margin 10
 
-  @zero_address OMG.Eth.zero_address()
+  @zero_address <<0::160>>
 
   @max_inputs Transaction.Payment.max_inputs()
   @max_outputs Transaction.Payment.max_outputs()

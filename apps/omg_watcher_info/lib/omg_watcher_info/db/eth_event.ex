@@ -22,12 +22,12 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   use Ecto.Schema
   use Spandex.Decorators
 
-  alias OMG.Crypto
+  alias OMG.Watcher.Crypto
   alias OMG.Eth.Encoding
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
-  alias OMG.WireFormatTypes
+  alias OMG.Watcher.WireFormatTypes
 
   require Utxo
 
@@ -62,12 +62,12 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @doc """
   Inserts deposits based on a list of event maps (if not already inserted before)
   """
-  @spec insert_deposits!([OMG.State.Core.deposit()]) :: :ok
+  @spec insert_deposits!([OMG.Watcher.State.Core.deposit()]) :: :ok
   def insert_deposits!(deposits) do
-    deposits |> Enum.each(&insert_deposit!/1)
+    Enum.each(deposits, &insert_deposit!/1)
   end
 
-  @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @spec insert_deposit!(OMG.Watcher.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp insert_deposit!(params) do
     %{
@@ -142,7 +142,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @doc """
   Generate a unique child_chain_utxohash from the Utxo.position
   """
-  @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Crypto.hash_t()
+  @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Watcher.Crypto.hash_t()
   def generate_child_chain_utxohash(position) do
     "<#{position |> Utxo.Position.encode()}>" |> Crypto.hash()
   end

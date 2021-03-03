@@ -21,11 +21,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.Watcher.Integration.Fixtures
   use Plug.Test
 
-  require OMG.Utxo
+  require OMG.Watcher.Utxo
 
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter
@@ -35,7 +35,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias Support.WatcherHelper
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :integration
   @moduletag :watcher
@@ -45,7 +45,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:in_beam_watcher, :test_server]
   test "hash of returned block does not match hash submitted to the root chain", %{test_server: context} do
     different_hash = <<0::256>>
-    block_with_incorrect_hash = %{OMG.Block.hashed_txs_at([], 1000) | hash: different_hash}
+    block_with_incorrect_hash = %{OMG.Watcher.Block.hashed_txs_at([], 1000) | hash: different_hash}
 
     # from now on the child chain server is broken until end of test
     route =
@@ -74,8 +74,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     test_server: context
   } do
     # preparing block with invalid transaction
-    recovered = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    block_with_incorrect_transaction = OMG.Block.hashed_txs_at([recovered], 1000)
+    recovered = OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    block_with_incorrect_transaction = OMG.Watcher.Block.hashed_txs_at([recovered], 1000)
 
     # from now on the child chain server is broken until end of test
     route =
