@@ -18,8 +18,8 @@ defmodule OMG.Watcher.Integration.TestHelper do
   """
   require OMG.Watcher.Utxo
 
-  alias OMG.Watcher.State
   alias OMG.Watcher.Configuration
+  alias OMG.Watcher.State
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WaitFor

@@ -17,8 +17,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
   use ExUnit.Case, async: false
   use OMG.Watcher.Fixtures
 
-  alias OMG.Crypto
   alias OMG.Utils.Paginator
+  alias OMG.Watcher.Crypto
   alias OMG.Watcher.Utxo
   alias OMG.Watcher.Utxo.Position
   alias OMG.WatcherInfo.DB

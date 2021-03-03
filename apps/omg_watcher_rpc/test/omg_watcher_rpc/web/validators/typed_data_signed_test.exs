@@ -16,9 +16,9 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TestHelper
-  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.Utxo
   alias OMG.WatcherRPC.Web.Validator.TypedDataSigned
 

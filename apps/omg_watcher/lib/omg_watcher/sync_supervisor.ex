@@ -82,7 +82,7 @@ defmodule OMG.Watcher.SyncSupervisor do
     contracts = OMG.Eth.Configuration.contracts()
 
     [
-      {OMG.RootChainCoordinator,
+      {OMG.Watcher.RootChainCoordinator,
        CoordinatorSetup.coordinator_setup(
          metrics_collection_interval,
          coordinator_eth_height_check_interval_ms,

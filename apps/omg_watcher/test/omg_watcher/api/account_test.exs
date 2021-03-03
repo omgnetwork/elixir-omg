@@ -15,9 +15,9 @@
 defmodule OMG.Watcher.API.AccountTest do
   use ExUnit.Case, async: false
 
+  alias OMG.Watcher.API.Account
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Utxo
-  alias OMG.Watcher.API.Account
 
   require Utxo
 

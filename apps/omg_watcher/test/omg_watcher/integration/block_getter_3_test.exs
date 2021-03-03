@@ -32,10 +32,11 @@ defmodule OMG.Watcher.Integration.BlockGetter3Test do
   alias OMG.Eth
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-  alias OMG.Watcher.TestHelper
+
   @timeout 40_000
   @eth <<0::160>>
 

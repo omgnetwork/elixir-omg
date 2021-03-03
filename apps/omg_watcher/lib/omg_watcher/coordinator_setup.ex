@@ -14,11 +14,11 @@
 
 defmodule OMG.Watcher.CoordinatorSetup do
   @moduledoc """
-  The setup of `OMG.RootChainCoordinator` for the Watcher - configures the relations between different event listeners
+  The setup of `OMG.Watcher.RootChainCoordinator` for the Watcher - configures the relations between different event listeners
   """
 
   @doc """
-  The `OMG.RootChainCoordinator` setup for the `OMG.Watcher` app. Summary of the configuration:
+  The `OMG.Watcher.RootChainCoordinator` setup for the `OMG.Watcher` app. Summary of the configuration:
 
     - deposits are recognized after `deposit_finality_margin`. Should take child chain server's setting into account
     - exit-related events are recognized after `exit_finality_margin`

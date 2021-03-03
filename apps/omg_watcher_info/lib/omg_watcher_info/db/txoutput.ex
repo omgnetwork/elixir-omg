@@ -19,8 +19,9 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
   use Ecto.Schema
   use Spandex.Decorators
 
-  alias OMG.Watcher.State.Transaction
   alias OMG.Utils.Paginator
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Repo
@@ -109,7 +110,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     |> Paginator.set_data(paginator)
   end
 
-  @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
+  @spec get_balance(Crypto.address_t()) :: list(balance())
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def get_balance(owner) do
     query =
@@ -209,7 +210,7 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     end)
   end
 
-  @spec get_sorted_grouped_utxos(OMG.Crypto.address_t(), order_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
+  @spec get_sorted_grouped_utxos(Crypto.address_t(), order_t()) :: %{Crypto.address_t() => list(%__MODULE__{})}
   def get_sorted_grouped_utxos(owner, order) do
     # TODO: use clever DB query to get following out of DB
     owner
@@ -245,7 +246,7 @@ NOT EXISTS (SELECT 1
     )
   end
 
-  @spec get_all_utxos(OMG.Crypto.address_t()) :: list()
+  @spec get_all_utxos(Crypto.address_t()) :: list()
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp get_all_utxos(address) do
     query = query_get_utxos(address)

@@ -39,9 +39,9 @@ defmodule OMG.Status.Metric.Event do
   :transaction_submission - Child Chain API's received transaction submission.
   :transaction_submission_success - Child Chain API's successful processing of transaction submission.
   :transaction_submission_failed - Child Chain API's failed processing of transaction submission.
-  :transaction_submission_failed - Childchain OMG.State mempool transactions
-  :pending_transactions - Childchain OMG.State mempool transactions
-  :block_transactions - Childchain OMG.State transactions in formed block
+  :transaction_submission_failed - Childchain OMG.Watcher.State mempool transactions
+  :pending_transactions - Childchain OMG.Watcher.State mempool transactions
+  :block_transactions - Childchain OMG.Watcher.State transactions in formed block
   :block_submission_attempt - Childchain Block submission attempted
   :block_submission_success Childchain Block successfully submitted
   :block_submission_gas Child Chain Block queue gas usage metric
@@ -49,8 +49,8 @@ defmodule OMG.Status.Metric.Event do
   :block_queue_blknum_submitted - Child Chain BlockQueue's blknum of the block submitted
   :block_queue_num_blocks_stalled - Child Chain BlockQueue's number of blocks currently being submitted and stalled
   :authority_balance - Child Chain authority address balance
-  :balance - OMG.State balance per currency
-  :unique_users - OMG.State number of unique_users in the system
+  :balance - OMG.Watcher.State balance per currency
+  :unique_users - OMG.Watcher.State number of unique_users in the system
   :block_getter_message_queue_len - OMG.Watcher.BlockGetter message queue length
   :watcher_exit_processor_message_queue_len - OMG.Watcher.ExitProcessor message queue length
   :eventer_message_queue_len - OMG.Watcher.Eventer message queue length

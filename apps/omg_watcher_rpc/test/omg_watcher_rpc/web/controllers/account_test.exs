@@ -18,8 +18,8 @@ defmodule OMG.WatcherRPC.Web.Controller.AccountTest do
   use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Crypto
   alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Watcher.Crypto
   alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper

@@ -17,10 +17,11 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   Validates `/transaction.submit_typed` request body.
   """
 
-  alias OMG.Watcher.State.Transaction
-  alias OMG.Watcher.TypedDataHash.Tools
-  alias OMG.Watcher.TypedDataHash.Config
   alias OMG.Utils.HttpRPC.Validator.Base
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TypedDataHash.Config
+  alias OMG.Watcher.TypedDataHash.Tools
   import OMG.Utils.HttpRPC.Validator.Base
 
   @doc """
@@ -91,7 +92,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   end
 
   @spec parse_output(map()) ::
-          {:ok, {OMG.Crypto.address_t(), OMG.Crypto.address_t(), integer()}} | Base.validation_error_t()
+          {:ok, {Crypto.address_t(), Crypto.address_t(), integer()}} | Base.validation_error_t()
   defp parse_output(output) do
     with {:ok, owner} <- expect(output, "owner", :address),
          {:ok, currency} <- expect(output, "currency", :address),
@@ -99,7 +100,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
          do: {:ok, {owner, currency, amount}}
   end
 
-  @spec parse_outputs(map()) :: [{OMG.Crypto.address_t(), OMG.Crypto.address_t(), integer()}] | {:error, any()}
+  @spec parse_outputs(map()) :: [{Crypto.address_t(), Crypto.address_t(), integer()}] | {:error, any()}
   defp parse_outputs(message) do
     require Transaction.Payment
 

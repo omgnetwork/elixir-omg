@@ -17,12 +17,13 @@ defmodule OMG.WatcherInfo.API.Account do
   Module provides operations related to plasma accounts.
   """
   alias OMG.Utils.Paginator
+  alias OMG.Watcher.Crypto
   alias OMG.WatcherInfo.DB
 
   @doc """
   Returns a list of amounts of currencies that a given address owns
   """
-  @spec get_balance(OMG.Crypto.address_t()) :: list(DB.TxOutput.balance())
+  @spec get_balance(Crypto.address_t()) :: list(DB.TxOutput.balance())
   def get_balance(address) do
     DB.TxOutput.get_balance(address)
   end

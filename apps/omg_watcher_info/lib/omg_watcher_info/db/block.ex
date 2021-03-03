@@ -21,8 +21,8 @@ defmodule OMG.WatcherInfo.DB.Block do
   use Spandex.Decorators
   import Ecto.Changeset
 
-  alias OMG.Watcher.State
   alias OMG.Utils.Paginator
+  alias OMG.Watcher.State
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Block.Chunk
 

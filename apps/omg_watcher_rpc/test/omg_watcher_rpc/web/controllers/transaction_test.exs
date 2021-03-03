@@ -27,6 +27,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.Watcher.DevCrypto
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TestHelper, as: Test
+  alias OMG.Watcher.TypedDataHash
   alias OMG.Watcher.Utxo
   alias OMG.Watcher.Utxo.Position
   alias OMG.Watcher.WireFormatTypes
@@ -34,7 +35,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
   alias OMG.WatcherInfo.TestServer
   alias Support.WatcherHelper
 
-  require OMG.State.Transaction.Payment
+  require OMG.Watcher.State.Transaction.Payment
   require Utxo
 
   @eth <<0::160>>
@@ -849,13 +850,11 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         )
 
       assert tx_hex == verbose_tx |> Transaction.raw_txbytes() |> Encoding.to_hex()
-      assert sign_hash_hex == verbose_tx |> OMG.TypedDataHash.hash_struct() |> Encoding.to_hex()
+      assert sign_hash_hex == verbose_tx |> TypedDataHash.hash_struct() |> Encoding.to_hex()
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns typed data in the form of request of typedDataSign", %{alice: alice, bob: bob, test_server: context} do
-      alias OMG.Watcher.State.Transaction
-
       metadata_hex = Encoding.to_hex(<<123::256>>)
       prepare_test_server(context, @fee_response)
 
@@ -1029,7 +1028,7 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
                  }
                )
 
-      assert OMG.State.Transaction.Payment.max_inputs() == length(transaction["inputs"])
+      assert OMG.Watcher.State.Transaction.Payment.max_inputs() == length(transaction["inputs"])
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]

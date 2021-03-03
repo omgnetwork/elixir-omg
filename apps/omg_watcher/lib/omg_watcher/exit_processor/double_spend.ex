@@ -19,10 +19,10 @@ defmodule OMG.Watcher.ExitProcessor.DoubleSpend do
 
   defstruct [:index, :utxo_pos, :known_spent_index, :known_tx]
 
-  alias OMG.Watcher.State.Transaction
-  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor.KnownTx
   alias OMG.Watcher.ExitProcessor.Tools
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
 
   @type t() :: %__MODULE__{
           index: non_neg_integer(),

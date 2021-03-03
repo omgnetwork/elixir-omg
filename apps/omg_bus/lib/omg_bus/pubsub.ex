@@ -22,7 +22,7 @@ defmodule OMG.Bus.PubSub do
 
   #### `enqueue_block`
 
-  Is being broadcast on a local node whenever `OMG.State` completes forming of a new child chain block
+  Is being broadcast on a local node whenever `OMG.Watcher.State` completes forming of a new child chain block
 
   Message: {:internal_event_bus, :enqueue_block, OMG.Watcher.Block.t()}
   """

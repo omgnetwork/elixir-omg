@@ -46,7 +46,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
 
     children = [
       # NOTE: Watcher doesn't need the actual fee claimer address
-      {OMG.State,
+      {OMG.Watcher.State,
        [
          fee_claimer_address: fee_claimer_address,
          child_block_interval: child_block_interval,

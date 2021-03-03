@@ -18,8 +18,8 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.DB.Fixtures
   use OMG.Eth.Fixtures
 
-  alias OMG.Status.Alert.Alarm
   alias OMG.Eth.Configuration
+  alias OMG.Status.Alert.Alarm
   alias OMG.Watcher.State.Core
 
   import OMG.Watcher.TestHelper

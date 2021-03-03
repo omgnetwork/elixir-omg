@@ -16,7 +16,7 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
   @moduledoc """
   Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
   Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
-  state of the ledger (`OMG.State`), issues notifications as it finds suitable.
+  state of the ledger (`OMG.Watcher.State`), issues notifications as it finds suitable.
 
   Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
 
@@ -30,11 +30,11 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
   For the imperative shell, see `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.Watcher.State.Transaction
-  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
 
   require Logger
 
@@ -164,7 +164,9 @@ defmodule OMG.Watcher.ExitProcessor.Finalizations do
     ife = ifes_by_id[ife_id]
     # a runtime sanity check - if this were false it would mean all piggybacks finalized so contract wouldn't allow that
     true = InFlightExitInfo.is_active?(ife, {piggyback_type, output_index})
-    # figure out if there's any UTXOs really exiting from the `OMG.State` from this IFE's piggybacked input/output
+
+    # figure out if there's any UTXOs really exiting from the `OMG.Watcher.State`
+    # from this IFE's piggybacked input/output
     exiting_positions_for_piggyback = get_exiting_positions(ife, output_index, piggyback_type)
 
     {

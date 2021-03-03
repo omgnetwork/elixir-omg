@@ -21,8 +21,8 @@ defmodule OMG.WatcherRPC.Web.Validator.Order do
 
   import OMG.Utils.HttpRPC.Validator.Base
 
-  alias OMG.Watcher.State.Transaction
   alias OMG.Utils.HttpRPC.Validator.Base
+  alias OMG.Watcher.State.Transaction
   alias OMG.WatcherInfo.Transaction, as: TransactionCreator
 
   @doc """

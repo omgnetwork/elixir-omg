@@ -19,9 +19,9 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
 
   import ExUnit.Assertions
 
+  alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
-  alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
 

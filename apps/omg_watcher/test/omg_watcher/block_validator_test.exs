@@ -16,10 +16,10 @@ defmodule OMG.WatcherRPC.Web.Validator.BlockValidatorTest do
   use ExUnit.Case, async: true
   use OMG.WatcherRPC.Web, :controller
 
+  alias OMG.Watcher.BlockValidator
   alias OMG.Watcher.Merkle
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.BlockValidator
 
   @alice TestHelper.generate_entity()
   @bob TestHelper.generate_entity()

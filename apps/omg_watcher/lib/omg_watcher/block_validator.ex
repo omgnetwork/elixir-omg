@@ -17,7 +17,7 @@ defmodule OMG.Watcher.BlockValidator do
   Operations related to block validation.
   """
 
-  alias OMG.Block
+  alias OMG.Watcher.Block
   alias OMG.Watcher.Merkle
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo.Position

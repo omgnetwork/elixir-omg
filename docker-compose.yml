@@ -122,6 +122,7 @@ services:
       - LOGGER_BACKEND=console
       - RELEASE_COOKIE=development
       - NODE_HOST=127.0.0.1
+      - PULSE_API_KEY=${PULSE_API_KEY}
     restart: always
     volumes:
       - ./data:/data

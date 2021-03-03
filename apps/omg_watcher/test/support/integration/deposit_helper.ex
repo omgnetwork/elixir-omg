@@ -17,9 +17,9 @@ defmodule Support.Integration.DepositHelper do
   Common helper functions that are useful when integration-testing the child chain and watcher requiring deposits
   """
 
+  alias OMG.Eth.Encoding
   alias OMG.Eth.Token
   alias OMG.Watcher.Configuration
-  alias OMG.Eth.Encoding
   alias OMG.Watcher.State.Transaction
   alias Support.DevHelper
   alias Support.RootChainHelper

@@ -17,9 +17,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfoTest do
 
   use OMG.Watcher.ExitProcessor.Case, async: true
 
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo.Position
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   @eth <<0::160>>
 

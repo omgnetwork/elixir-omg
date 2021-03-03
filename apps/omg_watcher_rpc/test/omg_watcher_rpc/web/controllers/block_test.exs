@@ -21,7 +21,7 @@ defmodule OMG.WatcherRPC.Web.Controller.BlockTest do
   import OMG.WatcherInfo.Factory
 
   alias OMG.Eth.Encoding
-  alias OMG.Merkle
+  alias OMG.Watcher.Merkle
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.WireFormatTypes

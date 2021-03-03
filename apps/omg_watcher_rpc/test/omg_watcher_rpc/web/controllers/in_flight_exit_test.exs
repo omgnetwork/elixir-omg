@@ -18,11 +18,11 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
   use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Watcher.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Utxo
   alias Support.WatcherHelper
-  alias OMG.Watcher.TestHelper
   require Utxo
 
   @eth <<0::160>>

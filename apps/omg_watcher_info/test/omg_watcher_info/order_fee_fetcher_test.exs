@@ -17,11 +17,10 @@ defmodule OMG.WatcherInfo.OrderFeeFetcherTest do
   use ExUnit.Case, async: true
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Watcher.WireFormatTypes
   alias OMG.WatcherInfo.OrderFeeFetcher
   alias OMG.WatcherInfo.TestServer
-  alias OMG.Watcher.WireFormatTypes
 
   @eth <<0::160>>
   @not_eth <<1::160>>

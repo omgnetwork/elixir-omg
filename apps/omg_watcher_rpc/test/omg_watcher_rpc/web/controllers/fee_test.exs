@@ -18,10 +18,9 @@ defmodule OMG.WatcherRPC.Web.Controller.FeeTest do
   use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Eth
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.WatcherInfo.TestServer
   alias OMG.Watcher.WireFormatTypes
+  alias OMG.WatcherInfo.TestServer
   alias Support.WatcherHelper
 
   @eth <<0::160>>

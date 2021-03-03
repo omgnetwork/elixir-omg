@@ -21,10 +21,10 @@ defmodule OMG.Watcher.ExitProcessor.KnownTx do
   defstruct [:signed_tx, :utxo_pos]
 
   alias OMG.Watcher.Block
-  alias OMG.Watcher.State.Transaction
-  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.TxAppendix
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
 
   require Utxo
 

@@ -20,9 +20,9 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   """
 
   alias OMG.Watcher.Crypto
+  alias OMG.Watcher.Event
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
-  alias OMG.Watcher.Event
 
   require Utxo
 

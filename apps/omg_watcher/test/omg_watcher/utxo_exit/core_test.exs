@@ -20,8 +20,8 @@ defmodule OMG.Watcher.UtxoExit.CoreTest do
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Utxo
-  alias OMG.Watcher.UtxoExit.Core
   alias OMG.Watcher.Utxo.Position
+  alias OMG.Watcher.UtxoExit.Core
   require OMG.Watcher.Utxo
 
   @eth <<0::160>>

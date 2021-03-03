@@ -16,12 +16,12 @@ defmodule OMG.Watcher.ReleaseTasks.SetEthereumEventsCheckInterval do
   @moduledoc """
   Configures the interval to check for new events from Ethereum.
 
-  This is essentially the same as `OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
+  This is essentially the same as `OMG.Watcher.Eth.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
   """
   @behaviour Config.Provider
   require Logger
 
-  @app :omg
+  @app :omg_watcher
   @env_key "ETHEREUM_EVENTS_CHECK_INTERVAL_MS"
 
   def init(args) do
@@ -33,7 +33,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetEthereumEventsCheckInterval do
 
     interval_ms = get_interval_ms()
 
-    Config.Reader.merge(config, omg: [ethereum_events_check_interval_ms: interval_ms])
+    Config.Reader.merge(config, omg_watcher: [ethereum_events_check_interval_ms: interval_ms])
   end
 
   defp get_interval_ms() do
@@ -53,6 +53,6 @@ defmodule OMG.Watcher.ReleaseTasks.SetEthereumEventsCheckInterval do
 
   def on_load() do
     _ = Application.ensure_all_started(:logger)
-    _ = Application.load(:omg)
+    _ = Application.load(:omg_watcher)
   end
 end

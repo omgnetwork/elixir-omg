@@ -18,11 +18,11 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   """
 
   alias OMG.Watcher.Crypto
+  alias OMG.Watcher.ExitProcessor.DoubleSpend
+  alias OMG.Watcher.ExitProcessor.KnownTx
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TypedDataHash
   alias OMG.Watcher.Utxo
-  alias OMG.Watcher.ExitProcessor.DoubleSpend
-  alias OMG.Watcher.ExitProcessor.KnownTx
 
   require OMG.Watcher.Utxo
 

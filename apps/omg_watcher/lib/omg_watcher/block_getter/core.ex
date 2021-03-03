@@ -25,10 +25,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
   """
 
   alias OMG.Watcher.Block
-  alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.State.Transaction
 
   require Logger
 
@@ -432,7 +432,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     maximum_number_of_pending_blocks >= 1 || {:error, :maximum_number_of_pending_blocks_too_low}
   end
 
-  # height served as syncable from the `OMG.RootChainCoordinator` is older, nothing we can do about it, so noop
+  # height served as syncable from the `OMG.Watcher.RootChainCoordinator` is older, nothing we can do about it, so noop
   defp do_get_blocks_to_apply(
          %__MODULE__{synced_height: synced_height} = state,
          _block_submitted_events,

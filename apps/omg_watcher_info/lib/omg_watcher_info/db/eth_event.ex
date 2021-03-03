@@ -22,12 +22,12 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   use Ecto.Schema
   use Spandex.Decorators
 
-  alias OMG.Watcher.Crypto
   alias OMG.Eth.Encoding
   alias OMG.Utils.Paginator
+  alias OMG.Watcher.Crypto
   alias OMG.Watcher.Utxo
-  alias OMG.WatcherInfo.DB
   alias OMG.Watcher.WireFormatTypes
+  alias OMG.WatcherInfo.DB
 
   require Utxo
 

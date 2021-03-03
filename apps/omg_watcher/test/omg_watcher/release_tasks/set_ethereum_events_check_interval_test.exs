@@ -16,7 +16,7 @@ defmodule OMG.Watcher.ReleaseTasks.SetEthereumEventsCheckIntervalTest do
   use ExUnit.Case, async: true
   alias OMG.Watcher.ReleaseTasks.SetEthereumEventsCheckInterval
 
-  @app :omg
+  @app :omg_watcher
   @env_key "ETHEREUM_EVENTS_CHECK_INTERVAL_MS"
   @config_key :ethereum_events_check_interval_ms
 

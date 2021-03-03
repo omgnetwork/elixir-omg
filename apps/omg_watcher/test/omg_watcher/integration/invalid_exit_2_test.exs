@@ -19,13 +19,13 @@ defmodule OMG.Watcher.Integration.InvalidExit2Test do
   use Plug.Test
   use OMG.Watcher.Integration.Fixtures
 
-  alias OMG.Watcher.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-  alias OMG.Watcher.TestHelper
   require Utxo
 
   @moduletag :mix_based_child_chain

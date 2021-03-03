@@ -19,13 +19,13 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   use ExUnit.Case, async: false
 
   alias OMG.Eth.Configuration
+  alias OMG.Watcher.Event
+  alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.State
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Utxo
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Core
   require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper,

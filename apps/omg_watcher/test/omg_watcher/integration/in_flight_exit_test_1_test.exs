@@ -22,14 +22,14 @@ defmodule OMG.Watcher.Integration.InFlightExit1Test do
   use Plug.Test
   use OMG.Watcher.Integration.Fixtures
 
-  alias OMG.Watcher.State.Transaction
-  alias OMG.Watcher.Utxo
   alias OMG.Watcher.EthereumEventAggregator
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-  alias OMG.Watcher.TestHelper
   require Utxo
 
   @timeout 40_000

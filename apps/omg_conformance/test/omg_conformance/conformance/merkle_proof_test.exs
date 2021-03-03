@@ -18,7 +18,9 @@ defmodule OMG.Conformance.MerkleProofTest do
   implementations (currently `elixir-omg` and `plasma-contracts`, Elixir and Solidity)
   """
 
-  alias OMG.Merkle
+  alias OMG.Eth.Encoding
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.Merkle
   alias Support.SnapshotContracts
 
   import Support.Conformance.MerkleProofs, only: [solidity_proof_valid: 5]
@@ -39,12 +41,12 @@ defmodule OMG.Conformance.MerkleProofTest do
 
     on_exit(exit_fn)
 
-    [contract: OMG.Eth.Encoding.from_hex(merkle_wrapper_address_hex)]
+    [contract: Encoding.from_hex(merkle_wrapper_address_hex)]
   end
 
   test "a simple, 3-leaf merkle proof validates fine", %{contract: contract} do
     leaves = [<<1>>, <<0>>, <<>>]
-    root_hash = OMG.Watcher.Merkle.hash(leaves)
+    root_hash = Merkle.hash(leaves)
 
     leaves
     |> Enum.with_index()
@@ -59,14 +61,14 @@ defmodule OMG.Conformance.MerkleProofTest do
     # why?
     # 1. we'd like to test all proofs on a full tree
     # 2. that's 65K proofs
-    # 3. so we're pre-building the merkle tree by using raw `MerkleTree` calls instead of `OMG.Merkle`
+    # 3. so we're pre-building the merkle tree by using raw `MerkleTree` calls instead of `OMG.Watcher.Merkle`
     #    This is slightly inconsistent, but otherwise the test takes forever
     full_leaves = Enum.map(1..@max_block_size, &:binary.encode_unsigned/1)
-    full_root_hash = OMG.Watcher.Merkle.hash(full_leaves)
+    full_root_hash = Merkle.hash(full_leaves)
 
     full_tree =
       MerkleTree.build(full_leaves,
-        hash_function: &OMG.Watcher.Crypto.hash/1,
+        hash_function: &Crypto.hash/1,
         height: 16,
         default_data_block: <<0::256>>
       )

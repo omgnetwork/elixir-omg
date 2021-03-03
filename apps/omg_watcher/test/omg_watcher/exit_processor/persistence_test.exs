@@ -24,9 +24,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   alias OMG.DB.Models.PaymentExitInfo
   alias OMG.Watcher.DevCrypto
+  alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
-  alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
 

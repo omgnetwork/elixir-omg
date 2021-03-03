@@ -19,12 +19,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   use OMG.Watcher.ExitProcessor.Case, async: true
 
   alias OMG.Watcher.Block
-  alias OMG.Watcher.State.Transaction
-  alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
 
   require Utxo
 

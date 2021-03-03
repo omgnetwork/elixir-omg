@@ -19,8 +19,8 @@ defmodule OMG.Watcher.RootChainCoordinator.Measure do
 
   import OMG.Status.Metric.Event, only: [name: 2]
 
-  alias OMG.Watcher.RootChainCoordinator
   alias OMG.Status.Metric.Datadog
+  alias OMG.Watcher.RootChainCoordinator
 
   def handle_event([:process, RootChainCoordinator], _, state, _config) do
     value =

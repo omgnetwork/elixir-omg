@@ -319,7 +319,7 @@ defmodule OMG.Watcher.State.Core do
     []
   end
 
-  # list of IFE output piggybacked events. This is used by the child chain only. `OMG.Watcher.Watcher.ExitProcessor` figures out
+  # list of IFE output piggybacked events. This is used by the child chain only. `OMG.Watcher.ExitProcessor` figures out
   # the utxo positions to exit on its own
   def extract_exiting_utxo_positions(
         [%{tx_hash: _, omg_data: %{piggyback_type: :output}} | _] = piggyback_events,

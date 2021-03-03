@@ -24,8 +24,8 @@ defmodule OMG.Watcher.State.PersistenceTest do
   require OMG.Watcher.Utxo
   require Logger
   alias Ecto.Adapters.SQL.Sandbox
-  alias OMG.Watcher.Block
   alias OMG.Eth.Configuration
+  alias OMG.Watcher.Block
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
   alias Support.WaitFor

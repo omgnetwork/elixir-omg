@@ -23,7 +23,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 
 - accepts child chain transactions, decodes, stateless-validates and executes on `OMG.State`
 
-### `OMG.RootChainCoordinator`
+### `OMG.Watcher.RootChainCoordinator`
 
 - reads Ethereum block height from `OMG.Eth`
 - synchronizes view of Ethereum block height of all enrolled processes (see other processes descriptions)
@@ -47,14 +47,14 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 ### `OMG.ChildChain.BlockQueue`
 
 - requests `form_block` on `OMG.State` and takes block hashes in return
-- tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.RootChainCoordinator`
+- tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.Watcher.RootChainCoordinator`
 
 ### `OMG.ChildChain.FeeServer`
 - `OMG.ChildChain` calls it to get required fee amounts to validate transactions
 
 ### `OMG.Watcher.BlockGetter`
 
-- tracks child chain blocks via `OMG.RootChainCoordinator`
+- tracks child chain blocks via `OMG.Watcher.RootChainCoordinator`
 - manages concurrent `Task`'s to pull blocks from child chain server API (JSON-RPC)
 - pushes decoded and statelessly valid blocks to `OMG.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.State` above) to `WatcherDB`

@@ -19,11 +19,11 @@ defmodule OMG.Watcher.ExitProcessor.Case do
   use ExUnit.CaseTemplate
 
   alias OMG.Watcher.Block
+  alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Utxo
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
 

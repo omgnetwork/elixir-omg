@@ -18,10 +18,10 @@ defmodule OMG.Watcher.State.Measure do
   """
 
   import OMG.Status.Metric.Event, only: [name: 1]
+  alias OMG.Status.Metric.Datadog
   alias OMG.Watcher.State
   alias OMG.Watcher.State.Core
   alias OMG.Watcher.State.MeasurementCalculation
-  alias OMG.Status.Metric.Datadog
 
   @supported_events [
     [:process, State],

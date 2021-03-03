@@ -20,7 +20,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   Responsible for processing all block submissions and processing them once, regardless of the reorg situation.
   Note that `BlockGetter` shouldn't have any finality margin configured, i.e. it should be prepared to be served events
-  from zero-confirmation Ethereum blocks from the `OMG.RootChainCoordinator`.
+  from zero-confirmation Ethereum blocks from the `OMG.Watcher.RootChainCoordinator`.
 
   The flow of getting blocks is as follows:
     - `BlockGetter` tracks the top child block number mined in the root chain contract (by doing `eth_call` on the
@@ -30,12 +30,12 @@ defmodule OMG.Watcher.BlockGetter do
       - if this succeeds it continues to statelessly validate the block (recover transactions, calculate Merkle root)
       - if this fails (e.g. timeout) it goes into a `PotentialWithholding` state and tries to see if the problem
         resolves. If not it ends up reporting a `block_withholding` byzantine event
-    - it holds such downloaded block until `OMG.RootChainCoordinator` allows the blocks submitted at given Ethereum
+    - it holds such downloaded block until `OMG.Watcher.RootChainCoordinator` allows the blocks submitted at given Ethereum
       heights to be applied
-    - Applies the block by statefully validating and executing the txs on `OMG.State`
+    - Applies the block by statefully validating and executing the txs on `OMG.Watcher.State`
     - after the block is fully validated it gathers all the updates to `OMG.DB` and executes them. This includes marking
       a respective Ethereum height (that contained the `BlockSubmitted` event) as processed
-    - checks in to `OMG.RootChainCoordinator` to let other services know about progress
+    - checks in to `OMG.Watcher.RootChainCoordinator` to let other services know about progress
 
   The process of downloading and stateless validation of blocks is done in `Task`s for concurrency.
 
@@ -46,14 +46,14 @@ defmodule OMG.Watcher.BlockGetter do
   use Spandex.Decorators
 
   alias OMG.Eth.RootChain
-  alias OMG.Watcher.RootChainCoordinator
-  alias OMG.Watcher.RootChainCoordinator.SyncGuide
-  alias OMG.Watcher.State
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.BlockGetter.Status
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.HttpRPC.Client
+  alias OMG.Watcher.RootChainCoordinator
+  alias OMG.Watcher.RootChainCoordinator.SyncGuide
+  alias OMG.Watcher.State
 
   @doc """
   Retrieves the freshest information about `OMG.Watcher.BlockGetter`'s status, as stored by the slave process `Status`.
@@ -130,9 +130,9 @@ defmodule OMG.Watcher.BlockGetter do
 
   @doc """
   Read top down:
-   - (execute_transactions) Stateful validation and execution of transactions on `OMG.State`. Reacts in case that returns any failed transactions.
+   - (execute_transactions) Stateful validation and execution of transactions on `OMG.Watcher.State`. Reacts in case that returns any failed transactions.
   - (run_block_download_task) Schedules more blocks to download in case some work downloading is finished and we want to progress.
-  - (close_and_apply_block) Marks a block as applied and updates `OMG.DB` values. Also commits the updates to `OMG.DB` that `OMG.State` handed off
+  - (close_and_apply_block) Marks a block as applied and updates `OMG.DB` values. Also commits the updates to `OMG.DB` that `OMG.Watcher.State` handed off
   containing the data coming from the newly applied block.
   - (check_validity) Updates its view of validity of the chain.
   """

@@ -5,8 +5,8 @@ defmodule OMG.WatcherInfo.DB.Repo.Migrations.AddTxtypeToTransactionAndOutput do
 
   alias Ecto.Adapters.SQL
   alias OMG.Watcher.State.Transaction
-  alias OMG.WatcherInfo.DB.Repo
   alias OMG.Watcher.WireFormatTypes
+  alias OMG.WatcherInfo.DB.Repo
 
   def up() do
     alter table(:transactions) do

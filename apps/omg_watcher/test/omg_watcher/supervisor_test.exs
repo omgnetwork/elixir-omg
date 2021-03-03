@@ -14,7 +14,7 @@
 defmodule OMG.Watcher.SupervisorTest do
   @moduledoc """
   This test is here mainly to test the logic-rich part of the supervisor setup, namely the config of
-  `OMG.RootChainCoordinator.Core` supplied therein
+  `OMG.Watcher.RootChainCoordinator.Core` supplied therein
   """
   use ExUnit.Case, async: true
 

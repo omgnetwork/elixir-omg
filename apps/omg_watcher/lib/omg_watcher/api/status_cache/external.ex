@@ -21,12 +21,12 @@ defmodule OMG.Watcher.API.StatusCache.External do
   alias OMG.Eth.Configuration
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
-  alias OMG.Watcher.RootChainCoordinator
-  alias OMG.Watcher.State
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.RootChainCoordinator
+  alias OMG.Watcher.State
 
   @type t() :: %{
           last_validated_child_block_number: non_neg_integer(),
