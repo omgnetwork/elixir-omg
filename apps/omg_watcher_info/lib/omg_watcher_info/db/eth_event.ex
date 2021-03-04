@@ -26,6 +26,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   alias OMG.Utils.Paginator
   alias OMG.Watcher.Crypto
   alias OMG.Watcher.Utxo
+  alias OMG.Watcher.Utxo.Position
   alias OMG.Watcher.WireFormatTypes
   alias OMG.WatcherInfo.DB
 
@@ -144,7 +145,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   """
   @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Watcher.Crypto.hash_t()
   def generate_child_chain_utxohash(position) do
-    "<#{position |> Utxo.Position.encode()}>" |> Crypto.hash()
+    Crypto.hash("<#{Position.encode(position)}>")
   end
 
   def generate_root_chain_txhash_event(root_chain_txhash, log_index) do
@@ -202,7 +203,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   defp transform_output_pointer(%{utxo_pos: utxo_pos}),
-    do: {:utxo_position, Utxo.Position.decode!(utxo_pos)}
+    do: {:utxo_position, Position.decode!(utxo_pos)}
 
   defp transform_output_pointer(%{txhash: txhash, oindex: oindex}),
     do: {:output_id, {txhash, oindex}}
@@ -211,7 +212,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           %{
             root_chain_txhash: binary(),
             log_index: non_neg_integer(),
-            output_pointer: {:utxo_position, Utxo.Position.t()} | {:output_id, tuple()},
+            output_pointer: {:utxo_position, Position.t()} | {:output_id, tuple()},
             eth_height: pos_integer()
           },
           available_event_type_t(),
