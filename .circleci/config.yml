@@ -238,8 +238,10 @@ jobs:
           source ~/.bash_profile
           asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
           asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
+          asdf plugin-add rust || asdf plugin-update rust
           asdf install
       - run: make init_test
+      - install_rust
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
@@ -548,12 +550,13 @@ jobs:
       - run:
           name: Compile
           command: mix compile
+      - install_rust
       - run:
           name: Integration Tests
           command: |
             # Slow, serial integration test, run nightly. Here to make sure the standard `mix test   --only integration` works
             export SHELL=/bin/bash
-            mix test   --only integration
+            mix test --only integration
 
   dialyzer:
     executor: builder_pg
@@ -599,7 +602,7 @@ jobs:
       SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
-    parallelism: 4
+    parallelism: 5
     steps:
       - checkout
       - run:
