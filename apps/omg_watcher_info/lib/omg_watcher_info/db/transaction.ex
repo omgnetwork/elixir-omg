@@ -18,10 +18,10 @@ defmodule OMG.WatcherInfo.DB.Transaction do
   """
   use Ecto.Schema
   use Spandex.Decorators
-  use OMG.Utils.LoggerExt
+  require Logger
 
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
 
   require Utxo

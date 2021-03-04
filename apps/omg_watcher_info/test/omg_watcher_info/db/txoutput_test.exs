@@ -15,17 +15,17 @@
 defmodule OMG.WatcherInfo.DB.TxOutputTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
   import OMG.WatcherInfo.Factory
 
-  alias OMG.TestHelper
-  alias OMG.Utxo
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "transaction output schema handles big numbers properly", %{alice: alice} do
@@ -35,7 +35,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
     big_amount = power_of_2.(256) - 1
 
     block_application = %{
-      transactions: [OMG.TestHelper.create_recovered([], @eth, [{alice, big_amount}])],
+      transactions: [OMG.Watcher.TestHelper.create_recovered([], @eth, [{alice, big_amount}])],
       number: 11_000,
       hash: <<?#::256>>,
       timestamp: :os.system_time(:second),
@@ -55,7 +55,7 @@ defmodule OMG.WatcherInfo.DB.TxOutputTest do
       blknum = 11_000
       amount_1 = 1000
       amount_2 = 2000
-      tx = OMG.TestHelper.create_recovered([], @eth, [{alice, amount_1}, {alice, amount_2}])
+      tx = OMG.Watcher.TestHelper.create_recovered([], @eth, [{alice, amount_1}, {alice, amount_2}])
 
       assert [
                %{

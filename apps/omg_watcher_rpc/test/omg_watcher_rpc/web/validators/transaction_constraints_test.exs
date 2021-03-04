@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Web.Validator.TransactionConstraintsTest do
   alias OMG.Eth.Encoding
   alias OMG.WatcherRPC.Web.Validator.TransactionConstraints
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @zero_metadata <<0::256>>
 
   describe "parse/1" do

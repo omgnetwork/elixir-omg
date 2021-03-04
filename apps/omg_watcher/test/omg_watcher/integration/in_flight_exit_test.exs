@@ -18,21 +18,21 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   """
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use Plug.Test
   use OMG.Watcher.Integration.Fixtures
 
-  alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-
   require Utxo
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @hex_eth "0x0000000000000000000000000000000000000000"
 
   @moduletag :mix_based_child_chain
@@ -45,11 +45,11 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     Process.sleep(12_000)
     DevHelper.import_unlock_fund(bob)
 
-    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 4}])
+    tx = TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 4}])
     ife1 = tx |> Transaction.Signed.encode() |> WatcherHelper.get_in_flight_exit()
 
     %{"blknum" => blknum} = tx |> Transaction.Signed.encode() |> WatcherHelper.submit()
-    invalidating_tx = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 4}])
+    invalidating_tx = TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 4}])
     %{"blknum" => invalidating_blknum} = WatcherHelper.submit(invalidating_tx)
     IntegrationTest.wait_for_block_fetch(invalidating_blknum, @timeout)
 

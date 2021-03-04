@@ -49,7 +49,7 @@ defmodule OMG.Watcher.Application do
 
   def start_phase(:attach_telemetry, :normal, _phase_args) do
     handlers = [
-      ["measure-state", OMG.State.Measure.supported_events(), &OMG.State.Measure.handle_event/4, nil],
+      ["measure-state", OMG.Watcher.State.Measure.supported_events(), &OMG.Watcher.State.Measure.handle_event/4, nil],
       [
         "measure-blockgetter",
         OMG.Watcher.BlockGetter.Measure.supported_events(),
@@ -58,8 +58,8 @@ defmodule OMG.Watcher.Application do
       ],
       [
         "measure-ethereum-event-listener",
-        OMG.EthereumEventListener.Measure.supported_events(),
-        &OMG.EthereumEventListener.Measure.handle_event/4,
+        OMG.Watcher.EthereumEventListener.Measure.supported_events(),
+        &OMG.Watcher.EthereumEventListener.Measure.handle_event/4,
         nil
       ]
     ]

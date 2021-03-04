@@ -17,7 +17,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Tracks and handles the exits from the child chain, their validity and challenges.
 
   Keeps a state of exits that are in progress, updates it with news from the root chain contract, compares to the
-  state of the ledger (`OMG.State`), issues notifications as it finds suitable.
+  state of the ledger (`OMG.Watcher.State`), issues notifications as it finds suitable.
 
   Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
 
@@ -26,22 +26,22 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
-  alias OMG.Block
   alias OMG.DB
   alias OMG.DB.Models.PaymentExitInfo
   alias OMG.Eth
   alias OMG.Eth.EthereumHeight
   alias OMG.Eth.RootChain
-  alias OMG.State
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.StandardExit
   alias OMG.Watcher.ExitProcessor.Tools
+  alias OMG.Watcher.State
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
 
-  use OMG.Utils.LoggerExt
+  require Logger
   require Utxo
 
   @timeout 60_000
@@ -110,10 +110,10 @@ defmodule OMG.Watcher.ExitProcessor do
 
   Returns `db_updates` to be sent to `OMG.DB` by the caller
   - takes a list of standard exit finalization events from the contract
-  - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`) (`Core.exit_key_by_exit_id/2`)
-  - marks as spent these UTXOs in `OMG.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
+  - discovers the `OMG.Watcher.State`'s native key for the finalizing exits (`utxo_pos`) (`Core.exit_key_by_exit_id/2`)
+  - marks as spent these UTXOs in `OMG.Watcher.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
   - reflects this result in the `ExitProcessor`'s state
-  - returns `db_updates`, concatenated with those related to the call to `OMG.State`
+  - returns `db_updates`, concatenated with those related to the call to `OMG.Watcher.State`
 
   """
 
@@ -210,11 +210,11 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns `db_updates` to be sent to `OMG.DB` by the caller
   - takes a list of IFE exit finalization events from the contract
   - pulls current information on IFE transaction inclusion
-  - discovers the `OMG.State`'s native key for the finalizing exits (`utxo_pos`)
+  - discovers the `OMG.Watcher.State`'s native key for the finalizing exits (`utxo_pos`)
     (`Core.prepare_utxo_exits_for_in_flight_exit_finalizations/2`)
-  - marks as spent these UTXOs in `OMG.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
+  - marks as spent these UTXOs in `OMG.Watcher.State` expecting it to tell which of those were valid finalizations (UTXOs exist)
   - reflects this result in the `ExitProcessor`'s state
-  - returns `db_updates`, concatenated with those related to the call to `OMG.State`
+  - returns `db_updates`, concatenated with those related to the call to `OMG.Watcher.State`
 
   """
 
@@ -226,13 +226,13 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Checks validity of all exit-related events and returns the list of actionable items.
-  Works with `OMG.State` to discern validity.
+  Works with `OMG.Watcher.State` to discern validity.
 
   This function may also update some internal caches to make subsequent calls not redo the work,
   but under unchanged conditions, it should have unchanged behavior from POV of an outside caller.
 
   - pulls current information on IFE transaction inclusion
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - gets a list of interesting UTXOs to check for existence in `OMG.Watcher.State`
   - combines this information to discover the state of all the exits to report (mainly byzantine events)
 
   """
@@ -257,7 +257,7 @@ defmodule OMG.Watcher.ExitProcessor do
   a non-canonical in-flight exit
 
   - pulls current information on IFE transaction inclusion
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - gets a list of interesting UTXOs to check for existence in `OMG.Watcher.State`
   - combines this information to compose the challenge data
   """
   @spec get_competitor_for_ife(binary()) ::
@@ -273,7 +273,7 @@ defmodule OMG.Watcher.ExitProcessor do
   for a challenged in-flight exit
 
   - pulls current information on IFE transaction inclusion
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - gets a list of interesting UTXOs to check for existence in `OMG.Watcher.State`
   - combines this information to compose the challenge data
   """
   @spec prove_canonical_for_ife(binary()) ::
@@ -284,7 +284,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Returns all information required to challenge an invalid input piggyback
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - gets a list of interesting UTXOs to check for existence in `OMG.Watcher.State`
   - combines this information to compose the challenge data
   """
   @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
@@ -297,7 +297,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns all information required to challenge an invalid output piggyback
   - pulls current information on IFE transaction inclusion
-  - gets a list of interesting UTXOs to check for existence in `OMG.State`
+  - gets a list of interesting UTXOs to check for existence in `OMG.Watcher.State`
   - combines this information to compose the challenge data
 
   """
@@ -310,7 +310,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Returns challenge for an invalid standard exit
-  - leverages `OMG.State` to quickly learn if the exiting UTXO exists or was spent
+  - leverages `OMG.Watcher.State` to quickly learn if the exiting UTXO exists or was spent
   - pulls some additional data from `OMG.DB`, if needed
   - combines this information to compose the challenge data
   """

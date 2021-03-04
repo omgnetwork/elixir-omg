@@ -18,20 +18,20 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   """
   use OMG.Watcher.ExitProcessor.Case, async: true
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
 
   require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper
   import ExUnit.CaptureLog, only: [capture_log: 1]
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @late_blknum 10_000
 

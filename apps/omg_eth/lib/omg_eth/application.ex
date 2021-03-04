@@ -20,7 +20,7 @@ defmodule OMG.Eth.Application do
   alias OMG.Eth.Metric.Ethereumex
 
   use Application
-  use OMG.Utils.LoggerExt
+  require Logger
 
   def start(_type, _args) do
     _ =

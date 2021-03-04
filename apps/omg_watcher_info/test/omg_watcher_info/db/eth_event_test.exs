@@ -15,19 +15,19 @@
 defmodule OMG.WatcherInfo.DB.EthEventTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
-  alias OMG.Crypto
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
-  alias OMG.Utxo.Position
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.Utxo
+  alias OMG.Watcher.Utxo.Position
   alias OMG.WatcherInfo.DB
 
   import OMG.WatcherInfo.Factory
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @default_paginator %Paginator{
     data: [],
     data_paging: %{

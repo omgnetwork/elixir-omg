@@ -16,7 +16,7 @@ defmodule OMG.WatcherRPC.Web.Controller.AlarmTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
   import Plug.Conn
   import Phoenix.ConnTest

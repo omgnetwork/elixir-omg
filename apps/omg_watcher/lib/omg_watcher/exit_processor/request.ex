@@ -19,8 +19,8 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   Holds all the necessary query date and the respective response
   """
 
-  alias OMG.Block
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.Utxo
 
   defstruct [
     :eth_height_now,

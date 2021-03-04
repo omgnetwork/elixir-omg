@@ -17,7 +17,7 @@ defmodule Support.Conformance.PropertyGenerators do
   Utility functions (mainly `:propcheck` generators) useful for building property tests for conformance tests
   """
 
-  alias OMG.State.Transaction
+  alias OMG.Watcher.State.Transaction
 
   use PropCheck
 
@@ -146,7 +146,7 @@ defmodule Support.Conformance.PropertyGenerators do
 
   defp mutated_hash(base_hash) do
     # TODO: provide more cases
-    OMG.Crypto.hash(base_hash)
+    OMG.Watcher.Crypto.hash(base_hash)
   end
 
   defp mutated_inputs(inputs) do

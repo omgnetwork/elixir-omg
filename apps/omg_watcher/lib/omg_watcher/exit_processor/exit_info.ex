@@ -19,10 +19,10 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   Internal stuff of `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.Crypto
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Crypto
   alias OMG.Watcher.Event
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
 
   require Utxo
 

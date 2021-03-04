@@ -27,12 +27,12 @@ defmodule OMG.WatcherInfo.Factory.TxOutput do
   """
   defmacro __using__(_opts) do
     quote do
-      alias OMG.Utxo
+      alias OMG.Watcher.Utxo
       alias OMG.WatcherInfo.DB
 
       require Utxo
 
-      @eth OMG.Eth.zero_address()
+      @eth <<0::160>>
 
       def txoutput_factory(attrs \\ %{}) do
         attrs = Map.put_new_lazy(attrs, :blknum, fn -> build(:block).blknum end)

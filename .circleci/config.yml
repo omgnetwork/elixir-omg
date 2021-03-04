@@ -238,8 +238,10 @@ jobs:
           source ~/.bash_profile
           asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
           asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
+          asdf plugin-add rust || asdf plugin-update rust
           asdf install
       - run: make init_test
+      - install_rust
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
@@ -325,7 +327,7 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 283 ]; then
+            if [ $_counter -gt 273 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
             fi
@@ -548,12 +550,13 @@ jobs:
       - run:
           name: Compile
           command: mix compile
+      - install_rust
       - run:
           name: Integration Tests
           command: |
             # Slow, serial integration test, run nightly. Here to make sure the standard `mix test   --only integration` works
             export SHELL=/bin/bash
-            mix test   --only integration
+            mix test --only integration
 
   dialyzer:
     executor: builder_pg
@@ -599,7 +602,7 @@ jobs:
       SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
-    parallelism: 4
+    parallelism: 5
     steps:
       - checkout
       - run:
@@ -1100,7 +1103,15 @@ workflows:
           filters: *all_branches_and_tags
       - property_tests:
           requires: [build]
-          filters: *all_branches_and_tags
+          filters: &master_and_version_branches_and_all_tags
+            branches:
+              only:
+                - master
+                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+                - /^v[0-9]+\.[0-9]+/
+            tags:
+              only:
+                - /.+/
       - watcher_mix_based_childchain:
           filters: *all_branches_and_tags
       - publish_watcher:
@@ -1112,7 +1123,7 @@ workflows:
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
-              property_tests,
+           #   property_tests,
               dialyzer,
               lint,
               audit_deps

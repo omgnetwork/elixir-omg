@@ -18,7 +18,7 @@ defmodule Support.WatcherHelper do
   """
   alias ExUnit.CaptureLog
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
 
   require Utxo
 

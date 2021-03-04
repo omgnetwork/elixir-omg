@@ -17,10 +17,10 @@ defmodule OMG.Watcher.API.InFlightExit do
   Module provides API for starting, validating and challenging in-flight exits
   """
 
-  alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.API
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
 
   require Utxo
 

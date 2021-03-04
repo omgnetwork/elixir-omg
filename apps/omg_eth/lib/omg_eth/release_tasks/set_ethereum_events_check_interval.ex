@@ -16,7 +16,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
   @moduledoc """
   Configures the interval to check for new events from Ethereum, including checking for new heights.
 
-  This is essentially the same as `OMG.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
+  This is essentially the same as `OMG.Watcher.ReleaseTasks.SetEthereumEventsCheckInterval` but for a different subapp.
   """
   @behaviour Config.Provider
   require Logger
@@ -35,7 +35,7 @@ defmodule OMG.Eth.ReleaseTasks.SetEthereumEventsCheckInterval do
 
     Config.Reader.merge(config,
       omg_eth: [ethereum_events_check_interval_ms: interval_ms],
-      omg: [ethereum_events_check_interval_ms: interval_ms]
+      omg_watcher: [ethereum_events_check_interval_ms: interval_ms]
     )
   end
 

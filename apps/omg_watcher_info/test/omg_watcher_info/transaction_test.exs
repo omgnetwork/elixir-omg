@@ -15,10 +15,9 @@
 defmodule OMG.WatcherInfo.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
-  alias OMG.Eth
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.Transaction
 
@@ -26,7 +25,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
 
   require Utxo
 
-  @eth Eth.zero_address()
+  @eth <<0::160>>
   @alice <<27::160>>
   @bob <<28::160>>
 

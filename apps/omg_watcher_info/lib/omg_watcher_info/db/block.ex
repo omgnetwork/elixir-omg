@@ -17,12 +17,12 @@ defmodule OMG.WatcherInfo.DB.Block do
   Ecto schema for Plasma Chain block
   """
   use Ecto.Schema
-  use OMG.Utils.LoggerExt
+  require Logger
   use Spandex.Decorators
   import Ecto.Changeset
 
-  alias OMG.State
   alias OMG.Utils.Paginator
+  alias OMG.Watcher.State
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.DB.Block.Chunk
 

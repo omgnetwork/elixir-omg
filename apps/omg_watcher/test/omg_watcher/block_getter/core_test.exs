@@ -15,15 +15,15 @@
 defmodule OMG.Watcher.BlockGetter.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use Plug.Test
 
-  alias OMG.Block
+  alias OMG.Watcher.Block
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.Event
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   def assert_check(result, status, value) do
     assert {^status, new_state, ^value} = result
@@ -100,7 +100,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     state_alice_deposit: state_alice_deposit
   } do
     block =
-      [OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])]
+      [OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])]
       |> Block.hashed_txs_at(26_000)
 
     state = process_single_block(block)
@@ -116,7 +116,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
             _} = Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     # check feasibility of transactions from block to consume at the OMG.State
-    assert {:ok, tx_result, _} = OMG.State.Core.exec(state_alice_deposit, tx, :ignore_fees)
+    assert {:ok, tx_result, _} = OMG.Watcher.State.Core.exec(state_alice_deposit, tx, :ignore_fees)
 
     assert {:ok, ^state} = Core.validate_executions([{:ok, tx_result}], block, state)
 
@@ -129,8 +129,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     block =
       [
-        OMG.TestHelper.create_recovered([{1, 0, 0, alice}], other_currency, [{bob, 7}, {alice, 3}]),
-        OMG.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+        OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], other_currency, [{bob, 7}, {alice, 3}]),
+        OMG.Watcher.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
       ]
       |> Block.hashed_txs_at(26_000)
 
@@ -162,7 +162,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     state = init_state()
 
     block = %Block{
-      Block.hashed_txs_at([OMG.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])], 1)
+      Block.hashed_txs_at([OMG.Watcher.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])], 1)
       | hash: matching_bad_returned_hash
     }
 
@@ -182,7 +182,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     %Block{hash: hash} =
       block =
-      [OMG.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])]
+      [OMG.Watcher.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])]
       |> Block.hashed_txs_at(1)
 
     block = %{block | transactions: block.transactions ++ [<<34>>]}

@@ -19,7 +19,7 @@ defmodule Support.Conformance.MerkleProofContext do
   """
   defstruct [:leaves, :root_hash, :leaf, :txindex, :proof]
 
-  alias OMG.Merkle
+  alias OMG.Watcher.Merkle
 
   use PropCheck
 

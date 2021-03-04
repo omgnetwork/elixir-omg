@@ -23,7 +23,7 @@ defmodule OMG.Watcher.API.Configuration do
   def get_configuration() do
     configuration = %{
       exit_processor_sla_margin: Configuration.exit_processor_sla_margin(),
-      deposit_finality_margin: OMG.Configuration.deposit_finality_margin(),
+      deposit_finality_margin: Configuration.deposit_finality_margin(),
       contract_semver: OMG.Eth.Configuration.contract_semver(),
       network: OMG.Eth.Configuration.network()
     }

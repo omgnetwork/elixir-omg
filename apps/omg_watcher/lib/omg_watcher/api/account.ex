@@ -18,17 +18,18 @@ defmodule OMG.Watcher.API.Account do
   """
 
   alias OMG.DB.Models.PaymentExitInfo
-  alias OMG.Utxo
-  require OMG.Utxo
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.Utxo
+  require OMG.Watcher.Utxo
 
   @doc """
   Gets all utxos belonging to the given address. Slow operation.
   """
-  @spec get_exitable_utxos(OMG.Crypto.address_t()) :: list(OMG.State.Core.exitable_utxos())
+  @spec get_exitable_utxos(Crypto.address_t()) :: list(OMG.Watcher.State.Core.exitable_utxos())
   def get_exitable_utxos(address) do
     # OMG.DB.utxos() takes a while.
     {:ok, utxos} = OMG.DB.utxos()
-    standard_exitable_utxos = OMG.State.Core.standard_exitable_utxos(utxos, address)
+    standard_exitable_utxos = OMG.Watcher.State.Core.standard_exitable_utxos(utxos, address)
 
     # PaymentExitInfo.all_exit_infos() takes a while.
     {:ok, standard_exits} = PaymentExitInfo.all_exit_infos()

@@ -22,11 +22,11 @@ defmodule OMG.WatcherInfo.DB.TransactionTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use Plug.Test
 
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
+  alias OMG.Watcher.Utxo
   alias OMG.WatcherInfo.DB
 
   require Utxo

@@ -26,8 +26,8 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     @enforce_keys [:exit_id, :exiting_tx, :txbytes, :input_index, :sig]
     defstruct @enforce_keys
 
-    alias OMG.Crypto
-    alias OMG.State.Transaction
+    alias OMG.Watcher.Crypto
+    alias OMG.Watcher.State.Transaction
 
     @type t() :: %__MODULE__{
             exit_id: pos_integer(),
@@ -38,16 +38,15 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
           }
   end
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.DoubleSpend
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.KnownTx
   alias OMG.Watcher.ExitProcessor.TxAppendix
-
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
   import OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
@@ -138,7 +137,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExit do
     with {:ok, _exit_info} <- get_exit(exits, exiting_pos),
          # once figured out the exit exists, check if it is spent in an IFE?
          ife_based_on_utxo = get_ife_based_on_utxo(exiting_pos, state),
-         # To be challengable, the exit utxo must be spent in either an IFE or missing from the `OMG.State`.
+         # To be challengable, the exit utxo must be spent in either an IFE or missing from the `OMG.Watcher.State`.
          # In the latter case we'll go on looking for the spending tx in the `OMG.DB`
          true <- !is_nil(ife_based_on_utxo) || !exiting_utxo_exists || {:error, :utxo_not_spent} do
       # if the exit utxo is spent in an IFE no need to bother with looking for the spending tx in the blocks

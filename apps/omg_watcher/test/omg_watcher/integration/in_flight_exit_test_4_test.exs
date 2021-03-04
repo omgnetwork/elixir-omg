@@ -18,20 +18,20 @@ defmodule OMG.Watcher.Integration.InFlightExit4Test do
   """
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use Plug.Test
   use OMG.Watcher.Integration.Fixtures
 
-  alias OMG.State.Transaction
-  alias OMG.Utxo
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
-
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @hex_eth "0x0000000000000000000000000000000000000000"
 
   @moduletag :mix_based_child_chain
@@ -46,7 +46,7 @@ defmodule OMG.Watcher.Integration.InFlightExit4Test do
     Process.sleep(12_000)
     DevHelper.import_unlock_fund(bob)
 
-    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+    tx = TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
     _ = exit_in_flight_and_wait_for_ife(tx, alice)
     piggyback_and_process_exits(tx, 1, :output, bob)
 

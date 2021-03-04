@@ -32,12 +32,12 @@ config :sentry,
     eth_node: :geth
   }
 
-config :omg,
+config :omg_watcher,
   deposit_finality_margin: 10,
   ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   coordinator_eth_height_check_interval_ms: 6_000
 
-config :omg, :eip_712_domain,
+config :omg_watcher, :eip_712_domain,
   name: "OMG Network",
   version: "1",
   salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
@@ -156,7 +156,7 @@ config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   connect_timeout: 180_000,
   url: "postgres://omisego_dev:omisego_dev@localhost/omisego_dev",
   migration_timestamps: [type: :timestamptz],
-  telemetry_prefix: [:omg, :watcher_info, :db, :repo]
+  telemetry_prefix: [:omg_watcher, :watcher_info, :db, :repo]
 
 config :omg_watcher_info, OMG.WatcherInfo.Tracer,
   service: :ecto,

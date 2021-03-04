@@ -20,7 +20,7 @@ defmodule OMG.WatcherInfo.Factory.DataHelper do
   defmacro __using__(_opts) do
     quote do
       alias OMG.Eth.Encoding
-      alias OMG.Utxo
+      alias OMG.Watcher.Utxo
 
       require Utxo
 

@@ -18,9 +18,9 @@ defmodule OMG.Watcher.Event do
 
   This module is agnostic of mode of delivery of events - both push and poll events go here
   """
-  alias OMG.Block
-  alias OMG.Crypto
-  alias OMG.State.Transaction
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.State.Transaction
 
   @type byzantine_t ::
           OMG.Watcher.Event.InvalidBlock.t()

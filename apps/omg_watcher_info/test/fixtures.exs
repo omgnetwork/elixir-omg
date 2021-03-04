@@ -17,15 +17,14 @@ defmodule OMG.WatcherInfo.Fixtures do
 
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
-  use OMG.Utils.LoggerExt
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
   alias Ecto.Adapters.SQL
-  alias OMG.Crypto
+  alias OMG.Watcher.Crypto
   alias OMG.WatcherInfo
   alias OMG.WatcherInfo.DB
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   deffixture in_beam_watcher(db_initialized, contract) do
     :ok = db_initialized
@@ -52,7 +51,7 @@ defmodule OMG.WatcherInfo.Fixtures do
 
     :telemetry.attach(
       "spandex-query-tracer",
-      [:omg, :watcher, :db, :repo, :query],
+      [:omg_watcher, :watcher, :db, :repo, :query],
       &SpandexEcto.TelemetryAdapter.handle_event/4,
       nil
     )
@@ -87,12 +86,12 @@ defmodule OMG.WatcherInfo.Fixtures do
     blocks = [
       {1000,
        [
-         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
-         OMG.TestHelper.create_recovered([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
+         OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
+         OMG.Watcher.TestHelper.create_recovered([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
        ]},
       {2000,
        [
-         OMG.TestHelper.create_recovered(
+         OMG.Watcher.TestHelper.create_recovered(
            [{1000, 1, 0, alice}],
            @eth,
            [{bob, 99}, {alice, 1}],
@@ -101,8 +100,8 @@ defmodule OMG.WatcherInfo.Fixtures do
        ]},
       {3000,
        [
-         OMG.TestHelper.create_recovered([], @eth, [{alice, 150}]),
-         OMG.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
+         OMG.Watcher.TestHelper.create_recovered([], @eth, [{alice, 150}]),
+         OMG.Watcher.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
        ]}
     ]
 

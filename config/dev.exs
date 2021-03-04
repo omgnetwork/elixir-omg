@@ -3,7 +3,7 @@ import Config
 config :logger,
   backends: [:console, Sentry.LoggerBackend]
 
-config :omg,
+config :omg_watcher,
   ethereum_events_check_interval_ms: 500,
   coordinator_eth_height_check_interval_ms: 1_000
 

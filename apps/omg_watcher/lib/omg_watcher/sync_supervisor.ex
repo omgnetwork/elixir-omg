@@ -18,9 +18,8 @@ defmodule OMG.Watcher.SyncSupervisor do
   rootchain synchronisations.
   """
   use Supervisor
-  use OMG.Utils.LoggerExt
+  require Logger
 
-  alias OMG.EthereumEventListener
   alias OMG.Watcher
   alias OMG.Watcher.API.StatusCache
   alias OMG.Watcher.API.StatusCache.Storage
@@ -28,6 +27,7 @@ defmodule OMG.Watcher.SyncSupervisor do
   alias OMG.Watcher.Configuration
   alias OMG.Watcher.CoordinatorSetup
   alias OMG.Watcher.EthereumEventAggregator
+  alias OMG.Watcher.EthereumEventListener
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.Monitor
 
@@ -73,16 +73,16 @@ defmodule OMG.Watcher.SyncSupervisor do
     exit_processor_sla_margin_forced = Configuration.exit_processor_sla_margin_forced()
     metrics_collection_interval = Configuration.metrics_collection_interval()
     finality_margin = Configuration.exit_finality_margin()
-    deposit_finality_margin = OMG.Configuration.deposit_finality_margin()
-    ethereum_events_check_interval_ms = OMG.Configuration.ethereum_events_check_interval_ms()
-    coordinator_eth_height_check_interval_ms = OMG.Configuration.coordinator_eth_height_check_interval_ms()
+    deposit_finality_margin = Configuration.deposit_finality_margin()
+    ethereum_events_check_interval_ms = Configuration.ethereum_events_check_interval_ms()
+    coordinator_eth_height_check_interval_ms = Configuration.coordinator_eth_height_check_interval_ms()
     min_exit_period_seconds = OMG.Eth.Configuration.min_exit_period_seconds()
     ethereum_block_time_seconds = OMG.Eth.Configuration.ethereum_block_time_seconds()
     child_block_interval = OMG.Eth.Configuration.child_block_interval()
     contracts = OMG.Eth.Configuration.contracts()
 
     [
-      {OMG.RootChainCoordinator,
+      {OMG.Watcher.RootChainCoordinator,
        CoordinatorSetup.coordinator_setup(
          metrics_collection_interval,
          coordinator_eth_height_check_interval_ms,
@@ -131,7 +131,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &EthereumEventAggregator.deposit_created/2,
-        process_events_callback: &OMG.State.deposit/1
+        process_events_callback: &OMG.Watcher.State.deposit/1
       ),
       EthereumEventListener.prepare_child(
         metrics_collection_interval: metrics_collection_interval,

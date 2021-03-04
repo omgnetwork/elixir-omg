@@ -17,7 +17,7 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.Utxo.Position
+  alias OMG.Watcher.Utxo.Position
   alias OMG.WatcherInfo.API.Transaction
 
   import OMG.WatcherInfo.Factory

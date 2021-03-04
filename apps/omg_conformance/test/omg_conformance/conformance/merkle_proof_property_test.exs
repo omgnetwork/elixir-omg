@@ -18,7 +18,7 @@ defmodule OMG.Conformance.MerkleProofPropertyTest do
   implementations (currently `elixir-omg` and `plasma-contracts`, Elixir and Solidity)
   """
 
-  alias OMG.Merkle
+  alias OMG.Watcher.Merkle
   alias Support.Conformance.MerkleProofContext
   alias Support.SnapshotContracts
 

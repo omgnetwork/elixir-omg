@@ -22,7 +22,7 @@ defmodule OMG.WatcherInfo.MixProject do
     [
       mod: {OMG.WatcherInfo.Application, []},
       start_phases: [{:attach_telemetry, []}],
-      extra_applications: [:logger, :runtime_tools, :telemetry]
+      extra_applications: [:logger, :runtime_tools, :telemetry, :omg_watcher]
     ]
   end
 
@@ -53,7 +53,6 @@ defmodule OMG.WatcherInfo.MixProject do
       {:jason, "~> 1.0"},
 
       # UMBRELLA
-      {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
       {:omg_utils, in_umbrella: true},
 

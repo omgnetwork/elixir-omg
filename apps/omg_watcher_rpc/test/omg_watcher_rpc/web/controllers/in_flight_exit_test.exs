@@ -15,23 +15,23 @@
 defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Utxo
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   alias Support.WatcherHelper
-
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   describe "getting in-flight exits" do
     @tag fixtures: [:web_endpoint, :db_initialized, :bob, :alice]
     test "returns properly formatted in-flight exit data", %{bob: bob, alice: alice} do
       test_in_flight_exit_data = fn inputs, expected_input_txs ->
-        in_flight_signed_txbytes = OMG.TestHelper.create_encoded(inputs, @eth, [{bob, 100}])
+        in_flight_signed_txbytes = TestHelper.create_encoded(inputs, @eth, [{bob, 100}])
         # `2 + ` for prepending `0x` in HEX encoded binaries
         in_flight_raw_txbytes = in_flight_signed_txbytes |> Transaction.Signed.decode!() |> Transaction.raw_txbytes()
 
@@ -65,13 +65,13 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
       OMG.DB.multi_update(
         [
           [
-            OMG.TestHelper.create_encoded([{1, 0, 0, alice}], @eth, [{bob, 300}]),
-            OMG.TestHelper.create_encoded([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
+            TestHelper.create_encoded([{1, 0, 0, alice}], @eth, [{bob, 300}]),
+            TestHelper.create_encoded([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
           ],
-          [OMG.TestHelper.create_encoded([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1322::256>>)],
+          [TestHelper.create_encoded([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1322::256>>)],
           [
-            OMG.TestHelper.create_encoded([], @eth, [{alice, 150}]),
-            OMG.TestHelper.create_encoded([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
+            TestHelper.create_encoded([], @eth, [{alice, 150}]),
+            TestHelper.create_encoded([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
           ]
         ]
         |> Enum.with_index(1)
@@ -94,7 +94,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
     test "behaves well if input is not found", %{bob: bob} do
       in_flight_txbytes =
         [{3000, 1, 0, bob}]
-        |> OMG.TestHelper.create_encoded(@eth, [{bob, 150}])
+        |> TestHelper.create_encoded(@eth, [{bob, 150}])
         |> Encoding.to_hex()
 
       assert %{
@@ -107,7 +107,7 @@ defmodule OMG.WatcherRPC.Web.Controller.InFlightExitTest do
     test "Provides a report on unsupported start IFE case if input is a spent deposit", %{bob: bob} do
       in_flight_txbytes =
         [{1, 0, 0, bob}]
-        |> OMG.TestHelper.create_encoded(@eth, [{bob, 150}])
+        |> TestHelper.create_encoded(@eth, [{bob, 150}])
         |> Encoding.to_hex()
 
       assert %{

@@ -22,7 +22,7 @@ defmodule OMG.WatcherRPC.Web.Validator.MergeConstraints do
 
   import OMG.Utils.HttpRPC.Validator.Base
 
-  require OMG.State.Transaction.Payment
+  require OMG.Watcher.State.Transaction.Payment
 
   @doc """
   Parses and validates request body for `/transaction.merge`

@@ -15,7 +15,7 @@
 defmodule OMG.WatcherInfo.DB.BlockTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
 
   import OMG.WatcherInfo.Factory
   import Ecto.Query, only: [from: 2]
@@ -23,7 +23,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @seconds_in_twenty_four_hours 86_400
 
   describe "base_query" do
@@ -317,8 +317,8 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   describe "insert_from_block_application/1" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "inserts the block, its transactions and transaction outputs", %{alice: alice, bob: bob} do
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+      tx_1 = OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
       block_application = %{
         transactions: [tx_1, tx_2],
@@ -340,8 +340,8 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "returns an error when inserting with an existing blknum", %{alice: alice, bob: bob} do
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
+      tx_1 = OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+      tx_2 = OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 500}])
 
       block_application = %{
         transactions: [tx_1, tx_2],
@@ -364,15 +364,15 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
     @tag :watcher_info
     @tag timeout: :infinity
     test "full block test", %{alice: alice, bob: bob} do
-      tx_1 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 1}])
-      tx_2 = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}])
+      tx_1 = OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 1}])
+      tx_2 = OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}])
 
       transactions =
         Enum.map(3..64_000, fn _index ->
-          a = OMG.TestHelper.generate_entity()
-          b = OMG.TestHelper.generate_entity()
+          a = OMG.Watcher.TestHelper.generate_entity()
+          b = OMG.Watcher.TestHelper.generate_entity()
           amount = 5
-          OMG.TestHelper.create_recovered([{1, 0, 0, a}], @eth, [{b, amount}])
+          OMG.Watcher.TestHelper.create_recovered([{1, 0, 0, a}], @eth, [{b, amount}])
         end)
 
       block_application = %{

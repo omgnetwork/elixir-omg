@@ -22,12 +22,13 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   use Ecto.Schema
   use Spandex.Decorators
 
-  alias OMG.Crypto
   alias OMG.Eth.Encoding
   alias OMG.Utils.Paginator
-  alias OMG.Utxo
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.Utxo
+  alias OMG.Watcher.Utxo.Position
+  alias OMG.Watcher.WireFormatTypes
   alias OMG.WatcherInfo.DB
-  alias OMG.WireFormatTypes
 
   require Utxo
 
@@ -62,12 +63,12 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @doc """
   Inserts deposits based on a list of event maps (if not already inserted before)
   """
-  @spec insert_deposits!([OMG.State.Core.deposit()]) :: :ok
+  @spec insert_deposits!([OMG.Watcher.State.Core.deposit()]) :: :ok
   def insert_deposits!(deposits) do
-    deposits |> Enum.each(&insert_deposit!/1)
+    Enum.each(deposits, &insert_deposit!/1)
   end
 
-  @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @spec insert_deposit!(OMG.Watcher.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   defp insert_deposit!(params) do
     %{
@@ -86,7 +87,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
     case get(root_chain_txhash_event) do
       nil ->
-        %__MODULE__{
+        deposit = %__MODULE__{
           root_chain_txhash_event: root_chain_txhash_event,
           log_index: log_index,
           root_chain_txhash: root_chain_txhash,
@@ -107,7 +108,8 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
             }
           ]
         }
-        |> DB.Repo.insert()
+
+        {:ok, _} = DB.Repo.insert(deposit)
 
         # an ethevents row just got inserted, now return the ethevent with all populated fields including
         # those populated by the DB (eg: inserted_at, updated_at, ...)
@@ -142,9 +144,9 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   @doc """
   Generate a unique child_chain_utxohash from the Utxo.position
   """
-  @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Crypto.hash_t()
+  @spec generate_child_chain_utxohash(Utxo.Position.t()) :: OMG.Watcher.Crypto.hash_t()
   def generate_child_chain_utxohash(position) do
-    "<#{position |> Utxo.Position.encode()}>" |> Crypto.hash()
+    Crypto.hash("<#{Position.encode(position)}>")
   end
 
   def generate_root_chain_txhash_event(root_chain_txhash, log_index) do
@@ -202,7 +204,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
   end
 
   defp transform_output_pointer(%{utxo_pos: utxo_pos}),
-    do: {:utxo_position, Utxo.Position.decode!(utxo_pos)}
+    do: {:utxo_position, Position.decode!(utxo_pos)}
 
   defp transform_output_pointer(%{txhash: txhash, oindex: oindex}),
     do: {:output_id, {txhash, oindex}}
@@ -211,7 +213,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
           %{
             root_chain_txhash: binary(),
             log_index: non_neg_integer(),
-            output_pointer: {:utxo_position, Utxo.Position.t()} | {:output_id, tuple()},
+            output_pointer: {:utxo_position, Position.t()} | {:output_id, tuple()},
             eth_height: pos_integer()
           },
           available_event_type_t(),
@@ -322,7 +324,7 @@ defmodule OMG.WatcherInfo.DB.EthEvent do
 
   defp output_spent?(%DB.TxOutput{}), do: true
 
-  # Tells whether processing exit event, exited outout has to be present in the database
+  # Tells whether processing exit event, exited output has to be present in the database
   # For more see: https://github.com/omgnetwork/elixir-omg/issues/1760#issuecomment-722313713
   defp expect_output_existence?(:standard_exit, _), do: true
   defp expect_output_existence?(:in_flight_exit, :InFlightTxOutputPiggybacked), do: false

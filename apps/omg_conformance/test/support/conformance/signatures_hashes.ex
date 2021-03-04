@@ -20,7 +20,8 @@ defmodule Support.Conformance.SignaturesHashes do
   import ExUnit.Assertions, only: [assert: 1]
 
   alias OMG.Eth.Encoding
-  alias OMG.State.Transaction
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TypedDataHash
 
   @doc """
   Check if both implementations treat distinct transactions as distinct but produce sign hashes consistently
@@ -111,23 +112,12 @@ defmodule Support.Conformance.SignaturesHashes do
     call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}])
   end
 
-  defp elixir_hash(%{} = tx), do: OMG.TypedDataHash.hash_struct(tx)
+  defp elixir_hash(%{} = tx), do: TypedDataHash.hash_struct(tx)
   defp elixir_hash(encoded_tx), do: encoded_tx |> Transaction.decode!() |> elixir_hash()
 
   defp assert_contract_reverted(result) do
-    Application.fetch_env!(:omg_eth, :eth_node)
-    |> case do
-      :ganache ->
-        assert {:error, %{"data" => error_data}} = result
-        # NOTE one can use the "reason" field in here to make sure what caused the revert. Only with ganache
-        assert [%{"error" => "revert"} | _] = Map.values(error_data)
-
-      :geth ->
-        # `geth` is problematic - on a revert from `call_contract` it returns something resembling a reason
-        # binary (beginning with 4-byte function selector). We need to assume that this is in fact a revert
-        {:ok, chopped_reason_binary_result} = result
-        assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
-    end
+    {:ok, chopped_reason_binary_result} = result
+    assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
   end
 
   defp call_contract(contract, signature, args, return_types) do

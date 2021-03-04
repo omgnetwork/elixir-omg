@@ -19,20 +19,20 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
 
   use OMG.Watcher.ExitProcessor.Case, async: false
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
 
   require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper,
     only: [start_ife_from: 2, start_se_from: 3, start_se_from: 4, check_validity_filtered: 3]
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @deposit_blknum 1
   @deposit_blknum2 2

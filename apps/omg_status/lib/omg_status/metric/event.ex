@@ -39,9 +39,9 @@ defmodule OMG.Status.Metric.Event do
   :transaction_submission - Child Chain API's received transaction submission.
   :transaction_submission_success - Child Chain API's successful processing of transaction submission.
   :transaction_submission_failed - Child Chain API's failed processing of transaction submission.
-  :transaction_submission_failed - Childchain OMG.State mempool transactions
-  :pending_transactions - Childchain OMG.State mempool transactions
-  :block_transactions - Childchain OMG.State transactions in formed block
+  :transaction_submission_failed - Childchain OMG.Watcher.State mempool transactions
+  :pending_transactions - Childchain OMG.Watcher.State mempool transactions
+  :block_transactions - Childchain OMG.Watcher.State transactions in formed block
   :block_submission_attempt - Childchain Block submission attempted
   :block_submission_success Childchain Block successfully submitted
   :block_submission_gas Child Chain Block queue gas usage metric
@@ -49,8 +49,8 @@ defmodule OMG.Status.Metric.Event do
   :block_queue_blknum_submitted - Child Chain BlockQueue's blknum of the block submitted
   :block_queue_num_blocks_stalled - Child Chain BlockQueue's number of blocks currently being submitted and stalled
   :authority_balance - Child Chain authority address balance
-  :balance - OMG.State balance per currency
-  :unique_users - OMG.State number of unique_users in the system
+  :balance - OMG.Watcher.State balance per currency
+  :unique_users - OMG.Watcher.State number of unique_users in the system
   :block_getter_message_queue_len - OMG.Watcher.BlockGetter message queue length
   :watcher_exit_processor_message_queue_len - OMG.Watcher.ExitProcessor message queue length
   :eventer_message_queue_len - OMG.Watcher.Eventer message queue length
@@ -58,7 +58,7 @@ defmodule OMG.Status.Metric.Event do
   :write - OMG.DB KV layer has three types of actions: write, read,  multiread
   :read - OMG.DB KV layer has three types of actions: write, read,  multiread
   :multiread - OMG.DB KV layer has three types of actions: write, read,  multiread
-  @services - We're interested in the events queue length that particular OMG.EthereumEventListener service process
+  @services - We're interested in the events queue length that particular OMG.Watcher.EthereumEventListener service process
   """
   def name(:transaction_submission), do: "transaction_submission"
   def name(:transaction_submission_success), do: "transaction_submission_success"
@@ -83,10 +83,10 @@ defmodule OMG.Status.Metric.Event do
   def name(:multiread), do: "db_multiread"
 
   @doc """
-    :events - We're interested in the events queue length that particular OMG.EthereumEventListener service process
+    :events - We're interested in the events queue length that particular OMG.Watcher.EthereumEventListener service process
     is handling.
 
-    message_queue_len -  We're interested in the message queue length of particular OMG.EthereumEventListener service process
+    message_queue_len -  We're interested in the message queue length of particular OMG.Watcher.EthereumEventListener service process
   """
   def name(service, :events) when service in @services, do: events_name(service)
   def name(service, :message_queue_len) when service in @services, do: message_queue_len_name(service)

@@ -16,7 +16,7 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   @moduledoc """
   Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
   Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
-  state of the ledger (`OMG.State`), issues notifications as it finds suitable.
+  state of the ledger (`OMG.Watcher.State`), issues notifications as it finds suitable.
 
   Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
 
@@ -30,22 +30,21 @@ defmodule OMG.Watcher.ExitProcessor.Canonicity do
   For the imperative shell, see `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.Block
-  alias OMG.Crypto
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
+  alias OMG.Watcher.Crypto
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.DoubleSpend
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.KnownTx
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
 
   import OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
-
-  use OMG.Utils.LoggerExt
+  require Logger
 
   @type competitor_data_t :: %{
           input_txbytes: binary(),

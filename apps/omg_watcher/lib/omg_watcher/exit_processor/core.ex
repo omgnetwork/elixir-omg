@@ -26,9 +26,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   This is the functional logic driving the `GenServer` in `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.Block
-  alias OMG.State.Transaction
-  alias OMG.Utxo
+  alias OMG.Watcher.Block
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
@@ -36,17 +34,19 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.KnownTx
   alias OMG.Watcher.ExitProcessor.StandardExit
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo
 
   import OMG.Watcher.ExitProcessor.Tools
 
   require Utxo
   require Transaction.Payment
 
-  use OMG.Utils.LoggerExt
+  require Logger
 
   @default_sla_margin 10
 
-  @zero_address OMG.Eth.zero_address()
+  @zero_address <<0::160>>
 
   @max_inputs Transaction.Payment.max_inputs()
   @max_outputs Transaction.Payment.max_outputs()
@@ -171,7 +171,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   The list of `exit_contract_statuses` is used to track current (as in wall-clock "now", not syncing "now") status.
   This is to prevent spurious invalid exit events being fired during syncing for exits that were challenged/finalized
-  Still we do want to track these exits when syncing, to have them spend from `OMG.State` on their finalization
+  Still we do want to track these exits when syncing, to have them spend from `OMG.Watcher.State` on their finalization
   """
   @spec new_exits(t(), list(map()), list(map)) :: {t(), list()} | {:error, :unexpected_events}
   def new_exits(state, new_exits, exit_contract_statuses)
@@ -370,7 +370,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @doc """
   Figures out which numbers of "spending transaction blocks" to get for the utxos, based on the existence reported by
-  `OMG.State` and possibly other factors, eg. only take the non-existent UTXOs spends (naturally) and ones that
+  `OMG.Watcher.State` and possibly other factors, eg. only take the non-existent UTXOs spends (naturally) and ones that
   pertain to IFE transaction inputs.
 
   Assumes that UTXOs that haven't been checked (i.e. not a key in `utxo_exists?` map) **exist**

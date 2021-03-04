@@ -20,8 +20,8 @@ defmodule OMG.WatcherRPC.Web.Controller.Utxo do
 
   use OMG.WatcherRPC.Web, :controller
 
-  alias OMG.Utxo
   alias OMG.Watcher.API
+  alias OMG.Watcher.Utxo
 
   def get_utxo_exit(conn, params) do
     with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),

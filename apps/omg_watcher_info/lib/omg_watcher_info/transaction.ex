@@ -17,9 +17,9 @@ defmodule OMG.WatcherInfo.Transaction do
   Module creates transaction from selected utxos and order.
   """
 
-  alias OMG.Crypto
-  alias OMG.State.Transaction
-  alias OMG.TypedDataHash
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TypedDataHash
   alias OMG.WatcherInfo.DB
   alias OMG.WatcherInfo.UtxoSelection
 
@@ -257,7 +257,7 @@ defmodule OMG.WatcherInfo.Transaction do
   end
 
   defp create_outputs(outputs) do
-    zero_addr = OMG.Eth.zero_address()
+    zero_addr = <<0::160>>
     empty_gen = fn -> %{owner: zero_addr, currency: zero_addr, amount: 0} end
 
     outputs

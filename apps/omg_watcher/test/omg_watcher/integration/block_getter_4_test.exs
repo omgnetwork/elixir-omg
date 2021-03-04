@@ -21,21 +21,23 @@ defmodule OMG.Watcher.Integration.BlockGetter4Test do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.Watcher.Integration.Fixtures
   use Plug.Test
 
-  require OMG.Utxo
+  require OMG.Watcher.Utxo
 
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter
+  alias OMG.Watcher.Configuration
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper
   alias Support.WatcherHelper
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
 
@@ -48,16 +50,16 @@ defmodule OMG.Watcher.Integration.BlockGetter4Test do
     stable_alice_deposits: {deposit_blknum, _}
   } do
     Process.sleep(11_000)
-    fee_claimer = OMG.Configuration.fee_claimer_address()
+    fee_claimer = Configuration.fee_claimer_address()
 
     # preparing transactions for a fake block that overclaim fees
     txs = [
-      OMG.TestHelper.create_recovered([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}]),
-      OMG.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 8}]),
-      OMG.TestHelper.create_recovered_fee_tx(1000, fee_claimer, @eth, 3)
+      TestHelper.create_recovered([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}]),
+      TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 8}]),
+      TestHelper.create_recovered_fee_tx(1000, fee_claimer, @eth, 3)
     ]
 
-    block_overclaiming_fees = OMG.Block.hashed_txs_at(txs, 1000)
+    block_overclaiming_fees = OMG.Watcher.Block.hashed_txs_at(txs, 1000)
 
     # from now on the child chain server is broken until end of test
     route =

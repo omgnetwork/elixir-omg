@@ -21,23 +21,24 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.Fixtures
+  use OMG.Watcher.Fixtures
   use OMG.Watcher.Integration.Fixtures
   use Plug.Test
 
-  require OMG.Utxo
+  require OMG.Watcher.Utxo
 
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper
   alias Support.DevHelper
   alias Support.RootChainHelper
   alias Support.WatcherHelper
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
 
@@ -47,15 +48,15 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
   test "transaction which is spending an exiting output before the `sla_margin` causes an invalid_exit event only",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     Process.sleep(12_000)
-    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
+    tx = TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
     %{"blknum" => exit_blknum} = WatcherHelper.submit(tx)
 
     # Here we're preparing invalid block
     bad_block_number = 2_000
-    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
+    bad_tx = TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 9}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =
-      bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
+      bad_block = OMG.Watcher.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
     route = BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)

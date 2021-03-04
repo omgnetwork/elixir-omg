@@ -18,7 +18,7 @@ defmodule OMG.WatcherRPC.Web.Views.Error do
   """
 
   use OMG.WatcherRPC.Web, :view
-  use OMG.Utils.LoggerExt
+  require Logger
 
   alias OMG.Utils.HttpRPC.Error
   alias OMG.WatcherRPC.Web.Response, as: WatcherRPCResponse

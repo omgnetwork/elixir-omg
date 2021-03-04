@@ -17,11 +17,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfoTest do
 
   use OMG.Watcher.ExitProcessor.Case, async: true
 
-  alias OMG.State.Transaction
-  alias OMG.Utxo.Position
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.Utxo.Position
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   describe "get_input_utxos/1" do
     test "returns a list of input utxos" do

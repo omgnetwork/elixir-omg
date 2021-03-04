@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Supervisor do
   or start other supervisors.
   """
   use Supervisor
-  use OMG.Utils.LoggerExt
+  require Logger
 
   alias OMG.Eth.RootChain
   alias OMG.Status.Alert.Alarm

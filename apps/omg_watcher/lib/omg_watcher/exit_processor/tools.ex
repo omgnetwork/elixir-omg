@@ -17,14 +17,14 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   Private tools that various components of the `ExitProcessor` share
   """
 
-  alias OMG.Crypto
-  alias OMG.State.Transaction
-  alias OMG.TypedDataHash
-  alias OMG.Utxo
+  alias OMG.Watcher.Crypto
   alias OMG.Watcher.ExitProcessor.DoubleSpend
   alias OMG.Watcher.ExitProcessor.KnownTx
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TypedDataHash
+  alias OMG.Watcher.Utxo
 
-  require Utxo
+  require OMG.Watcher.Utxo
 
   @typep eth_event_t() :: %{root_chain_txhash: Crypto.hash_t(), log_index: non_neg_integer()}
   @typep eth_event_with_exiting_positions_t() :: {eth_event_t(), list(Utxo.Position.t())} | eth_event_t()

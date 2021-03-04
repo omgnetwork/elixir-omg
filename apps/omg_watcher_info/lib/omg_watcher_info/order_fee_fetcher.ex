@@ -17,12 +17,12 @@ defmodule OMG.WatcherInfo.OrderFeeFetcher do
   Handle fetching and formatting of fees for an order
   """
 
-  alias OMG.Crypto
-  alias OMG.State.Transaction
   alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Watcher.Crypto
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.WireFormatTypes
   alias OMG.WatcherInfo.HttpRPC.Client
   alias OMG.WatcherInfo.Transaction, as: TransactionCreator
-  alias OMG.WireFormatTypes
 
   # Note: Hardcoding the tx_type for now, until we need to support more types of transactions
   # that require fetching fees from the child chain.

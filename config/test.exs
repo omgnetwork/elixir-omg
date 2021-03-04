@@ -45,7 +45,7 @@ config :sentry,
 config :omg_utils,
   environment: :test
 
-config :omg,
+config :omg_watcher,
   deposit_finality_margin: 1,
   ethereum_events_check_interval_ms: ethereum_events_check_interval_ms,
   coordinator_eth_height_check_interval_ms: 10,

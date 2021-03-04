@@ -173,23 +173,6 @@ For docker deployments, and release deployments please refer to [Deployment Conf
 
 **NOTE**: all margins are denominated in Ethereum blocks
 
-## Generic configuration - `:omg` app
-
-* **`deposit_finality_margin`** - the margin that is waited after a `DepositCreated` event in the root chain contract.
-Only after this margin had passed:
-  - the child chain will allow spending the deposit
-  - the watcher and watcher info will consider a transaction spending this deposit a valid transaction
-
-  It is important that for a given child chain, the child chain server and watchers use the same value of this margin.
-
-  **NOTE**: This entry is defined in `omg`, despite not being accessed there, only in `omg_child_chain` and `omg_watcher`.
-  The reason here is to minimize risk of Child Chain server's and Watcher's configuration entries diverging.
-
-* **`ethereum_events_check_interval_ms`** - polling interval for pulling Ethereum events (logs) from the Ethereum client.
-
-* **`coordinator_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `RootChainCoordinator`.
-Affects how quick the services reading Ethereum events realize there's a new block.
-
 ## Child chain server configuration - `:omg_child_chain` app
 
 * **`submission_finality_margin`** - the margin waited before mined block submissions are purged from `BlockQueue`'s memory
@@ -215,6 +198,21 @@ Options of the fee adapter, depends on adapter
   - **`stored_fee_update_interval_minutes`** - [FeedAdapter only!] positive integer describes time interval in minutes. The updates of token prices are carried out in update intervals as long as the changes are within tolerance.
 
 ## Watcher configuration - `:omg_watcher` app
+
+* **`deposit_finality_margin`** - the margin that is waited after a `DepositCreated` event in the root chain contract.
+Only after this margin had passed:
+  - the child chain will allow spending the deposit
+  - the watcher and watcher info will consider a transaction spending this deposit a valid transaction
+
+  It is important that for a given child chain, the child chain server and watchers use the same value of this margin.
+
+  **NOTE**: This entry is defined in `omg`, despite not being accessed there, only in `omg_child_chain` and `omg_watcher`.
+  The reason here is to minimize risk of Child Chain server's and Watcher's configuration entries diverging.
+
+* **`ethereum_events_check_interval_ms`** - polling interval for pulling Ethereum events (logs) from the Ethereum client.
+
+* **`coordinator_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `RootChainCoordinator`.
+Affects how quick the services reading Ethereum events realize there's a new block.
 
 * **`exit_processor_sla_margin`** - the margin to define the notion of a "late", invalid exit.
 After this margin passes, every invalid exit is deemed a critical failure of the child chain (`unchallenged_exit`).

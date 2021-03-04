@@ -19,13 +19,13 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   use ExUnit.Case, async: false
 
   alias OMG.Eth.Configuration
-  alias OMG.State
-  alias OMG.State.Transaction
-  alias OMG.TestHelper
-  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.State
+  alias OMG.Watcher.State.Transaction
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Utxo
   require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper,
@@ -34,7 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @default_min_exit_period_seconds 120
   @default_child_block_interval 1000
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @fee_claimer_address "NO FEE CLAIMER ADDR!"
 
   @early_blknum 1_000
@@ -166,8 +166,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     assert Utxo.position(1, 0, 0) not in spends_to_get
 
     # spend and see that Core now requests the relevant utxo checks and spends to get
-    {:ok, _, state} = State.Core.exec(state, comp, @fee)
-    {:ok, {block, _}, state} = State.Core.form_block(state)
+    {:ok, _, state} = OMG.Watcher.State.Core.exec(state, comp, @fee)
+    {:ok, {block, _}, state} = OMG.Watcher.State.Core.form_block(state)
 
     assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
              %ExitProcessor.Request{blknum_now: @late_blknum, blocks_result: [block]}
@@ -193,7 +193,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
       state
       |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
-      |> State.Core.exec(ife_exit_tx1, @fee)
+      |> OMG.Watcher.State.Core.exec(ife_exit_tx1, @fee)
 
     {:ok, {block, _}, state} = State.Core.form_block(state)
 
@@ -264,9 +264,9 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     ife_id = 1
 
     state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
-    {:ok, {tx_hash, _, _}, state} = State.Core.exec(state, ife_exit_tx, @fee)
-    {:ok, {_, _, _}, state} = State.Core.exec(state, spending_tx, @fee)
-    {:ok, {block, _}, state} = State.Core.form_block(state)
+    {:ok, {tx_hash, _, _}, state} = OMG.Watcher.State.Core.exec(state, ife_exit_tx, @fee)
+    {:ok, {_, _, _}, state} = OMG.Watcher.State.Core.exec(state, spending_tx, @fee)
+    {:ok, {block, _}, state} = OMG.Watcher.State.Core.form_block(state)
 
     request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, ife_input_spending_blocks_result: [block]}
 
@@ -295,7 +295,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
     ife_id = 1
 
     state = TestHelper.do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
-    {:ok, _, state} = State.Core.form_block(state)
+    {:ok, _, state} = OMG.Watcher.State.Core.form_block(state)
 
     {_processor, deleted_utxos, _db_updates} =
       processor
@@ -307,6 +307,6 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   end
 
   defp mock_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request, state) do
-    %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
+    %{request | utxo_exists_result: positions |> Enum.map(&OMG.Watcher.State.Core.utxo_exists?(&1, state))}
   end
 end
