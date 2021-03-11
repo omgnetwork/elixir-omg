@@ -58,7 +58,7 @@ defmodule OMG.WatcherRPC.Web.Router do
     post("/utxo.get_challenge_data", Controller.Challenge, :get_utxo_challenge)
 
     post("/transaction.submit", Controller.Transaction, :submit)
-
+    post("/transaction.batch_submit", Controller.Transaction, :batch_submit)
     post("/in_flight_exit.get_data", Controller.InFlightExit, :get_in_flight_exit)
     post("/in_flight_exit.get_competitor", Controller.InFlightExit, :get_competitor)
     post("/in_flight_exit.prove_canonical", Controller.InFlightExit, :prove_canonical)

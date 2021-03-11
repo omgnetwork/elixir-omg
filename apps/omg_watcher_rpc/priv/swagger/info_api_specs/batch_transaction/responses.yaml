@@ -1,0 +1,6 @@
+TransactionBatchSubmitResponse:
+  description: Transaction batch submission successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/TransactionBatchSubmitResponseSchema'

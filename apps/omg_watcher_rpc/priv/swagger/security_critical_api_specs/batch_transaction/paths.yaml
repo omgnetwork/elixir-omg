@@ -1,0 +1,17 @@
+transaction.batch_submit:
+  post:
+    tags:
+      - Transaction
+    summary: This endpoint submits an array of signed transaction to the child chain.
+    description: >
+      Normally you should call the Watcher's Transaction - Submit instead of this.
+      The Watcher's version performs various security and validation checks (TO DO) before submitting the transaction,
+      so is much safer. However, if the Watcher is not available this version exists.
+    operationId: batch_submit
+    requestBody:
+      $ref: 'request_bodies.yaml#/TransactionBatchSubmitBodySchema'
+    responses:
+      200:
+        $ref: 'responses.yaml#/TransactionBatchSubmitResponse'
+      500:
+        $ref: '../responses.yaml#/InternalServerError'

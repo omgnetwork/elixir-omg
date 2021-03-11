@@ -30,6 +30,12 @@ defmodule OMG.WatcherRPC.Web.View.Transaction do
     |> WatcherRPCResponse.add_app_infos()
   end
 
+  def render("batch_submission.json", %{response: transactions}) do
+    transactions
+    |> Response.serialize()
+    |> WatcherRPCResponse.add_app_infos()
+  end
+
   def render("transactions.json", %{response: %Paginator{data: transactions, data_paging: data_paging}}) do
     transactions
     |> Enum.map(&render_transaction/1)

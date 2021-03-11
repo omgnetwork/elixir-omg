@@ -51,6 +51,8 @@ paths:
     $ref: 'utxo/paths.yaml#/utxo.get_exit_data'
   /transaction.submit:
     $ref: 'transaction/paths.yaml#/transaction.submit'
+  /transaction.batch_submit:
+    $ref: 'batch_transaction/paths.yaml#/transaction.batch_submit'
   /in_flight_exit.get_data:
     $ref: 'in_flight_exit/paths.yaml#/in_flight_exit.get_data'
   /in_flight_exit.get_competitor:
