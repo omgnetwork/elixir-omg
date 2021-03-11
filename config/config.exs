@@ -67,7 +67,7 @@ config :omg_db,
 ethereum_client_timeout_ms = 20_000
 
 config :ethereumex,
-  url: "http://localhost:8545",
+  url: System.get_env("ETHEREUM_RPC_URL", "http://localhost:8545"),
   http_options: [recv_timeout: ethereum_client_timeout_ms]
 
 config :omg_eth,
@@ -126,9 +126,8 @@ config :os_mon,
   system_memory_high_watermark: 1.00,
   process_memory_high_watermark: 1.00
 
-config :omg_watcher, child_chain_url: "http://localhost:9656"
-
 config :omg_watcher,
+  child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656/v1"),
   # 23 hours worth of blocks - this is how long the child chain server has to block spends from exiting utxos
   exit_processor_sla_margin: 23 * 60 * 4,
   # this means we don't want the `sla_margin` above be larger than the `min_exit_period`
@@ -146,7 +145,7 @@ config :omg_watcher, OMG.Watcher.Tracer,
   type: :omg_watcher
 
 config :omg_watcher_info,
-  child_chain_url: "http://localhost:9656/v1",
+  child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656/v1"),
   namespace: OMG.WatcherInfo,
   ecto_repos: [OMG.WatcherInfo.DB.Repo],
   metrics_collection_interval: 60_000

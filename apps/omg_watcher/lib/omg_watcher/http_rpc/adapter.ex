@@ -66,7 +66,7 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
   the structure in body is known, so we can try to deserialize it.
   """
   @spec get_response_body(HTTPoison.Response.t() | {:error, HTTPoison.Error.t()}) ::
-          {:ok, map()} | {:error, atom() | tuple() | HTTPoison.Error.t()}
+          {:ok, map()} | {:ok, list(map())} | {:error, atom() | tuple() | HTTPoison.Error.t()}
   def get_response_body(http_response) do
     with {:ok, body} <- get_unparsed_response_body(http_response),
          {:ok, response} <- Jason.decode(body),
@@ -78,8 +78,9 @@ defmodule OMG.Watcher.HttpRPC.Adapter do
     end
   end
 
-  defp convert_keys_to_atoms(data) when is_list(data),
-    do: Enum.map(data, &convert_keys_to_atoms/1)
+  defp convert_keys_to_atoms(data) when is_list(data) do
+    Enum.map(data, &convert_keys_to_atoms/1)
+  end
 
   defp convert_keys_to_atoms(data) when is_map(data) do
     data
