@@ -23,7 +23,7 @@ defmodule OMG.WatcherInfo.BlockApplicatorTest do
   import Ecto.Query, only: [where: 2]
 
   setup do
-    eth = OMG.Eth.zero_address()
+    eth = <<0::160>>
     alice = OMG.TestHelper.generate_entity()
     tx = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{alice, 100}])
 
