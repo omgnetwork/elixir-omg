@@ -391,6 +391,9 @@ defmodule OMG.Watcher.ExitProcessor do
       )
       |> Enum.map(fn {:ok, result} -> result end)
 
+    if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
+      do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_exits!, [exits, :standard_exit, nil])
+
     {new_state, db_updates} = Core.new_exits(state, exit_maps, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end
@@ -404,13 +407,17 @@ defmodule OMG.Watcher.ExitProcessor do
       end)
 
     # Prepare events data for internal bus
-    :ok =
+    events =
       exits
-      |> Enum.map(fn %{input_utxos_pos: inputs} = event ->
+      |> Enum.map(fn %{call_data: %{input_utxos_pos: inputs}} = event ->
         {event, inputs}
       end)
       |> Tools.to_bus_events_data()
-      |> publish_internal_bus_events("InFlightExitStarted")
+
+    :ok = publish_internal_bus_events(events, :InFlightExitStarted)
+
+    if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
+      do: Kernel.apply(OMG.WatcherInfo.DB.EthEvent, :insert_exits!, [events, :in_flight_exit, :InFlightExitStarted])
 
     {:ok, statuses} = Eth.RootChain.get_in_flight_exit_structs(contract_ife_ids)
 
@@ -446,10 +453,16 @@ defmodule OMG.Watcher.ExitProcessor do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized #{Enum.count(exits)} piggybacks: #{inspect(exits)}")
     {new_state, db_updates} = Core.new_piggybacks(state, exits)
 
-    :ok =
-      exits
-      |> Tools.to_bus_events_data()
-      |> publish_internal_bus_events("InFlightTxOutputPiggybacked")
+    events = Tools.to_bus_events_data(exits)
+    :ok = publish_internal_bus_events(events, :InFlightTxOutputPiggybacked)
+
+    if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
+      do:
+        Kernel.apply(
+          OMG.WatcherInfo.DB.EthEvent,
+          :insert_exits!,
+          [events, :in_flight_exit, :InFlightTxOutputPiggybacked]
+        )
 
     {:reply, {:ok, db_updates}, new_state}
   end
@@ -503,10 +516,16 @@ defmodule OMG.Watcher.ExitProcessor do
 
     {:ok, state3, db_updates} = Core.finalize_in_flight_exits(state2, finalizations, invalidities)
 
-    :ok =
-      events_with_utxos
-      |> Tools.to_bus_events_data()
-      |> publish_internal_bus_events("InFlightExitOutputWithdrawn")
+    events = Tools.to_bus_events_data(events_with_utxos)
+    :ok = publish_internal_bus_events(events, :InFlightExitOutputWithdrawn)
+
+    if Code.ensure_loaded?(OMG.WatcherInfo.DB.EthEvent),
+      do:
+        Kernel.apply(
+          OMG.WatcherInfo.DB.EthEvent,
+          :insert_exits!,
+          [events, :in_flight_exit, :InFlightExitOutputWithdrawn]
+        )
 
     {:reply, {:ok, state_db_updates ++ db_updates}, state3}
   end
