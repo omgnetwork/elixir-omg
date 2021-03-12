@@ -74,12 +74,6 @@ commands:
     steps:
       - run: printf "%s\\n" "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-  gcloud_login:
-    steps:
-      - run: |
-          echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
-          gcloud auth configure-docker --quiet
-
   make_docker_images:
     description: Builds docker images
     steps:
@@ -132,6 +126,19 @@ commands:
               sleep 5
             done
 
+  run_test_in_docker:
+    description: "Quick test runs"
+    parameters:
+      test_command:
+        type: string
+      test_name:
+        type: string
+    steps:
+      - run:
+          name: "Docker run <<parameters.test_name>>"
+          command: |
+            docker run --rm -it --network=chain_net -e DOCKER=true -e CHILD_CHAIN_URL=http://172.27.0.108:9656/v1 -e ETHEREUM_RPC_URL=http://172.27.0.108:80 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(pwd):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && mix deps.get && <<parameters.test_command>>"
+
   install_elixir:
     description: Installs elixir and checks if docker is healthy
     steps:
@@ -158,19 +165,6 @@ commands:
       - restore_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
 
-  run_test_in_docker:
-    description: "Quick test runs"
-    parameters:
-      test_command:
-        type: string
-      test_name:
-        type: string
-    steps:
-      - run:
-          name: "Docker run <<parameters.test_name>>"
-          command: |
-            docker run --rm -it --network=project_chain_net -e DOCKER=true -e CHILD_CHAIN_URL=http://172.27.0.108:9656/v1 -e ETHEREUM_RPC_URL=http://172.27.0.108:80 -e DOCKER_GETH=true -e TEST_DATABASE_URL=postgresql://omisego_dev:omisego_dev@172.27.0.107:5432/omisego_test -e SHELL=/bin/sh -v $(pwd):/app --entrypoint /bin/sh omisegoimages/elixir-omg-builder:stable-20201207 -c "cd /app && mix deps.get && <<parameters.test_command>>"
-
   install_deps:
     description: Install linux dependencies
     steps:
@@ -191,10 +185,14 @@ commands:
       - run: |
           export LD_LIBRARY_PATH=/usr/local/lib
           export CLOUDSDK_PYTHON=/usr/bin/python
-          echo $GCP_KEY_FILE | gcloud auth activate-service-account $GCP_SERVICE_EMAIL --key-file=-
-          gcloud --quiet config set project ${GCP_PROJECT}
-          gcloud --quiet config set compute/zone ${GCP_ZONE}
-          gcloud --quiet auth configure-docker
+          wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-323.0.0-linux-x86_64.tar.gz -O gcloud-sdk.tar.gz
+            tar zxf gcloud-sdk.tar.gz google-cloud-sdk
+            mv google-cloud-sdk ~/.google-cloud-sdk
+            ~/.google-cloud-sdk/install.sh --quiet
+            echo $GCP_KEY_FILE | gcloud auth activate-service-account $GCP_SERVICE_EMAIL --key-file=-
+            gcloud --quiet config set project ${GCP_PROJECT}
+            gcloud --quiet config set compute/zone ${GCP_ZONE}
+            gcloud --quiet auth configure-docker
 
 jobs:
   barebuild:
@@ -240,8 +238,10 @@ jobs:
           source ~/.bash_profile
           asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git
           asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git
+          asdf plugin-add rust || asdf plugin-update rust
           asdf install
       - run: make init_test
+      - install_rust
       - run:
           command: ./bin/setup
           no_output_timeout: 2400
@@ -267,9 +267,11 @@ jobs:
           paths:
             - "deps_docker/"
             - "deps_docker/rocksdb"
-            - "_build_docker/"
+            - "_build_docker/test/lib/rocksdb/"
+            - "_build_docker/test/dev/rocksdb/"
             - "deps/"
-            - "_build/"
+            - "_build/test/lib/rocksdb/"
+            - "_build/test/dev/rocksdb/"
       - persist_to_workspace:
           name: Persist workspace
           root: ~/src
@@ -325,30 +327,9 @@ jobs:
             _counter=$(mix credo --only Credo.Check.Readability.SinglePipe | grep -c "Use a function call when a pipeline is only one function long")
             echo "Current Credo.Check.Readability.SinglePipe occurrences:"
             echo $_counter
-            if [ $_counter -gt 271 ]; then
+            if [ $_counter -gt 273 ]; then
               echo "Have you been naughty or nice? Find out if Santa knows."
               exit 1
-            fi
-
-
-  lint_version:
-    executor: builder
-    steps:
-      - setup_elixir-omg_workspace
-      - run:
-          command: |
-            if [ -n "$CIRCLE_TAG" ]; then
-              _tagged_version="${CIRCLE_TAG#*v}"
-              _tagged_version_ignoring_pre="${_tagged_version%%-pre.*}"
-              _filed_version="$(head -n 1 ./VERSION | sed 's/^[ \t]*//;s/[ \t]*$//')"
-
-              if [ "$_tagged_version_ignoring_pre" != "$_filed_version" ]; then
-                echo "The git tag \"${CIRCLE_TAG}\" expects the VERSION to be \"${_tagged_version_ignoring_pre}\". Got \"${_filed_version}\"."
-                exit 1
-              fi
-            else
-              echo "This build is not version-tagged. Skipping version lint."
-              exit 0
             fi
 
   sobelow:
@@ -569,12 +550,13 @@ jobs:
       - run:
           name: Compile
           command: mix compile
+      - install_rust
       - run:
           name: Integration Tests
           command: |
             # Slow, serial integration test, run nightly. Here to make sure the standard `mix test   --only integration` works
             export SHELL=/bin/bash
-            mix test   --only integration
+            mix test --only integration
 
   dialyzer:
     executor: builder_pg
@@ -621,7 +603,7 @@ jobs:
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
       EXIT_ID_SIZE: 168
-    parallelism: 4
+    parallelism: 5
     steps:
       - checkout
       - run:
@@ -634,40 +616,50 @@ jobs:
           command: |
             [ -d data ] || mkdir data && chmod 777 data
       - docker_login
-      - gcloud_login
-      - run: pip3 install docker-compose --upgrade
       - make_docker_images
       - install_and_setup_gcloud
       - run:
           name: Start daemon services
-          command: |
-            make init_test
-            cp ./localchain_contract_addresses.env ./priv/cabbage/apps/itest/localchain_contract_addresses.env
-            docker-compose -f docker-compose.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+          command: docker-compose -f docker-compose.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Log daemon services
           command: make cabbage-logs
           background: true
       - check_docker_status
-      - install_elixir
       - run: sh .circleci/status.sh
+      - restore_cache:
+          key: docker_compose_release-cabbage-{{ checksum "~/project/priv/cabbage/mix.lock" }}
       - run:
-          name: Run specs
-          environment:
-            CHILD_CHAIN_URL: http://127.0.0.1:9656/v1
-            EXIT_ID_SIZE: "168"
-            LOCALCHAIN_CONTRACT_ADDRESSES: "/home/circleci/project/localchain_contract_addresses.env"
-            PLASMA_CONTRACTS_DIR: "/home/circleci/project/data/plasma-contracts/contracts/"
-            FEE_CLAIMER_ADDRESS: "0x24F3402Cd22F03ff81B56941fE048AD0F4EED5A1"
+          no_output_timeout: 30m
           command: |
-            cd priv/cabbage
-            make install
-            make generate_api_code
-            mix deps.get
-            grep -r "@moduletag" ./apps/itest/ | awk '{print "--include " $3}' | tr -d ':' > tags.txt
-            echo $(circleci tests split ./tags.txt)
-            circleci tests split ./tags.txt > /tmp/tests-to-run
-            mix test --exclude test $(cat /tmp/tests-to-run)
+            cd ~/project/priv/cabbage
+            TESTFILES=$(circleci tests glob "apps/itest/test/itest/*_test.exs" | circleci tests split --split-by=timings --show-counts | tr '\r\n' ' ')
+            echo ${TESTFILES}
+            cd ~/project/
+            docker run --rm -it --network=chain_net \
+            --user=root \
+            -e FEE_CLAIMER_ADDRESS=0x24F3402Cd22F03ff81B56941fE048AD0F4EED5A1 \
+            -e MIX_ENV=test \
+            -e PLASMA_CONTRACTS_DIR=/app/data/plasma-contracts/contracts/ \
+            -e LOCALCHAIN_CONTRACT_ADDRESSES=/app/localchain_contract_addresses.env \
+            -e DOCKER=true \
+            -e WATCHER_URL=http://172.27.0.104:7434 \
+            -e WATCHER_INFO_URL=http://172.27.0.105:7534 \
+            -e CHILD_CHAIN_URL=http://172.27.0.108:9656/v1 \
+            -e ETHEREUM_RPC_URL=http://172.27.0.108:80 \
+            -e ETHEREUM_WS_URL=ws://172.27.0.108:81 \
+            -e EXIT_ID_SIZE=168 \
+            -e SHELL=/bin/sh \
+            -v $(pwd):/app \
+            --entrypoint /bin/sh \
+            "omisego/childchain-builder:dev-6b9e25f" -c "cd /app/priv/cabbage && apk add maven && apk add jq && make install && make generate_api_code && mix deps.get && mix test ${TESTFILES} --trace"
+      - store_test_results:
+          path: ~/project/priv/cabbage/_build/test/lib/itest/
+      - save_cache:
+          key: docker_compose_release-cabbage-{{ checksum "~/project/priv/cabbage/mix.lock" }}
+          paths:
+            - ~/project/priv/cabbage/deps
+            - ~/project/priv/cabbage/_build
 
   test_docker_compose_performance:
     description: "These are not actually performance tests, we're checking if the scripts work"
@@ -678,8 +670,7 @@ jobs:
       STATIX_TAG: "env:perf_circleci"
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
-      CHILD_CHAIN_URL: http://127.0.0.1:9656/v1
-      FEE_AMOUNT: 1
+      EXIT_ID_SIZE: 168
     steps:
       - checkout
       - run:
@@ -692,50 +683,51 @@ jobs:
       - run:
           name: Build perf docker image
           command: make docker-perf IMAGE_NAME=$PERF_IMAGE_NAME
-      - install_elixir
-      - run:
-          name: Start daemon services
-          command: |
-            cd priv/perf
-            make start-services
-      - run:
-          name: docker services logs
-          background: true
-          command: |
-            cd priv/perf
-            make log-services
-      - run: sh .circleci/status.sh
-      - run:
-          name: Run load test
-          command: |
-            cd priv/perf
-            make init
-            export $(cat ../../localchain_contract_addresses.env | xargs)
-            make test
-      - run:
-          name: Show help information
-          command: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
-      - run:
-          name: Run perf smoke test (transactions)
-          command: |
-            docker run -it --env-file ./localchain_contract_addresses.env -e CHILD_CHAIN_URL=http://localhost:9656/v1 -e FEE_AMOUNT=1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
+      # - install_elixir
+      # - run:
+      #     name: Start daemon services
+      #     command: |
+      #       cd priv/perf
+      #       make start-services
+      # - run:
+      #     name: docker services logs
+      #     background: true
+      #     command: |
+      #       cd priv/perf
+      #       make log-services
+      # - run: sh .circleci/status.sh
+      # - run:
+      #     name: Run load test
+      #     command: |
+      #       cd priv/perf
+      #       make init
+      #       export $(cat ../../localchain_contract_addresses.env | xargs)
+      #       make test
+      # - run:
+      #     name: Show help information
+      #     command: docker run -it $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- help
       - run:
           name: Run perf smoke test (deposits)
           command: |
-            docker run -it --env-file ./localchain_contract_addresses.env -e CHILD_CHAIN_URL=http://localhost:9656/v1 -e FEE_AMOUNT=1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
+            docker run -it --env-file ./localchain_contract_addresses.env -e FEE_AMOUNT=1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "deposits" 1 200
       - run:
-          name: (Perf) Format generated code and check for warnings
+          name: Run perf smoke test (transactions)
           command: |
-            cd priv/perf
-            # run format ONLY on formatted code so that it cleans up quoted atoms because
-            # we cannot exclude folders to --warnings-as-errors
-            mix format apps/*_api/lib/*_api/model/*.ex
-            export $(cat ../../localchain_contract_addresses.env | xargs)
-            make format-code-check-warnings
+            docker run -it --env-file ./localchain_contract_addresses.env -e FEE_AMOUNT=1 --env DD_API_KEY --env DD_APP_KEY --env STATIX_TAG --network host $PERF_IMAGE_NAME mix run -e "LoadTest.TestRunner.run()" -- "transactions" 1 200
+      # - run:
+      #     name: (Perf) Format generated code and check for warnings
+      #     command: |
+      #       cd priv/perf
+      #       # run format ONLY on formatted code so that it cleans up quoted atoms because
+      #       # we cannot exclude folders to --warnings-as-errors
+      #       mix format apps/*_api/lib/*_api/model/*.ex
+      #       export $(cat ../../localchain_contract_addresses.env | xargs)
+      #       make format-code-check-warnings
       - save_cache:
           key: v2-mix-specs-cache-{{ .Branch }}-{{ checksum "mix.lock" }}
           paths:
             - "priv/perf/deps"
+
       - run:
           name: (Perf) Credo and formatting
           command: |
@@ -749,7 +741,6 @@ jobs:
       REORG: true
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
-      EXIT_ID_SIZE: 168
     steps:
       - checkout
       - run:
@@ -777,7 +768,6 @@ jobs:
           command: make cabbage-logs-reorg
           background: true
       - check_docker_status
-      - install_elixir
       - run: sh .circleci/status.sh
       - run:
           name: Print watcher logs
@@ -799,21 +789,34 @@ jobs:
           name: Print reorg logs
           command: make cabbage-reorgs-logs
           background: true
+      - restore_cache:
+          key: docker_compose_release-cabbage-{{ checksum "~/project/priv/cabbage/mix.lock" }}
       - run:
-          name: Run specs
-          environment:
-            CHILD_CHAIN_URL: http://127.0.0.1:9656/v1
-            EXIT_ID_SIZE: "168"
-            LOCALCHAIN_CONTRACT_ADDRESSES: "/home/circleci/project/localchain_contract_addresses.env"
-            PLASMA_CONTRACTS_DIR: "/home/circleci/project/data/plasma-contracts/contracts/"
-            FEE_CLAIMER_ADDRESS: "0x24F3402Cd22F03ff81B56941fE048AD0F4EED5A1"
           command: |
-            cd priv/cabbage
-            make install
-            make generate_api_code
-            mix deps.get
-            mix test --only deposit --trace
-          no_output_timeout: 30m
+            cd ~/project/
+            docker run --rm -it --network=chain_net \
+            --user=root \
+            -e FEE_CLAIMER_ADDRESS=0x24F3402Cd22F03ff81B56941fE048AD0F4EED5A1 \
+            -e MIX_ENV=test \
+            -e PLASMA_CONTRACTS_DIR=/app/data/plasma-contracts/contracts/ \
+            -e LOCALCHAIN_CONTRACT_ADDRESSES=/app/localchain_contract_addresses.env \
+            -e DOCKER=true \
+            -e WATCHER_URL=http://172.27.0.104:7434 \
+            -e WATCHER_INFO_URL=http://172.27.0.105:7534 \
+            -e CHILD_CHAIN_URL=http://172.27.0.108:9656/v1 \
+            -e ETHEREUM_RPC_URL=http://172.27.0.108:80 \
+            -e ETHEREUM_WS_URL=ws://172.27.0.108:81 \
+            -e EXIT_ID_SIZE=168 \
+            -e SHELL=/bin/sh \
+            -e REORG=true \
+            -v $(pwd):/app \
+            --entrypoint /bin/sh \
+            "omisego/childchain-builder:dev-6b9e25f" -c "cd /app/priv/cabbage && apk add maven && apk add jq && make install && make generate_api_code && mix deps.get && mix test --only deposit --trace"
+      - save_cache:
+          key: docker_compose_release-cabbage-{{ checksum "~/project/priv/cabbage/mix.lock" }}
+          paths:
+            - ~/project/priv/cabbage/deps
+            - ~/project/priv/cabbage/_build
 
   test_barebone_release:
     machine:
@@ -822,6 +825,7 @@ jobs:
       TERM: xterm-256color
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
+      EXIT_ID_SIZE: 168
     steps:
       - checkout
       - run:
@@ -1068,7 +1072,7 @@ workflows:
       - integration_tests:
           requires: [build]
       - barebuild_macos
-      - test_barebone_release
+      #- test_barebone_release
   build-test-deploy:
     jobs:
       - build:
@@ -1077,12 +1081,12 @@ workflows:
               only: /.+/
             tags:
               only: /.+/
-      - test_barebone_release:
-          filters: *all_branches_and_tags
+      # - test_barebone_release:
+      #     filters: *all_branches_and_tags
       - notify_services:
-          # requires:
-          #   - increase_chart_version_watcher_master
-          #   - increase_chart_version_watcher_info_master
+          requires:
+            - increase_chart_version_watcher_master
+            - increase_chart_version_watcher_info_master
           filters:
             branches:
               only:
@@ -1104,8 +1108,8 @@ workflows:
           filters: *all_branches_and_tags
       - test_docker_compose_release:
           filters: *all_branches_and_tags
-      - test_docker_compose_performance:
-          filters: *all_branches_and_tags
+      # - test_docker_compose_performance:
+      #     filters: *all_branches_and_tags
       - test_docker_compose_reorg:
           filters:
             branches:
@@ -1115,9 +1119,6 @@ workflows:
           requires: [build]
           filters: *all_branches_and_tags
       - lint:
-          requires: [build]
-          filters: *all_branches_and_tags
-      - lint_version:
           requires: [build]
           filters: *all_branches_and_tags
       - sobelow:
@@ -1131,22 +1132,29 @@ workflows:
           filters: *all_branches_and_tags
       - property_tests:
           requires: [build]
-          filters: *all_branches_and_tags
+          filters: &master_and_version_branches_and_all_tags
+            branches:
+              only:
+                - master-v2
+                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+                - /^v[0-9]+\.[0-9]+/
+            tags:
+              only:
+                - /.+/
       - watcher_mix_based_childchain:
           filters: *all_branches_and_tags
       - publish_watcher:
           requires:
             [
-              test_barebone_release,
+             # test_barebone_release,
               test_docker_compose_release,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
               common_coveralls_and_integration_tests,
               test,
-              property_tests,
+           #   property_tests,
               dialyzer,
               lint,
-              lint_version,
               audit_deps
             ]
           filters: &master_and_version_branches_and_all_tags
@@ -1161,7 +1169,7 @@ workflows:
       - publish_watcher_info:
           requires:
             [
-              test_barebone_release,
+             # test_barebone_release,
               test_docker_compose_release,
               watcher_coveralls_and_integration_tests,
               watcher_info_coveralls_and_integration_tests,
@@ -1170,35 +1178,34 @@ workflows:
               property_tests,
               dialyzer,
               lint,
-              lint_version,
               audit_deps
             ]
           filters: *master_and_version_branches_and_all_tags
 
-      - publish_perf:
-          requires: [test_docker_compose_performance]
+      # - publish_perf:
+      #     requires: [test_docker_compose_performance]
+      #     filters:
+      #       branches:
+      #         only:
+      #           - master
+      #           # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
+      #           - /^v[0-9]+\.[0-9]+/
+      #       tags:
+      #         only:
+      #           - /.+/
+      # Increase chart version for master, this will end up trigger deployment on dev
+      - increase_chart_version_watcher_master:
+          requires: [publish_watcher, publish_watcher_info]
           filters:
             branches:
               only:
-                - master-v2
-                # vMAJOR.MINOR (e.g. v0.1, v0.2, v1.0, v2.1, etc.)
-                - /^v[0-9]+\.[0-9]+/
-            tags:
+                - master
+      - increase_chart_version_watcher_info_master:
+          requires: [publish_watcher, publish_watcher_info]
+          filters:
+            branches:
               only:
-                - /.+/
-      # Increase chart version for master, this will end up trigger deployment on dev
-      # - increase_chart_version_watcher_master:
-      #     requires: [publish_watcher, publish_watcher_info]
-      #     filters:
-      #       branches:
-      #         only:
-      #           - master-v2
-      # - increase_chart_version_watcher_info_master:
-      #     requires: [publish_watcher, publish_watcher_info]
-      #     filters:
-      #       branches:
-      #         only:
-      #           - master-v2
+                - master
       # Increase chart version for new release
       - increase_chart_version_watcher_release:
           requires: [publish_watcher, publish_watcher_info]
@@ -1212,24 +1219,23 @@ workflows:
       - increase_chart_version_watcher_info_release:
           requires: [publish_watcher, publish_watcher_info]
           filters: *only_release_tag
-      # - release:
-      #     requires: [
-      #       test_barebone_release,
-      #       test_docker_compose_release,
-      #       watcher_coveralls_and_integration_tests,
-      #       watcher_info_coveralls_and_integration_tests,
-      #       common_coveralls_and_integration_tests,
-      #       test,
-      #       property_tests,
-      #       dialyzer,
-      #       lint,
-      #       lint_version,
-      #       audit_deps
-      #     ]
-      #     context:
-      #     - shared-semantic-release
-      #     filters:
-      #       branches:
-      #         only: /^master-v2$/
-      #       tags:
-      #         ignore: /.*/
+      - release:
+          requires: [
+           # test_barebone_release,
+            test_docker_compose_release,
+            watcher_coveralls_and_integration_tests,
+            watcher_info_coveralls_and_integration_tests,
+            common_coveralls_and_integration_tests,
+            test,
+            property_tests,
+            dialyzer,
+            lint,
+            audit_deps
+          ]
+          context:
+          - shared-semantic-release
+          filters:
+            branches:
+              only: /^master-v2$/
+            tags:
+              ignore: /.*/
