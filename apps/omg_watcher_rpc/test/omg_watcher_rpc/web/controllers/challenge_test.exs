@@ -18,8 +18,6 @@ defmodule OMG.WatcherRPC.Web.Controller.ChallengeTest do
   use OMG.Fixtures
   use OMG.WatcherInfo.Fixtures
 
-  import OMG.WatcherInfo.Factory
-
   alias OMG.Utxo
   alias OMG.WatcherInfo.DB
   alias Support.WatcherHelper
