@@ -51,7 +51,7 @@ defmodule OMG.Watcher.MonitorTest do
 
   test "that a child process gets restarted after alarm is cleared" do
     child = ChildProcess.prepare_child()
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
+    {:ok, monitor_pid} = start_and_attach_a_child([Alarm, child])
     app_alarm = Alarm.ethereum_connection_error(__MODULE__)
 
     # the monitor is now started, we raise an alarm and kill it's child
@@ -85,7 +85,7 @@ defmodule OMG.Watcher.MonitorTest do
 
   test "that a child process does not get restarted if an alarm is cleared but it was not down" do
     child = ChildProcess.prepare_child()
-    {:ok, monitor_pid} = Monitor.start_link([Alarm, child])
+    {:ok, monitor_pid} = start_and_attach_a_child([Alarm, child])
     app_alarm = Alarm.ethereum_connection_error(__MODULE__)
     :ok = :alarm_handler.set_alarm(app_alarm)
     :erlang.trace(monitor_pid, true, [:receive])
@@ -100,6 +100,17 @@ defmodule OMG.Watcher.MonitorTest do
     # at this point we're just verifying that we didn't restart or start
     # another child
     assert Process.info(monitor_pid, :links) == {:links, links}
+  end
+
+  defp start_and_attach_a_child(opts) do
+    case Monitor.start_link(opts) do
+      {:ok, monitor_pid} ->
+        {:ok, monitor_pid}
+
+      {:error, {{:badmatch, {:error, {:already_started, _}}}, _}} ->
+        Process.sleep(500)
+        start_and_attach_a_child(opts)
+    end
   end
 
   defmodule ChildProcess do

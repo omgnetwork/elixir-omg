@@ -92,7 +92,12 @@ defmodule OMG.WatcherInfo.Fixtures do
        ]},
       {2000,
        [
-         OMG.TestHelper.create_recovered([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1337::256>>)
+         OMG.TestHelper.create_recovered(
+           [{1000, 1, 0, alice}],
+           @eth,
+           [{bob, 99}, {alice, 1}],
+           <<1337::256>>
+         )
        ]},
       {3000,
        [
@@ -142,25 +147,21 @@ defmodule OMG.WatcherInfo.Fixtures do
   end
 
   defp prepare_one_block({blknum, recovered_txs}) do
-    mined_block = %{
+    block_application = %{
       transactions: recovered_txs,
-      blknum: blknum,
-      blkhash: "##{blknum}",
+      number: blknum,
+      hash: <<blknum::256>>,
       timestamp: 1_540_465_606,
       eth_height: 1
     }
 
-    {:ok, pending_block} =
-      DB.PendingBlock.insert(%{
-        data: :erlang.term_to_binary(mined_block),
-        blknum: blknum
-      })
-
-    {:ok, _} = DB.Block.insert_from_pending_block(pending_block)
+    {:ok, _} = DB.Block.insert_from_block_application(block_application)
 
     recovered_txs
     |> Enum.with_index()
-    |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.tx_hash, recovered_tx} end)
+    |> Enum.map(fn {recovered_tx, txindex} ->
+      {blknum, txindex, recovered_tx.tx_hash, recovered_tx}
+    end)
   end
 
   defp ensure_web_started(module, function, args, counter) do

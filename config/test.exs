@@ -128,7 +128,7 @@ config :omg_watcher, OMG.Watcher.Tracer,
 config :omg_watcher_info, child_chain_url: System.get_env("CHILD_CHAIN_URL", "http://localhost:9656/v1")
 
 config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
-  ownership_timeout: 180_000,
+  ownership_timeout: 500_000,
   pool: Ecto.Adapters.SQL.Sandbox,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
   url: System.get_env("TEST_DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost:5432/omisego_test")

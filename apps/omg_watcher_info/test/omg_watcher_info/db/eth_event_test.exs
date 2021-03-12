@@ -264,7 +264,8 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
                    eth_height: expected_exit_eth_height
                  }
                ],
-               :standard_exit
+               :standard_exit,
+               nil
              )
 
     %{data: utxos_after_exit} = DB.TxOutput.get_utxos(address: expected_owner)
@@ -302,7 +303,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit)
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, :InFlightExitStarted)
   end
 
   @tag fixtures: [:alice, :initial_blocks]
@@ -337,7 +338,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, :InFlightExitStarted)
 
     txo1 = DB.TxOutput.get_by_position(utxo_pos1)
     assert txo1 != nil
@@ -399,7 +400,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       }
     ]
 
-    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type)
+    assert :ok = DB.EthEvent.insert_exits!(exits, expected_event_type, :InFlightExitOutputWithdrawn)
 
     assert_txoutput_spent_by_event(
       txhash1,
@@ -418,6 +419,119 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
       expected_eth_height2,
       expected_event_type
     )
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "Allows for missing output when the event explicitly allows it" do
+    max_blknum = DB.Repo.aggregate(DB.TxOutput, :max, :blknum)
+    pos_from_future = Utxo.position(max_blknum + 1, 0, 0)
+
+    exits = [
+      %{
+        root_chain_txhash: Crypto.hash(<<6::256>>),
+        log_index: 0,
+        eth_height: 0,
+        utxo_pos: Utxo.Position.encode(pos_from_future)
+      }
+    ]
+
+    assert :ok = DB.EthEvent.insert_exits!(exits, :in_flight_exit, :InFlightTxOutputPiggybacked)
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "Fails when missing output disallowed" do
+    max_blknum = DB.Repo.aggregate(DB.TxOutput, :max, :blknum)
+    pos_from_future = Utxo.position(max_blknum + 1, 0, 0)
+
+    exits = [
+      %{
+        root_chain_txhash: Crypto.hash(<<6::256>>),
+        log_index: 0,
+        eth_height: 0,
+        utxo_pos: Utxo.Position.encode(pos_from_future)
+      }
+    ]
+
+    assert_raise CaseClauseError, fn ->
+      DB.EthEvent.insert_exits!(exits, :in_flight_exit, :InFlightExitOutputWithdrawn)
+    end
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  test "deposited and exited utxo is retrievable by position", %{alice: alice} do
+    assert :ok =
+             DB.EthEvent.insert_deposits!([
+               %{
+                 root_chain_txhash: Crypto.hash(<<1000::256>>),
+                 eth_height: 1,
+                 log_index: 0,
+                 owner: alice.addr,
+                 currency: @eth,
+                 amount: 333,
+                 blknum: 1
+               }
+             ])
+
+    assert :ok =
+             DB.EthEvent.insert_exits!(
+               [
+                 %{
+                   root_chain_txhash: Crypto.hash(<<1001::256>>),
+                   eth_height: 2,
+                   log_index: 1,
+                   utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0))
+                 }
+               ],
+               :in_flight_exit,
+               :InFlightExitStarted
+             )
+
+    assert %DB.TxOutput{ethevents: events} = DB.TxOutput.get_by_position(Utxo.position(1, 0, 0))
+
+    assert [
+             %DB.EthEvent{event_type: :deposit},
+             %DB.EthEvent{event_type: :in_flight_exit}
+           ] = Enum.sort(events, &(&1.eth_height < &2.eth_height))
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "only one exit type can be associated to output which is retrievable by output_id",
+       %{initial_blocks: blocks} do
+    # Get the transaction with _unspent_ output
+    {blknum, txindex, txhash, _tx} = Enum.find(blocks, fn {blknum, _, _, _} -> blknum == 2000 end)
+    utxo_pos = Utxo.Position.encode(Utxo.position(blknum, txindex, 0))
+
+    assert :ok =
+             DB.EthEvent.insert_exits!(
+               [
+                 %{
+                   root_chain_txhash: Crypto.hash(<<1001::256>>),
+                   eth_height: 1,
+                   log_index: 0,
+                   utxo_pos: utxo_pos
+                 }
+               ],
+               :standard_exit,
+               nil
+             )
+
+    assert :ok =
+             DB.EthEvent.insert_exits!(
+               [
+                 %{
+                   root_chain_txhash: Crypto.hash(<<1002::256>>),
+                   eth_height: 2,
+                   log_index: 1,
+                   utxo_pos: utxo_pos
+                 }
+               ],
+               :in_flight_exit,
+               :InFlightExitStarted
+             )
+
+    assert %DB.TxOutput{ethevents: events} = DB.TxOutput.get_by_output_id(txhash, 0)
+
+    assert [%DB.EthEvent{event_type: :standard_exit}] = events
   end
 
   defp assert_txoutput_spent_by_event(txhash, oindex, log_index, eth_txhash, eth_height, event_type) do

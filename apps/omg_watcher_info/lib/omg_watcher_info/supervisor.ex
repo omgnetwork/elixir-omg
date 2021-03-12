@@ -21,7 +21,6 @@ defmodule OMG.WatcherInfo.Supervisor do
   use OMG.Utils.LoggerExt
 
   alias OMG.WatcherInfo
-  alias OMG.WatcherInfo.Configuration
 
   if Mix.env() == :test do
     defmodule Sandbox do
@@ -62,31 +61,8 @@ defmodule OMG.WatcherInfo.Supervisor do
         }
       ] ++ @children_run_after_repo
 
-    children = [
-      {OMG.WatcherInfo.BlockApplicationConsumer, []},
-      {OMG.WatcherInfo.PendingBlockProcessor, [processing_interval: Configuration.pending_block_processing_interval()]},
-      {OMG.WatcherInfo.PendingBlockQueueLengthChecker, [check_interval: Configuration.block_queue_check_interval()]},
-      {OMG.WatcherInfo.DepositConsumer, []},
-      Supervisor.child_spec(
-        {OMG.WatcherInfo.ExitConsumer, [topic: {:root_chain, "ExitStarted"}, event_type: :standard_exit]},
-        id: :std_exit_consumer
-      ),
-      Supervisor.child_spec(
-        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightExitStarted"}, event_type: :in_flight_exit]},
-        id: :ife_exit_consumer
-      ),
-      Supervisor.child_spec(
-        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightTxOutputPiggybacked"}, event_type: :in_flight_exit]},
-        id: :ife_exit_output_piggybacked_consumer
-      ),
-      Supervisor.child_spec(
-        {OMG.WatcherInfo.ExitConsumer, [topic: {:watcher, "InFlightExitOutputWithdrawn"}, event_type: :in_flight_exit]},
-        id: :ife_exit_processed_consumer
-      )
-    ]
-
     opts = [strategy: :one_for_one]
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(top_children ++ children, opts)
+    Supervisor.init(top_children, opts)
   end
 end

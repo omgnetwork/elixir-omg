@@ -78,7 +78,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
-        left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.blknum == ^blknum and txoutput.txindex == ^txindex and txoutput.oindex == ^oindex
       )
     )
@@ -90,7 +89,6 @@ defmodule OMG.WatcherInfo.DB.TxOutput do
     Repo.one(
       from(txoutput in __MODULE__,
         preload: [:ethevents],
-        left_join: ethevent in assoc(txoutput, :ethevents),
         where: txoutput.creating_txhash == ^txhash and txoutput.oindex == ^oindex
       )
     )
