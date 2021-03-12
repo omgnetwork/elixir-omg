@@ -409,7 +409,7 @@ defmodule OMG.Watcher.ExitProcessor do
     # Prepare events data for internal bus
     events =
       exits
-      |> Enum.map(fn %{call_data: %{input_utxos_pos: inputs}} = event ->
+      |> Enum.map(fn %{input_utxos_pos: inputs} = event ->
         {event, inputs}
       end)
       |> Tools.to_bus_events_data()
@@ -728,7 +728,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp publish_internal_bus_events([], _), do: :ok
 
-  defp publish_internal_bus_events(events_data, topic) when is_list(events_data) and is_binary(topic) do
+  defp publish_internal_bus_events(events_data, topic) when is_list(events_data) and is_atom(topic) do
     {:watcher, topic}
     |> OMG.Bus.Event.new(:data, events_data)
     |> OMG.Bus.direct_local_broadcast()
