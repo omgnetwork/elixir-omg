@@ -27,7 +27,7 @@ defmodule OMG.WatcherInfo.DB.EthEventTest do
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @default_paginator %Paginator{
     data: [],
     data_paging: %{

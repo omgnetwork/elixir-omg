@@ -57,7 +57,7 @@ defmodule LoadTest.Scenario.ManyStandardExits do
       exiter.addr
       |> LoadTest.ChildChain.Utxos.get_utxos()
       |> Enum.map(&exit_utxo(session, &1, exiter))
-      |> List.last()
+      |> List.first()
 
     last_tx_hash = session.assigned.tx_hash
     {:ok, %{"status" => "0x1", "blockNumber" => last_exit_height}} = Ethereum.transact_sync(last_tx_hash)

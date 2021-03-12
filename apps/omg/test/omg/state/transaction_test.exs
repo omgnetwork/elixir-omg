@@ -26,7 +26,7 @@ defmodule OMG.State.TransactionTest do
 
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @payment_output_type OMG.WireFormatTypes.output_type_for(:output_payment_v1)
   @utxo_positions [{20, 42, 1}, {2, 21, 0}, {1000, 0, 0}, {10_001, 0, 0}]
   @transaction Transaction.Payment.new(

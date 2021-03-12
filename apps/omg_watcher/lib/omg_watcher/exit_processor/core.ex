@@ -46,7 +46,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @default_sla_margin 10
 
-  @zero_address OMG.Eth.zero_address()
+  @zero_address <<0::160>>
 
   @max_inputs Transaction.Payment.max_inputs()
   @max_outputs Transaction.Payment.max_outputs()
@@ -127,13 +127,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     exits = db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new()
 
     exit_ids = Enum.into(exits, %{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+    in_flight_exits = db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new()
+    competitors = db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new()
 
     {:ok,
      %__MODULE__{
        exits: exits,
-       in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
+       in_flight_exits: in_flight_exits,
        exit_ids: exit_ids,
-       competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
+       competitors: competitors,
        sla_margin: sla_margin,
        min_exit_period_seconds: min_exit_period_seconds,
        child_block_interval: child_block_interval
@@ -185,16 +187,18 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       new_exits
       |> Enum.zip(exit_contract_statuses)
       |> Enum.map(fn {event, contract_status} ->
-        {ExitInfo.new_key(contract_status, event), ExitInfo.new(contract_status, event)}
+        {ExitInfo.new_key(event), ExitInfo.new(contract_status, event)}
       end)
 
-    db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
+    db_updates = Enum.map(new_exits_kv_pairs, &ExitInfo.make_db_update/1)
     new_exits_map = Map.new(new_exits_kv_pairs)
 
     new_exit_ids_map =
-      new_exits_map |> Enum.into(%{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
+      Enum.into(new_exits_map, %{}, fn {utxo_pos, %ExitInfo{exit_id: exit_id}} -> {exit_id, utxo_pos} end)
 
-    {%{state | exits: Map.merge(exits, new_exits_map), exit_ids: Map.merge(exit_ids, new_exit_ids_map)}, db_updates}
+    exits = Map.merge(exits, new_exits_map)
+    exit_ids = Map.merge(exit_ids, new_exit_ids_map)
+    {%{state | exits: exits, exit_ids: exit_ids}, db_updates}
   end
 
   defdelegate finalize_exits(state, validities), to: ExitProcessor.Finalizations
@@ -211,7 +215,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.into(%{}, fn {utxo_pos, exit_info} -> {utxo_pos, %ExitInfo{exit_info | is_active: false}} end)
 
     new_state = %{state | exits: Map.merge(exits, new_exits_kv_pairs)}
-    db_updates = new_exits_kv_pairs |> Enum.map(&ExitInfo.make_db_update/1)
+    db_updates = Enum.map(new_exits_kv_pairs, &ExitInfo.make_db_update/1)
     {new_state, db_updates}
   end
 
@@ -271,8 +275,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp append_new_competitors(%__MODULE__{competitors: competitors} = state, challenges_events) do
-    new_competitors = challenges_events |> Enum.map(&CompetitorInfo.new/1)
-    db_updates = new_competitors |> Enum.map(&CompetitorInfo.make_db_update/1)
+    new_competitors = Enum.map(challenges_events, &CompetitorInfo.new/1)
+    db_updates = Enum.map(new_competitors, &CompetitorInfo.make_db_update/1)
 
     {%{state | competitors: Map.merge(competitors, Map.new(new_competitors))}, db_updates}
   end
@@ -458,37 +462,29 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         even if the exits were eventually challenged (e.g. during syncing)
   """
   @spec check_validity(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
-  def check_validity(
-        %ExitProcessor.Request{
-          eth_height_now: eth_height_now,
-          utxos_to_check: utxos_to_check,
-          utxo_exists_result: utxo_exists_result,
-          blocks_result: blocks
-        },
-        %__MODULE__{} = state
-      )
-      when not is_nil(eth_height_now) do
-    utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
+  def check_validity(request, state) do
+    utxo_exists? = Enum.zip(request.utxos_to_check, request.utxo_exists_result) |> Map.new()
 
-    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, eth_height_now)
+    {invalid_exits, late_invalid_exits} = StandardExit.get_invalid(state, utxo_exists?, request.eth_height_now)
 
     invalid_exit_events =
       invalid_exits
       |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
 
     late_invalid_exits_events =
-      late_invalid_exits
-      |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
+      Enum.map(late_invalid_exits, fn {position, late_exit} ->
+        ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit)
+      end)
 
-    known_txs_by_input = KnownTx.get_all_from_blocks_appendix(blocks, state)
+    known_txs_by_input = KnownTx.get_all_from_blocks_appendix(request.blocks_result, state)
 
     {non_canonical_ife_events, late_non_canonical_ife_events} =
-      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, eth_height_now)
+      ExitProcessor.Canonicity.get_ife_txs_with_competitors(state, known_txs_by_input, request.eth_height_now)
 
     invalid_ife_challenges_events = ExitProcessor.Canonicity.get_invalid_ife_challenges(state)
 
     {invalid_piggybacks_events, late_invalid_piggybacks_events} =
-      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, eth_height_now)
+      ExitProcessor.Piggyback.get_invalid_piggybacks_events(state, known_txs_by_input, request.eth_height_now)
 
     available_piggybacks_events =
       state

@@ -32,7 +32,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
 
   import OMG.Watcher.ExitProcessor.TestHelper
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @late_blknum 10_000
 
   describe "sanity checks" do
@@ -132,12 +132,15 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                 in_flight_input_index: 0,
                 competing_txbytes: ^comp_txbytes,
                 competing_input_index: 1,
-                competing_sig: ^comp_signature,
+                challenge_tx_sig: ^comp_signature,
                 competing_tx_pos: Utxo.position(0, 0, 0),
                 competing_proof: ""
               }} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> Core.get_competitor_for_ife(processor, txbytes)
+               Core.get_competitor_for_ife(
+                 %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5},
+                 processor,
+                 txbytes
+               )
     end
 
     test "a competitor that's submitted as challenge to other IFE",
@@ -145,7 +148,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       # ifes in processor here aren't competitors to each other, but the challenge filed for tx2 is a competitor
       # for tx1, which is what we want to detect:
       comp = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 1, 0, alice}], [{alice, @eth, 1}])
-      {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
+      {comp_txbytes, challenge_tx_sig} = {txbytes(comp), sig(comp)}
       txbytes = Transaction.raw_txbytes(tx1)
       challenge_event = ife_challenge(tx2, comp)
       {processor, _} = Core.new_ife_challenges(processor, [challenge_event])
@@ -160,14 +163,14 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                 in_flight_txbytes: ^txbytes,
                 competing_txbytes: ^comp_txbytes,
                 competing_input_index: 0,
-                competing_sig: ^comp_signature
+                challenge_tx_sig: ^challenge_tx_sig
               }} = exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     test "a single competitor included in a block, with proof",
          %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       txbytes = txbytes(tx1)
-      {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
+      {comp_txbytes, challenge_tx_sig} = {txbytes(comp), sig(comp)}
 
       other_blknum = 3000
 
@@ -187,7 +190,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
                 in_flight_input_index: 0,
                 competing_txbytes: ^comp_txbytes,
                 competing_input_index: 1,
-                competing_sig: ^comp_signature,
+                challenge_tx_sig: ^challenge_tx_sig,
                 competing_tx_pos: Utxo.position(^other_blknum, 0, 0),
                 competing_proof: proof_bytes
               }} =
@@ -375,7 +378,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
       }
 
       challenge =
-        ife_challenge(tx1, comp, competitor_position: Utxo.position(other_blknum, 0, 0), competing_tx_input_index: 1)
+        ife_challenge(tx1, comp, competitor_position: Utxo.position(other_blknum, 0, 0), challenge_tx_input_index: 1)
 
       {processor, _} = Core.new_ife_challenges(processor, [challenge])
 
@@ -444,7 +447,7 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
     test "a competitor being signed on various positions",
          %{processor_filled: processor, transactions: [tx1 | _], alice: alice, bob: bob} do
       comp = TestHelper.create_recovered([{10, 2, 1, bob}, {1, 0, 0, alice}], [{alice, @eth, 1}])
-      comp_signature = sig(comp, 1)
+      challenge_tx_sig = sig(comp, 1)
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -452,8 +455,8 @@ defmodule OMG.Watcher.ExitProcessor.CanonicityTest do
         blocks_result: [Block.hashed_txs_at([comp], 3000)]
       }
 
-      assert {:ok, %{competing_sig: ^comp_signature}} =
-               exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes(tx1))
+      assert {:ok, %{challenge_tx_sig: ^challenge_tx_sig}} =
+               Core.get_competitor_for_ife(exit_processor_request, processor, txbytes(tx1))
     end
 
     test "a best competitor, included earliest in a block, regardless of conflicting utxo position",

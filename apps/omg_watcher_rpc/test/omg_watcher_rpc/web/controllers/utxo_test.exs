@@ -22,7 +22,7 @@ defmodule OMG.WatcherRPC.Web.Controller.UtxoTest do
   alias Support.WatcherHelper
   require Utxo
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @tag fixtures: [:phoenix_ecto_sandbox, :db_initialized]
   test "get_exit_data should return error when there is no txs in specfic block" do

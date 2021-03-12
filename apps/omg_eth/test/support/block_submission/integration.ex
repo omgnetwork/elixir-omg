@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OMG Network Pte Ltd
+# Copyright 2019-2021 OMG Network Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.RootChain.SubmitBlock do
+defmodule OMG.Eth.Support.BlockSubmission.Integration do
   @moduledoc """
   Interface to contract block submission.
   """
-  alias OMG.Eth.Blockchain.PrivateKey
+  alias OMG.Eth.Configuration
   alias OMG.Eth.Encoding
-  alias OMG.Eth.Transaction
 
   @type address :: <<_::160>>
   @type hash :: <<_::256>>
 
+  @doc """
+  Send transaction to be singed by a key managed by Ethereum node, geth or parity.
+  For geth, account must be unlocked externally.
+  If using parity, account passphrase must be provided directly or via config.
+  """
+  @spec send(binary()) :: {:ok, OMG.Eth.hash()} | {:error, any()}
+  @spec send(map()) :: {:ok, OMG.Eth.hash()} | {:error, any()}
+  def send(txmap) do
+    eth_send_transaction = Ethereumex.HttpClient.eth_send_transaction(txmap)
+
+    case eth_send_transaction do
+      {:ok, receipt_enc} -> {:ok, Encoding.from_hex(receipt_enc)}
+      other -> other
+    end
+  end
+
+  @spec submit_block(binary(), pos_integer(), pos_integer()) ::
+          {:error, binary() | atom() | map()} | {:ok, <<_::256>>}
+  def submit_block(hash, nonce, gas_price) do
+    contract = Encoding.from_hex(Configuration.contracts().plasma_framework, :mixed)
+    from = Encoding.from_hex(Configuration.authority_address(), :mixed)
+    submit(hash, nonce, gas_price, from, contract)
+  end
+
   @spec submit(
-          atom(),
           binary(),
           pos_integer(),
           pos_integer(),
@@ -33,10 +55,9 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
         ) ::
           {:error, binary() | atom() | map()}
           | {:ok, <<_::256>>}
-  def submit(backend, hash, nonce, gas_price, from, contract) do
+  def submit(hash, nonce, gas_price, from, contract) do
     # NOTE: we're not using any defaults for opts here!
     contract_transact(
-      backend,
       from,
       contract,
       "submitBlock(bytes32)",
@@ -48,31 +69,7 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
     )
   end
 
-  @spec contract_transact(atom(), address, address, binary, [any], keyword) :: {:ok, hash()} | {:error, any}
-  defp contract_transact(:infura = backend, _from, to, signature, args, opts) do
-    abi_encoded_data = ABI.encode(signature, args)
-    [nonce: nonce, gasPrice: gas_price, value: value, gas: gas_limit] = opts
-    private_key = PrivateKey.get()
-
-    transaction_data =
-      %OMG.Eth.Blockchain.Transaction{
-        data: abi_encoded_data,
-        gas_limit: gas_limit,
-        gas_price: gas_price,
-        init: <<>>,
-        nonce: nonce,
-        to: to,
-        value: value
-      }
-      |> OMG.Eth.Blockchain.Transaction.Signature.sign_transaction(private_key)
-      |> OMG.Eth.Blockchain.Transaction.serialize()
-      |> ExRLP.encode()
-      |> Base.encode16(case: :lower)
-
-    Transaction.send(backend, "0x" <> transaction_data)
-  end
-
-  defp contract_transact(backend, from, to, signature, args, opts) do
+  defp contract_transact(from, to, signature, args, opts) do
     data = encode_tx_data(signature, args)
 
     txmap =
@@ -80,7 +77,7 @@ defmodule OMG.Eth.RootChain.SubmitBlock do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    Transaction.send(backend, txmap)
+    send(txmap)
   end
 
   defp encode_tx_data(signature, args) do

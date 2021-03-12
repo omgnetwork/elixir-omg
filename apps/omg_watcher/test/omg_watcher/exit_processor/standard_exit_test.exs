@@ -26,13 +26,14 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.StandardExitIntegration
 
   require Utxo
 
   import OMG.Watcher.ExitProcessor.TestHelper,
     only: [start_ife_from: 2, start_se_from: 3, start_se_from: 4, check_validity_filtered: 3]
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @deposit_blknum 1
   @deposit_blknum2 2
@@ -545,7 +546,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
     test "can process challenged exits", %{processor_empty: processor, alice: alice} do
       # see the contract and `Eth.RootChain.get_standard_exit_structs/1` for some explanation why like this
       # this is what an exit looks like after a challenge
-      zero_status = {false, 0, 0, 0, 0, 0}
+      zero_status = StandardExitIntegration.standard_exit_struct({false, 0, 0, 0, 0, 0, 0})
       standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
       processor = processor |> start_se_from(standard_exit_tx, @utxo_pos_deposit2, status: zero_status)
 
@@ -554,7 +555,7 @@ defmodule OMG.Watcher.ExitProcessor.StandardExitTest do
                Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
       # pinning because challenge shouldn't change the already challenged exit in the processor
-      {^processor, _} = processor |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit2)}])
+      {^processor, _} = Core.challenge_exits(processor, [%{utxo_pos: Utxo.Position.encode(@utxo_pos_deposit2)}])
     end
   end
 

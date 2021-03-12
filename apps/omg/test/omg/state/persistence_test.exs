@@ -32,7 +32,7 @@ defmodule OMG.State.PersistenceTest do
 
   @fee_claimer_address Base.decode16!("DEAD000000000000000000000000000000000000")
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @interval Configuration.child_block_interval()
   @blknum1 @interval
 

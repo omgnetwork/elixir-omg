@@ -27,7 +27,8 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
 
   require OMG.Utxo
 
-  alias OMG.Eth
+  alias OMG.Eth.RootChain
+  alias OMG.Eth.Support.BlockSubmission.Integration
   alias OMG.Watcher.BlockGetter
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.BadChildChainServer
@@ -37,7 +38,7 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
   alias Support.WatcherHelper
 
   @timeout 40_000
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
 
   @moduletag :mix_based_child_chain
 
@@ -68,12 +69,14 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
     Process.sleep(12_000)
+    txindex = 0
+    oindex = 0
 
     %{
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = WatcherHelper.get_exit_data(exit_blknum, 0, 0)
+    } = WatcherHelper.get_exit_data(exit_blknum, txindex, oindex)
 
     {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
       utxo_pos
@@ -89,7 +92,9 @@ defmodule OMG.Watcher.Integration.BlockGetter1Test do
     # Here we're manually submitting invalid block to the root chain
     # NOTE: this **must** come after `start_exit` is mined (see just above) but still not later than
     #       `sla_margin` after exit start, hence the `config/test.exs` entry for the margin is rather high
-    {:ok, _} = Eth.submit_block(bad_block_hash, 2, 1)
+    gas_price = 1
+    nonce = RootChain.next_child_block() / 1000
+    {:ok, _} = Integration.submit_block(bad_block_hash, round(nonce - 1), gas_price)
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
   end

@@ -20,7 +20,7 @@ erl_crash.dump
 *.ez
 
 # Open api auto generated elixir client directories
-/apps/child_chain_api/
+/apps/childchain_api/
 /apps/watcher_info_api/
 /apps/watcher_security_critical_api/
 

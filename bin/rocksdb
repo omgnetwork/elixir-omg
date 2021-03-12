@@ -8,12 +8,12 @@ fancy_echo() {
 }
 
 install_linux_rocksdb(){
-  echo "Installing Rocksdb v6.14.5"
+  echo "Installing Rocksdb v6.15.2"
   mkdir tmp_rocksdb \
   && cd tmp_rocksdb \
   && git clone https://github.com/facebook/rocksdb.git \
   && cd rocksdb  \
-  && git checkout v6.14.5 \
+  && git checkout v6.15.2 \
   && make shared_lib \
   && sudo mkdir -p /usr/local/rocksdb/lib \
   && sudo mkdir -p /usr/local/rocksdb/include \
@@ -28,11 +28,11 @@ install_linux_rocksdb(){
 install_rocksdb_source(){
   git clone https://github.com/facebook/rocksdb.git
   cd rocksdb/
-  git checkout tags/v6.14.5
+  git checkout tags/v6.15.2
   make clean
   make static_lib
   make shared_lib
-  make install INSTALL_PATH=/usr/local/Cellar/rocksdb/6.14.5
+  make install INSTALL_PATH=/usr/local/Cellar/rocksdb/6.15.2
 }
 
 

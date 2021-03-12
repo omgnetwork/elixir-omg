@@ -2,13 +2,6 @@ defmodule OMG.WatcherRPC.Mixfile do
   use Mix.Project
 
   def project() do
-    version =
-      "git"
-      |> System.cmd(["describe", "--tags", "--abbrev=0"])
-      |> elem(0)
-      |> String.replace("v", "")
-      |> String.replace("\n", "")
-
     [
       app: :omg_watcher_rpc,
       version: version(),

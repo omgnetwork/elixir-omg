@@ -23,7 +23,7 @@ defmodule OMG.WatcherInfo.DB.BlockTest do
   alias OMG.Utils.Paginator
   alias OMG.WatcherInfo.DB
 
-  @eth OMG.Eth.zero_address()
+  @eth <<0::160>>
   @seconds_in_twenty_four_hours 86_400
 
   describe "base_query" do

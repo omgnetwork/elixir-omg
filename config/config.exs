@@ -1,4 +1,8 @@
 import Config
+
+config :ex_plasma,
+  exit_id_size: 168
+
 ethereum_events_check_interval_ms = 8_000
 
 config :logger, level: :info
@@ -142,7 +146,7 @@ config :omg_watcher, OMG.Watcher.Tracer,
   type: :omg_watcher
 
 config :omg_watcher_info,
-  child_chain_url: "http://localhost:9656",
+  child_chain_url: "http://localhost:9656/v1",
   namespace: OMG.WatcherInfo,
   ecto_repos: [OMG.WatcherInfo.DB.Repo],
   metrics_collection_interval: 60_000

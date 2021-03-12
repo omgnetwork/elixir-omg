@@ -23,7 +23,7 @@ defmodule OMG.RootChain.EventTest do
     assert Event.get_events([:deposit_created, :in_flight_exit_challenged, :in_flight_exit_started]) == [
              "DepositCreated(address,uint256,address,uint256)",
              "InFlightExitChallenged(address,bytes32,uint256,uint16,bytes,uint16,bytes)",
-             "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[])"
+             "InFlightExitStarted(address,bytes32,bytes,uint256[],bytes[],bytes[])"
            ]
   end
 end

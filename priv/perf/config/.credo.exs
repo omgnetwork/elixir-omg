@@ -27,7 +27,7 @@
           ~r"/deps/",
           ~r"/node_modules/",
           ~r"/results/",
-          ~r"/apps/child_chain_api",
+          ~r"/apps/childchain_api",
           ~r"/apps/watcher_security_critical_api",
           ~r"/apps/watcher_info_api"
         ]

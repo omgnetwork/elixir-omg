@@ -72,11 +72,9 @@ defmodule OMG.Eth.RootChain do
   """
   def get_standard_exit_structs(exit_ids) do
     contract = Configuration.contracts().payment_exit_game
+    %{"exit_ids" => exit_ids} = get_external_data(contract, "standardExits(uint168[])", [exit_ids])
 
-    %{"standard_exit_structs" => standard_exit_structs} =
-      get_external_data(contract, "standardExits(uint168[])", [exit_ids])
-
-    {:ok, standard_exit_structs}
+    {:ok, exit_ids}
   end
 
   @doc """
@@ -84,9 +82,9 @@ defmodule OMG.Eth.RootChain do
   """
   def get_in_flight_exit_structs(in_flight_exit_ids) do
     contract = Configuration.contracts().payment_exit_game
+    data = get_external_data(contract, "inFlightExits(uint168[])", [in_flight_exit_ids])
 
-    %{"in_flight_exit_structs" => in_flight_exit_structs} =
-      get_external_data(contract, "inFlightExits(uint168[])", [in_flight_exit_ids])
+    %{"in_flight_exit_structs" => in_flight_exit_structs} = data
 
     {:ok, in_flight_exit_structs}
   end
@@ -115,6 +113,7 @@ defmodule OMG.Eth.RootChain do
 
   defp get_external_data(contract_address, signature, args) do
     {:ok, data} = Rpc.call_contract(contract_address, signature, args)
+
     Abi.decode_function(data, signature)
   end
 end
