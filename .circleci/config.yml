@@ -603,6 +603,7 @@ jobs:
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
       EXIT_ID_SIZE: 168
+      LOCALCHAIN_CONTRACT_ADDRESSES: ~/project/localchain_contract_addresses.env
     parallelism: 5
     steps:
       - checkout
@@ -620,7 +621,7 @@ jobs:
       - install_and_setup_gcloud
       - run:
           name: Start daemon services
-          command: docker-compose -f docker-compose.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
+          command: make init_test && docker-compose -f docker-compose.yml -f docker-compose.specs.yml up -d || (START_RESULT=$?; docker-compose logs; exit $START_RESULT;)
       - run:
           name: Log daemon services
           command: make cabbage-logs
