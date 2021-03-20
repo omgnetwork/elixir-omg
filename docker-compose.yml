@@ -110,7 +110,7 @@ services:
         ipv4_address: 172.27.0.103
 
   geth:
-    image: ethereum/client-go:v1.9.12
+    image: ethereum/client-go:v1.10.1
     entrypoint: /bin/sh -c ". data/command"
     environment:
       RPC_PORT: 8545
