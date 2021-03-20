@@ -87,7 +87,6 @@ defmodule OMG.Umbrella.MixProject do
             {OMG.WatcherRPC.ReleaseTasks.SetEndpoint, []},
             {OMG.WatcherRPC.ReleaseTasks.SetTracer, []},
             {OMG.WatcherRPC.ReleaseTasks.SetApiMode, :watcher_info},
-            {OMG.WatcherInfo.ReleaseTasks.SetChildChain, []},
             {OMG.Watcher.ReleaseTasks.SetExitProcessorSLAMargin, []},
             {OMG.Watcher.ReleaseTasks.SetTracer, []},
             {OMG.Watcher.ReleaseTasks.SetApplication, [release: :watcher_info, current_version: current_version()]},
