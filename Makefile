@@ -345,12 +345,12 @@ cabbage-reorgs-logs:
 
 ###OTHER
 docker-start-cluster:
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	SNAPSHOT=SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
 docker-build-start-cluster:
 	$(MAKE) docker-build
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	SNAPSHOT=SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
 docker-stop-cluster: localchain_contract_addresses.env
@@ -397,7 +397,7 @@ docker-remote-watcher_info:
 ### barebone stuff
 ###
 start-services:
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	SNAPSHOT=SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose -f ./docker-compose.yml up feefeed geth nginx postgres
 
 start-watcher:
