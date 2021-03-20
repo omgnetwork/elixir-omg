@@ -1,4 +1,4 @@
-# Copyright 2019-2020 OMG Network Pte Ltd
+# Copyright 2019-2020 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -114,33 +114,26 @@ defmodule Support.Conformance.SignaturesHashes do
   defp elixir_hash(%{} = tx), do: OMG.TypedDataHash.hash_struct(tx)
   defp elixir_hash(encoded_tx), do: encoded_tx |> Transaction.decode!() |> elixir_hash()
 
-  defp assert_contract_reverted(result) do
-    Application.fetch_env!(:omg_eth, :eth_node)
-    |> case do
-      :ganache ->
-        assert {:error, %{"data" => error_data}} = result
-        # NOTE one can use the "reason" field in here to make sure what caused the revert. Only with ganache
-        assert [%{"error" => "revert"} | _] = Map.values(error_data)
-
-      :geth ->
-        # `geth` is problematic - on a revert from `call_contract` it returns something resembling a reason
-        # binary (beginning with 4-byte function selector). We need to assume that this is in fact a revert
-        {:ok, chopped_reason_binary_result} = result
-        assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
-    end
+  defp assert_contract_reverted({:error, %{"message" => "execution reverted: " <> _other}}) do
+    :ok
   end
 
   defp call_contract(contract, signature, args, return_types) do
     data = ABI.encode(signature, args)
 
-    {:ok, return} =
-      Ethereumex.HttpClient.eth_call(%{
-        from: Encoding.to_hex(contract),
-        to: Encoding.to_hex(contract),
-        data: Encoding.to_hex(data)
-      })
+    call = %{
+      from: Encoding.to_hex(contract),
+      to: Encoding.to_hex(contract),
+      data: Encoding.to_hex(data)
+    }
 
-    decode_answer(return, return_types)
+    case Ethereumex.HttpClient.eth_call(call) do
+      {:ok, return} ->
+        decode_answer(return, return_types)
+
+      {:error, _data} = error ->
+        error
+    end
   end
 
   defp decode_answer(enc_return, return_types) do
