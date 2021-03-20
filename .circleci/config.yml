@@ -102,7 +102,7 @@ commands:
             [ -d data ] || mkdir data && chmod 777 data
       - run:
           name: Pull down snapshot
-          command: SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20 make init_test
+          command: SNAPSHOT=SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_20 make init_test
       - run: |
           echo -e "FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.test.json\n$(cat fees_setup.env)" > fees_setup.env
           echo "FEE_SPECS_FILE_PATH=/dev-artifacts/fee_specs.test.json" >> fees_setup.env
