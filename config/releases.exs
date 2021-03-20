@@ -40,7 +40,7 @@ config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   queue_interval: String.to_integer(System.get_env("WATCHER_INFO_DB_POOL_QUEUE_INTERVAL_MS") || "1000")
 
 config :omg_watcher,
-  child_chain_url: mandatory.("CHILD_CHAIN_URL", "CHILD_CHAIN_URL needs to be set.", watcher_info?.(), false),
+  child_chain_url: mandatory.("CHILD_CHAIN_URL", "CHILD_CHAIN_URL needs to be set.", watcher_info?.(), false)
 
 config :omg_watcher_info,
   child_chain_url: mandatory.("CHILD_CHAIN_URL", "CHILD_CHAIN_URL needs to be set.", watcher_info?.(), true)
