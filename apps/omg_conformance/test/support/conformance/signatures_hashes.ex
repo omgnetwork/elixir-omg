@@ -108,11 +108,19 @@ defmodule Support.Conformance.SignaturesHashes do
   #       revert, when using `:geth` Ethereum node. If an assertion fails with such a result, it indicates the contract
   #       rejected some transaction to signhash unexpectedly.
   defp solidity_hash(encoded_tx, contract) when is_binary(encoded_tx) do
-    call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}])
+    IO.inspect(call_contract(contract, "hashTx(address,bytes)", [contract, encoded_tx], [{:bytes, 32}]),
+      label: "solidity_hash"
+    )
   end
 
-  defp elixir_hash(%{} = tx), do: OMG.TypedDataHash.hash_struct(tx)
-  defp elixir_hash(encoded_tx), do: encoded_tx |> Transaction.decode!() |> elixir_hash()
+  defp elixir_hash(%{} = tx) do
+    IO.inspect("yoasdf")
+    OMG.TypedDataHash.hash_struct(tx)
+  end
+
+  defp elixir_hash(encoded_tx) do
+    encoded_tx |> Transaction.decode!() |> elixir_hash()
+  end
 
   defp assert_contract_reverted({:error, %{"message" => "execution reverted: " <> _other}}) do
     :ok

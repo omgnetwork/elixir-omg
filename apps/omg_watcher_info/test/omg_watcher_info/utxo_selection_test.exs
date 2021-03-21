@@ -167,7 +167,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
   describe "add_utxos_for_stealth_merge/2" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns selected UTXOs with no additions if the maximum has already been selected" do
-      for _i <- 1..5 do
+      for _i <- 1..6 do
         _ = insert(:txoutput, owner: @alice)
       end
 
@@ -198,7 +198,7 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "adds UTXOs until the limit is reached in the case of one currency" do
-      for _i <- 1..5 do
+      for _i <- 1..6 do
         _ = insert(:txoutput, owner: @alice)
       end
 

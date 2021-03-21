@@ -356,7 +356,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
       assert {:error, :too_many_inputs} =
                good_tx_rlp_items()
-               |> List.replace_at(inputs_index_in_rlp, List.duplicate(input, 5))
+               |> List.replace_at(inputs_index_in_rlp, List.duplicate(input, 6))
                |> ExRLP.encode()
                |> Transaction.Recovered.recover_from()
     end
@@ -530,7 +530,7 @@ defmodule OMG.State.Transaction.RecoveredTest do
 
       assert {:error, :too_many_outputs} =
                good_tx_rlp_items()
-               |> List.replace_at(outputs_index_in_rlp, List.duplicate(output, 5))
+               |> List.replace_at(outputs_index_in_rlp, List.duplicate(output, 6))
                |> ExRLP.encode()
                |> Transaction.Recovered.recover_from()
     end

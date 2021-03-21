@@ -43,8 +43,8 @@ defmodule OMG.State.Transaction.Payment do
 
   @type currency() :: Crypto.address_t()
 
-  @max_inputs 4
-  @max_outputs 4
+  @max_inputs 5
+  @max_outputs 5
 
   defmacro max_inputs() do
     quote do

@@ -191,8 +191,8 @@ defmodule OMG.TypedDataHashTest do
 
       assert "Transaction(" <>
                "uint256 txType," <>
-               "Input input0,Input input1,Input input2,Input input3," <>
-               "Output output0,Output output1,Output output2,Output output3," <>
+               "Input input0,Input input1,Input input2,Input input3,Input input4," <>
+               "Output output0,Output output1,Output output2,Output output3,Output output4," <>
                "uint256 txData,bytes32 metadata)" ==
                TypedDataHash.Types.encode_type(:Transaction)
 

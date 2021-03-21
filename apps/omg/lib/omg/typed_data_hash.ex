@@ -45,13 +45,13 @@ defmodule OMG.TypedDataHash do
   Computes a hash of encoded transaction as defined in EIP-712
   """
   @spec hash_struct(Transaction.Payment.t(), Crypto.domain_separator_t()) :: Crypto.hash_t()
-  def hash_struct(%Transaction.Payment{} = raw_tx, domain_separator \\ nil) do
+  def hash_struct(raw_tx, domain_separator \\ nil) do
     domain_separator = domain_separator || __MODULE__.Config.domain_separator_from_config()
     Crypto.hash(@eip_191_prefix <> domain_separator <> hash_transaction(raw_tx))
   end
 
   @spec hash_transaction(Transaction.Payment.t()) :: Crypto.hash_t()
-  def hash_transaction(%Transaction.Payment{} = raw_tx) do
+  def hash_transaction(raw_tx) do
     __MODULE__.Tools.hash_transaction(
       raw_tx.tx_type,
       Transaction.get_inputs(raw_tx),

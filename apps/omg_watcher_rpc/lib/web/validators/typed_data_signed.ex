@@ -22,6 +22,8 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
   alias OMG.Utils.HttpRPC.Validator.Base
   import OMG.Utils.HttpRPC.Validator.Base
 
+  require Transaction.Payment
+
   @doc """
   Parses and validates request body for /transaction.submit_typed`
   """
@@ -81,8 +83,6 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
   @spec parse_inputs(map()) :: [{integer(), integer(), integer()}] | {:error, any()}
   defp parse_inputs(message) do
-    require Transaction.Payment
-
     0..(Transaction.Payment.max_inputs() - 1)
     |> Enum.map(fn i -> expect(message, "input#{i}", map: &parse_input/1) end)
     |> Enum.reject(&empty_input?/1)
@@ -100,8 +100,6 @@ defmodule OMG.WatcherRPC.Web.Validator.TypedDataSigned do
 
   @spec parse_outputs(map()) :: [{OMG.Crypto.address_t(), OMG.Crypto.address_t(), integer()}] | {:error, any()}
   defp parse_outputs(message) do
-    require Transaction.Payment
-
     0..(Transaction.Payment.max_outputs() - 1)
     |> Enum.map(fn i -> expect(message, "output#{i}", map: &parse_output/1) end)
     |> Enum.reject(&empty_output?/1)

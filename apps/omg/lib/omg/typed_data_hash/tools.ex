@@ -24,6 +24,7 @@ defmodule OMG.TypedDataHash.Tools do
   alias OMG.TypedDataHash.Types
   alias OMG.Utxo
 
+  require Transaction.Payment
   require Utxo
 
   @type eip712_domain_t() :: %{
@@ -78,8 +79,6 @@ defmodule OMG.TypedDataHash.Tools do
           Crypto.hash_t()
         ) :: Crypto.hash_t()
   def hash_transaction(plasma_framework_tx_type, inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
-    require Transaction.Payment
-
     raw_encoded_tx_type = ABI.TypeEncoder.encode_raw([plasma_framework_tx_type], [{:uint, 256}])
 
     input_hashes =

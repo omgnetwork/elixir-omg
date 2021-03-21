@@ -60,7 +60,7 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
       "name" => network,
       "version" => "1",
       "salt" => Encoding.to_hex(<<0::256>>),
-      "verifyingContract" => @ari_network_address |> Encoding.to_hex()
+      "verifyingContract" => Encoding.to_hex(@ari_network_address)
     }
   end
 

@@ -39,7 +39,7 @@ defmodule OMG.Watcher.ExitProcessor.PiggybackTest do
   describe "sanity checks" do
     test "throwing when unknown piggyback events arrive", %{processor_filled: processor, ife_tx_hashes: [ife_id | _]} do
       non_existent_exit_id = <<0>>
-      index_beyond_bound = 4
+      index_beyond_bound = 5
       catch_error(piggyback_ife_from(processor, non_existent_exit_id, 0, :input))
       catch_error(piggyback_ife_from(processor, ife_id, index_beyond_bound, :output))
       # cannot piggyback twice the same output
