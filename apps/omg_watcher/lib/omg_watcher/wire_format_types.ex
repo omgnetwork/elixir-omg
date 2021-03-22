@@ -44,8 +44,8 @@ defmodule OMG.Watcher.WireFormatTypes do
   }
 
   @output_type_modules %{
-    1 => OMG.Watcher.Output,
-    2 => OMG.Watcher.Output
+    1 => OMG.Output,
+    2 => OMG.Output
   }
 
   @known_tx_types Map.keys(@tx_type_values)

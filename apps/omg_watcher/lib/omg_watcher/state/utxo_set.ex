@@ -26,7 +26,7 @@ defmodule OMG.Watcher.State.UtxoSet do
 
   alias OMG.Watcher.Crypto
 
-  alias OMG.Watcher.Output
+  alias OMG.Output
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
 

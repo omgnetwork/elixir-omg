@@ -12,12 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Output do
+defmodule OMG.Output do
   @moduledoc """
-  `OMG.Watcher.Output` and `OMG.Watcher.Output.Protocol` represent the outputs of transactions, i.e. the valuables or other pieces of
+   `OMG.Output` and `OMG.Output.Protocol` represent the outputs of transactions, i.e. the valuables or other pieces of
   data spendable via transactions on the child chain, and/or exitable to the root chain.
 
   This module specificially dispatches generic calls to the various specific types
+
+
+
+
+
+  THIS IS WHAT HAPPENS IF YOU STORE ELIXIR STRUCTS IN A DATABASE
+
+  This struct is binary encoded into RocksDB, so when we call `:erlang.binary_to_term(encoded, [:safe])`
+  for old outputs stored, it expects this struct to exist.
+  Just make sure they do the same thing!!!
+
   """
   alias OMG.Watcher.Crypto
   alias OMG.Watcher.RawData

@@ -20,6 +20,7 @@ defmodule OMG.Watcher.State.MeasurementCalculationTest do
   use ExUnit.Case, async: true
 
   alias OMG.Eth.Encoding
+  alias OMG.Output
   alias OMG.Watcher.State.Core
   alias OMG.Watcher.Utxo
 
@@ -32,16 +33,16 @@ defmodule OMG.Watcher.State.MeasurementCalculationTest do
   test "calculate metrics from state", %{alice: alice, bob: bob, carol: carol} do
     utxos = %{
       Utxo.position(2_000, 4076, 3) => %OMG.Watcher.Utxo{
-        output: %OMG.Watcher.Output{amount: 700_000_000, currency: @eth, owner: alice}
+        output: %Output{amount: 700_000_000, currency: @eth, owner: alice}
       },
       Utxo.position(1_000, 2559, 0) => %OMG.Watcher.Utxo{
-        output: %OMG.Watcher.Output{amount: 111_111_111, currency: @not_eth, owner: alice}
+        output: %Output{amount: 111_111_111, currency: @not_eth, owner: alice}
       },
       Utxo.position(8_000, 4854, 2) => %OMG.Watcher.Utxo{
-        output: %OMG.Watcher.Output{amount: 77_000_000, currency: @eth, owner: bob}
+        output: %Output{amount: 77_000_000, currency: @eth, owner: bob}
       },
       Utxo.position(7_000, 4057, 3) => %OMG.Watcher.Utxo{
-        output: %OMG.Watcher.Output{amount: 222_222_222, currency: @not_eth, owner: carol}
+        output: %Output{amount: 222_222_222, currency: @not_eth, owner: carol}
       },
       Utxo.position(7_000, 4057, 4) => %OMG.Watcher.Utxo{output: %{}}
     }

@@ -20,7 +20,7 @@ defmodule OMG.Watcher.State.Transaction.Payment do
   """
   alias OMG.Watcher.Crypto
 
-  alias OMG.Watcher.Output
+  alias OMG.Output
   alias OMG.Watcher.RawData
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
@@ -155,7 +155,7 @@ defmodule OMG.Watcher.State.Transaction.Payment do
 end
 
 defimpl OMG.Watcher.State.Transaction.Protocol, for: OMG.Watcher.State.Transaction.Payment do
-  alias OMG.Watcher.Output
+  alias OMG.Output
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
 
@@ -173,7 +173,7 @@ defimpl OMG.Watcher.State.Transaction.Protocol, for: OMG.Watcher.State.Transacti
       do: [
         tx_type,
         Enum.map(inputs, &OMG.Watcher.Utxo.Position.get_data_for_rlp/1),
-        Enum.map(outputs, &OMG.Watcher.Output.get_data_for_rlp/1),
+        Enum.map(outputs, &Output.get_data_for_rlp/1),
         # used to be optional and as such was `if`-appended if not null here
         # When it is not optional, and there's the if, dialyzer complains about the if
         0,

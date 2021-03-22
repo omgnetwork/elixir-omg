@@ -25,6 +25,7 @@ defmodule OMG.Watcher.State.CoreTest do
   require OMG.Watcher.Utxo
 
   alias OMG.Eth.Configuration
+  alias OMG.Output
   alias OMG.Watcher.Block
   alias OMG.Watcher.Fees
   alias OMG.Watcher.State.Core
@@ -1120,6 +1121,6 @@ defmodule OMG.Watcher.State.CoreTest do
   defp to_utxo_kv({blknum, txindex, oindex, owner, currency, amount}),
     do: {
       Utxo.position(blknum, txindex, oindex),
-      %Utxo{output: %OMG.Watcher.Output{amount: amount, currency: currency, owner: owner.addr}}
+      %Utxo{output: %Output{amount: amount, currency: currency, owner: owner.addr}}
     }
 end

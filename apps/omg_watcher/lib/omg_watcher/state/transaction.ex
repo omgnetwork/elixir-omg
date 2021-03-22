@@ -131,7 +131,7 @@ defprotocol OMG.Watcher.State.Transaction.Protocol do
   Should be implemented for any type of transaction processed in the system
   """
 
-  alias OMG.Watcher.Output
+  alias OMG.Output
   alias OMG.Watcher.State.Transaction
 
   @doc """

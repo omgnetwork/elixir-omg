@@ -17,6 +17,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
   Module provides API for compose exit
   """
 
+  alias OMG.Output
   alias OMG.Watcher.Block
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
@@ -47,7 +48,7 @@ defmodule OMG.Watcher.UtxoExit.Core do
   def compose_deposit_standard_exit({:ok, {db_utxo_pos, db_utxo_value}}) do
     utxo_pos = Position.from_db_key(db_utxo_pos)
 
-    %Utxo{output: %OMG.Watcher.Output{amount: amount, currency: currency, owner: owner}} =
+    %Utxo{output: %Output{amount: amount, currency: currency, owner: owner}} =
       Utxo.from_db_value(db_utxo_value)
 
     tx = Transaction.Payment.new([], [{owner, currency, amount}])

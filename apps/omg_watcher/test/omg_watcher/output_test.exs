@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.Watcher.OutputTest do
+defmodule OMG.OutputTest do
   @moduledoc false
 
   use ExUnit.Case, async: true
-  doctest OMG.Watcher.Output
+  alias OMG.Output
+  doctest OMG.Output
 
   describe "reconstruct/1" do
     test "returns an error if the output guard is invalid" do
@@ -28,12 +29,12 @@ defmodule OMG.Watcher.OutputTest do
         ]
       ]
 
-      assert {:error, :output_guard_cant_be_zero} = OMG.Watcher.Output.reconstruct(rlp_data)
+      assert {:error, :output_guard_cant_be_zero} = Output.reconstruct(rlp_data)
     end
 
     test "returns an error if the output is malformed" do
       rlp_data = []
-      assert {:error, :malformed_outputs} = OMG.Watcher.Output.reconstruct(rlp_data)
+      assert {:error, :malformed_outputs} = Output.reconstruct(rlp_data)
     end
   end
 end
