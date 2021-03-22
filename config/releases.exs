@@ -13,14 +13,26 @@ import Config
 # third argument is if this is a watcher info resolver
 # fourth argument is whether this is a watcher info specific configuration
 mandatory = fn
+  env_var_name, _exception, false, true ->
+    # this case covers a watcher info setting
+    # under watcher security application
+    # it's ok if the env var is missing
+    case System.get_env(env_var_name) do
+      nil -> "WATCHER_INFO_SETTING"
+      data -> data
+    end
+
   env_var_name, exception, true, true ->
     case System.get_env(env_var_name) do
       nil -> throw(exception)
       data -> data
     end
 
-  env_var_name, _, _, _ ->
-    "WATCHER_INFO config #{env_var_name} in WATCHER SECURITY"
+  env_var_name, exception, _, false ->
+    case System.get_env(env_var_name) do
+      nil -> throw(exception)
+      data -> data
+    end
 end
 
 watcher_info? = fn -> Code.ensure_loaded?(OMG.WatcherInfo) end
@@ -35,3 +47,9 @@ config :omg_watcher_info, OMG.WatcherInfo.DB.Repo,
   # See: https://hexdocs.pm/db_connection/DBConnection.html#start_link/2-queue-config
   queue_target: String.to_integer(System.get_env("WATCHER_INFO_DB_POOL_QUEUE_TARGET_MS") || "50"),
   queue_interval: String.to_integer(System.get_env("WATCHER_INFO_DB_POOL_QUEUE_INTERVAL_MS") || "1000")
+
+config :omg_watcher,
+  child_chain_url: mandatory.("CHILD_CHAIN_URL", "CHILD_CHAIN_URL needs to be set.", watcher_info?.(), false)
+
+config :omg_watcher_info,
+  child_chain_url: mandatory.("CHILD_CHAIN_URL", "CHILD_CHAIN_URL needs to be set.", watcher_info?.(), true)
