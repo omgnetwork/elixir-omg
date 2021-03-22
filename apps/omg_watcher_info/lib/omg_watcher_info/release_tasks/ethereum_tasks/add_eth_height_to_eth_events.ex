@@ -30,7 +30,6 @@ defmodule OMG.WatcherInfo.ReleaseTasks.EthereumTasks.AddEthereumHeightToEthEvent
   @max_db_rows 100
   @max_eth_requests 25
 
-  @decorate trace(service: :ecto, type: :db, tracer: OMG.WatcherInfo.Tracer)
   def run() do
     Logger.info("Running: Add `eth_height` to `eth_events`")
 
