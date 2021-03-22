@@ -13,6 +13,15 @@ import Config
 # third argument is if this is a watcher info resolver
 # fourth argument is whether this is a watcher info specific configuration
 mandatory = fn
+  env_var_name, _exception, false, true ->
+    # this case covers a watcher info setting
+    # under watcher security application
+    # it's ok if the env var is missing
+    case System.get_env(env_var_name) do
+      nil -> "WATCHER_INFO_SETTING"
+      data -> data
+    end
+
   env_var_name, exception, true, true ->
     case System.get_env(env_var_name) do
       nil -> throw(exception)
