@@ -602,6 +602,7 @@ jobs:
       SNAPSHOT: SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
+      CHILD_CHAIN_URL: "http://localhost:9656"
     parallelism: 5
     steps:
       - checkout
