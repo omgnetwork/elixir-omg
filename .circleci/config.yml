@@ -603,6 +603,7 @@ jobs:
       LD_LIBRARY_PATH: /usr/local/lib
       CLOUDSDK_PYTHON: /usr/bin/python
       CHILD_CHAIN_URL: "http://localhost:9656"
+      FEE_CLAIMER_ADDRESS: "0x3b9f4c1dd26e0be593373b1d36cee2008cbeb837"
     parallelism: 5
     steps:
       - checkout
