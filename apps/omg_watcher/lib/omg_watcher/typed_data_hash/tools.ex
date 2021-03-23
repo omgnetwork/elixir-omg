@@ -18,8 +18,8 @@ defmodule OMG.Watcher.TypedDataHash.Tools do
   See also: http://eips.ethereum.org/EIPS/eip-712
   """
 
+  alias OMG.Output
   alias OMG.Watcher.Crypto
-  alias OMG.Watcher.Output
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.TypedDataHash.Types
   alias OMG.Watcher.Utxo

@@ -61,10 +61,10 @@ defmodule OMG.Watcher.State.Core do
     fee_claiming_started: false
   ]
 
+  alias OMG.Output
   alias OMG.Watcher.Block
   alias OMG.Watcher.Crypto
   alias OMG.Watcher.Fees
-  alias OMG.Watcher.Output
   alias OMG.Watcher.State.Core
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.State.Transaction.Validator

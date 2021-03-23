@@ -18,8 +18,8 @@ defmodule OMG.Watcher.TypedDataHash do
   for structured transaction data. These `struct_txhash`es are later used as digest to sign and recover signatures.
   """
 
+  alias OMG.Output
   alias OMG.Watcher.Crypto
-  alias OMG.Watcher.Output
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
 

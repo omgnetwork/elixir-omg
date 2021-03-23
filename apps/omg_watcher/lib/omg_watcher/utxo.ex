@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Utxo do
   Manipulates a single unspent transaction output (UTXO) held be the child chain state.
   """
 
-  alias OMG.Watcher.Output
+  alias OMG.Output
   alias OMG.Watcher.State.Transaction
 
   defstruct [:output, :creating_txhash]
@@ -42,26 +42,26 @@ defmodule OMG.Watcher.Utxo do
   def to_db_value(%__MODULE__{output: output, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
     %{creating_txhash: creating_txhash}
-    |> Map.put(:output, OMG.Watcher.Output.to_db_value(output))
+    |> Map.put(:output, Output.to_db_value(output))
   end
 
   def from_db_value(%{output: output, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
     value = %{
-      output: OMG.Watcher.Output.from_db_value(output),
+      output: Output.from_db_value(output),
       creating_txhash: creating_txhash
     }
 
     struct!(__MODULE__, value)
   end
 
-  # Reading from old db format, only `OMG.Watcher.Output.FungibleMoreVPToken`
+  # Reading from old db format, only `OMG.Output.FungibleMoreVPToken`
   def from_db_value(%{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
       when is_nil_or_binary(creating_txhash) do
     output = %{owner: owner, currency: currency, amount: amount}
 
     value = %{
-      output: OMG.Watcher.Output.from_db_value(output),
+      output: Output.from_db_value(output),
       creating_txhash: creating_txhash
     }
 

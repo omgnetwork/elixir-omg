@@ -19,7 +19,7 @@ defmodule OMG.Watcher.MergeTransactionValidator do
   to know by the child chain to not require the transaction fees.
   """
 
-  alias OMG.Watcher.Output
+  alias OMG.Output
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.Utxo
 

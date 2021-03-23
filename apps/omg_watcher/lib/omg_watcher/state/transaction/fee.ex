@@ -16,8 +16,8 @@ defmodule OMG.Watcher.State.Transaction.Fee do
   @moduledoc """
   Internal representation of a fee claiming transaction in plasma chain.
   """
+  alias OMG.Output
   alias OMG.Watcher.Crypto
-  alias OMG.Watcher.Output
   alias OMG.Watcher.State.Transaction
 
   require Transaction
@@ -99,7 +99,7 @@ defmodule OMG.Watcher.State.Transaction.Fee do
 end
 
 defimpl OMG.Watcher.State.Transaction.Protocol, for: OMG.Watcher.State.Transaction.Fee do
-  alias OMG.Watcher.Output
+  alias OMG.Output
   alias OMG.Watcher.State.Transaction
 
   @doc """
@@ -109,7 +109,7 @@ defimpl OMG.Watcher.State.Transaction.Protocol, for: OMG.Watcher.State.Transacti
   def get_data_for_rlp(%Transaction.Fee{tx_type: tx_type, outputs: outputs, nonce: nonce}) do
     [
       tx_type,
-      Enum.map(outputs, &OMG.Watcher.Output.get_data_for_rlp/1),
+      Enum.map(outputs, &Output.get_data_for_rlp/1),
       nonce
     ]
   end

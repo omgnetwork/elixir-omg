@@ -18,8 +18,8 @@ defmodule OMG.Watcher.State.Transaction.Validator.Payment do
   Specific transaction type's validation is passed to `Transaction.Protocol.can_apply?`
   """
 
+  alias OMG.Output
   alias OMG.Watcher.Fees
-  alias OMG.Watcher.Output
   alias OMG.Watcher.State.Core
   alias OMG.Watcher.State.Transaction
   alias OMG.Watcher.State.UtxoSet
@@ -71,5 +71,5 @@ defmodule OMG.Watcher.State.Transaction.Validator.Payment do
     |> if(do: :ok, else: {:error, :unauthorized_spend})
   end
 
-  defp can_spend?(%OMG.Watcher.Output{owner: owner}, witness), do: owner == witness
+  defp can_spend?(%Output{owner: owner}, witness), do: owner == witness
 end
