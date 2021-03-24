@@ -207,14 +207,14 @@ defmodule OMG.WatcherInfo.UtxoSelectionTest do
         |> DB.TxOutput.get_sorted_grouped_utxos(:desc)
         |> Map.get(@eth)
 
-      [available_1, available_2, available_3 | _not_for_inclusion] = available
+      [available_1, available_2, available_3, available_4 | _not_for_inclusion] = available
 
       inputs = %{
         @eth => [included]
       }
 
       expected = %{
-        @eth => [available_3, available_2, available_1, included]
+        @eth => [available_4, available_3, available_2, available_1, included]
       }
 
       assert UtxoSelection.add_utxos_for_stealth_merge(available, inputs) == expected

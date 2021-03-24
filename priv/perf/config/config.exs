@@ -38,7 +38,7 @@ config :ex_plasma,
     name: "OMG Network",
     salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83",
     verifying_contract: System.get_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK"),
-    version: "1"
+    version: "2"
   ]
 
 config :logger, :console,

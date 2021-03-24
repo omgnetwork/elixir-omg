@@ -33,36 +33,10 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
   @ari_network_address "44DE0EC539B8C4A4B530C78620FE8320167F2F74" |> Base.decode16!()
   @eip_domain %{
     name: "OMG Network",
-    version: "1",
+    version: "2",
     salt: <<0::256>>,
     verifyingContract: @ari_network_address
   }
-
-  defp get_message() do
-    alice_addr = Encoding.to_hex(@alice.addr)
-    bob_addr = Encoding.to_hex(@bob.addr)
-
-    %{
-      "input0" => %{"blknum" => 1000, "txindex" => 0, "oindex" => 1},
-      "input1" => %{"blknum" => 3001, "txindex" => 0, "oindex" => 0},
-      "input2" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
-      "input3" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
-      "output0" => %{"owner" => alice_addr, "currency" => @eth_hex, "amount" => 10},
-      "output1" => %{"owner" => alice_addr, "currency" => @token_hex, "amount" => 300},
-      "output2" => %{"owner" => bob_addr, "currency" => @token_hex, "amount" => 100},
-      "output3" => %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0},
-      "metadata" => Encoding.to_hex(<<0::256>>)
-    }
-  end
-
-  defp get_domain(network) do
-    %{
-      "name" => network,
-      "version" => "1",
-      "salt" => Encoding.to_hex(<<0::256>>),
-      "verifyingContract" => Encoding.to_hex(@ari_network_address)
-    }
-  end
 
   test "parses transaction from message data" do
     params = %{"message" => get_message()}
@@ -114,5 +88,33 @@ defmodule OMG.WatcherRPC.Web.Validators.TypedDataSignedTest do
 
     assert {:error, {:validation_error, "domain", :domain_separator_mismatch}} ==
              TypedDataSigned.ensure_network_match(incorrect_domain, @eip_domain)
+  end
+
+  defp get_message() do
+    alice_addr = Encoding.to_hex(@alice.addr)
+    bob_addr = Encoding.to_hex(@bob.addr)
+
+    %{
+      "input0" => %{"blknum" => 1000, "txindex" => 0, "oindex" => 1},
+      "input1" => %{"blknum" => 3001, "txindex" => 0, "oindex" => 0},
+      "input2" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
+      "input3" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
+      "input4" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
+      "output0" => %{"owner" => alice_addr, "currency" => @eth_hex, "amount" => 10},
+      "output1" => %{"owner" => alice_addr, "currency" => @token_hex, "amount" => 300},
+      "output2" => %{"owner" => bob_addr, "currency" => @token_hex, "amount" => 100},
+      "output3" => %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0},
+      "output4" => %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0},
+      "metadata" => Encoding.to_hex(<<0::256>>)
+    }
+  end
+
+  defp get_domain(network) do
+    %{
+      "name" => network,
+      "version" => "2",
+      "salt" => Encoding.to_hex(<<0::256>>),
+      "verifyingContract" => Encoding.to_hex(@ari_network_address)
+    }
   end
 end
