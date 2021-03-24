@@ -36,7 +36,7 @@ config :load_test,
 config :ex_plasma,
   eip_712_domain: [
     name: "OMG Network",
-    salt: Base.decode16!("fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83", case: format),
+    salt: Base.decode16!("fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83", case: :lower),
     verifying_contract: System.get_env("CONTRACT_ADDRESS_PLASMA_FRAMEWORK"),
     version: "2"
   ]

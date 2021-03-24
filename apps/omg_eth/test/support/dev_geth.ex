@@ -101,9 +101,17 @@ defmodule OMG.Eth.DevGeth do
       wait_for_rpc(pid)
     end
 
-    waiting_task
-    |> Task.async()
-    |> Task.await(90_000)
+    try do
+      waiting_task
+      |> Task.async()
+      |> Task.await(90_000)
+    catch
+      :exit, {:timeout, {Task, :await, _}} ->
+        _ = Logger.info("Geth starting has timmed out. Retry.")
+        spawn(fn -> _ = GenServer.stop(pid) end)
+        Process.sleep(6000)
+        start()
+    end
 
     pid
   end

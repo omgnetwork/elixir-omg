@@ -61,7 +61,7 @@ defmodule OMG.Watcher.ExitProcessor.Piggyback do
   @type output_challenge_data :: %{
           in_flight_txbytes: Transaction.tx_bytes(),
           in_flight_output_pos: pos_integer(),
-          in_flight_input_index: 4..8,
+          in_flight_input_index: 5..8,
           spending_txbytes: Transaction.tx_bytes(),
           spending_input_index: 0..4,
           spending_sig: <<_::520>>
