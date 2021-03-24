@@ -53,8 +53,8 @@ defmodule OMG.Conformance.SignatureTest do
 
       tx =
         Transaction.Payment.new(
-          [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}],
-          [{@alice, @eth, 100}, {@alice, @eth, 50}, {@bob, @eth, 75}, {@bob, @eth, 25}],
+          [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}, {15_015, 0, 0}],
+          [{@alice, @eth, 100}, {@alice, @eth, 50}, {@bob, @eth, 75}, {@bob, @eth, 25}, {@bob, @eth, 25}],
           good_metadata
         )
 

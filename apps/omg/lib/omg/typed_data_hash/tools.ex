@@ -50,15 +50,14 @@ defmodule OMG.TypedDataHash.Tools do
   @see: http://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator
   """
   @spec domain_separator(eip712_domain_t(), Crypto.hash_t()) :: Crypto.hash_t()
-  def domain_separator(
-        %{
-          name: name,
-          version: version,
-          verifyingContract: verifying_contract,
-          salt: salt
-        },
-        domain_type_hash \\ @domain_type_hash
-      ) do
+  def domain_separator(domain_separator, domain_type_hash \\ @domain_type_hash) do
+    %{
+      name: name,
+      version: version,
+      verifyingContract: verifying_contract,
+      salt: salt
+    } = domain_separator
+
     [
       domain_type_hash,
       Crypto.hash(name),
@@ -110,7 +109,9 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_input(Utxo.Position.t()) :: Crypto.hash_t()
-  def hash_input(Utxo.position(blknum, txindex, oindex)) do
+  def hash_input(input) do
+    Utxo.position(blknum, txindex, oindex) = input
+
     [
       @input_type_hash,
       ABI.TypeEncoder.encode_raw([blknum], [{:uint, 256}]),
@@ -122,12 +123,14 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_output(Output.t()) :: Crypto.hash_t()
-  def hash_output(%Output{
-        owner: owner,
-        currency: currency,
-        amount: amount,
-        output_type: output_type
-      }) do
+  def hash_output(output) do
+    %Output{
+      owner: owner,
+      currency: currency,
+      amount: amount,
+      output_type: output_type
+    } = output
+
     [
       @output_type_hash,
       ABI.TypeEncoder.encode_raw([output_type], [{:uint, 256}]),

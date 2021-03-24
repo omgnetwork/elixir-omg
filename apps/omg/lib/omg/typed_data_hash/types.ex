@@ -62,11 +62,12 @@ defmodule OMG.TypedDataHash.Types do
     Output: @output_spec
   }
 
-  def eip712_types_specification(),
-    do: %{
+  def eip712_types_specification() do
+    %{
       types: @types,
       primaryType: "Transaction"
     }
+  end
 
   def encode_type(type_name) when is_atom(type_name) do
     "#{type_name}(#{
