@@ -73,24 +73,13 @@ defmodule OMG.TypedDataHash.Tools do
           non_neg_integer(),
           list(Utxo.Position.t()),
           list(Output.t()),
-          Transaction.metadata(),
-          Crypto.hash_t(),
-          Crypto.hash_t()
+          Transaction.metadata()
         ) :: Crypto.hash_t()
-  def hash_transaction(plasma_framework_tx_type, inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
+  def hash_transaction(plasma_framework_tx_type, inputs, outputs, metadata) do
     raw_encoded_tx_type = ABI.TypeEncoder.encode_raw([plasma_framework_tx_type], [{:uint, 256}])
+    input_hashes = Enum.map(inputs, &hash_input/1) |> Enum.join() |> Crypto.hash()
 
-    input_hashes =
-      inputs
-      |> Stream.map(&hash_input/1)
-      |> Stream.concat(Stream.cycle([empty_input_hash]))
-      |> Enum.take(Transaction.Payment.max_inputs())
-
-    output_hashes =
-      outputs
-      |> Stream.map(&hash_output/1)
-      |> Stream.concat(Stream.cycle([empty_output_hash]))
-      |> Enum.take(Transaction.Payment.max_outputs())
+    output_hashes = Enum.map(outputs, &hash_output/1) |> Enum.join() |> Crypto.hash()
 
     tx_data = ABI.TypeEncoder.encode_raw([0], [{:uint, 256}])
     metadata = metadata || <<0::256>>

@@ -95,11 +95,11 @@ defmodule OMG.TypedDataHashTest do
 
       full_type =
         "Transaction(" <>
-          "Input input0,Input input1,Input input2,Input input3," <>
-          "Output output0,Output output1,Output output2,Output output3," <>
-          "uint256 txdata,bytes32 metadata)" <>
-          "Input(uint256 blknum,uint256 txindex,uint256 oindex)" <>
-          "Output(uint256 outputType,bytes20 outputGuard,address currency,uint256 amount)"
+          "Input[] inputs,Output[] outputs,"
+
+      "uint256 txdata,bytes32 metadata)" <>
+        "Input(uint256 blknum,uint256 txindex,uint256 oindex)" <>
+        "Output(uint256 outputType,bytes20 outputGuard,address currency,uint256 amount)"
 
       assert expected == full_type |> Crypto.hash() |> Base.encode16(case: :lower)
     end
@@ -191,8 +191,7 @@ defmodule OMG.TypedDataHashTest do
 
       assert "Transaction(" <>
                "uint256 txType," <>
-               "Input input0,Input input1,Input input2,Input input3,Input input4," <>
-               "Output output0,Output output1,Output output2,Output output3,Output output4," <>
+               "Input[] inputs,Output[] outputs," <>
                "uint256 txData,bytes32 metadata)" ==
                TypedDataHash.Types.encode_type(:Transaction)
 

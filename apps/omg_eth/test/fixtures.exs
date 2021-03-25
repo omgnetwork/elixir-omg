@@ -52,7 +52,7 @@ defmodule OMG.Eth.Fixtures do
 
     add_exit_queue = RootChainHelper.add_exit_queue(@test_eth_vault_id, "0x0000000000000000000000000000000000000000")
 
-    {:ok, %{"status" => _}} = Support.DevHelper.transact_sync!(add_exit_queue)
+    #    {:ok, %{"status" => _}} = Support.DevHelper.transact_sync!(add_exit_queue)
 
     :ok
   end
@@ -64,7 +64,7 @@ defmodule OMG.Eth.Fixtures do
 
     # ensuring that the root chain contract handles token_addr
     {:ok, _} = has_exit_queue(@test_erc20_vault_id, token_addr)
-    {:ok, _} = DevHelper.transact_sync!(RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr))
+    # {:ok, _} = DevHelper.transact_sync!(RootChainHelper.add_exit_queue(@test_erc20_vault_id, token_addr))
     {:ok, true} = has_exit_queue(@test_erc20_vault_id, token_addr)
 
     token_addr
