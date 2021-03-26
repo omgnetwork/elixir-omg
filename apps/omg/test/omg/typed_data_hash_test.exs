@@ -91,7 +91,7 @@ defmodule OMG.TypedDataHashTest do
     end
 
     test "Transaction type hash is computed correctly" do
-      expected = "186aebaa7ec9e4abef44830c07670c034d8efb44e91542dc63df2f65205e61cc"
+      expected = "7b4b72e71fc7c07de961120c45684cfb6c3e5407ccec9a1f29c0b67ba4773035"
 
       full_type =
         "Transaction(" <>
@@ -152,32 +152,32 @@ defmodule OMG.TypedDataHashTest do
     end
 
     test "Transaction is hashed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      assert "db0fcbd0cc74c640b50914e19a82e6cc44544d5d55fc8183cd92a1fa37876da2" ==
+      assert "be833128b018a3ed75f0364727f4a525fb8037e7cedf56ba968f5d138f0749c3" ==
                Transaction.Payment.new([], []) |> TypedDataHash.hash_transaction() |> Base.encode16(case: :lower)
 
-      assert "82b82ede8c2c751d7138074971b3fb5af6dad61b25e0ce76bc552f3712938912" ==
+      assert "9b12945c780df87c32f524ecf3e1ff2e6a294fc596c8d58f3e5482f01348e7f5" ==
                Transaction.Payment.new(inputs, outputs)
                |> TypedDataHash.hash_transaction()
                |> Base.encode16(case: :lower)
 
-      assert "d61e4c641d276866c206300a7941ba3441f597928b782fc5e8a139475f72a7cc" ==
+      assert "663d1eba9d6a9141edb60f6d90ae2e859b6a2d9112ca78ab31eb45da96abbb10" ==
                Transaction.Payment.new(inputs, outputs, metadata)
                |> TypedDataHash.hash_transaction()
                |> Base.encode16(case: :lower)
     end
 
     test "Structured hash is computed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      assert "667dad480047ab614fccefb85650be0906b76346b79c44b219607250be8d3fab" ==
+      assert "36da2169b6447e507f8403e818adf6248db55a529d3733d7fa40071614bec22c" ==
                Transaction.Payment.new([], [])
                |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Base.encode16(case: :lower)
 
-      assert "1129612596eda6bb6df67bfc6fc3647289045a1be8995d64a10a3e0c3984d187" ==
+      assert "55f73062a018db24fb0993691d1abbeee82e4e9b7f8a01b570e734780e3e1ef3" ==
                Transaction.Payment.new(inputs, outputs)
                |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Base.encode16(case: :lower)
 
-      assert "8f5b2c28163ae6c2eddd433b0a940d6e6c6b04e2e33ad1d1a94d30281c7e811b" ==
+      assert "31e2be9fef39df9c691a5eb128757ead86cad6927b883880ef40b191975cb7b3" ==
                Transaction.Payment.new(inputs, outputs, metadata)
                |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Base.encode16(case: :lower)
