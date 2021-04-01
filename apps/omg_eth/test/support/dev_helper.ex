@@ -67,8 +67,11 @@ defmodule Support.DevHelper do
 
         {:ok, %{"status" => "0x0"} = receipt} ->
           case get_reason(txhash) do
-            "Exit queue exists" -> {:ok, Map.update!(receipt, "blockNumber", &int_from_hex(&1))}
-            reason -> {:error, Map.put(receipt, "reason", reason)}
+            "Exit queue exists" ->
+              {:ok, Map.update!(receipt, "blockNumber", &int_from_hex(&1))}
+
+            {:error, reason} ->
+              {:error, Map.put(receipt, "reason", reason)}
           end
 
         other ->
@@ -147,20 +150,10 @@ defmodule Support.DevHelper do
     Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, @passphrase, 0], [])
   end
 
-  # gets the `revert` reason for a failed transaction by txhash
-  # based on https://gist.github.com/gluk64/fdea559472d957f1138ed93bcbc6f78a
   defp get_reason(txhash) do
     # we get the exact transaction details
     {:ok, tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(to_hex(txhash))
     # we use them (with minor tweak) to be called on the Ethereum client at the exact block of the original call
-    {:ok, call_result} = tx |> Map.put("data", tx["input"]) |> Ethereumex.HttpClient.eth_call(tx["blockNumber"])
-    # this call result is hex decoded and then additionally decoded with ABI, should yield a readable ascii-string
-    if call_result == "0x", do: "out of gas, reason is 0x", else: call_result |> from_hex() |> abi_decode_reason()
-  end
-
-  defp abi_decode_reason(result) do
-    bytes_to_throw_away = 2 * 32 + 4
-    # trimming the 4-byte function selector, 32 byte size of size and 32 byte size
-    result |> binary_part(bytes_to_throw_away, byte_size(result) - bytes_to_throw_away) |> String.trim(<<0>>)
+    tx |> Map.put("data", tx["input"]) |> Ethereumex.HttpClient.eth_call(tx["blockNumber"])
   end
 end
