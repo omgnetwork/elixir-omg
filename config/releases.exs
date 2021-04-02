@@ -1,5 +1,5 @@
 import Config
-
+require Logger
 # This `releases.exs` config file gets evaluated at RUNTIME, unlike other config files that are
 # evaluated at compile-time.
 #
@@ -18,6 +18,9 @@ mandatory = fn
       nil -> throw(exception)
       data -> data
     end
+
+  env_var_name, exception, false, true ->
+    Logger.info("#{env_var_name} is ignored because this is for WATCHER INFO only.")
 
   env_var_name, exception, _, false ->
     case System.get_env(env_var_name) do
