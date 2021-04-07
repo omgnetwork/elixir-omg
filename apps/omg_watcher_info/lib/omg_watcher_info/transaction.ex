@@ -250,18 +250,21 @@ defmodule OMG.WatcherInfo.Transaction do
   end
 
   defp create_inputs(inputs) do
+    {max_inputs, _dropped} = Enum.split([:input0, :input1, :input2, :input3, :input4], Enum.count(inputs))
+
     inputs
     |> Stream.map(fn input -> %{blknum: input.blknum, txindex: input.txindex, oindex: input.oindex} end)
     |> Stream.concat(Stream.repeatedly(fn -> %{blknum: 0, txindex: 0, oindex: 0} end))
-    |> (fn input -> Enum.zip([:input0, :input1, :input2, :input3, :input4], input) end).()
+    |> (fn input -> Enum.zip(max_inputs, input) end).()
   end
 
   defp create_outputs(outputs) do
+    {max_outputs, _dropped} = Enum.split([:output0, :output1, :output2, :output3, :output4], Enum.count(outputs))
     zero_addr = <<0::160>>
     empty_gen = fn -> %{owner: zero_addr, currency: zero_addr, amount: 0} end
 
     outputs
     |> Stream.concat(Stream.repeatedly(empty_gen))
-    |> (fn output -> Enum.zip([:output0, :output1, :output2, :output3, :output4], output) end).()
+    |> (fn output -> Enum.zip(max_outputs, output) end).()
   end
 end
