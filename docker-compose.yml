@@ -12,7 +12,7 @@ services:
       - 8546:81
       - 443:443
     healthcheck:
-      test: curl geth:80
+      test: ["CMD", "service", "nginx", "status"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -125,10 +125,11 @@ services:
       - ./docker/geth/command:/data/command
       - ./docker/geth/geth-blank-password:/data/geth-blank-password
     healthcheck:
-      test: curl localhost:8545
-      interval: 5s
+      test: ["CMD", "wget", "--spider", "--proxy", "off", "http://localhost:8545"]
+      interval: 3s
       timeout: 3s
-      retries: 5
+      retries: 10
+      start_period: 5s
     networks:
       chain_net:
         ipv4_address: 172.27.0.101

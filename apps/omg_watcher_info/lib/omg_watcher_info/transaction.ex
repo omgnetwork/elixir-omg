@@ -253,7 +253,7 @@ defmodule OMG.WatcherInfo.Transaction do
     inputs
     |> Stream.map(fn input -> %{blknum: input.blknum, txindex: input.txindex, oindex: input.oindex} end)
     |> Stream.concat(Stream.repeatedly(fn -> %{blknum: 0, txindex: 0, oindex: 0} end))
-    |> (fn input -> Enum.zip([:input0, :input1, :input2, :input3], input) end).()
+    |> (fn input -> Enum.zip([:input0, :input1, :input2, :input3, :input4], input) end).()
   end
 
   defp create_outputs(outputs) do
@@ -262,6 +262,6 @@ defmodule OMG.WatcherInfo.Transaction do
 
     outputs
     |> Stream.concat(Stream.repeatedly(empty_gen))
-    |> (fn output -> Enum.zip([:output0, :output1, :output2, :output3], output) end).()
+    |> (fn output -> Enum.zip([:output0, :output1, :output2, :output3, :output4], output) end).()
   end
 end

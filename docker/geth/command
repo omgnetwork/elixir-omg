@@ -7,6 +7,7 @@
 # Starts geth
 # Websocket is not used by the applications but enabled for debugging/testing convenience
 geth \
+--verbosity 2 \
 --miner.gastarget 7500000 \
 --miner.gasprice "10" \
 --nodiscover \
@@ -15,8 +16,8 @@ geth \
 --syncmode 'fast' \
 --networkid 1337 \
 --keystore ./data/geth/keystore/ \
+--unlock 0x6De4b3B9C28E9C3e84c2b2d3a875C947a84de68D,0x6De4b3B9C28E9C3e84c2b2d3a875C947a84de68D,0xC0f780DfC35075979B0DEF588d999225B7ecC56f \
 --password /data/geth-blank-password \
---unlock "0,1" \
 --http \
 --http.api personal,web3,eth,net  \
 --http.addr 0.0.0.0  \
