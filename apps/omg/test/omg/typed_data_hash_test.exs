@@ -36,7 +36,7 @@ defmodule OMG.TypedDataHashTest do
 
   @test_domain_separator Tools.domain_separator(%{
                            name: "OMG Network",
-                           version: "1",
+                           version: "2",
                            verifyingContract: Base.decode16!("44de0ec539b8c4a4b530c78620fe8320167f2f74", case: :mixed),
                            salt:
                              Base.decode16!("fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83",
@@ -91,21 +91,21 @@ defmodule OMG.TypedDataHashTest do
     end
 
     test "Transaction type hash is computed correctly" do
-      expected = "186aebaa7ec9e4abef44830c07670c034d8efb44e91542dc63df2f65205e61cc"
+      expected = "7b4b72e71fc7c07de961120c45684cfb6c3e5407ccec9a1f29c0b67ba4773035"
 
       full_type =
         "Transaction(" <>
-          "Input input0,Input input1,Input input2,Input input3," <>
-          "Output output0,Output output1,Output output2,Output output3," <>
-          "uint256 txdata,bytes32 metadata)" <>
-          "Input(uint256 blknum,uint256 txindex,uint256 oindex)" <>
-          "Output(uint256 outputType,bytes20 outputGuard,address currency,uint256 amount)"
+          "Input[] inputs,Output[] outputs,"
+
+      "uint256 txdata,bytes32 metadata)" <>
+        "Input(uint256 blknum,uint256 txindex,uint256 oindex)" <>
+        "Output(uint256 outputType,bytes20 outputGuard,address currency,uint256 amount)"
 
       assert expected == full_type |> Crypto.hash() |> Base.encode16(case: :lower)
     end
 
     test "domain separator is computed correctly" do
-      expected = "b542beb7bafc6796b8439716a4e460a2634ac432216cebc524e54f8789e2924c"
+      expected = "5a1676f0578ccdc53dc984407754decc1467d3c09c7a58d95991f5f0294639be"
 
       assert expected == Base.encode16(@test_domain_separator, case: :lower)
     end
@@ -152,32 +152,32 @@ defmodule OMG.TypedDataHashTest do
     end
 
     test "Transaction is hashed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      assert "3f5b24d7cf1db32c34ae2921a3537b7af40ad7e787fb7e8e03f88715a861dfe7" ==
+      assert "be833128b018a3ed75f0364727f4a525fb8037e7cedf56ba968f5d138f0749c3" ==
                Transaction.Payment.new([], []) |> TypedDataHash.hash_transaction() |> Base.encode16(case: :lower)
 
-      assert "d5fb24437003566da84b8948fde09c367bbf93da39cdd23390ecaa98e3054f2d" ==
+      assert "9b12945c780df87c32f524ecf3e1ff2e6a294fc596c8d58f3e5482f01348e7f5" ==
                Transaction.Payment.new(inputs, outputs)
                |> TypedDataHash.hash_transaction()
                |> Base.encode16(case: :lower)
 
-      assert "7c3f89120b00c4b1ca433811b544e8177f109c5a4ca27ff434e08b02d66e77f4" ==
+      assert "663d1eba9d6a9141edb60f6d90ae2e859b6a2d9112ca78ab31eb45da96abbb10" ==
                Transaction.Payment.new(inputs, outputs, metadata)
                |> TypedDataHash.hash_transaction()
                |> Base.encode16(case: :lower)
     end
 
     test "Structured hash is computed correctly", %{inputs: inputs, outputs: outputs, metadata: metadata} do
-      assert "47f83702c496c7ebb6ec639cb11d6c8b81eb64f6d818cb087e3ed2cb92ccf1ae" ==
+      assert "36da2169b6447e507f8403e818adf6248db55a529d3733d7fa40071614bec22c" ==
                Transaction.Payment.new([], [])
                |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Base.encode16(case: :lower)
 
-      assert "aeaa272f4460436415f377cb0cefe8f2646f4457f60827519a7edf86d30c0bf0" ==
+      assert "55f73062a018db24fb0993691d1abbeee82e4e9b7f8a01b570e734780e3e1ef3" ==
                Transaction.Payment.new(inputs, outputs)
                |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Base.encode16(case: :lower)
 
-      assert "e1fcd0b07d8034ac039c15c544436a95e92879689a456604cbc0e8420e6e342a" ==
+      assert "31e2be9fef39df9c691a5eb128757ead86cad6927b883880ef40b191975cb7b3" ==
                Transaction.Payment.new(inputs, outputs, metadata)
                |> TypedDataHash.hash_struct(@test_domain_separator)
                |> Base.encode16(case: :lower)
@@ -191,8 +191,7 @@ defmodule OMG.TypedDataHashTest do
 
       assert "Transaction(" <>
                "uint256 txType," <>
-               "Input input0,Input input1,Input input2,Input input3," <>
-               "Output output0,Output output1,Output output2,Output output3," <>
+               "Input[] inputs,Output[] outputs," <>
                "uint256 txData,bytes32 metadata)" ==
                TypedDataHash.Types.encode_type(:Transaction)
 

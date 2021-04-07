@@ -40,11 +40,11 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
       _ = insert(:txoutput, currency: @currency_1, owner: @alice, amount: 1)
 
-      assert {:ok, [%{inputs: [_, _, _, _], outputs: [output_1]}, %{inputs: [_, _, _], outputs: [output_2]}]} =
+      assert {:ok, [%{inputs: [_, _, _, _, _], outputs: [output_1]}, %{inputs: [_, _], outputs: [output_2]}]} =
                Transaction.merge(%{address: @alice, currency: @currency_1})
 
-      assert output_1 === %{amount: 4, currency: @currency_1, owner: @alice}
-      assert output_2 === %{amount: 3, currency: @currency_1, owner: @alice}
+      assert output_1 === %{amount: 5, currency: @currency_1, owner: @alice}
+      assert output_2 === %{amount: 2, currency: @currency_1, owner: @alice}
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -88,8 +88,8 @@ defmodule OMG.WatcherInfo.API.TransactionTest do
       assert {:ok, [merge_tx]} = Transaction.merge(%{address: @alice, currency: @currency_1})
 
       assert %{
-               inputs: [%{amount: 1}, %{amount: 2}, %{amount: 3}, %{amount: 4}],
-               outputs: [%{amount: 10, currency: @currency_1, owner: @alice}]
+               inputs: [%{amount: 1}, %{amount: 2}, %{amount: 3}, %{amount: 4}, %{amount: 5}],
+               outputs: [%{amount: 15, currency: @currency_1, owner: @alice}]
              } = merge_tx
     end
 

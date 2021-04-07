@@ -33,10 +33,10 @@ defmodule OMG.TypedDataHash.Config do
       |> Access.get(:plasma_framework)
       |> Encoding.from_hex(:mixed)
 
-    Application.fetch_env!(:omg, :eip_712_domain)
+    :omg
+    |> Application.fetch_env!(:eip_712_domain)
     |> Map.new()
     |> Map.put_new(:verifyingContract, verifying_contract_addr)
-    |> Map.update!(:salt, &Encoding.from_hex/1)
   end
 
   @doc """

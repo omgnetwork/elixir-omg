@@ -43,8 +43,8 @@ defmodule OMG.State.Transaction.Payment do
 
   @type currency() :: Crypto.address_t()
 
-  @max_inputs 4
-  @max_outputs 4
+  @max_inputs 5
+  @max_outputs 5
 
   defmacro max_inputs() do
     quote do
@@ -169,16 +169,17 @@ defimpl OMG.State.Transaction.Protocol, for: OMG.State.Transaction.Payment do
   """
   @spec get_data_for_rlp(Transaction.Payment.t()) :: list(any())
   def get_data_for_rlp(%Transaction.Payment{tx_type: tx_type, inputs: inputs, outputs: outputs, metadata: metadata})
-      when Transaction.is_metadata(metadata),
-      do: [
-        tx_type,
-        Enum.map(inputs, &OMG.Utxo.Position.get_data_for_rlp/1),
-        Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
-        # used to be optional and as such was `if`-appended if not null here
-        # When it is not optional, and there's the if, dialyzer complains about the if
-        0,
-        metadata
-      ]
+      when Transaction.is_metadata(metadata) do
+    [
+      tx_type,
+      Enum.map(inputs, &OMG.Utxo.Position.get_data_for_rlp/1),
+      Enum.map(outputs, &OMG.Output.get_data_for_rlp/1),
+      # used to be optional and as such was `if`-appended if not null here
+      # When it is not optional, and there's the if, dialyzer complains about the if
+      0,
+      metadata
+    ]
+  end
 
   @spec get_outputs(Transaction.Payment.t()) :: list(Output.t())
   def get_outputs(%Transaction.Payment{outputs: outputs}), do: outputs

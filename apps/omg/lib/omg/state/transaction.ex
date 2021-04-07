@@ -49,7 +49,7 @@ defmodule OMG.State.Transaction do
     end
   end
 
-  @type input_index_t() :: 0..3
+  @type input_index_t() :: 0..4
 
   def dispatching_reconstruct([raw_type | raw_tx_rlp_decoded_chunks]) when is_binary(raw_type) do
     case RawData.parse_uint256(raw_type) do
@@ -83,7 +83,8 @@ defmodule OMG.State.Transaction do
   end
 
   defp encode(transaction) do
-    Transaction.Protocol.get_data_for_rlp(transaction)
+    transaction
+    |> Transaction.Protocol.get_data_for_rlp()
     |> ExRLP.encode()
   end
 

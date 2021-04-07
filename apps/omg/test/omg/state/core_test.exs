@@ -1040,7 +1040,7 @@ defmodule OMG.State.CoreTest do
       Logger.warn("slow test is running, use --exclude slow to skip")
 
       maximum_block_size = 65_536
-      maximum_inputs_size = 4
+      maximum_inputs_size = 5
       eth_fee_rate = Enum.at(fees[@eth], 0)
       amount_for_fees = (1 + eth_fee_rate) * maximum_block_size
       available_after_1st_tx = amount_for_fees - eth_fee_rate

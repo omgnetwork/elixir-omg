@@ -36,8 +36,8 @@ defmodule OMG.TypedDataHash.Types do
 
   @tx_spec Enum.concat([
              [@make_spec.("txType", "uint256")],
-             Enum.map(0..3, fn i -> @make_spec.("input" <> Integer.to_string(i), "Input") end),
-             Enum.map(0..3, fn i -> @make_spec.("output" <> Integer.to_string(i), "Output") end),
+             [@make_spec.("inputs", "Input[]")],
+             [@make_spec.("outputs", "Output[]")],
              [@make_spec.("txData", "uint256")],
              [@make_spec.("metadata", "bytes32")]
            ])
@@ -62,11 +62,12 @@ defmodule OMG.TypedDataHash.Types do
     Output: @output_spec
   }
 
-  def eip712_types_specification(),
-    do: %{
+  def eip712_types_specification() do
+    %{
       types: @types,
       primaryType: "Transaction"
     }
+  end
 
   def encode_type(type_name) when is_atom(type_name) do
     "#{type_name}(#{

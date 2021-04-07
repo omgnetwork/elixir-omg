@@ -17,8 +17,6 @@ defmodule Support.Conformance.MerkleProofs do
   Utility functions used when testing Elixir vs Solidity implementation conformance
   """
 
-  import ExUnit.Assertions, only: [assert: 1]
-
   alias OMG.Eth.Encoding
 
   @doc """
@@ -29,43 +27,28 @@ defmodule Support.Conformance.MerkleProofs do
     args = [leaf, index, root_hash, proof]
     return_types = [:bool]
 
-    try do
-      {:ok, result} = call_contract(contract, signature, args, return_types)
-      result
-      # Some incorrect proofs throw, and end up returning something that the ABI decoder borks on, hence rescue
-    rescue
-      e in CaseClauseError ->
-        # this term holds the failure reason, but attempted to be decoded as a bool. It is a huge int
-        %{term: failed_decoding_reason} = e
-        # now we bring it back to binary form
-        binary_reason = :binary.encode_unsigned(failed_decoding_reason)
-        # it should contain 4 bytes of the function selector and then zeros
-        assert_contract_reverted(binary_reason)
-        false
+    case call_contract(contract, signature, args, return_types) do
+      {:error, _} -> false
+      {:ok, result} -> result
     end
-  end
-
-  # see similar function in `Support.Conformance.SignaturesHashes`
-  defp assert_contract_reverted(chopped_reason_binary_result) do
-    # only geth is supported for the merkle proof conformance tests for now
-    :geth = Application.fetch_env!(:omg_eth, :eth_node)
-
-    # revert from `call_contract` it returns something resembling a reason
-    # binary (beginning with 4-byte function selector). We need to assume that this is in fact a revert
-    assert <<0::size(28)-unit(8)>> = binary_part(chopped_reason_binary_result, 4, 28)
   end
 
   defp call_contract(contract, signature, args, return_types) do
     data = ABI.encode(signature, args)
 
-    {:ok, return} =
-      Ethereumex.HttpClient.eth_call(%{
-        from: Encoding.to_hex(contract),
-        to: Encoding.to_hex(contract),
-        data: Encoding.to_hex(data)
-      })
+    eth_call = %{
+      from: Encoding.to_hex(contract),
+      to: Encoding.to_hex(contract),
+      data: Encoding.to_hex(data)
+    }
 
-    decode_answer(return, return_types)
+    case Ethereumex.HttpClient.eth_call(eth_call) do
+      {:ok, return} ->
+        {:ok, decode_answer(return, return_types)}
+
+      error ->
+        error
+    end
   end
 
   defp decode_answer(enc_return, return_types) do
@@ -75,6 +58,6 @@ defmodule Support.Conformance.MerkleProofs do
       |> ABI.TypeDecoder.decode(return_types)
       |> hd()
 
-    {:ok, single_return}
+    single_return
   end
 end

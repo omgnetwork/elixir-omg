@@ -24,6 +24,7 @@ defmodule OMG.TypedDataHash.Tools do
   alias OMG.TypedDataHash.Types
   alias OMG.Utxo
 
+  require Transaction.Payment
   require Utxo
 
   @type eip712_domain_t() :: %{
@@ -49,15 +50,14 @@ defmodule OMG.TypedDataHash.Tools do
   @see: http://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator
   """
   @spec domain_separator(eip712_domain_t(), Crypto.hash_t()) :: Crypto.hash_t()
-  def domain_separator(
-        %{
-          name: name,
-          version: version,
-          verifyingContract: verifying_contract,
-          salt: salt
-        },
-        domain_type_hash \\ @domain_type_hash
-      ) do
+  def domain_separator(domain_separator, domain_type_hash \\ @domain_type_hash) do
+    %{
+      name: name,
+      version: version,
+      verifyingContract: verifying_contract,
+      salt: salt
+    } = domain_separator
+
     [
       domain_type_hash,
       Crypto.hash(name),
@@ -73,26 +73,13 @@ defmodule OMG.TypedDataHash.Tools do
           non_neg_integer(),
           list(Utxo.Position.t()),
           list(Output.t()),
-          Transaction.metadata(),
-          Crypto.hash_t(),
-          Crypto.hash_t()
+          Transaction.metadata()
         ) :: Crypto.hash_t()
-  def hash_transaction(plasma_framework_tx_type, inputs, outputs, metadata, empty_input_hash, empty_output_hash) do
-    require Transaction.Payment
-
+  def hash_transaction(plasma_framework_tx_type, inputs, outputs, metadata) do
     raw_encoded_tx_type = ABI.TypeEncoder.encode_raw([plasma_framework_tx_type], [{:uint, 256}])
+    input_hashes = Enum.map(inputs, &hash_input/1) |> Enum.join() |> Crypto.hash()
 
-    input_hashes =
-      inputs
-      |> Stream.map(&hash_input/1)
-      |> Stream.concat(Stream.cycle([empty_input_hash]))
-      |> Enum.take(Transaction.Payment.max_inputs())
-
-    output_hashes =
-      outputs
-      |> Stream.map(&hash_output/1)
-      |> Stream.concat(Stream.cycle([empty_output_hash]))
-      |> Enum.take(Transaction.Payment.max_outputs())
+    output_hashes = Enum.map(outputs, &hash_output/1) |> Enum.join() |> Crypto.hash()
 
     tx_data = ABI.TypeEncoder.encode_raw([0], [{:uint, 256}])
     metadata = metadata || <<0::256>>
@@ -111,7 +98,9 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_input(Utxo.Position.t()) :: Crypto.hash_t()
-  def hash_input(Utxo.position(blknum, txindex, oindex)) do
+  def hash_input(input) do
+    Utxo.position(blknum, txindex, oindex) = input
+
     [
       @input_type_hash,
       ABI.TypeEncoder.encode_raw([blknum], [{:uint, 256}]),
@@ -123,12 +112,14 @@ defmodule OMG.TypedDataHash.Tools do
   end
 
   @spec hash_output(Output.t()) :: Crypto.hash_t()
-  def hash_output(%Output{
-        owner: owner,
-        currency: currency,
-        amount: amount,
-        output_type: output_type
-      }) do
+  def hash_output(output) do
+    %Output{
+      owner: owner,
+      currency: currency,
+      amount: amount,
+      output_type: output_type
+    } = output
+
     [
       @output_type_hash,
       ABI.TypeEncoder.encode_raw([output_type], [{:uint, 256}]),

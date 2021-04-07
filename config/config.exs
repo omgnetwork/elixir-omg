@@ -43,8 +43,8 @@ config :omg,
 
 config :omg, :eip_712_domain,
   name: "OMG Network",
-  version: "1",
-  salt: "0xfad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83"
+  version: "2",
+  salt: Base.decode16!("fad5c7f626d80f9256ef01929f3beb96e058b8b4b0e3fe52d84f054c0e2a7a83", case: :lower)
 
 # Configures the endpoint
 # https://ninenines.eu/docs/en/cowboy/2.4/manual/cowboy_http/

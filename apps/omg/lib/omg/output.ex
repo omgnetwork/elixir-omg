@@ -62,8 +62,9 @@ defmodule OMG.Output do
     %{owner: owner, currency: currency, amount: amount, output_type: output_type}
   end
 
-  def get_data_for_rlp(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}),
-    do: [output_type, [owner, currency, amount]]
+  def get_data_for_rlp(%__MODULE__{owner: owner, currency: currency, amount: amount, output_type: output_type}) do
+    [output_type, [owner, currency, amount]]
+  end
 
   # TODO(achiurizo)
   # remove the validation here and port the error tuple response handling into ex_plasma.

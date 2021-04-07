@@ -31,7 +31,7 @@ defmodule Support.Conformance.SignaturesHashesCase do
   end
 
   setup_all do
-    :ok = Application.put_env(:ex_plasma, :exit_id_size, 160)
+    :ok = Application.put_env(:ex_plasma, :exit_id_size, 168)
     {:ok, exit_fn} = Support.DevNode.start()
     contracts = SnapshotContracts.parse_contracts()
     signtest_addr_hex = contracts["CONTRACT_ADDRESS_PAYMENT_EIP_712_LIB_MOCK"]
@@ -42,7 +42,6 @@ defmodule Support.Conformance.SignaturesHashesCase do
       # reverting to the original values from `omg_eth/config/test.exs`
       :ok = Application.put_all_env(omg_eth: old_config)
 
-      :ok = Application.put_env(:ex_plasma, :exit_id_size, 168)
       exit_fn.()
     end)
 

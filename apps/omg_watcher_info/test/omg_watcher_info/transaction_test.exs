@@ -83,6 +83,8 @@ defmodule OMG.WatcherInfo.TransactionTest do
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
+      _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
 
       utxos_per_token = DB.TxOutput.get_sorted_grouped_utxos(@alice, :desc)
 
@@ -117,7 +119,7 @@ defmodule OMG.WatcherInfo.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "returns {:ok, transactions} when 0 < inputs <= 4 and 0 < outputs <= 4" do
+    test "returns {:ok, transactions} when 0 < inputs <= 5 and 0 < outputs <= 5" do
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)
       _ = insert(:txoutput, amount: 10, currency: @eth, owner: @alice)

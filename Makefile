@@ -1,7 +1,7 @@
 MAKEFLAGS += --silent
 OVERRIDING_START ?= start_iex
 OVERRIDING_VARIABLES ?= bin/variables
-SNAPSHOT ?= SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_20
+SNAPSHOT ?= SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_20
 BAREBUILD_ENV ?= dev
 help:
 	@echo "Dont Fear the Makefile"
@@ -82,7 +82,7 @@ all: clean build-watcher-prod build-watcher_info-prod
 WATCHER_IMAGE_NAME      ?= "omisego/watcher-v2:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info-v2:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:stable-20201207"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-a21824a"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
@@ -345,12 +345,12 @@ cabbage-reorgs-logs:
 
 ###OTHER
 docker-start-cluster:
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	SNAPSHOT=SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
 docker-build-start-cluster:
 	$(MAKE) docker-build
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	SNAPSHOT=SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose build --no-cache && docker-compose up
 
 docker-stop-cluster: localchain_contract_addresses.env
@@ -397,7 +397,7 @@ docker-remote-watcher_info:
 ### barebone stuff
 ###
 start-services:
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init_test && \
+	SNAPSHOT=SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_120 make init_test && \
 	docker-compose -f ./docker-compose.yml up feefeed geth nginx postgres
 
 start-watcher:

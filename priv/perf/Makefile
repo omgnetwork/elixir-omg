@@ -10,7 +10,7 @@ clean:
 
 start-services:
 	cd ../../ && \
-	SNAPSHOT=SNAPSHOT_MIX_EXIT_PERIOD_SECONDS_120 make init-contracts && \
+	SNAPSHOT=SNAPSHOT_MIN_EXIT_PERIOD_SECONDS_120 make init-contracts && \
 	cd priv/perf/ && \
 	docker-compose $(COMPOSE_FULL_SERVICES) up -d
 

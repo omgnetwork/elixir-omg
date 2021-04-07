@@ -27,8 +27,6 @@ defmodule OMG.Conformance.SignatureTest do
   @moduletag :integration
   @moduletag :common
 
-  @good_metadata <<1::size(32)-unit(8)>>
-
   describe "elixir vs solidity conformance test" do
     test "no inputs test", %{contract: contract} do
       tx = Transaction.Payment.new([], [{@alice, @eth, 100}])
@@ -43,19 +41,21 @@ defmodule OMG.Conformance.SignatureTest do
     test "signature test - full tx", %{contract: contract} do
       tx =
         Transaction.Payment.new(
-          [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}],
-          [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}]
+          [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}, {15_016, 0, 0}],
+          [{@alice, @eth, 100}, {@alice, @token, 50}, {@bob, @token, 75}, {@bob, @eth, 25}, {@bob, @eth, 26}]
         )
 
       verify(tx, contract)
     end
 
     test "signature test transaction with metadata", %{contract: contract} do
+      good_metadata = <<1::size(32)-unit(8)>>
+
       tx =
         Transaction.Payment.new(
-          [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}],
-          [{@alice, @eth, 100}, {@alice, @eth, 50}, {@bob, @eth, 75}, {@bob, @eth, 25}],
-          @good_metadata
+          [{1, 0, 0}, {1000, 555, 3}, {2000, 333, 1}, {15_015, 0, 0}, {15_015, 0, 0}],
+          [{@alice, @eth, 100}, {@alice, @eth, 50}, {@bob, @eth, 75}, {@bob, @eth, 25}, {@bob, @eth, 25}],
+          good_metadata
         )
 
       verify(tx, contract)

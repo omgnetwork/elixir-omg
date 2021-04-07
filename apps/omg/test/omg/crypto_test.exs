@@ -40,11 +40,14 @@ defmodule OMG.CryptoTest do
 
     # Test that we can sign and verify
     test "recovers address from an encoded transaction" do
-      {:ok, priv} = DevCrypto.generate_private_key()
+      priv =
+        <<153, 212, 131, 120, 17, 20, 188, 1, 226, 100, 163, 218, 137, 39, 96, 253, 184, 69, 85, 146, 122, 51, 30, 15,
+          48, 85, 49, 233, 127, 154, 32, 207>>
+
       {:ok, pub} = DevCrypto.generate_public_key(priv)
       {:ok, address} = Crypto.generate_address(pub)
 
-      raw_tx = Transaction.Payment.new([{1000, 1, 0}], [])
+      raw_tx = Transaction.Payment.new([{0, 0, 0}], [])
       signature = DevCrypto.signature(raw_tx, priv)
       assert byte_size(signature) == 65
 

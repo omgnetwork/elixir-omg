@@ -9,24 +9,27 @@
 geth \
 --verbosity 2 \
 --miner.gastarget 7500000 \
---nousb \
 --miner.gasprice "10" \
 --nodiscover \
 --maxpeers 0 \
 --datadir data/ \
 --syncmode 'fast' \
 --networkid 1337 \
---gasprice '1' \
 --keystore ./data/geth/keystore/ \
+--unlock 0x6De4b3B9C28E9C3e84c2b2d3a875C947a84de68D,0x6De4b3B9C28E9C3e84c2b2d3a875C947a84de68D,0xC0f780DfC35075979B0DEF588d999225B7ecC56f \
 --password /data/geth-blank-password \
---unlock "0,1" \
---rpc \
---rpcapi personal,web3,eth,net  \
---rpcaddr 0.0.0.0  \
---rpcvhosts=* \
---rpcport=${RPC_PORT} \
---ws  \
---wsaddr 0.0.0.0  \
---wsorigins='*' \
+--http \
+--http.api personal,web3,eth,net  \
+--http.addr 0.0.0.0  \
+--http.vhosts=* \
+--http.port=${RPC_PORT} \
+--ws \
+--ws.addr 0.0.0.0  \
+--ws.origins='*' \
 --mine \
---allow-insecure-unlock
+--allow-insecure-unlock \
+--rpc.allow-unprotected-txs
+
+# Since we realize people/tooling issuing unprotected transactions can’t change overnight,
+# Geth v1.10.0 supports reverting to the old behavior and accepting non-EIP155 transactions via --rpc.allow-unprotected-txs.
+# Be advised that this is a temporary mechanism that will be removed long term.
