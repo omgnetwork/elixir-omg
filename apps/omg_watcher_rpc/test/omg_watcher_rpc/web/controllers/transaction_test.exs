@@ -637,14 +637,9 @@ defmodule OMG.WatcherRPC.Web.Controller.TransactionTest do
         "message" => %{
           "input0" => %{"blknum" => 1000, "txindex" => 0, "oindex" => 1},
           "input1" => %{"blknum" => 3001, "txindex" => 0, "oindex" => 0},
-          "input2" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
-          "input3" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
-          "input4" => %{"blknum" => 0, "txindex" => 0, "oindex" => 0},
           "output0" => %{"owner" => alice_addr, "currency" => @eth_hex, "amount" => 10},
           "output1" => %{"owner" => alice_addr, "currency" => @other_token_hex, "amount" => 300},
           "output2" => %{"owner" => bob_addr, "currency" => @other_token_hex, "amount" => 100},
-          "output3" => %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0},
-          "output4" => %{"owner" => @eth_hex, "currency" => @eth_hex, "amount" => 0},
           "metadata" => Encoding.to_hex(<<0::256>>)
         },
         "signatures" => <<127::520>> |> List.duplicate(2) |> Enum.map(&Encoding.to_hex/1)
