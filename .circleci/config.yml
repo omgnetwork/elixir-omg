@@ -1111,11 +1111,11 @@ workflows:
           filters: *all_branches_and_tags
       # - test_docker_compose_performance:
       #     filters: *all_branches_and_tags
-      - test_docker_compose_reorg:
-          filters:
-            branches:
-              only:
-                - master-v2
+      - test_docker_compose_reorg
+          # filters:
+          #   branches:
+          #     only:
+          #       - master-v2
       - audit_deps:
           requires: [build]
           filters: *all_branches_and_tags
