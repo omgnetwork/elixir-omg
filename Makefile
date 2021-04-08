@@ -82,7 +82,7 @@ all: clean build-watcher-prod build-watcher_info-prod
 WATCHER_IMAGE_NAME      ?= "omisego/watcher-v2:latest"
 WATCHER_INFO_IMAGE_NAME ?= "omisego/watcher_info-v2:latest"
 
-IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-a21824a"
+IMAGE_BUILDER   ?= "omisegoimages/elixir-omg-builder:dev-85e4411"
 IMAGE_BUILD_DIR ?= $(PWD)
 
 ENV_DEV         ?= env MIX_ENV=dev
