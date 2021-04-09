@@ -1,0 +1,17 @@
+TransactionBatchSubmitBodySchema:
+  description: Array of signed transactions, RLP-encoded to bytes, and HEX-encoded to string
+  required: true
+  content:
+    application/json:
+      schema:
+        title: 'TransactionBatchSubmitBodySchema'
+        type: object
+        properties:
+          transactions:
+            type: array
+            items:
+              type: string
+        required:
+          - transactions
+        example:
+          transactions: ['0xf8d083015ba98080808080940000...', '0xf8d083a15ba98080808080920000...']

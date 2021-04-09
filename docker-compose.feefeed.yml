@@ -3,43 +3,57 @@ services:
   childchain:
     environment:
       - FEE_ADAPTER=feed
-      - FEE_FEED_URL=http://172.27.0.110:4000/api/v1
+      #- FEE_FEED_URL=http://172.27.0.110:4000/api/v1
+      - FEE_FEED_URL=http://172.27.0.110/file.json
     depends_on:
       feefeed:
         condition: service_healthy
 
   feefeed:
-    image: gcr.io/omisego-development/feefeed:latest
-    command: "start"
-    container_name: feefeed
-    environment:
-      - GITHUB_TOKEN=""
-      - GITHUB_ORGANISATION=omgnetwork
-      - GITHUB_REPO=fee-rules-public
-      - SENTRY_DSN=""
-      - GITHUB_BRANCH=master
-      - RULES_FETCH_INTERVAL=200
-      - RATES_FETCH_INTERVAL=200
-      - GITHUB_FILENAME=fee_rules
-      - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.107:5432/feefeed
-      - SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
-      - DATADOG_DISABLED=true
-      - DATADOG_HOST="localhost"
-      - ETHEREUM_NODE_URL=http://172.27.0.108:80
+    image: omisego/feefeed_mock:latest
+    volumes:
+      - ./docker/static_feefeed/:/www-data/
     ports:
-      - "4000:4000"
+      - "4000:80"
     expose:
       - "4000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: always
-    healthcheck:
-      test: curl -v --silent http://localhost:4000/api/v1/fees 2>&1 | grep contract_address
-      interval: 4s
-      timeout: 2s
-      retries: 30
-      start_period: 60s
     networks:
       chain_net:
         ipv4_address: 172.27.0.110
+  # feefeed:
+  #   image: "gcr.io/omisego-development/feefeed:latest"
+  #   command: "start"
+  #   container_name: feefeed
+  #   environment:
+  #     - GITHUB_TOKEN=""
+  #     - GITHUB_ORGANISATION=omgnetwork
+  #     - GITHUB_REPO=fee-rules-public
+  #     - SENTRY_DSN=""
+  #     - GITHUB_BRANCH=master
+  #     - RULES_FETCH_INTERVAL=20
+  #     - RATES_FETCH_INTERVAL=20
+  #     - GITHUB_FILENAME=fee_rules
+  #     - DATABASE_URL=postgresql://feefeed:feefeed@172.27.0.107:5432/feefeed
+  #     - SECRET_KEY_BASE="Y8naENMR8b+vbPHILjwNtEfWFrnbGi2k+UYWm75VnKHfsavmyGLtTmmeJxAGK+zJ"
+  #     - DATADOG_DISABLED=true
+  #     - DATADOG_HOST="localhost"
+  #     - ETHEREUM_NODE_URL=http://172.27.0.102:80
+  #   ports:
+  #     - "4000:4000"
+  #   expose:
+  #     - "4000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     nginx:
+  #       condition: service_healthy
+  #   restart: always
+  #   healthcheck:
+  #     test: curl -v --silent http://localhost:4000/api/v1/fees 2>&1 | grep contract_address
+  #     interval: 4s
+  #     timeout: 2s
+  #     retries: 30
+  #     start_period: 60s
+  #   networks:
+  #     chain_net:
+  #       ipv4_address: 172.27.0.110

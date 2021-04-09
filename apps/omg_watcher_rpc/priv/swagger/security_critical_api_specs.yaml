@@ -1427,6 +1427,138 @@ paths:
                         description: Something went wrong on the server
                         messages:
                           error_key: error_reason
+/transaction.batch_submit:
+    post:
+      tags:
+        - Transaction
+      summary: This endpoint submits an array of signed transaction to the child chain.
+      description: |
+        Normally you should call the Watcher's Transaction - Submit instead of this. The Watcher's version performs various security and validation checks (TO DO) before submitting the transaction, so is much safer. However, if the Watcher is not available this version exists.
+      operationId: batch_submit
+      requestBody:
+        description: 'Array of signed transactions, RLP-encoded to bytes, and HEX-encoded to string'
+        required: true
+        content:
+          application/json:
+            schema:
+              title: TransactionBatchSubmitBodySchema
+              type: object
+              properties:
+                transactions:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - transactions
+              example:
+                transactions:
+                  - 0xf8d083015ba98080808080940000...
+                  - 0xf8d083a15ba98080808080920000...
+      responses:
+        '200':
+          description: Transaction batch submission successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            blknum:
+                              type: integer
+                              format: int64
+                            txindex:
+                              type: integer
+                              format: int16
+                            txhash:
+                              type: string
+                    example:
+                      data:
+                        - blknum: 123000
+                          txindex: 111
+                          txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
+        '500':
+          description: Returns an internal server error
+          content:
+            application/json:
+              schema:
+                description: The response schema for an error
+                allOf:
+                  - description: The response schema for a successful operation
+                    type: object
+                    properties:
+                      version:
+                        type: string
+                      success:
+                        type: boolean
+                      data:
+                        type: object
+                      service_name:
+                        type: string
+                    required:
+                      - service_name
+                      - version
+                      - success
+                      - data
+                    example:
+                      service_name: watcher
+                      version: 1.0.0+abcdefa
+                      success: true
+                      data: {}
+                  - type: object
+                    properties:
+                      data:
+                        description: The object schema for an error
+                        type: object
+                        properties:
+                          object:
+                            type: string
+                          code:
+                            type: string
+                          description:
+                            type: string
+                          messages:
+                            type: object
+                        required:
+                          - object
+                          - code
+                          - description
+                          - messages
+                    required:
+                      - data
+                    example:
+                      success: false
+                      data:
+                        object: error
+                        code: 'server:internal_server_error'
+                        description: Something went wrong on the server
+                        messages:
+                          error_key: error_reason
   /in_flight_exit.get_data:
     post:
       tags:
